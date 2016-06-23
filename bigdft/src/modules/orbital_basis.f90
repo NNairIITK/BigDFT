@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
 !> Datatypes for localization regions descriptors
 module orbitalbasis
   use module_defs, only: gp,wp
@@ -64,6 +62,20 @@ module orbitalbasis
 !!$     integer :: ilr !inwhichlocreg or ilr
   end type direct_descriptor
 
+
+  type, public :: orbital_basis
+!!$     integer :: nbasis !< number of basis elements
+!!$     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
+     !> descripto of each support function, of size nbasis
+     type(direct_descriptor), dimension(:), pointer :: dd
+     type(transposed_descriptor) :: td
+     type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
+     type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
+     real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
+     real(wp), dimension(:), pointer :: phis_wvl_t !<coefficients in compact form for all the local sf, transposed form
+  end type orbital_basis
+
+
   type, public :: ket ! support_function
      integer :: nphidim  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: ispsi !< Shift in the global array to store phi_wvl
@@ -71,7 +83,11 @@ module orbitalbasis
      !id
      integer :: iorb
      !> spin
-     integer:: nspin,nspinor
+     integer:: nspin,nspinor,ispin
+     !> complex
+     integer :: ncplx
+     !> number of components
+     integer :: n_ket
      real(gp), dimension(3) :: kpoint
      real(gp) :: kwgt,occup,spinval
      type(confpot_data) :: confdata
@@ -85,19 +101,9 @@ module orbitalbasis
      integer :: nlrp,ilr,ilr_max,ilr_min,iorbp,ikpt,ikpt_max
   end type ket
 
-  type, public :: orbital_basis
-     !> descriptor of each support function, of size nbasis
-     type(direct_descriptor), dimension(:), pointer :: dd
-     type(transposed_descriptor) :: td
-     type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
-     type(confpot_data), dimension(:), pointer :: confdatarr !< data for the confinement potential
-     real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
-     real(wp), dimension(:), pointer :: phis_wvl_t !<coefficients in compact form for all the local sf, transposed form
-  end type orbital_basis
-
   public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator,ket_next_kpt,ob_transpose,ob_untranspose
-  public :: ob_subket_ptr,precondition_ket
+  public :: ob_subket_ptr,precondition_ket,ob_ss_psi_map
   public :: subspace_next,subspace_iterator_zip,ob_ss_matrix_map,subspace_iterator
 
 contains
@@ -125,6 +131,23 @@ contains
     nullify(ob%confdatarr)
     nullify(ob%phis_wvl,ob%phis_wvl_t)
   end subroutine nullify_orbital_basis
+
+  !>to determine the size that it is really allocated
+  function sizeof(dd)
+    use f_precisions
+    implicit none
+    type(direct_descriptor), dimension(:), pointer :: dd
+    integer :: sizeof
+    !local variables
+    type(direct_descriptor), dimension(3) :: ddtmp
+    integer(f_address) :: a0,a1
+
+    a1=f_loc(ddtmp(3))
+    a0=f_loc(ddtmp(2))
+    sizeof=int(a1-a0)
+
+  end function sizeof
+    
 
   !>this subroutine is not reinitializing each component of the
   !! iterator as some of them has to be set by the 'next' functions
@@ -401,9 +424,23 @@ contains
     ikpt=k%ob%orbs%iokpt(k%iorbp)
     if (ikpt /= k%ikpt) call f_err_throw('Internal error in update ket',err_name='BIGDFT_RUNTIME_ERROR')
     k%kpoint=k%ob%orbs%kpts(:,ikpt)
+
+    if (k%nspinor > 1) then !which means 2 or 4
+       k%ncplx=2
+       k%n_ket=k%nspinor/2
+    else
+       k%n_ket=1
+       if (all(k%kpoint == 0.0_gp)) then
+          k%ncplx=1
+       else
+          k%ncplx=2
+       end if
+    end if
+
     k%kwgt=k%ob%orbs%kwgts(ikpt)
     k%occup=k%ob%orbs%occup(k%iorb)
     k%spinval=k%ob%orbs%spinsgn(k%iorb)
+    k%ispin=merge(1,2,k%spinval==1.0_gp)
     if (associated(k%ob%confdatarr)) k%confdata=k%ob%confdatarr(k%iorbp)
     !shifts metadata
     k%ispot=k%ob%orbs%ispot(k%iorbp)
@@ -542,6 +579,17 @@ contains
     ok=associated(it%ob)
   end function subspace_is_valid
 
+  function ob_ss_psi_map(psi,ss) result(psi_ptr)
+    use dynamic_memory, only: f_subptr
+    implicit none
+    real(wp), dimension(:), intent(in), target :: psi
+    type(subspace), intent(in) :: ss
+    real(wp), dimension(:), pointer :: psi_ptr
+
+    psi_ptr=>f_subptr(psi,from=ss%ispsi,&
+       size=ss%nvctr*ss%ncplx*ss%norb)
+  end function ob_ss_psi_map
+
   !>map the matrix pointer at the correct point
   function ob_ss_matrix_map(mat,ss) result(ptr)
     use dynamic_memory, only: f_subptr
@@ -579,6 +627,8 @@ contains
             err_name='BIGDFT_RUNTIME_ERROR')
     end if
   end function subspace_next
+
+
 
   !pure 
   subroutine increment_subspace(it)
@@ -628,14 +678,16 @@ contains
 
        it%ispsi_prev=it%ispsi_prev+nvctrp*it%norb*nspinor
 
-       if (associated(it%ob%phis_wvl_t)) it%phi_wvl=>f_subptr(it%ob%phis_wvl_t,from=it%ispsi,&
-            size=it%nvctr*it%ncplx*it%norb)
+       if (associated(it%ob%phis_wvl_t)) it%phi_wvl=> ob_ss_psi_map(it%ob%phis_wvl_t,it)
+       !it%phi_wvl=>f_subptr(it%ob%phis_wvl_t,from=it%ispsi,&
+       !     size=it%nvctr*it%ncplx*it%norb)
        
        exit
     end do
 
   end subroutine increment_subspace
 
+ 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac
     use locreg_operations, only: workarr_locham,psir_to_vpsi, isf_to_daub_kinetic
@@ -805,8 +857,9 @@ contains
   
 
   subroutine orbital_basis_associate(ob,orbs,Lzd,Glr,comms,confdatarr,&
-       nspin,phis_wvl)
+       nspin,phis_wvl,id)
     use dynamic_memory
+    use f_precisions
     implicit none
     type(orbital_basis), intent(inout) :: ob
     integer, intent(in), optional :: nspin
@@ -815,6 +868,7 @@ contains
     type(local_zone_descriptors), intent(in), optional, target :: Lzd
     type(locreg_descriptors), intent(in), optional, target :: Glr !< in the case where only one Lrr is needed
     type(confpot_data), dimension(:), optional, intent(in), target :: confdatarr
+    character(len=*), intent(in), optional :: id !<id of the calling routine
     real(wp), dimension(:), target, optional :: phis_wvl
     !other elements have to be added (comms etc)
     !local variables
@@ -841,6 +895,15 @@ contains
 
     if (present(Lzd)) then
        allocate(ob%dd(orbs%norbp))
+       !the allocation did not crashed therefore update the database
+       if (present(id)) then
+          call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
+               f_loc(ob%dd),'dd',id)
+       else
+          call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
+               f_loc(ob%dd),'dd','orbital_basis_associate')
+       end if
+       
        do iorb=1,orbs%norbp
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
           ob%dd(iorb)%lr => Lzd%Llr(ilr)
@@ -867,48 +930,75 @@ contains
   end subroutine orbital_basis_associate
 
   subroutine orbital_basis_release(ob)
+    use module_base, only: bigdft_mpi
     use dynamic_memory
+    use f_precisions
     implicit none
     type(orbital_basis), intent(inout) :: ob
+    !local variables
+    integer(f_long) :: isize
+    integer(f_address) :: iadd
 
     !nullification and reference counting (when available)
     if (associated(ob%dd)) then
+       isize=int(size(ob%dd),f_long)
+       iadd=f_loc(ob%dd)
        deallocate(ob%dd)
        nullify(ob%dd)
+       call f_purge_database(isize,sizeof(ob%dd),iadd,'dd','orbital_basis_release')
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
-    call f_free_ptr(ob%phis_wvl_t)
+    if (bigdft_mpi%nproc>1) call f_free_ptr(ob%phis_wvl_t)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
 
   !ensure that the wavefunction is transposed
-  subroutine ob_transpose(ob)
+  subroutine ob_transpose(ob,psi)
     use module_base
     use communications, only: transpose_v
     implicit none
     type(orbital_basis), intent(inout) :: ob
+    real(wp), dimension(:), target, optional :: psi
     !local variables
     integer :: psisize,wsize
     real(wp), dimension(:), allocatable :: work
+    real(wp), dimension(:), pointer :: psi_data,psit_data
 
-    psisize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
-    wsize=1
-    if (.not. associated(ob%phis_wvl_t)) then
+    if (present(psi)) then
+       psit_data => psi
+       psi_data => psi
+       wsize=1
        if (bigdft_mpi%nproc > 1 ) then
-          ob%phis_wvl_t=f_malloc_ptr(psisize,id='phis_wvl_t')
-          wsize=psisize
-       else
-          ob%phis_wvl_t=>ob%phis_wvl
+          wsize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
+          psit_data=f_malloc_ptr(wsize,id='psit')
        end if
+    else
+       psisize=max(ob%orbs%npsidim_orbs,ob%orbs%npsidim_comp)
+       wsize=1
+       if (.not. associated(ob%phis_wvl_t)) then
+          if (bigdft_mpi%nproc > 1 ) then
+             ob%phis_wvl_t=f_malloc_ptr(psisize,id='phis_wvl_t')
+             wsize=psisize
+          else
+             ob%phis_wvl_t=>ob%phis_wvl
+          end if
+       end if
+       psi_data=>ob%phis_wvl
+       psit_data => ob%phis_wvl_t
     end if
 
     work=f_malloc(wsize,id='work')
 
     call transpose_v(bigdft_mpi%iproc,bigdft_mpi%nproc,&
          ob%orbs,ob%td%Glr%wfd,ob%td%comms,&
-         ob%phis_wvl(1),work(1),ob%phis_wvl_t(1)) !optional
+         psi_data(1),work(1),psit_data(1)) !optional
     
     call f_free(work)
+
+    if (present(psi) .and. bigdft_mpi%nproc >1) then
+       call f_memcpy(src=psit_data,dest=psi)
+       call f_free_ptr(psit_data)
+    end if
 
   end subroutine ob_transpose
 

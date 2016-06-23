@@ -1,4 +1,4 @@
-SUBDIRS = sparsealgebra
+#SUBDIRS = 
 
 check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi

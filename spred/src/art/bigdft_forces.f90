@@ -29,7 +29,7 @@ module bigdft_forces
    logical :: first_time  = .True.
    integer :: nproc, me
    type(run_objects) :: runObj
-   type(atoms_data) :: atoms_all !at are the quantum atoms
+   type(atoms_data), save :: atoms_all !at are the quantum atoms
    real(gp), parameter :: ht2ev = 27.2113834_gp
 
    real(kind=8) :: gnrm_l

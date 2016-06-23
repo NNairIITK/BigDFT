@@ -47,7 +47,7 @@ module psolver_environment
   type(f_enumerator), parameter, public :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
   !>threshold for comparison with zero
-  real(dp), parameter :: thr=1.d-15
+  real(dp), parameter :: thr=1.d-12
 
   !conversion factors in AU
 
@@ -374,7 +374,7 @@ contains
     ff(:,:)=0.0_dp
     loop_at: do iat=1,nat
        rad=radii(iat)
-       d=minimum_distance(mesh,v,rxyz(1,iat))
+       d=distance(mesh,v,rxyz(1,iat))
        if (d.eq.0.d0) then
         d=1.0d-30
         eh=epsl(d,rad,cavity%delta)
@@ -468,7 +468,7 @@ contains
     eps0m1=cavity%epsilon0-vacuum_eps
     hh=mesh%volume_element
     do iat=1,nat
-       d=minimum_distance(mesh,v,rxyz(1,iat))
+       d=distance(mesh,v,rxyz(1,iat))
        rad=radii(iat)
        if (d.eq.0.d0) then
         d=1.0d-30

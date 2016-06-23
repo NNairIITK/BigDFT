@@ -1,3 +1,4 @@
+#include <config.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -36,7 +37,7 @@ static REAL_T dgrad, fret, dummy[2];
 //static STRING_T *__st0003__ = NULL;
 #define NUL '\0'
 //int nab_init_(INT_T *natoms, REAL_T *rxyz, REAL_T  *fxyz ,  char *filename_t , int *ilenn,int *l_sat,char *sat)
-int nab_init_()
+void FC_FUNC_(nab_init,NAB_INIT)(char *args)
 // , INT_T *iproc , INT_T *nproc , char *argv[])// , char *filename)
 {
 //void  nab_pdbread_(REAL_T * , char * , int * );
@@ -49,22 +50,23 @@ setxyz_from_mol(  &m, NULL, m_xyz );
 
 //mm_options( "cut=25.0, ntpr=10, nsnb=999, gamma_ln=5.0" );
 //mm_options( "ntpr=10, gb=1, surften=0.00500,  kappa=0.10395, rgbmax=99., cut=99.0, diel=C ");
-mm_options( "ntpr=1000, gb=1, gbsa=1 , rgbmax=99.,cut=99.0, diel=C ");
+//mm_options( "ntpr=1000, gb=1, gbsa=1 , rgbmax=99.,cut=99.0, diel=C ");
+mm_options( args);
 //mm_options( "ntpr=1000, gb=0, gbsa=0 , rgbmax=99.,cut=99.0, diel=C ");
 //mm_options( "cut=999., ntpr=10, nsnb=100, diel=R" );
 mme_init( m, NULL, "::Z", m_xyz, NULL );
 prm1=m->m_prm;
 
-return 0;
+return ;
 } //end of void  nab_init_
 //******************************************************************************
-void  nab_finalize_()
+void  FC_FUNC_(nab_finalize,NAB_FINALIZE)()
 {
 ier = 	mpifinalize(  ) ; 
 }
 
 
-void  call_nab_gradient_(REAL_T *rxyz , REAL_T *fxyz, REAL_T  *e_pos, INT_T *icount){
+void  FC_FUNC_(call_nab_gradient,CALL_NAB_GRADIENT)(REAL_T *rxyz , REAL_T *fxyz, REAL_T  *e_pos, INT_T *icount){
 
 int i , j ; 
 //e_pos = mme( rxyz, fxyz, ITEMP( __it0001__, 1));
@@ -92,9 +94,9 @@ void  call_nab_hessian_(REAL_T *rxyz,REAL_T *gxyz,REAL_T *hess,REAL_T  *amass) {
 }
 */
 //**************************************************************************************************
-int call_nab_hessian_(REAL_T *x,int *n,REAL_T *h,REAL_T *amass,REAL_T *g) {
+void FC_FUNC_(call_nab_hessian,CALL_NAB_HESSIAN)(REAL_T *x,int *n,REAL_T *h,REAL_T *amass,REAL_T *g) {
 	nmode_hess(x,n,mme2,h,amass,g);
-	return 0;
+	return;
 }
 //**************************************************************************************************
 #define DTYPE_ (0)
@@ -367,7 +369,7 @@ int nmode_hess( REAL_T *x, int *n,
 ////ier = conjgrad( rxyz,&__gdab0001__,e_pos, mme,  &dgrad, &dfr , &maxit) ;
 //}
 //**************************************************************************************************
-void  nab_pdbwrite_(REAL_T *rxyz , char *filename ,int *ii, char *remline)
+void  FC_FUNC_(nab_pdbwrite,NAB_PDBWRITE)(REAL_T *rxyz , char *filename ,int *ii, char *remline)
 {
 char *trim(char *) ; 
 char *file1 ; 
@@ -380,7 +382,7 @@ setmol_from_xyz(  &m, NULL, rxyz );
 }
 
 
-void  nab_pdbread_(REAL_T *rxyz , char *filename , int *ii )
+ void  FC_FUNC_(nab_pdbread,NAB_PDBREAD)(REAL_T *rxyz , char *filename , int *ii )
 {
 char *trim(char *) ; 
 char *file1 ; 
@@ -393,7 +395,7 @@ setxyz_from_mol(  &m, NULL, rxyz );
 }
 
 
-void  nab_bonds_angles_(INT_T *nbonds,INT_T *nangles ,INT_T *tbonds1, INT_T *tbonds2,INT_T *tangles1 ,  INT_T *tangles2, INT_T *tangles3) {
+ void  FC_FUNC_(nab_bonds_angles,NAB_BONDS_ANGLES)(INT_T *nbonds,INT_T *nangles ,INT_T *tbonds1, INT_T *tbonds2,INT_T *tangles1 ,  INT_T *tangles2, INT_T *tangles3) {
 int i , ii ,iii ;
 int *ik ;
 

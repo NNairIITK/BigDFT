@@ -114,6 +114,8 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    !integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
+   call f_routine(id='call_abscalc')
+
    !put a barrier for all the processes
    call mpibarrier()
 
@@ -144,6 +146,8 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
 
    !put a barrier for all the processes
    call mpibarrier()!MPI_COMM_WORLD,ierr)
+
+   call f_release_routine()
 
 END SUBROUTINE call_abscalc
 
@@ -325,6 +329,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
       END SUBROUTINE extract_potential_for_spectra
    end interface
 
+   call f_routine(id='abscalc')
+
    energs= energy_terms_null()
    if (in%potshortcut==0) then
       if(nproc>1) call MPI_Finalize(ierr)
@@ -503,7 +509,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
    !     atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
    pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
-        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids)
+        atoms%astruct%geocode,dpcom%mesh%ndims,dpcom%mesh%hgrids)
 
    call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
@@ -1120,6 +1126,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call deallocate_before_exiting
 !   call deallocate_local_zone_descriptors(lzd)
+
+   call f_release_routine()
 
    contains
 

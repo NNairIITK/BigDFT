@@ -15,20 +15,6 @@ path=os.path.dirname(sys.argv[0])
 
 import yaml
 
-EVAL = "eval"
-SETUP = "let"
-INITIALIZATION = "globals"
-
-PRE_POST = [EVAL, SETUP, INITIALIZATION]
-
-ENERGY = "__ENERGY__"
-FERMI_LEVEL= "__FERMI_LEVEL__"
-
-BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"]],
-         FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]]}
-         
-#Builtin pathes to define the search paths
-
 # print out a python dictionary in yaml syntax
 def dict_dump(dict):
   sys.stdout.write(yaml.dump(dict,default_flow_style=False,explicit_start=True))
@@ -156,59 +142,6 @@ def document_analysis(doc,to_extract):
       #skip the document is one of the value is None
       return None
   return analysis    
-
-# this is a tentative function written to extract information from the runs
-def document_quantities(doc,to_extract):
-  analysis={}
-  for quantity in to_extract:
-    if quantity in PRE_POST: continue
-    #follow the levels indicated to find the quantity
-    field=to_extract[quantity]
-    if type(field) is not type([]) is not type({}) and field in BUILTIN:
-        paths=BUILTIN[field]
-    else:
-        paths=[field]
-    #now try to find the first of the different alternatives
-    for path in paths:
-      #print path,BUILTIN,BUILTIN.keys(),field in BUILTIN,field
-      value=doc
-      for key in path:
-        #as soon as there is a problem the quantity is null
-        try:
-          value=value[key]
-        except:
-          value=None
-          break
-      if value is not None: break        
-    analysis[quantity]=value
-  return analysis    
-
-def perform_operations(variables,ops,globs,debug=False):
-    glstr=''
-    if globs is not None:
-        for var in globs:
-            glstr+= "global "+var+"\n"
-    #first evaluate the given variables
-    for key in variables:
-        command=key+"="+str(variables[key])
-        if debug: print command
-        exec(command)
-        #then evaluate the given expression
-    if debug: print ops
-    exec(glstr+ops, globals(), locals())
-
-def get_logs(files):
-   logs=[]
-   for filename in files:
-     try:
-        logs+=[yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)]
-     except:
-        try: 
-            logs+=yaml.load_all(open(filename, "r").read(), Loader = yaml.CLoader)
-        except:
-            logs+=[None]
-            print "warning, skipping logfile",filename
-   return logs
     
 
 def parse_arguments():
@@ -429,7 +362,7 @@ class BigDFTiming:
                     self.ids.append("Unknown")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
             "Other","PS Computation","Potential",
-            "Flib LowLevel","Initialization"]
+            "Flib LowLevel","Initialization","Unknown"]
 
   def bars_data(self,vals=None,title='Time bar chart'):
     """Extract the data for plotting the different categories in bar chart"""
@@ -490,7 +423,19 @@ class BigDFTiming:
     self.values_legend=[]
     for cat in self.classes:
       try:
-        dat=np.array([doc["Classes"][cat][self.iprc] for doc in dict_list])
+        if cat == "Unknown":
+            print "here"
+            data_unk=[]
+            for doc in dict_list:
+                percent_unk=100.0-doc["Classes"]["Total"][0]
+                if self.iprc==0:
+                    data_unk.append(percent_unk)
+                elif self.iprc==1:
+                    time_unk=(doc["Classes"]["Total"][1])*percent_unk/100.0
+                    data_unk.append(time_unk) 
+            dat=np.array(data_unk)
+        else:
+            dat=np.array([doc["Classes"][cat][self.iprc] for doc in dict_list])
         catsdats.append((cat,dat))
         self.values_legend.append(cat)
       except Exception,e:
@@ -703,18 +648,21 @@ if args.data is None:
   exit(0)
 
 if args.analyze is not None and args.data:
-  instructions= yaml.load(open(args.analyze, "r").read(), Loader = yaml.CLoader)
-  if INITIALIZATION in instructions:
-      for var in instructions[INITIALIZATION]:
-          exec var +" = "+ str(instructions[INITIALIZATION][var])
+  import Logfiles as lf
+  instructions=lf.get_log(args.analyze)
   print '#',args.data,argcl
-  for f in argcl:
-    sys.stderr.write("#########processing "+f+"\n")
-    datas=get_logs([f])
-    for doc in datas:
-      doc_res=document_quantities(doc,instructions)
-      #print doc_res,instructions
-      if EVAL in instructions: perform_operations(doc_res,instructions[EVAL],instructions.get(INITIALIZATION))
+  lf.process_logfiles(argcl,instructions)
+##  instructions= yaml.load(open(args.analyze, "r").read(), Loader = yaml.CLoader)
+##  if INITIALIZATION in instructions:
+##      for var in instructions[INITIALIZATION]:
+##          exec var +" = "+ str(instructions[INITIALIZATION][var])
+##  for f in argcl:
+##    sys.stderr.write("#########processing "+f+"\n")
+##    datas=get_logs([f])
+##    for doc in datas:
+##      doc_res=document_quantities(doc,instructions)
+##      #print doc_res,instructions
+##      if EVAL in instructions: perform_operations(doc_res,instructions[EVAL],instructions.get(INITIALIZATION))
   exit(0)
 
 if args.data:

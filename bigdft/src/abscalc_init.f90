@@ -201,7 +201,6 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_interfaces, only: gaussian_pswf_basis
   use gaussians, only: deallocate_gwf
   use psp_projectors, only: bounds_to_plr_limits
-  use psp_projectors_base, only: deallocate_nonlocal_psp_descriptors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -448,18 +447,15 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      call deallocate_gwf(PPD%G)
   endif
 
-  do iat=1,at%astruct%nat
-     call deallocate_nonlocal_psp_descriptors(PPD%pc_nl%pspd(iat))
-  end do
+!  call free_pspd_ptr(PPD%pc_nl%pspd)
+!!$  do iat=1,at%astruct%nat
+!!$     call deallocate_nonlocal_psp_descriptors(PPD%pc_nl%pspd(iat))
+!!$  end do
 
   call f_free_ptr(PPD%pc_nl%proj)
 
   call f_free(logrid)
   call f_free_ptr(Gocc)
-
-!!$  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
-!!$  deallocate(iorbtolr,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'iorbtolr',subname)
 
   call f_free_ptr(iorbto_l)
   call f_free_ptr(iorbto_m)
@@ -686,10 +682,6 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   call f_free(logrid)
   call f_free_ptr(Gocc)
 
-!!$  i_all=-product(shape(iorbtolr))*kind(iorbtolr)
-!!$  deallocate(iorbtolr,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'iorbtolr',subname)
-
   call f_free_ptr(iorbto_l)
   call f_free_ptr(iorbto_paw_nchannels)
 
@@ -706,7 +698,7 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   !use module_base
   use module_types
   use module_abscalc
-  use psp_projectors_base, only: nonlocal_psp_descriptors_null, deallocate_nonlocal_psp_descriptors
+  use psp_projectors_base, only: nonlocal_psp_descriptors_null
   use psp_projectors, only: pregion_size, bounds_to_plr_limits
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
@@ -952,10 +944,6 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      write(*,'(1x,a,i21)') 'Total number of components =',PAWD%paw_nl%nprojel
      write(*,'(1x,a,i21)') 'Percent of zero components =',nint(100.0_gp*zerovol)
   end if
-
-  do iat=1,PAWD%paw_nl%natoms
-     call deallocate_nonlocal_psp_descriptors(PAWD%paw_nl%pspd(iat))
-  end do
 
 contains
   

@@ -164,3 +164,9 @@ netcdf-fortran-*.tar.*
 netcdf-fortran-*/
 GaIn-*/
 spred/INSTALL
+libABINIT/compile
+chess/compile
+chess/depcomp
+chess/install-sh
+chess/missing
+

@@ -22,14 +22,14 @@
 
   <include href="gnome.modules"/>
 
-  <autotools id="libxc" check-target="false" autogen-sh="autoreconf">
+  <autotools id="libxc" check-target="false" autogen-sh="autoreconf" skip-autogen="true">
     <!--<branch repo="libxc" checkoutdir="libxc-2.0.x"/>-->
     <branch repo="local" module="libxc-2.2.2.tar.gz" version="2.2.2" checkoutdir="libxc">
             <!-- <patch file="libxc-2.0.x.patch" />-->
     </branch>
   </autotools>
 
-  <autotools id="libyaml" autogen-sh="autoreconf">
+  <autotools id="libyaml" autogen-sh="autoreconf" skip-autogen="true">
     <!--<branch repo="libyaml" module="yaml-0.1.4.tar.gz" version="0.1.4"/>-->
     <branch repo="local" module="yaml-0.1.6.tar.gz" version="0.1.6" checkoutdir="yaml"/>
   </autotools>
@@ -53,7 +53,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="GaIn">
+  <autotools id="GaIn" skip-autogen="true">
     <branch repo="local" module="GaIn-1.0.tar.gz"
             version="1.0"/>
   </autotools>
@@ -86,11 +86,22 @@
     </dependencies>
   </autotools>
 
+  <autotools id="chess" autogen-sh="autoreconf">
+    <branch repo="local" module="CheSS-1.0.tar.gz" version="1.0" checkoutdir="chess"/>
+    <dependencies>
+      <dep package="futile"/>
+      <if condition-set="testing">
+        <dep package="PyYAML"/>
+      </if>
+    </dependencies>
+  </autotools>
+
   <autotools id="bigdft" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
     <branch repo="local" module="bigdft-1.8.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="futile"/>
+      <dep package="chess"/>
       <dep package="libxc"/>
       <dep package="psolver"/>
       <dep package="libABINIT"/>
@@ -121,7 +132,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="pseudo" autogen-sh="autoreconf">
+  <autotools id="pseudo" autogen-sh="autoreconf" skip-autogen="true">
     <!--<branch repo="bigdft" module="pseudo" version="1.7.5"/>-->
     <branch repo="local" module="pseudo-1.7.5.tar.gz" version="1.7.5" checkoutdir="pseudo"/>
     <dependencies>
@@ -132,18 +143,18 @@
     </dependencies>
   </autotools>
 
-  <makesys id="wannier90">
+  <makesys id="wannier90" skip-autogen="true">
     <branch repo="wannier" module="wannier90-2.0.0.tar.gz" version="2.0.0">
       <patch file="wannier90-2.0.0.patch" />
     </branch>
   </makesys>
 
-  <autotools id="netcdf" autogenargs="--disable-netcdf-4">
+  <autotools id="netcdf" autogenargs="--disable-netcdf-4" skip-autogen="true">
     <branch repo="unidata" module="netcdf/netcdf-4.3.3.tar.gz"
             version="4.3.3"/>
   </autotools>
 
-  <autotools id="netcdff">
+  <autotools id="netcdff" skip-autogen="true">
     <branch repo="unidata" module="netcdf/netcdf-fortran-4.4.1.tar.gz"
             version="4.4.1"/>
     <dependencies>
@@ -151,7 +162,7 @@
     </dependencies>
   </autotools>
 
-  <autotools id="etsf_io">
+  <autotools id="etsf_io" skip-autogen="true">
     <branch repo="etsf" module="etsf_io-1.0.4.tar.gz"
             version="1.0.4"/>
     <dependencies>
@@ -167,7 +178,7 @@
     </dependencies>
   </autotools> -->
 
-  <makesys id="parmetis">
+  <makesys id="parmetis" skip-autogen="true">
     <branch repo="metis" module="parmetis-4.0.2.tar.gz"
             version="4.0.2"/>
 <!--    <dependencies>

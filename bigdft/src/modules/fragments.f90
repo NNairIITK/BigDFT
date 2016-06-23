@@ -73,6 +73,7 @@ module module_fragments
      real(gp), dimension(3) :: rot_center !< center of rotation in original coordinates (might be fragment center or not)
      real(gp), dimension(3) :: rot_axis !< unit rotation axis (should have modulus one)
      real(gp) :: theta !< angle of rotation
+     real(gp) :: Werror !< Wahba error associated with transformation
      !> rotation matrix. Should be applied to the fragment
      !! functions to reformat
      real(gp), dimension(3,3) :: Rmat 
@@ -706,6 +707,7 @@ contains
     ft%rot_axis      = 0.0_gp
     ft%rot_axis(1)   = 1.0_gp
     ft%theta         = 0.0_gp
+    ft%Werror        = 0.0_gp
     ft%Rmat          = 0.0_gp
     ft%Rmat(1,1)     = 1.0_gp
     ft%Rmat(2,2)     = 1.0_gp
@@ -794,14 +796,14 @@ contains
 
   !end function transform_fragment_basis
 
-  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans,J)
+  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans)
     use module_base
     use yaml_output
     implicit none
     integer, intent(in) :: nat !< fragment size
     real(gp), dimension(3,nat), intent(in) :: rxyz_ref,rxyz_new !<coordinates measured wrt rot_center
     type(fragment_transformation), intent(inout) :: frag_trans
-    real(gp), intent(out) :: J !< Wahba cost function, i.e. error in transformation
+    !real(gp), intent(out) :: J !< Wahba cost function, i.e. error in transformation - now included in structure
     !local variables
     integer, parameter :: lwork=7*3
     integer :: info,iat!,i_stat,i
@@ -867,9 +869,9 @@ contains
     !to be verified that the cost function of Wahba's problem is little
     J_arr=rxyz_new
     call dgemm('N','N',3,nat,3,-1.0_gp,R_mat,3,rxyz_ref,3,1.0_gp,J_arr,3)
-    J=0.0_gp
+    frag_trans%Werror=0.0_gp
     do iat=1,nat
-       J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
+       frag_trans%Werror=frag_trans%Werror+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
 !!$    !here yaml output
@@ -892,7 +894,7 @@ contains
        end do
 
        !replace with no rotation
-       if (J0<J .or. J0-J<1e-6) then
+       if (J0<frag_trans%Werror .or. J0-frag_trans%Werror<1e-6) then
           !write(*,'(a,6(es12.4,2x))') 'replacing suggested transformation with zero transformation ',&
           !     J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
           frag_trans%Rmat=0.0d0
@@ -901,7 +903,7 @@ contains
           frag_trans%Rmat(3,3)=1.0d0
           frag_trans%theta=0.0d0
           frag_trans%rot_axis=axis_from_r(R_mat)
-          J=J0
+          frag_trans%Werror=J0
        !else 
        !   write(*,'(a,6(es12.4,2x))') 'NOT replacing suggested transformation with zero transformation ',&
        !        J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis

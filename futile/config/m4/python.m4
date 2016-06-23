@@ -1,6 +1,6 @@
 ## this one is commonly used with AM_PATH_PYTHONDIR ...
 dnl AM_CHECK_PYMOD(MODNAME [,SYMBOL [,ACTION-IF-FOUND [,ACTION-IF-NOT-FOUND]]])
-dnl Check if a module containing a given symbol is visible to python.
+dnl Check if a module containing a given symbol is visible to machine's python.
 AC_DEFUN([AM_CHECK_PYMOD],
 [AC_REQUIRE([AM_PATH_PYTHON])
 py_mod_var=`echo $1['_']$2 | sed 'y%./+-%__p_%'`

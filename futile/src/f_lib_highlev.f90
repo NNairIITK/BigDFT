@@ -199,6 +199,7 @@ subroutine f_lib_finalize()
   call f_timing_finalize()
   !debug, once again
   call dictionary_check_leak()
+
 end subroutine f_lib_finalize
 
 
@@ -221,3 +222,18 @@ end subroutine f_lib_finalize_noreport
 module f_lib_package
 include 'configure.inc'
 end module f_lib_package
+
+!> complete module of futile, to be used for high-level programs
+module futile
+  use yaml_strings
+  use dictionaries
+  use yaml_output
+  use f_utils
+  use yaml_parse
+  use dynamic_memory
+  use f_refcnts
+  use time_profiling
+  use f_input_file
+  use f_enums
+  use f_ternary
+end module futile

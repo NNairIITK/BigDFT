@@ -14,7 +14,7 @@ flib_libraries = $(top_builddir)/src/libfutile-1.a @LIBS_EXT_DEPS@
 endif
 
 dict_SOURCES = dict.c
-dict_LDADD = $(flib_libraries) @GLIB_LIBS@
+dict_LDADD = $(flib_libraries) @GLIB_LIBS@ $(FCLIBS)
 
 pyscript_SOURCES = objs.f90
 pyscript_LDADD = $(flib_libraries)

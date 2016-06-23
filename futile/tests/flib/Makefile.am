@@ -25,7 +25,7 @@ yaml_test_LDADD = $(flib_libraries)
 hooks_SOURCES = hooks.f90
 hooks_LDADD = $(flib_libraries)
 
-CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml
+CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml *.@MODULE_EXT@
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a

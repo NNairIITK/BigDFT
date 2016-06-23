@@ -23,6 +23,7 @@ module locregs_init
   !public :: determine_wfd_periodicity !is this one deprecated?
   public :: check_linear_inputguess
   public :: small_to_large_locreg
+  public :: assign_to_atoms_and_locregs
 
 
   contains
@@ -620,40 +621,46 @@ module locregs_init
     
           !dz=((ii3*hz)-locregCenter(3))**2
           !dy=((ii2*hy)-locregCenter(2))**2
-          do i=i0,i1
-              ii1=i+nl1glob
-              do ij3=ijs3,ije3!-1,1
-                  jj3=ii3+ij3*(n3glob+1)
-                  dz=((jj3*hz)-locregCenter(3))**2
+          do ij3=ijs3,ije3!-1,1
+              jj3=ii3+ij3*(n3glob+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  ! From the viewpoint of the z coordinate we are inside the cutoff, check now also the y and x dimensions
                   do ij2=ijs2,ije2!-1,1
                       jj2=ii2+ij2*(n2glob+1)
                       dy=((jj2*hy)-locregCenter(2))**2
-                      do ij1=ijs1,ije1!-1,1
-                          jj1=ii1+ij1*(n1glob+1)
-                          dx=((jj1*hx)-locregCenter(1))**2
-                          if(dx+dy+dz<=cut) then
-                              ixmax=max(jj1,ixmax)
-                              iymax=max(jj2,iymax)
-                              izmax=max(jj3,izmax)
-                              ixmin=min(jj1,ixmin)
-                              iymin=min(jj2,iymin)
-                              izmin=min(jj3,izmin)
-                          end if
-                      end do
+                      if(dy+dz<=cut) then
+                          ! From the viewpoint of the y and z coordinate we are inside the cutoff, check now also the x dimension
+                          do i=i0,i1
+                              ii1=i+nl1glob
+                              do ij1=ijs1,ije1!-1,1
+                                  jj1=ii1+ij1*(n1glob+1)
+                                  dx=((jj1*hx)-locregCenter(1))**2
+                                  if(dx+dy+dz<=cut) then
+                                      ixmax=max(jj1,ixmax)
+                                      iymax=max(jj2,iymax)
+                                      izmax=max(jj3,izmax)
+                                      ixmin=min(jj1,ixmin)
+                                      iymin=min(jj2,iymin)
+                                      izmin=min(jj3,izmin)
+                                  end if
+                              end do
+                          end do
+                      end if
                   end do
-              end do
-              !dx=((ii1*hx)-locregCenter(1))**2
-              !!dx=((ii1*hx)-locregCenter(1))**2
-              !!if(dx+dy+dz<=cut) then
-              !!    ixmax=max(ii1,ixmax)
-              !!    iymax=max(ii2,iymax)
-              !!    izmax=max(ii3,izmax)
-              !!    ixmin=min(ii1,ixmin)
-              !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
-              !!    iymin=min(ii2,iymin)
-              !!    izmin=min(ii3,izmin)
-              !!end if
+              end if
           end do
+          !dx=((ii1*hx)-locregCenter(1))**2
+          !!dx=((ii1*hx)-locregCenter(1))**2
+          !!if(dx+dy+dz<=cut) then
+          !!    ixmax=max(ii1,ixmax)
+          !!    iymax=max(ii2,iymax)
+          !!    izmax=max(ii3,izmax)
+          !!    ixmin=min(ii1,ixmin)
+          !!    !if(ii1<ixmin) iiimin=j0-1 ; isegmin=iseg
+          !!    iymin=min(ii2,iymin)
+          !!    izmin=min(ii3,izmin)
+          !!end if
       end do
       !$omp enddo
       !$omp end parallel
@@ -735,7 +742,7 @@ module locregs_init
           ii2=i2+nl2glob
           ii3=i3+nl3glob
 
-          ! First just check the z dimension. If inside is false, proceed deirectly,
+          ! First just check the z dimension. If inside is false, proceed directly,
           ! otherwise check also the other dimensions.
           inside=.false.
           do ij3=ijs3,ije3!-1,1
@@ -832,6 +839,7 @@ module locregs_init
       integer :: i1l, i2l, i3l, ii1, ii2, ii3, loc, n1p1, np, n1lp1, nlp, igridgloba
       !integer :: igridpointa
       integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr, ijs1, ijs2, ijs3, ije1, ije2, ije3
+      integer :: nsegglob_start, nsegglob_end
       real(kind=8) :: cut, dx, dy, dz
       logical :: segment, inside
       integer,dimension(:,:),pointer :: ise
@@ -927,8 +935,46 @@ module locregs_init
       !!end do
 
 
+
+      ! Count how many global segments have an overlap from the viewpoint of the z coordinate
+      nsegglob_start = huge(nsegglob_start)
+      nsegglob_end = 0
+      cut=locrad**2
+      n1p1=n1+1
+      np=n1p1*(n2+1)
+      !$omp parallel if (nsegglob>1000) &
+      !$omp default(none) &
+      !$omp shared(nsegglob, keygglob, np, nl3glob, ijs3, ije3, n3) &
+      !$omp shared(hz, locregCenter, cut, nsegglob_start, nsegglob_end) &
+      !$omp private(iseg, j0, j1, ii, i3, ii3, inside, ij3, jj3, dz)
+      !$omp do reduction(min: nsegglob_start) reduction(max: nsegglob_end)
+      do iseg=1,nsegglob
+          j0=keygglob(1,iseg)
+          j1=keygglob(2,iseg)
+          ii=j0-1
+          i3=ii/np
+          ii3=i3+nl3glob
+
+          inside=.false.
+          do ij3=ijs3,ije3
+              jj3=ii3+ij3*(n3+1)
+              dz=((jj3*hz)-locregCenter(3))**2
+              if(dz<=cut) then
+                  inside=.true.
+              end if
+          end do
+          if (inside) then
+              nsegglob_start = min(nsegglob_start,iseg)
+              nsegglob_end = max(nsegglob_end,iseg)
+          end if
+      end do
+      !$omp end do
+      !$omp end parallel
+
+
+
     
-      call distribute_on_threads(nsegglob, nthread, ise)
+      call distribute_on_threads(nsegglob_start, nsegglob_end, nthread, ise)
     
       keygloc_work = f_malloc((/1.to.2,1.to.nseg,0.to.nthread-1/),id='keygloc_work')
       keyg_glob_work = f_malloc((/1.to.2,1.to.nseg,0.to.nthread-1/),id='keyg_glob_work')
@@ -941,9 +987,9 @@ module locregs_init
       !can add openmp here too as segment always ends at end of y direction? 
       !problem is need nend value - can do a pre-scan to find seg value only as with init_collcom.
       !for now just do omp section
-      cut=locrad**2
-      n1p1=n1+1
-      np=n1p1*(n2+1)
+      !!cut=locrad**2
+      !!n1p1=n1+1
+      !!np=n1p1*(n2+1)
       n1lp1=n1l+1
       nlp=n1lp1*(n2l+1)
       ivctr=0
@@ -984,17 +1030,17 @@ module locregs_init
           ii2=i2+nl2glob
           ii3=i3+nl3glob
 
-          ! First just check the z dimension. If inside is false, proceed deirectly,
-          ! otherwise check also the other dimensions.
-          inside=.false.
-          do ij3=ijs3,ije3!-1,1
-              jj3=ii3+ij3*(n3+1)
-              dz=((jj3*hz)-locregCenter(3))**2
-              if(dz<=cut) then
-                  inside=.true.
-              end if
-          end do
-          check_z_if: if (inside) then
+          !!! First just check the z dimension. If inside is false, proceed directly,
+          !!! otherwise check also the other dimensions.
+          !!inside=.false.
+          !!do ij3=ijs3,ije3!-1,1
+          !!    jj3=ii3+ij3*(n3+1)
+          !!    dz=((jj3*hz)-locregCenter(3))**2
+          !!    if(dz<=cut) then
+          !!        inside=.true.
+          !!    end if
+          !!end do
+          !!check_z_if: if (inside) then
               ! May be inside the sphere, so check also the other dimensions.
               ! Since each line in y (and thus also each plane in the z dimensions) starts
               ! a new segment, the following does not have to be done.
@@ -1018,7 +1064,7 @@ module locregs_init
                               jj1=ii1+ij1*(n1+1)
                               dx=((jj1*hx)-locregCenter(1))**2
                               if(dx+dy+dz<=cut) then
-                                  if (inside) stop 'twice inside'
+                                  if (inside) call f_err_throw('twice inside',err_name='BIGDFT_RUNTIME_ERROR')
                                   inside=.true.
                                   ii1mod=jj1
                                   ii2mod=jj2
@@ -1101,7 +1147,7 @@ module locregs_init
                   end if
                   kvctr=0
               end if
-          end if check_z_if
+          !!end if check_z_if
       end do
       ! Some checks
       if (nstart/=nend) call f_err_throw('nstart/=nend',err_name='BIGDFT_RUNTIME_ERROR')
@@ -2343,6 +2389,289 @@ module locregs_init
       end do
           
     end subroutine check_linear_inputguess
+
+
+    subroutine assign_to_atoms_and_locregs(iproc, nproc, norb, nat, nspin, norb_per_atom, rxyz, &
+               on_which_atom, in_which_locreg)
+      use module_base
+      use sort, only: QsortC
+      implicit none
+    
+      integer,intent(in):: nat,iproc,nproc,nspin,norb
+      integer,dimension(nat),intent(in):: norb_per_atom
+      real(8),dimension(3,nat),intent(in):: rxyz
+      integer,dimension(:),pointer,intent(out):: on_which_atom, in_which_locreg
+    
+      ! Local variables
+      integer:: iat, jproc, iiOrb, iorb, jorb, jat, iiat, i_stat, i_all, ispin, iispin, istart, iend, ilr, jjat
+      integer :: jjorb, norb_check, norb_nospin, isat, ii, iisorb, natp
+      integer,dimension(:),allocatable :: irxyz_ordered, nat_par
+      real(kind=8), parameter :: tol=1.0d-6 
+      real(8):: tt, dmin, minvalue, xmin, xmax, ymin, ymax, zmin, zmax
+      integer:: iatxmin, iatxmax, iatymin, iatymax, iatzmin, iatzmax, idir, nthread, ithread
+      real(8),dimension(3):: diff
+      real(kind=8),dimension(:),allocatable :: rxyz_dir, minvalue_thread
+      integer,dimension(:),allocatable :: iiat_thread
+      integer :: nbin, ibin, iatx, iiat_tot, i2dir, imin, jmin
+      real(kind=8) :: dist, d, rmin, rmax, tmin
+      integer,dimension(:),allocatable :: nat_per_bin, iat_per_bin
+      integer,dimension(:,:),allocatable :: iat_bin
+      logical,dimension(:),allocatable :: covered
+      real(kind=8),parameter :: binwidth = 6.d0 ! should probably be more or less the same as the locrads... make it variable?
+      character(len=3),parameter :: old='old', new='new'
+      character(len=3),parameter :: mode = new !old
+    
+      call f_routine(id='assign_to_atoms_and_locregs')
+
+      ! Determine in which direction the system has its largest extent
+      xmin=1.d100
+      ymin=1.d100
+      zmin=1.d100
+      xmax=-1.d100
+      ymax=-1.d100
+      zmax=-1.d100
+      do iat=1,nat
+          if(rxyz(1,iat)<xmin) then
+              xmin=rxyz(1,iat)
+              iatxmin=iat
+          end if
+          if(rxyz(1,iat)>xmax) then
+              xmax=rxyz(1,iat)
+              iatxmax=iat
+          end if
+          if(rxyz(2,iat)<ymin) then
+              ymin=rxyz(2,iat)
+              iatymin=iat
+          end if
+          if(rxyz(2,iat)>ymax) then
+              ymax=rxyz(2,iat)
+              iatymax=iat
+          end if
+          if(rxyz(3,iat)<zmin) then
+              zmin=rxyz(3,iat)
+              iatzmin=iat
+          end if
+          if(rxyz(3,iat)>zmax) then
+              zmax=rxyz(3,iat)
+              iatzmax=iat
+          end if
+      end do
+    
+      diff(1)=xmax-xmin
+      diff(2)=ymax-ymin
+      diff(3)=zmax-zmin
+      !First 4 ifs control if directions the same length to disambiguate (was random before)
+      !else, just choose the biggest
+      if(abs(diff(1)-diff(2)) < tol .and. diff(1) > diff(3)) then
+        idir=1
+        iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 2
+      else if(abs(diff(1)-diff(3)) < tol .and. diff(1) > diff(2)) then
+        idir=1
+        iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 3
+      else if(abs(diff(2)-diff(3)) < tol .and. diff(2) > diff(1)) then
+        idir=2
+        iiat=iatymin
+        rmin = ymin
+        rmax = ymax
+        i2dir = 3
+      else if(abs(diff(1)-diff(3)) < tol .and. abs(diff(2)-diff(3)) < tol) then
+        idir=1
+        iiat=iatxmin
+        rmin = xmin
+        rmax = xmax
+        i2dir = 3
+      else
+         if(maxloc(diff,1)==1) then
+             idir=1
+             iiat=iatxmin
+             rmin = xmin
+             rmax = xmax
+         else if(maxloc(diff,1)==2) then
+             idir=2
+             iiat=iatymin
+             rmin = ymin
+             rmax = ymax
+         else if(maxloc(diff,1)==3) then
+             idir=3
+             iiat=iatzmin
+             rmin = zmin
+             rmax = zmax
+         else
+             call f_err_throw('ERROR: not possible to determine the maximal extent')
+         end if
+         diff(idir) = -1.d100
+         i2dir = maxloc(diff,1)
+      end if
+
+
+      irxyz_ordered = f_malloc(nat,id='irxyz_ordered')
+      if (mode==old) then
+          ! Lookup array which orders the atoms with respect to the direction idir
+          rxyz_dir = f_malloc(nat,id='rxyz_dir')
+          do ilr=1,nat
+              rxyz_dir(ilr) = rxyz(idir,ilr)
+              irxyz_ordered(ilr) = ilr
+          end do
+          !!do ilr=1,nat
+          !!    if (iproc==0) write(*,*) 'B: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+          !!end do
+          call QsortC(rxyz_dir, irxyz_ordered)
+          !!do ilr=1,nat
+          !!    if (iproc==0) write(*,*) 'A: rxyz_dir(ilr), irxyz_ordered(ilr)', rxyz_dir(ilr), irxyz_ordered(ilr)
+          !!end do
+          call f_free(rxyz_dir)
+      end if
+
+
+      if (mode==new) then
+          ! # NEW ##################################################
+          ! Calculate the number of bins (in the largest direction)
+          nbin = max(1,ceiling((rmax-rmin)/binwidth))
+
+          ! Assign the atoms to the bins. First count how many atoms per bin we have...
+          nat_per_bin = f_malloc0(nbin,id='nat_per_bin')
+          do iat=1,nat
+              dist = rxyz(idir,iat)-rmin
+              ibin = ceiling(dist/binwidth)
+              ibin = max(ibin,1) ! to avoid bin 0 for the "minimal" atoms, i.e. the one which defines the minium value
+              if (ibin<1 .or. ibin>nbin) then
+                  call f_err_throw('wrong bin (ibin='//trim(yaml_toa(ibin))//', nbin='//trim(yaml_toa(nbin))//')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              nat_per_bin(ibin) = nat_per_bin(ibin) + 1
+          end do
+          ! ... and now assign the atoms to the bins.
+          iat_bin = f_malloc0((/maxval(nat_per_bin),nbin/),id='iat_bin')
+          iat_per_bin = f_malloc0(nbin,id='iat_per_bin')
+          do iat=1,nat
+              dist = rxyz(idir,iat)-rmin
+              ibin = ceiling(dist/binwidth)
+              ibin = max(ibin,1) ! to avoid bin 0 for the "minimal" atoms, i.e. the one which defines the minium value
+              if (ibin<1 .or. ibin>nbin) then
+                  call f_err_throw('wrong bin (ibin='//trim(yaml_toa(ibin))//', nbin='//trim(yaml_toa(nbin))//')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              iat_per_bin(ibin) = iat_per_bin(ibin) + 1
+              iat_bin(iat_per_bin(ibin),ibin) = iat
+          end do
+          ! Check
+          do ibin=1,nbin
+              if (iat_per_bin(ibin)/=nat_per_bin(ibin)) then
+                  call f_err_throw('iat_per_bin(ibin)/=nat_per_bin(ibin)',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+          end do
+          call f_free(iat_per_bin)
+
+          ! Order the atoms by always choosing the closest one within a bin
+          iiat_tot = 0
+          iatx = iiat !starting atoms
+          do ibin=1,nbin
+              covered = f_malloc(nat_per_bin(ibin),id='covered')
+              covered(:) = .false.
+              ! Determine the minimum value in the i2dir direction
+              tmin = huge(1.d0)
+              do iat=1,nat_per_bin(ibin)
+                  jjat = iat_bin(iat,ibin)
+                  if (rxyz(i2dir,jjat)<tmin) then
+                      tmin = rxyz(i2dir,jjat)
+                      imin = jjat
+                  end if
+              end do
+              iatx = imin!jjat
+              do iat=1,nat_per_bin(ibin)
+                  iiat_tot = iiat_tot + 1
+                  dmin = huge(1.d0)
+                  do jat=1,nat_per_bin(ibin)
+                      jjat = iat_bin(jat,ibin)
+                      if (covered(jat)) cycle
+                      d = (rxyz(1,jjat)-rxyz(1,iatx))**2 + (rxyz(2,jjat)-rxyz(2,iatx))**2 + (rxyz(3,jjat)-rxyz(3,iatx))**2
+                      if (d<dmin) then
+                          dmin = d
+                          jmin = jat
+                      end if
+                   end do
+                   covered(jmin) = .true.
+                   !iatx = jjat !iat_bin(jmin,ibin)
+                   irxyz_ordered(iiat_tot) = iat_bin(jmin,ibin) !iatx
+                   !write(*,*) 'iiat_tot, irxyz_ordered(iiat_tot)', iiat_tot, irxyz_ordered(iiat_tot)
+              end do
+              call f_free(covered)
+          end do
+
+          call f_free(nat_per_bin)
+          call f_free(iat_bin)
+          ! # NEW ##################################################
+      end if
+
+      on_which_atom = f_malloc0_ptr(norb,id='on_which_atom')
+      in_which_locreg = f_malloc0_ptr(norb,id='inWhichLocreg')
+
+      ! Total number of orbitals without spin
+      norb_nospin = 0
+      do jat=1,nat
+          norb_nospin = norb_nospin + norb_per_atom(jat)
+      end do
+
+      ! Parallelization over the atoms
+      nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+      natp = nat/nproc
+      nat_par(:) = natp
+      ii = nat-natp*nproc
+      nat_par(0:ii-1) = nat_par(0:ii-1) + 1
+      isat = sum(nat_par(0:iproc-1))
+      ! check
+      ii = sum(nat_par)
+      if (ii/=nat) call f_err_throw('ii/=nat',err_name='BIGDFT_RUNTIME_ERROR')
+      iisorb = 0
+      iiat = 0
+      do jproc=0,iproc-1
+          do iat=1,nat_par(jproc)
+              iiat = iiat + 1
+              jjat = irxyz_ordered(iiat)
+              iisorb = iisorb + norb_per_atom(jjat)
+          end do
+      end do
+
+      ! Calculate on_which_atom and in_which_locreg...
+      norb_check = 0
+      do ispin=1,nspin
+          iiorb = iisorb + (ispin-1)*norb_nospin
+          do iat=1,nat_par(iproc)
+              iiat = isat + iat
+              jjat = irxyz_ordered(iiat)
+              jjorb = (ispin-1)*norb_nospin
+              do jat=1,jjat-1
+                  jjorb = jjorb + norb_per_atom(jat)
+              end do
+              do iorb=1,norb_per_atom(jjat)
+                  iiorb = iiorb + 1
+                  jjorb = jjorb + 1
+                  on_which_atom(iiorb) = jjat
+                  in_which_locreg(iiorb) = jjorb
+                  norb_check = norb_check + 1
+              end do
+          end do   
+      end do
+      call mpiallred(norb_check, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (norb_check/=norb) call f_err_throw('norb_check/=norb',err_name='BIGDFT_RUNTIME_ERROR')
+
+      call mpiallred(on_which_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(in_which_locreg, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_free(nat_par)
+      call f_free(irxyz_ordered)
+
+    
+      call f_release_routine()
+    
+    end subroutine assign_to_atoms_and_locregs
+
    
 end module locregs_init
 

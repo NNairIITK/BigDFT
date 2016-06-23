@@ -167,8 +167,8 @@
          astruct%cell_dim(2)=alat2d0
          astruct%cell_dim(3)=alat3d0
       else
-         call f_err_throw('Length units in input file unrecognized.' // &
-              'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         call f_err_throw('Length units in input file unrecognized (found "'//astruct%units// &
+              '"). Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
          return
          !write(*,*) 'length units in input file unrecognized'
          !write(*,*) 'recognized units are angstroem or atomic = bohr'

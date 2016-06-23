@@ -265,7 +265,7 @@ contains
           mm_rst%refcnt=f_ref_new('mm_rst')
           mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
        endif
-       call nab_init()
+       call nab_init(inputs%nab_options)
     case('CP2K_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -1516,7 +1516,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: ok
-
+    ok=.true.
   end function bigdft_valid_dataset
 
 
@@ -1613,7 +1613,7 @@ contains
   end function bigdft_get_cell_ptr
 
 
-  !> Do a calculation using runObjs and return outs²
+  !> Do a calculation using runObjs and return outs
   !! returns energies in hartree and
   !! forces in hartree/bohr
   !! (except for LJ)
