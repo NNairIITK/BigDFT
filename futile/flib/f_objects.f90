@@ -9,7 +9,8 @@ module module_f_objects
 
   public :: f_object_new, f_object_add_method, f_object_get_method
   public :: f_object_finalize
-  public :: f_object_add_signal, f_object_signal_prepare, f_object_signal_add_arg
+  public :: f_object_add_signal, f_object_signal_prepare
+  public :: f_object_signal_add_arg, f_object_signal_add_str
   public :: f_object_signal_emit, f_object_signal_connect
 
   public :: f_object_has_signal
@@ -124,6 +125,8 @@ contains
 
     if (dict_len(class_library // obj_id // "signals" // id // "arguments") > 0) &
          & call dict_remove(class_library // obj_id // "signals" // id, "arguments")
+    if (dict_len(class_library // obj_id // "signals" // id // "strings") > 0) &
+         & call dict_remove(class_library // obj_id // "signals" // id, "strings")
     emit = (dict_len(class_library // obj_id // "signals" // id // "hooks") > 0)
   end function f_object_signal_prepare
 
@@ -138,6 +141,19 @@ contains
     call add(class_library // obj_id // "signals" // id // "arguments", arg_add)
   end subroutine f_object_signal_add_arg
 
+  subroutine f_object_signal_add_str(obj_id, id, arg_add, ln)
+    use f_precisions
+    implicit none
+    character(len = *), intent(in) :: obj_id, id
+    integer(f_address), intent(in) :: arg_add
+    integer, intent(in) :: ln
+
+    if (.not. ensure_signal(obj_id, id)) return
+
+    call add(class_library // obj_id // "signals" // id // "arguments", arg_add)
+    call add(class_library // obj_id // "signals" // id // "strings", ln)
+  end subroutine f_object_signal_add_str
+
   subroutine f_object_signal_emit(obj_id, id)
     use f_precisions
     implicit none
@@ -146,7 +162,8 @@ contains
     type(dictionary), pointer :: iter, signal
     integer(f_address) :: callback
     integer(f_address), dimension(2) :: args
-    integer :: n_args
+    integer, dimension(2) :: lens
+    integer :: n_args, n_strs
 
     if (.not. ensure_signal(obj_id, id)) return
 
@@ -154,6 +171,8 @@ contains
     n_args = signal // "n_args"
     if (dict_len(signal // "arguments") /= n_args) stop
     if (n_args > 0) args(1:n_args) = signal // "arguments"
+    n_strs = dict_len(signal // "strings")
+    if (n_strs > 0) lens(1:n_strs) = signal // "strings"
 
     iter => dict_iter(signal // "hooks")
     do while (associated(iter))
@@ -162,9 +181,21 @@ contains
        case (0)
           call call_external_c_fromadd(callback)
        case (1)
-          call call_external_c_fromadd_data(callback, args(1))
+          select case(n_strs)
+          case (0)
+             call call_external_c_fromadd_data(callback, args(1))
+          case (1)
+             call call_external_c_fromadd_data_str(callback, args(1), lens(1))
+          end select
        case (2)
-          call call_external_c_fromadd_data_data(callback, args(1), args(2))
+          select case(n_strs)
+          case (0)
+             call call_external_c_fromadd_data_data(callback, args(1), args(2))
+          case (1)
+             call call_external_c_fromadd_data_data_str(callback, args(1), args(2), lens(1))
+          case (2)
+             call call_external_c_fromadd_data_data_str_str(callback, args(1), args(2), lens(1), lens(2))
+          end select
        end select
        iter => dict_next(iter)
     end do
@@ -268,6 +299,15 @@ subroutine f_object_signal_add_arg(obj_id, id, arg)
 
   call wrapper_add(obj_id, id, f_loc(arg))
 end subroutine f_object_signal_add_arg
+
+subroutine f_object_signal_add_str(obj_id, id, arg)
+  use f_precisions
+  use module_f_objects, only: wrapper_add => f_object_signal_add_str
+  character(len = *), intent(in) :: obj_id, id
+  character(len = *), intent(in) :: arg
+
+  call wrapper_add(obj_id, id, f_loc(arg), len(arg))
+end subroutine f_object_signal_add_str
 
 subroutine f_object_signal_connect(obj_id, id, hook, n_args, sid)
   use f_precisions
