@@ -18,7 +18,7 @@ BUILDONE=' buildone '
 TINDERBOX=' tinderbox -o build '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
-DIST='  dist -distonly bigdft-suite '
+DIST='  dist --dist-only bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
 
@@ -43,6 +43,8 @@ ACTIONS={'build':
          'dry_run':
          "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file."}
 
+#actions which need rcfile to be executed
+NEEDRC=['build','dist','dry_run','startover']
 
 class BigDFTInstaller():
     def __init__(self,action,package,rcfile,verbose,quiet):
@@ -103,17 +105,18 @@ class BigDFTInstaller():
     def get_rcfile(self,rcfile):
         "Determine the rcfile"
         import os
+        #see if the environment variables BIGDFT_CFG is present
+        self.rcfile = ''
         if rcfile is not None:
             self.rcfile=rcfile
         else:
-            self.rcfile=RCFILE
+            if not (BIGDFT_CFG in os.environ.keys()) or self.action in NEEDRC: self.rcfile=RCFILE
         #see if it exists where specified
         if os.path.exists(self.rcfile): return
         #otherwise search again in the rcfiles
         rcdir=os.path.join(self.srcdir,'rcfiles')
-        self.rcfile=os.path.join(rcdir,self.rcfile)
+        if self.rcfile != '': self.rcfile=os.path.join(rcdir,self.rcfile)
         if os.path.exists(self.rcfile): return
-        #see if the environment variables BIGDFT_CFG is present
         self.rcfile = ''
         if BIGDFT_CFG in os.environ.keys(): return
         #otherwise search for rcfiles similar to hostname and propose a choice
@@ -142,7 +145,7 @@ class BigDFTInstaller():
                 except:
                     print 'The choice must be a valid integer among the above'
             self.rcfile=os.path.join(rcdir,ch)
-        elif len(rcs) == 0:
+        elif self.action in NEEDRC:
             print 'No valid configuration file provided and '+BIGDFT_CFG+' variable not present, exiting...'
             exit(1)
 
@@ -161,11 +164,13 @@ class BigDFTInstaller():
         print indent + 'Build directory:',os.path.abspath(self.builddir)
         print indent + 'Action chosen:',self.action
         print indent + 'Verbose:',self.verbose
-        print indent + 'Configuration options:'
-        if self.rcfile=='':
+        print indent + 'Jhbuild baseline:',self.jhb
+        if self.rcfile=='' and self.action in NEEDRC:
+            print indent + 'Configuration options:'
             print indent*2 + "Source: Environment variable '%s'" % BIGDFT_CFG
 	    print indent*2 + "Value: '%s'" % os.environ[BIGDFT_CFG]
-        else:
+        elif self.rcfile!='':
+            print indent + 'Configuration options:'
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
         while not self.quiet:
             ok = raw_input('Do you want to continue (Y/n)? ')
@@ -220,7 +225,9 @@ class BigDFTInstaller():
 
     def autogen(self):
         "Perform the autogen action"
-        self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')
+        import os
+        os.system(self.jhb+SETUP+self.package)
+        #self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')
 
     def check(self):
         "Perform the check action"
@@ -297,9 +304,10 @@ class BigDFTInstaller():
         if os.path.isfile(self.rcfile) and not os.path.isfile(RCFILE):
             from shutil import copyfile
             copyfile(self.rcfile,RCFILE)
+            print 'The configuration file used has been copied in the build tree, file "'+RCFILE+'"' 
             return
         if BIGDFT_CFG not in os.environ.keys() or os.path.isfile(RCFILE): return
-        print 'The suite has been built without configuration file.'
+        print 'The suite has been built from a single configure line.'
         rclist=[]
         rclist.append("""#This is the configuration file for the BigDFT installer""")
         rclist.append("""#This is a python script which is executed by the build suite """)
@@ -335,20 +343,23 @@ class BigDFTInstaller():
         print 50*'-'
         print 'Thank you for using the Installer of BigDFT suite.'
         print 'The action considered was:',self.action
-        if self.time0 is not None:
-            if self.action in ['build','dry_run']: self.rcfile_from_env()
-            if not (self.time0==self.bigdft_time()):
-                print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
-                print 'All the available executables and scripts can be found in the directory'
-                print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
-            elif (self.action == 'build' or self.action == 'make'):
-                print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
-                print '        (maybe everything was already compiled?)'
-                print 'ACTION: check the compiling procedure.'
-                if self.branch:
-                    print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
-                if not self.verbose and self.action == 'build':
-                    print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+        try:
+           if self.time0 is not None:
+               if not (self.time0==self.bigdft_time()):
+                   print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+                   print 'All the available executables and scripts can be found in the directory'
+                   print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
+                   if self.action in NEEDRC: self.rcfile_from_env()
+               elif (self.action == 'build' or self.action == 'make'):
+                   print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+                   print '        (maybe everything was already compiled?)'
+                   print 'ACTION: check the compiling procedure.'
+                   if self.branch:
+                       print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
+                   if not self.verbose and self.action == 'build':
+                      print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+        except:
+            print 'Goodbye...'
 
 #Now follows the available actions, argparse might be called
 import argparse
@@ -380,7 +391,10 @@ parser.add_argument('-f','--file',
 parser.add_argument('-d','--verbose',action='store_true',
                    help='Verbose output')
 parser.add_argument('-q','--quiet',action='store_true',
-                   help='Ask no question about the setup')
+                   help='Skip dialog after setup')
+parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
+                   help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
+
 
 
 ###Define the possible actions
@@ -391,6 +405,15 @@ parser.add_argument('-q','--quiet',action='store_true',
 ##    subparsers.add_parser(k,help=v)
 ##
 args = parser.parse_args()
+
+
+if args.configure_line is not None:
+  cfg=''
+  for i in args.configure_line:
+      cfg+='"'+i+'" '
+  #scratch the BIGDFT_CFG environment variable
+  import os
+  os.environ[BIGDFT_CFG]=cfg
 
 if args.action=='help':
     print "Quick overview of the BigDFT suite Installer program"
@@ -405,7 +428,7 @@ if args.action=='help':
     print 50*'-'
     print 10*"QIFI-"+' (Quick Instructions For the Impatient)'
     print 'Ideally, there are two different policies:'
-    print 'Developer: From a development branch, start by "autogen", then "build"'
+    print 'Developer: From a development branch, start by "startover", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 else:

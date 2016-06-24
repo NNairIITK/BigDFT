@@ -219,12 +219,13 @@ subroutine createProjectorsArrays(lr,rxyz,at,ob,&
      init_projectors_completely)
   use module_base
   use psp_projectors_base, only: DFT_PSP_projectors_null, nonlocal_psp_descriptors_null, allocate_workarrays_projectors
-  use psp_projectors, only: set_nlpsp_to_wfd, bounds_to_plr_limits
+  use psp_projectors, only: bounds_to_plr_limits
   use module_types
   use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
   use public_enums, only: PSPCODE_PAW
   use orbitalbasis
   use ao_inguess, only: lmax_ao
+  use locreg_operations, only: set_wfd_to_wfd
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -362,7 +363,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,ob,&
         end if
         !in the case of linear scaling this section has to be built again
         if (init_projectors_completely) then
-           call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
+           call set_wfd_to_wfd(lr,nl%pspd(iat)%plr,&
                 keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
         end if
 
@@ -421,6 +422,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,ob,&
         end do
         !then all the information for the density matrix allocation is available
         nl%gamma_mmp=f_malloc_ptr([2,2*lmax_ao+1,2*lmax_ao+1,igamma,2],id='gamma_mmp')
+        nl%apply_gamma_target=associated(at%gamma_targets)
       end if
 
       call f_release_routine()

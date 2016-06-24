@@ -69,20 +69,21 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft3d.f90 \
 	linalg.f90 \
 	mpi.F90 $(mpi_source) \
+	f_blas.f90 \
 	numerics.f90
 
 # Dependencies
 $(modules): $(libwrappers_a_OBJECTS)
 interface_cuda_fake.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
-
+f_blas.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
 AM_FCFLAGS = -I. -I$(top_builddir)/flib/ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
-AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@
+AM_CPPFLAGS += -I@CUDA_PATH@/include
 endif
 
 # Module files.
@@ -90,11 +91,13 @@ if CAPITALIZE
 modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	WRAPPER_LINALG.@MODULE_EXT@ \
 	WRAPPER_MPI.@MODULE_EXT@ \
+	F_BLAS.@MODULE_EXT@ \
 	NUMERICS.@MODULE_EXT@
 else
 modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
 	wrapper_mpi.@MODULE_EXT@ \
+	f_blas.@MODULE_EXT@ \
 	numerics.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h

@@ -16,7 +16,7 @@ ACLOCAL_AMFLAGS = -I config/m4
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = futile.pc
 
-SUBDIRS = flib wrappers src
+SUBDIRS = flib c-bindings wrappers src
 
 if HAVE_PYYAML
 SUBDIRS += tests

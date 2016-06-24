@@ -41,7 +41,7 @@ module sparsematrix_highlevel
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
       logical :: init_matmul_
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
@@ -83,7 +83,7 @@ module sparsematrix_highlevel
       ! Local variables
       integer :: nfvctr, nvctr
       integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
 
@@ -162,7 +162,7 @@ module sparsematrix_highlevel
       !!integer,intent(out),optional :: nat, ntypes
       !!integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
       !!character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
-      !!real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      !!real(kind=mp),dimension(:,:),pointer,intent(inout),optional :: rxyz
       !!integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
       ! Local variables
@@ -170,10 +170,12 @@ module sparsematrix_highlevel
 !      character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: val
+      real(kind=mp),dimension(:),pointer :: val
       logical :: init_matmul_
 !      integer,dimension(:),pointer :: on_which_atom_
 !      real(kind=8),dimension(3) :: cell_dim
+      real(kind=mp),dimension(:,:),pointer :: rxyz_
+      real(kind=mp),dimension(3) :: cell_dim
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
 
@@ -219,8 +221,8 @@ module sparsematrix_highlevel
       character(len=1) :: geocode
       integer,dimension(:),pointer :: keyv
       integer,dimension(:,:,:),pointer :: keyg
-      real(kind=8),dimension(:),pointer :: val
-      real(kind=8),dimension(3) :: cell_dim
+      real(kind=mp),dimension(:),pointer :: val
+      real(kind=mp),dimension(3) :: cell_dim
       integer,dimension(:),pointer :: on_which_atom
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
@@ -283,7 +285,7 @@ module sparsematrix_highlevel
 
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctr),intent(in) :: val
+      real(kind=mp),dimension(smat%nvctr),intent(in) :: val
       type(matrices),intent(out) :: mat
 
       call f_routine(id='matrices_init_from_data')
@@ -318,7 +320,7 @@ module sparsematrix_highlevel
 
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(:),intent(in) :: val
+      real(kind=mp),dimension(:),intent(in) :: val
       type(matrices),intent(inout) :: mat
 
       call f_routine(id='matrices_set_values')
@@ -344,7 +346,7 @@ module sparsematrix_highlevel
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
-      real(kind=8),dimension(:),intent(inout) :: val
+      real(kind=mp),dimension(:),intent(inout) :: val
 
       call f_routine(id='matrices_get_values')
 
@@ -462,7 +464,7 @@ module sparsematrix_highlevel
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, ncalc
       type(sparse_matrix),intent(in) ::smat_in, smat_out
-      real(kind=8),dimension(ncalc),intent(in) :: ex
+      real(kind=mp),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: mat_in
       type(matrices),dimension(ncalc),intent(inout) :: mat_out
       logical,intent(in),optional :: npl_auto
@@ -510,7 +512,7 @@ module sparsematrix_highlevel
 
     subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
-               calculate_minusonehalf, foe_verbosity)
+               calculate_minusonehalf, foe_verbosity, symmetrize_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
       implicit none
@@ -522,12 +524,12 @@ module sparsematrix_highlevel
       type(matrices),intent(in) :: overlap, ham
       type(matrices),dimension(1),intent(inout) :: overlap_minus_one_half
       type(matrices),intent(inout) :: kernel
-      real(kind=8),intent(out) :: ebs
-      logical,intent(in),optional :: calculate_minusonehalf
+      real(kind=mp),intent(out) :: ebs
+      logical,intent(in),optional :: calculate_minusonehalf, symmetrize_kernel
       integer,intent(in),optional :: foe_verbosity
 
       ! Local variables
-      logical :: calculate_minusonehalf_
+      logical :: calculate_minusonehalf_, symmetrize_kernel_
       integer :: foe_verbosity_
 
       call f_routine(id='matrix_fermi_operator_expansion')
@@ -536,6 +538,8 @@ module sparsematrix_highlevel
       if (present(calculate_minusonehalf)) calculate_minusonehalf_ = calculate_minusonehalf
       foe_verbosity_ = 1
       if (present(foe_verbosity)) foe_verbosity_ = foe_verbosity
+      symmetrize_kernel_ = .false.
+      if (present(symmetrize_kernel)) symmetrize_kernel_ = symmetrize_kernel
 
       ! Check the dimensions of the internal arrays
       if (size(overlap%matrix_compr)/=smat_s%nvctrp_tg*smat_s%nspin) then
@@ -577,7 +581,8 @@ module sparsematrix_highlevel
       call fermi_operator_expansion_new(iproc, nproc, comm, &
            ebs, &
            calculate_minusonehalf_, foe_verbosity_, &
-           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj)
+           smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, &
+           symmetrize_kernel_)
 
       call f_release_routine()
 
@@ -596,7 +601,7 @@ module sparsematrix_highlevel
       type(sparse_matrix),intent(in) :: asmat, bsmat
       type(matrices),intent(in) :: amat
       type(matrices),intent(in) :: bmat
-      real(kind=8) :: trace_AB
+      real(kind=mp) :: trace_AB
 
       ! Local variables
       integer :: iashift, ibshift

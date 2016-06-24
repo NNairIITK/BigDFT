@@ -2178,7 +2178,7 @@ subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rx
 END SUBROUTINE add_parabolic_potential
 
 
-subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
+subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime)
   use orbitalbasis
   use module_base
   use yaml_output
@@ -2186,11 +2186,12 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
   type(orbital_basis), intent(inout) :: ob_occ !< occupied subspace
   type(orbital_basis), intent(inout) :: ob_virt !< virtual subspace
   type(orbital_basis), intent(inout) :: ob_prime !<  perturbed eigenfunctions
+  real(wp), dimension(max(ob_prime%orbs%npsidim_orbs,ob_prime%orbs%npsidim_comp)), intent(inout) :: hpsiprime
   !local variables
   type(subspace) :: sso,ssp,ssv
-  real(wp), dimension(:), allocatable :: mat
+  real(wp), dimension(:), allocatable :: mat,psit
   real(wp), dimension(:,:), allocatable :: svp
-  real(wp), dimension(:), pointer :: mat_ptr
+  real(wp), dimension(:), pointer :: mat_ptr,hpsi_ptr
 
   call f_routine(id='evaluate_completeness_relation')
 
@@ -2199,6 +2200,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
   call ob_transpose(ob_prime)
   call ob_transpose(ob_occ)
   call ob_transpose(ob_virt)
+  call ob_transpose(ob_occ,psi=hpsiprime)
 
   call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
 
@@ -2210,7 +2212,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
           ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)
   end do
   
-  call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   !substract the projector |psi'_j> -= sum_i |psi_i><psi_i|psi'_j>  
   call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
   do while(subspace_next(ssp))
@@ -2230,7 +2232,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
      call subspace_matrix(.false.,ssp%phi_wvl,ssp%phi_wvl,&
           ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)
   end do
-  call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   ssp=subspace_iterator(ob_prime)
   ssv=subspace_iterator(ob_virt)
   do while(subspace_next(ssp))
@@ -2243,13 +2245,59 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime)
      end if
   end do
 
-  call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  if (bigdft_mpi%nproc >1) call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|D psi_j>',&
        svp,fmt='(1pg15.11)')
 
+  !now calcualte the same quantities for the hppsiprime objects
+  call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
+  do while(subspace_next(ssp))
+     mat_ptr=>ob_ss_matrix_map(mat,ssp)
+     hpsi_ptr=>ob_ss_psi_map(hpsiprime,ssp)
+     call subspace_matrix(.false.,hpsi_ptr,sso%phi_wvl,&
+          ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)
+  end do
+  if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  ssp=subspace_iterator(ob_prime)
+  ssv=subspace_iterator(ob_virt)
+  do while(subspace_next(ssp))
+     mat_ptr=>ob_ss_matrix_map(mat,ssp)
+     hpsi_ptr=>ob_ss_psi_map(hpsiprime,ssp)
+     if (bigdft_mpi%iproc == 0) call yaml_map('<hpsi_i|psi_j>',&
+          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.11)')
+     if (subspace_next(ssv)) then
+        call subspace_matrices(ssv%phi_wvl,hpsi_ptr,&
+             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp)
+     end if
+  end do
+  if (bigdft_mpi%nproc >1) call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|hpsi_i>',&
+       svp,fmt='(1pg15.11)')
+
+  !now calcualte the same quantities for the hp hp psiprime objects (double hamiltonian application)
+  !Build the matrix elements <psi' H | H psi'> from hpsiprime, and store it in mat
+  ssp=subspace_iterator(ob_prime)                      !initialise the iterator over spin and k-points
+  do while(subspace_next(ssp))                         !loop over spin and k-points
+     mat_ptr=>ob_ss_matrix_map(mat,ssp)                !mat has the same shape as ssp
+     hpsi_ptr=>ob_ss_psi_map(hpsiprime,ssp)            !hpsiprime has the same shape as ssp
+     call subspace_matrix(.false.,hpsi_ptr,hpsi_ptr,&
+          ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)        !compute the matrix <psi' H | H psi'>
+  end do
+  !If parallel, mpi all reduce of the matrix mat
+  if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  !Write the matrix <psi' H | H psi'>, stored in mat
+  ssp=subspace_iterator(ob_prime)                      !initialise the iterator over spin and k-points
+  do while(subspace_next(ssp))                         !loop over spin and k-points
+     !mat_ptr=>ob_ss_matrix_map(mat,ssp)
+     if (bigdft_mpi%iproc == 0) call yaml_map('<hpsip_i|hpsip_j>',&
+          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.11)') !write the matrix elements
+  end do
+
   call f_free(svp)
-!!$  call f_free(psi_i)
 
   call f_free(mat)
   call f_release_routine()

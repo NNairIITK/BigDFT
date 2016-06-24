@@ -360,19 +360,22 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
            else !normal preconditioner
               !case active only in the linear scaling case
               if(confdatarr(iorb)%prefac > 0.0_gp .or. confdatarr(iorb)%potorder > 0)then
-              !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
-              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerx, startx', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(1)/hx), lzd%llr(ilr)%ns1
-              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
-              !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
+                 !   call yaml_map('Localizing preconditioner factor',confdatarr(iorb)%prefac)
+                 !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerx, startx', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(1)/hx), lzd%llr(ilr)%ns1
+                 !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centery, starty', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(2)/hy), lzd%llr(ilr)%ns2
+                 !!write(1000+orbs%isorb+iorb,'(a,2i4,3x,2i8)') 'id, ilr, centerz, startz', orbs%isorb+iorb, ilr, nint(Lzd%Llr(ilr)%locregCenter(3)/hz), lzd%llr(ilr)%ns3
 
-              if (.not.present(linear_precond_convol_workarrays)) then
-                  call f_err_throw("linear_precond_convol_workarrays must be present when calling the linear preconditioner", &
-                                   err_name='BIGDFT_RUNTIME_ERROR')
-              end if
-              if (.not.present(linear_precond_workarrays)) then
-                  call f_err_throw("linear_precond_workarrays must be present when calling the linear preconditioner", &
-                                   err_name='BIGDFT_RUNTIME_ERROR')
-              end if
+                 if (.not.present(linear_precond_convol_workarrays)) then
+                     call f_err_throw("linear_precond_convol_workarrays must be present when calling the linear preconditioner", &
+                                      err_name='BIGDFT_RUNTIME_ERROR')
+                 end if
+                 if (.not.present(linear_precond_workarrays)) then
+                     call f_err_throw("linear_precond_workarrays must be present when calling the linear preconditioner", &
+                                      err_name='BIGDFT_RUNTIME_ERROR')
+                 end if
+                 ! When preconditioning the support functions, take as eigenvalue -0.5, as the Kohn-Sham
+                 ! eigenvalues do not really have a meaning for the support functions
+                 call cprecr_from_eval(Lzd%Llr(ilr)%geocode,eval_zero,-0.5d0,cprecr)
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&

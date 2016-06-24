@@ -294,6 +294,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   !use memory_profiling
   use time_profiling, only: f_timing
   use dynamic_memory
+  use dictionaries ! for f_err_throw
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -329,11 +330,12 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   integer, dimension(7) :: after2,now2,before2,after3,now3,before3
   real(gp), dimension(6) :: strten_omp
   !integer :: ncount0,ncount1,ncount_max,ncount_rate
-  integer :: maxIter
+  integer :: maxIter, nthreadx
   integer :: n3pr1,n3pr2,j1start,n1p,n2dimp
   integer :: ithread, nthread
+  integer,parameter :: max_memory_zt = 500 !< maximal memory for zt array, in megabytes
   ! OpenMP variables
-  !$ integer :: omp_get_thread_num, omp_get_max_threads
+  !$ integer :: omp_get_thread_num, omp_get_max_threads, omp_get_num_threads
 
   call f_routine(id='G_PoissonSolver')
 
@@ -501,19 +503,29 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
   if (n3pr1 > 1) zt_t = f_malloc((/ 2, lzt/n3pr1, n1p /),id='zt_t')
 
-  nthread = 1
-  !$ nthread = omp_get_max_threads()
+  ! Manually limit the number of threads such the memory requirements remain small
+  nthread = max(1,1000000*max_memory_zt/(8*2*(lzt/n3pr1)*n1p))
+  nthreadx = 1
+  !$ nthreadx = omp_get_max_threads()
+  nthread = min(nthread,nthreadx)
+  !write(*,*) 'nthread', nthread
   zw = f_malloc((/ 1.to.2,1.to.ncache/4,1.to.2,0.to.nthread-1 /),id='zw')
   zt = f_malloc((/ 1.to.2,1.to.lzt/n3pr1,1.to.n1p,0.to.nthread-1 /),id='zt')
 
   ithread = 0
-  !$omp parallel default(shared)&
+  !$omp parallel num_threads(nthread) &
+  !$omp default(shared)&
   !$omp private(nfft,inzee,Jp2stb,J2stb,Jp2stf,J2stf,i3,strten_omp)&
   !$omp private(j2,i1,i,j3,j) &
   !$omp firstprivate(lot, maxIter,ithread)
   !$ ithread = omp_get_thread_num()
 !  !$omp firstprivate(before3, now3, after3)
 
+  ! SM: IS it ok to call f_err_throw within an OpenMP environment?
+  ! Anyway this condition should hopefully never be true...
+  if (ithread>nthread-1) then
+      call f_err_throw('wrong thread ID')
+  end if
   !$omp do schedule(static)
   do j2 = 1, maxIter
      !this condition ensures that we manage only the interesting part for the FFT

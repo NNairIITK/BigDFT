@@ -26,6 +26,7 @@ module io
   public :: dist_and_shift
   public :: find_neighbours
   public :: plot_density
+  public :: plot_locreg_grids
 
   public :: io_files_exists
 
@@ -2135,7 +2136,7 @@ module io
                norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
-               check_accur=.true., max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
           call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
@@ -2712,6 +2713,115 @@ module io
     !!$  !end if
     
     END SUBROUTINE plot_density
+
+
+    subroutine plot_locreg_grids(iproc, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
+      use module_base
+      use module_types
+      use locreg_operations, only: lpsi_to_global2
+      implicit none
+      
+      ! Calling arguments
+      integer, intent(in) :: iproc, nspinor, nspin, orbitalNumber
+      type(locreg_descriptors), intent(in) :: llr, glr
+      type(atoms_data), intent(in) ::atoms
+      real(kind=8), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+      real(kind=8), intent(in) :: hx, hy, hz
+      
+      ! Local variables
+      integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, iunit
+      character(len=10) :: num
+      character(len=20) :: filename
+      real(kind=8), dimension(:), allocatable :: lphi, phi
+    
+      call f_routine(id='plot_locreg_grids')
+    
+      ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
+      gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
+      lphi = f_malloc(ldim,id='lphi')
+      phi = f_malloc0(gdim,id='phi')
+      lphi=1.d0
+      !!phi=0.d0
+      !call to_zero(gdim,phi(1))
+      !call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
+      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspinor, nspin, glr, llr, lphi, phi)
+      
+      write(num,'(i6.6)') orbitalNumber
+      filename='grid_'//trim(num)
+      
+      !open(unit=2000+iproc,file=trim(filename)//'.xyz',status='unknown')
+      iunit = 2000+iproc
+      call f_open_file(iunit, file=trim(filename)//'.xyz', binary=.false.)
+    
+      !write(2000+iproc,*) llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      write(2000+iproc,*) glr%wfd%nvctr_c+glr%wfd%nvctr_f+llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      if (atoms%astruct%geocode=='F') then
+         write(2000+iproc,*)'complete simulation grid with low and high resolution points'
+      else if (atoms%astruct%geocode =='S') then
+         write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
+      else if (atoms%astruct%geocode =='P') then
+         write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
+      end if
+    
+      do iat=1,atoms%astruct%nat
+        write(2000+iproc,'(a6,2x,3(1x,e12.5),3x)') trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+      end do
+    
+      
+      jjj=0
+      do iseg=1,glr%wfd%nseg_c
+         jj=glr%wfd%keyvloc(iseg)
+         j0=glr%wfd%keygloc(1,iseg)
+         j1=glr%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+             jjj=jjj+1
+             if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lg ',&
+                  real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+             write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  g ',real(i,kind=8)*hx,&
+                  real(i2,kind=8)*hy,real(i3,kind=8)*hz
+         enddo
+      enddo
+    
+      ishift=glr%wfd%nseg_c  
+      ! fine part
+      do iseg=1,glr%wfd%nseg_f
+         jj=glr%wfd%keyvloc(ishift+iseg)
+         j0=glr%wfd%keygloc(1,ishift+iseg)
+         j1=glr%wfd%keygloc(2,ishift+iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            jjj=jjj+1
+            if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') &
+                '  lG ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+            write(2000+iproc,'(a4,2x,3(1x,e10.3))') &
+                '  G ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+            jjj=jjj+6
+         enddo
+      enddo
+
+      call f_free(lphi)
+      call f_free(phi)
+      
+      !close(unit=2000+iproc)
+      call f_close(iunit)
+
+      call f_release_routine()
+    
+    end subroutine plot_locreg_grids
 
 
 end module io

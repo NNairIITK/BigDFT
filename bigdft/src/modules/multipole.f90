@@ -121,8 +121,10 @@ module multipole
 
 
     !> Calculate the external potential arising from the multipoles of the charge density
-    subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
-               verbosity, ixc, lzd, pot, rxyz, ixyz0, write_directory, dipole_total, quadrupole_total, all_norms_ok)
+    subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, &
+               is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, &
+               verbosity, ixc, lzd, pot, rxyz, ixyz0, write_directory, dipole_total, quadrupole_total, all_norms_ok, &
+               rho_mp, pot_mp)
       use module_types, only: DFT_local_fields, local_zone_descriptors
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use module_atoms, only: atoms_data
@@ -148,6 +150,7 @@ module multipole
       real(kind=8),dimension(3),intent(out),optional :: dipole_total
       real(kind=8),dimension(3,3),intent(out),optional :: quadrupole_total
       logical,intent(out),optional :: all_norms_ok
+      real(kind=8),dimension(is1:ie1,is2:ie2,is3:ie3),intent(out),optional :: rho_mp, pot_mp
 
       ! Local variables
       integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm, nthread, ithread, ll
@@ -757,6 +760,10 @@ module multipole
                  end if
              end if
 
+             if (present(rho_mp)) then
+                 call f_memcpy(src=density, dest=rho_mp)
+             end if
+
              ! Add the core contribution
              if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)>0) then
                  call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_cores(is1,is2,is3), 1, density(is1,is2,is3), 1)
@@ -765,6 +772,11 @@ module multipole
 
              call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
                   quiet='yes')!,rho_ion=denspot%rho_ion)
+
+             if (present(pot_mp)) then
+                 call f_memcpy(src=density, dest=pot_mp)
+             end if
+
              !write(*,*) 'ehart_ps',ehart_ps
              !LG: attention to stack overflow here !
              !pot = pot + density
@@ -1022,8 +1034,7 @@ module multipole
       call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
            meth_overlap, 1, power, -1, &
            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-           max_error=max_error, mean_error=mean_error)
+           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false.)
       !call f_free_ptr(ovrlp%matrix)
 
       proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
@@ -2326,7 +2337,7 @@ module multipole
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
-      use sparsematrix, only: matrix_matrix_mult_wrapper
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use communications, only: transpose_localized
       use orthonormalization, only: orthonormalizelocalized,overlap_matrix
       use module_atoms, only: atoms_data
@@ -2335,6 +2346,8 @@ module multipole
            deallocate_external_potential_descriptors
       use orbitalbasis
       use matrix_operations, only: overlapPowerGeneral
+      !use Poisson_Solver, only: H_potential
+      use Poisson_Solver, except_dp => dp, except_gp => gp
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, lmax, ixc
@@ -2368,8 +2381,8 @@ module multipole
       integer, dimension(1) :: power
       logical :: can_use_transposed, all_norms_ok
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
-      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large, Qmat_tmp,Slmphi
-      real(kind=8),dimension(:),allocatable :: eval, work, newoverlap
+      real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, Qmat_tmp,Slmphi
+      real(kind=8),dimension(:),allocatable :: eval, work, newoverlap, newmultipole_matrix_large, newoverlap_large
       real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter, overlap_small, tmpmat, tempmat
       real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
       real(kind=8),dimension(:),pointer :: atomic_monopoles_analytic
@@ -2380,7 +2393,7 @@ module multipole
       real(kind=8) :: q, tt, rloc, max_error, mean_error
       type(matrices) :: multipole_matrix
       !type(matrices),target :: multipole_matrix_
-      type(matrices) :: newovrlp
+      type(matrices) :: newovrlp, ovrlp_large, multipole_matrix_large
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
       logical :: perx, pery, perz
@@ -2398,6 +2411,15 @@ module multipole
       type(external_potential_descriptors) :: ep
       !character(len=*),parameter :: projectormode='verynew'!'old'
       !character(len=*),parameter :: do_ortho = no!yes
+      integer :: is1, ie1, is2, ie2, is3, ie3, ioffset, icheck
+      real(kind=8),dimension(:,:,:),allocatable :: rho_exact, rho_mp, pot_exact, pot_mp
+      integer,parameter :: ncheck = 5
+      real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
+                                                                      1.d-5 , &
+                                                                      1.d-4 , &
+                                                                      1.d-3 , &
+                                                                      1.d-2]
+      real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
 
 
       call f_routine(id='multipole_analysis_driver')
@@ -2496,7 +2518,7 @@ module multipole
 
 
 
-      multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
+      !!multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
       kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='kernel_ortho')
 
       if (do_ortho==yes) then
@@ -2575,8 +2597,17 @@ module multipole
               ! This one is given by S^-1/2*S*S^-1/2
               newoverlap = sparsematrix_malloc(smats, SPARSE_TASKGROUP, id='newoverlap')
               methTransformOverlap = 1020
-              call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smats, &
-                   ovrlp, ovrlp, 'minus', newoverlap)
+              newoverlap_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newoverlap_large')
+              ovrlp_large = matrices_null()
+              ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                   smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+              call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                   ovrlp, ovrlp_large, 'minus', newoverlap_large)
+              call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
+                   lmat_in=newoverlap_large, smat_out=newoverlap)
+              call deallocate_matrices(ovrlp_large)
+              call f_free(newoverlap_large)
               newovrlp = matrices_null()
               newovrlp%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_TASKGROUP, id='newovrlp%matrix_compr')
               call f_memcpy(src=newoverlap, dest=newovrlp%matrix_compr)
@@ -2585,7 +2616,7 @@ module multipole
                    1020, 1, power, -1, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=newovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=.false.)
               call deallocate_matrices(newovrlp)
               call f_free(newoverlap)
           else
@@ -2594,7 +2625,7 @@ module multipole
                    1020, 1, power, -1, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=.false.)
           end if
       end if
 
@@ -2643,8 +2674,20 @@ module multipole
                   !multipole_matrix => multipole_matrix_in(m,l)
                   if (do_ortho==yes)  then
                       methTransformOverlap = 1020
-                      call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smats, &
-                           ovrlp, multipole_matrix_in(m,l), 'minus', multipole_matrix%matrix_compr)
+                      newmultipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newmultipole_matrix_large')
+                      !multipole_matrix_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='multipole_matrix_large')
+                      multipole_matrix_large = matrices_null()
+                      multipole_matrix_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, &
+                          id='multipole_matrix_large%matrix_compr')
+                      call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                           smat_in=multipole_matrix_in(m,l)%matrix_compr, lmat_out=multipole_matrix_large%matrix_compr)
+                      call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                           ovrlp, multipole_matrix_large, 'minus', newmultipole_matrix_large)
+                      call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
+                           lmat_in=newmultipole_matrix_large, smat_out=multipole_matrix%matrix_compr)
+                      !call f_free(multipole_matrix_large)
+                      call deallocate_matrices(multipole_matrix_large)
+                      call f_free(newmultipole_matrix_large)
                   else
                       call f_memcpy(src=multipole_matrix_in(m,l)%matrix_compr, dest=multipole_matrix%matrix_compr)
                   end if
@@ -2803,6 +2846,17 @@ module multipole
           ! has the option to calculate the dipole on the fly).
           test_pot = f_malloc((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3)/),id='test_pot')
           if (iproc==0) call yaml_sequence_open('Checking the total multipoles based on the atomic multipoles')
+          is1 = 1
+          ie1 = denspot%dpbox%ndims(1)
+          is2 = 1
+          ie2 = denspot%dpbox%ndims(2)
+          is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+          ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+&
+                denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+          rho_exact = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='rho_exact')
+          rho_mp = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='rho_mp')
+          pot_exact = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='pot_exact')
+          pot_mp = f_malloc((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='pot_mp')
           do lcheck=0,lmax
               ep_check = external_potential_descriptors_null()
               ep_check%nmpl = ep%nmpl
@@ -2835,11 +2889,31 @@ module multipole
                    denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), &
                    shift, verbosity=0, ixc=ixc, lzd=lzd, pot=test_pot, &
                    rxyz=rxyz, dipole_total=dipole_check, quadrupole_total=quadrupole_check, &
-                   all_norms_ok=all_norms_ok)
+                   all_norms_ok=all_norms_ok, &
+                   rho_mp=rho_mp, pot_mp=pot_mp)
               if (.not. all_norms_ok) then
                   call f_err_throw('When checking the previously calculated multipoles, all norms should be ok')
               end if
               dipole_check=dipole_check/Debye_AU!0.393430307_gp  ! au2debye              
+
+              !# NEW: compare the density and potential ##########################
+              if (smatl%nspin/=1) then
+                  call f_err_throw('Multipole analysis check not yet ready for nspin>1')
+              end if
+              ! Get the exact charge density
+              ioffset = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*&
+                        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,4)
+              !write(*,*) 'MP: ioffset', ioffset
+              call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
+                   src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
+              call f_memcpy(src=rho_exact, dest=pot_exact)
+              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
+                   quiet='yes')
+              call compare_charge_and_potential(iproc, is1, ie1, is2, ie2, is3, ie3, &
+                   smmd%nat, &
+                   rho_exact, rho_mp, pot_exact, pot_mp, denspot%pkernel, rxyz, &
+                   ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
+              !# NEW: compare the density and potential ##########################
               if (iproc==0) then
                   call yaml_sequence(advance='no')
                   call yaml_mapping_open('Up to multipole l='//trim(yaml_toa(lcheck)))
@@ -2851,12 +2925,37 @@ module multipole
                   call yaml_map('Q matrix',quadrupole_check,fmt='(1es13.4)')
                   call yaml_map('trace',quadrupole_check(1,1)+quadrupole_check(2,2)+quadrupole_check(3,3),fmt='(es12.2)')
                   call yaml_mapping_close()
+                  call yaml_sequence_open('Density and potential check')
+                  !call yaml_sequence_open('density threshold for check')
+                  do icheck=1,ncheck
+                      !call yaml_mapping_open('density threshold for check',check_threshold(icheck))
+                      call yaml_sequence(advance='no')
+                      call yaml_mapping_open('density threshold for check is'//&
+                           &trim(yaml_toa(check_threshold(icheck),fmt='(es9.2)')))
+                      call yaml_mapping_open('rho',flow=.true.)
+                      call yaml_map('int(q-q_exact))',charge_error(icheck),fmt='(es10.3)')
+                      call yaml_map('int(q_exact)',charge_total(icheck),fmt='(es10.3)')
+                      call yaml_map('ratio',charge_error(icheck)/charge_total(icheck),fmt='(es10.3)')
+                      call yaml_mapping_close()
+                      call yaml_mapping_open('pot',flow=.true.)
+                      call yaml_map('int(V-V_exact))',potential_error(icheck),fmt='(es10.3)')
+                      call yaml_map('int(V_exact)',potential_total(icheck),fmt='(es10.3)')
+                      call yaml_map('ratio',potential_error(icheck)/potential_total(icheck),fmt='(es10.3)')
+                      call yaml_mapping_close()
+                      call yaml_mapping_close()
+                  end do
+                  call yaml_sequence_close()
+                  !call yaml_mapping_close()
                   call yaml_mapping_close()
                   call deallocate_external_potential_descriptors(ep_check)
               end if
           end do
           if (iproc==0) call yaml_sequence_close()
           call f_free(test_pot)
+          call f_free(rho_exact)
+          call f_free(rho_mp)
+          call f_free(pot_exact)
+          call f_free(pot_mp)
       end if
 
       do l=0,min(1,lmax)
@@ -2880,7 +2979,7 @@ module multipole
       call f_free_ptr(nx)
       call f_free(neighborx)
       call f_free_ptr(atomic_multipoles)
-      call f_free(multipole_matrix_large)
+      !!call f_free(multipole_matrix_large)
       call deallocate_external_potential_descriptors(ep)
 
       if (iproc==0) then
@@ -3072,7 +3171,7 @@ module multipole
                    1020, 1, power, -1, &
                    imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                    ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
-                   check_accur=.true., max_error=max_error, mean_error=mean_error)
+                   check_accur=.false.)
 
               ! Calculate S^1/2 * K * S^1/2 = Ktilde
               tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
@@ -6330,5 +6429,103 @@ end subroutine calculate_rpowerx_matrices
       call f_release_routine()
 
     end subroutine correct_multipole_origin
+
+
+    subroutine compare_charge_and_potential(iproc, is1, ie1, is2, ie2, is3, ie3, nat, &
+               rho_exact, rho_mp, pot_exact, pot_mp, kernel, rxyz, &
+               ncheck, check_threshold, charge_error, charge_total, potential_error, potential_total)
+    use PStypes, only: coulomb_operator
+    use PSbox, only: PS_gather
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: iproc, is1, ie1, is2, ie2, is3, ie3, nat, ncheck
+    real(kind=8),dimension(is1:ie1,is2:ie2,is3:ie3),intent(in) :: rho_exact, rho_mp, pot_exact, pot_mp
+    type(coulomb_operator),intent(in) :: kernel
+    real(kind=8),dimension(3,nat),intent(in) :: rxyz
+    real(kind=8),dimension(ncheck),intent(in) :: check_threshold
+    real(kind=8),dimension(ncheck),intent(out) :: charge_error, charge_total, potential_error, potential_total
+
+    ! Local variables
+    integer :: i1, i2, i3, iat, icheck
+    real(kind=8) :: x, y, z, d, dmin, qex
+    real(kind=8),dimension(:,:,:),allocatable :: rhog_exact, potg_exact, rhog_mp, potg_mp
+    !!integer,parameter :: ncheck = 5
+    !!real(kind=8),dimension(ncheck),parameter :: check_threshold = [ 1.d-6 , &
+    !!                                                                1.d-5 , &
+    !!                                                                1.d-4 , &
+    !!                                                                1.d-3 , &
+    !!                                                                1.d-2]
+    real(kind=8),parameter :: min_distance = 2.0d0
+    !!real(kind=8),dimension(ncheck) :: charge_error, charge_total, potential_error, potential_total
+
+    ! The exact charge density and potential
+    rhog_exact = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='rhog_exact')
+    potg_exact = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='potg_exact')
+
+    ! The charge density and potential constructed from the multipoles
+    rhog_mp = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='rhog_mp')
+    potg_mp = f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],id='potg_mp')
+
+    ! Gather together the arrays
+    call PS_gather(src=rho_exact, dest=rhog_exact, kernel=kernel)
+    call PS_gather(src=pot_exact, dest=potg_exact, kernel=kernel)
+    call PS_gather(src=rho_mp, dest=rhog_mp, kernel=kernel)
+    call PS_gather(src=pot_mp, dest=potg_mp, kernel=kernel)
+
+    call f_zero(charge_error)
+    call f_zero(charge_total)
+    call f_zero(potential_error)
+    call f_zero(potential_total)
+
+    do i3=0,kernel%ndims(3)-31-1
+        z = i3*kernel%hgrids(3)
+        do i2=0,kernel%ndims(2)-31-1
+            y = i2*kernel%hgrids(2)
+            do i1=0,kernel%ndims(1)-31-1
+                x = i1*kernel%hgrids(1)
+                dmin = huge(1.d0)
+                do iat=1,nat
+                    d = sqrt( (x-rxyz(1,iat))**2 + (y-rxyz(2,iat))**2 + (z-rxyz(3,iat))**2 )
+                    dmin = min(d,dmin)
+                end do
+                !write(200+iproc,*) 'x, y, z, q, v', x, y, z, &
+                !     rhog_exact(i1+15,i2+15,i3+15), potg_exact(i1+15,i2+15,i3+15)
+                !write(300+iproc,*) 'x, y, z, q, v', x, y, z, &
+                !     rhog_mp(i1+15,i2+15,i3+15), potg_mp(i1+15,i2+15,i3+15)
+                if (dmin>min_distance) then
+                    ! Farther away from the atoms than the minimal distance
+                    qex = rhog_exact(i1+15,i2+15,i3+15)
+                    do icheck=1,ncheck
+                        if (abs(qex)<check_threshold(icheck)) then
+                            ! Charge density smaller than the threshold
+                            charge_error(icheck) = charge_error(icheck) + &
+                                abs(qex-rhog_mp(i1+15,i2+15,i3+15))
+                            charge_total(icheck) = charge_total(icheck) + &
+                                abs(qex)
+                            potential_error(icheck) = potential_error(icheck) + &
+                                abs(potg_exact(i1+15,i2+15,i3+15)-potg_mp(i1+15,i2+15,i3+15))
+                            potential_total(icheck) = potential_total(icheck) + &
+                                abs(potg_exact(i1+15,i2+15,i3+15))
+                        end if
+                    end do
+                end if
+            end do
+        end do
+    end do
+
+    !if (iproc==0) then
+    !    do icheck=1,ncheck
+    !        write(*,*) 'icheck, rho_err, rho_tot, ratio, pot_err, pot_tot, ratio', &
+    !            icheck, charge_error(icheck), charge_total(icheck), charge_error(icheck)/charge_total(icheck), &
+    !            potential_error(icheck), potential_total(icheck), potential_error(icheck)/potential_total(icheck)
+    !    end do
+    !end if
+
+    call f_free(rhog_exact)
+    call f_free(potg_exact)
+    call f_free(rhog_mp)
+    call f_free(potg_mp)
+
+    end subroutine compare_charge_and_potential
 
 end module multipole

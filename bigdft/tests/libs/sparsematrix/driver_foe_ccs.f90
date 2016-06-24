@@ -13,9 +13,6 @@ program driver_css
   use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
-  ! The following module should no be used!
-  use module_types, only: bigdft_init_errors, &
-                          bigdft_init_timing_categories
   implicit none
 
   ! Variables
@@ -39,10 +36,9 @@ program driver_css
   iproc=mpirank()
   nproc=mpisize()
 
-  ! Initialize the BigDFT error handling and timing.
-  ! PROBLEM: THIS IS IN MODULE_TYPES
-  call bigdft_init_errors()
-  call bigdft_init_timing_categories()
+  ! Initialize the sparsematrix error handling and timing.
+  call sparsematrix_init_errors()
+  call sparsematrix_initialize_timing_categories()
 
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat_s) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat_s%matrix_compr.
@@ -77,7 +73,7 @@ program driver_css
   call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
        foe_obj, smat_s, smat_h, smat_k, &
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
-       calculate_minusonehalf=.true., foe_verbosity=0)
+       calculate_minusonehalf=.true., foe_verbosity=0, symmetrize_kernel=.true.)
 
   ! Write the result in YAML format to the standard output (required for non-regression tests).
   if (iproc==0) call write_matrix_compressed('Result of FOE', smat_k, mat_k)

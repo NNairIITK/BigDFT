@@ -54,6 +54,7 @@ if test "$py_prefix" != "$py_exec_prefix"; then
 fi
 fi
 AC_SUBST(PYTHON_INCLUDES)
+AC_LANG_PUSH(C)
 dnl check if the headers exist:
 save_CPPFLAGS="$CPPFLAGS"
 CPPFLAGS="$CPPFLAGS $PYTHON_INCLUDES"
@@ -63,4 +64,46 @@ $1],dnl
 [AC_MSG_RESULT(not found)
 $2])
 CPPFLAGS="$save_CPPFLAGS"
+  LDFLAGS_SVG="$LDFLAGS"
+  LDFLAGS="$LDFLAGS -L${py_prefix}/lib"
+  if test "$py_prefix" != "$py_exec_prefix"; then
+    LDFLAGS="$LDFLAGS -L${py_exec_prefix}/lib"
+  fi
+  AC_CHECK_LIB([python${PYTHON_VERSION}], [Py_Initialize],
+               [PYTHON_LIBS="-L${py_prefix}/lib -lpython${PYTHON_VERSION}"
+  AC_SUBST([PYTHON_LIBS])
+$1], [ax_have_pythondev=no
+$2])
+  LDFLAGS="$LDFLAGS_SVG"
+AC_LANG_POP(C)
+])
+
+AC_DEFUN([AX_PYTHON_DEV],
+[dnl Test for Python availability and usage for bindings.
+  AC_ARG_WITH(python, AS_HELP_STRING([--with-python], [Compile Python support (enabled by default).]),
+              ax_have_python=$withval, ax_have_python="yes")
+  if test x"$ax_have_python" = x"yes" ; then
+    AM_PATH_PYTHON([2.3.5], [ax_have_python="yes"], [ax_have_python="no"])
+    if test x"$ax_have_python" = x"yes" ; then
+      AM_CHECK_PYTHON_HEADERS(,[AC_MSG_WARN(could not find Python development files); ax_have_python="no"])
+      if test x"$ax_have_python" = x"yes" ; then
+        AC_DEFINE([HAVE_PYTHON], [], [if set, we can call Python.h])
+      fi
+    
+      AC_LANG_PUSH(C)
+      CPPFLAGS_SVG=$CPPFLAGS
+      CPPFLAGS=$CPPFLAGS" $PYTHON_INCLUDES"
+      AC_CHECK_HEADERS([numpy/ndarrayobject.h], [ax_have_numpy=yes], [ax_have_numpy=no],
+        [#ifdef HAVE_PYTHON
+    #include <Python.h>
+    #endif
+    ])
+      CPPFLAGS=$CPPFLAGS_SVG
+      AC_LANG_POP(C)
+      if test x"$ax_have_numpy" = x"yes" ; then
+        AC_DEFINE([HAVE_PYTHON_NUMPY], [], [if set, we can call numpy/ndarrayobject.h])
+      fi
+    fi
+  fi
+  AM_CONDITIONAL([HAVE_PYTHON], [test x"$ax_have_python" = x"yes"])
 ])

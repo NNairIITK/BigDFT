@@ -79,6 +79,7 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
+  public :: run_objects_type_init
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
@@ -114,15 +115,6 @@ module bigdft_run
 !!$     END SUBROUTINE geopt
 !!$
 !!$  end interface
-  interface
-     subroutine bigdft_python_exec_dict(dict, status)
-       use dictionaries
-       implicit none
-       type(dictionary), pointer :: dict
-       integer, intent(out) :: status
-     end subroutine bigdft_python_exec_dict
-  end interface
-
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
   character(len = *), parameter :: INPUT_NAME   = "input_file"
@@ -803,6 +795,22 @@ contains
 
   end subroutine bigdft_set_rxyz
 
+  subroutine state_properties_get_fxyz_ndarray(outs, arr)
+    use f_python
+    implicit none
+    type(state_properties), intent(in) :: outs
+    type(ndarray), intent(out) :: arr
+
+    arr = toNdArray_ptr(outs%fxyz)
+  end subroutine state_properties_get_fxyz_ndarray
+
+  subroutine state_properties_get_energy(outs, energy)
+    implicit none
+    type(state_properties), intent(in) :: outs
+    real(gp), intent(out) :: energy
+
+    energy = outs%energy
+  end subroutine state_properties_get_energy
 
   subroutine state_properties_set_from_dict(outs, dict)
     use dictionaries
@@ -836,6 +844,24 @@ contains
     outs%energy = dict .get. GOUT_ENERGY
 
   end subroutine state_properties_set_from_dict
+
+  subroutine run_objects_type_init()
+    use module_f_objects, only: f_object_new, f_object_add_signal
+
+    call f_object_new("run_objects")
+    
+    call f_object_add_method("run_objects", "nat", bigdft_nat_bind, 1)
+
+    call f_object_add_signal("run_objects", "init", 1)
+    call f_object_add_signal("run_objects", "pre", 1)
+    call f_object_add_signal("run_objects", "post", 2)
+    call f_object_add_signal("run_objects", "destroy", 1)
+
+    call f_object_new("state_properties")
+
+    call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
+    call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
+  end subroutine run_objects_type_init
 
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
@@ -924,13 +950,22 @@ contains
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
     use module_input_keys, only: free_input_variables
+    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
     integer :: claim, i
 
+
     ! Fortran release ownership
     release = .true.
+
+    if (.not. f_object_has_signal("run_objects", "destroy")) &
+         & call run_objects_type_init()
+    if (f_object_signal_prepare("run_objects", "destroy")) then
+       call f_object_signal_add_arg("run_objects", "destroy", runObj)
+       call f_object_signal_emit("run_objects", "destroy")
+    end if
 
     if (runObj%c_obj /= 0) then
        call run_objects_wrapper_detach(runObj%c_obj, claim)
@@ -970,7 +1005,6 @@ contains
        call run_objects_wrapper_attach(runObj%c_obj, runObj)
     end if
   END SUBROUTINE free_run_objects
-
 
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
@@ -1106,6 +1140,7 @@ contains
     use module_input_keys, only: user_dict_from_files
     use yaml_output
     use dynamic_memory
+    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -1130,6 +1165,9 @@ contains
     character(len=max_field_length) :: radical, posinp_id
 
     call f_routine(id='run_objects_init')
+
+    if (.not. f_object_has_signal("run_objects", "init")) &
+         & call run_objects_type_init()
 
     call nullify_run_objects(runObj)
 
@@ -1169,13 +1207,9 @@ contains
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
        end if
 
-       if (associated(runObj%py_hooks)) then
-          call bigdft_python_init(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-               & bigdft_mpi%igroup, bigdft_mpi%ngroup)
-          if ("init" .in. runObj%py_hooks) then
-             call bigdft_python_exec_dict(runObj%py_hooks // "init", ierr)
-             if (ierr /= 0) stop ! Should raise a proper error later.
-          end if
+       if (f_object_signal_prepare("run_objects", "init")) then
+          call f_object_signal_add_arg("run_objects", "init", runObj)
+          call f_object_signal_emit("run_objects", "init")
        end if
 
     else if (present(source)) then
@@ -1455,6 +1489,13 @@ contains
     end if
 
   end function bigdft_nat
+  !> Temporary binding routine.
+  subroutine bigdft_nat_bind(runObj, nat)
+    type(run_objects), intent(in) :: runObj !> BigDFT run structure
+    integer, intent(out) :: nat
+
+    nat = bigdft_nat(runObj)
+  end subroutine bigdft_nat_bind
 
   !> Get the number of orbitals of the run in rst
   function bigdft_norb(runObj) result(norb)
@@ -1475,7 +1516,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: ok
-
+    ok=.true.
   end function bigdft_valid_dataset
 
 
@@ -1572,7 +1613,7 @@ contains
   end function bigdft_get_cell_ptr
 
 
-  !> Do a calculation using runObjs and return outs²
+  !> Do a calculation using runObjs and return outs
   !! returns energies in hartree and
   !! forces in hartree/bohr
   !! (except for LJ)
@@ -1597,6 +1638,7 @@ contains
     use f_enums, enum_int => toi
     use SWpotential
     use wrapper_linalg, only: vscal
+    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1653,11 +1695,12 @@ contains
         call constraints_internal(runObj%atoms%astruct)
     end if
 
-    ! Run any Python hook post run.
-    if ("pre" .in. runObj%py_hooks) then
-       call run_objects_to_python(runObj, "run", 3)
-       call bigdft_python_exec_dict(runObj%py_hooks // "pre", ierr)
-       if (ierr /= 0) stop
+    ! Run any pre hook
+    if (.not. f_object_has_signal("run_objects", "pre")) &
+         & call run_objects_type_init()
+    if (f_object_signal_prepare("run_objects", "pre")) then
+       call f_object_signal_add_arg("run_objects", "pre", runObj)
+       call f_object_signal_emit("run_objects", "pre")
     end if
 
     call clean_state_properties(outs) !zero the state first
@@ -1757,12 +1800,13 @@ contains
     !broadcast the state properties
     call broadcast_state_properties(outs)
 
-    ! Run any Python hook post run.
-    if ("post" .in. runObj%py_hooks) then
-       call state_properties_to_python(outs, "outs", 4)
-       call bigdft_python_exec_dict(runObj%py_hooks // "post", ierr)
-       if (ierr /= 0) stop
+    ! Run any hook post run.
+    if (f_object_signal_prepare("run_objects", "post")) then
+       call f_object_signal_add_arg("run_objects", "post", runObj)
+       call f_object_signal_add_arg("run_objects", "post", outs)
+       call f_object_signal_emit("run_objects", "post")
     end if
+
     call f_increment(runObj%nstate)
 
     if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
