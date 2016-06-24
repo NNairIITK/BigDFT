@@ -4707,7 +4707,7 @@ module sparsematrix_init
           1.d2*real(ntot-int(smat%nvctr,kind=mp),kind=mp)/real(ntot,kind=mp),fmt='(f5.2)')
      call yaml_map('sparse matrix multiplication initialized',smat%smatmul_initialized)
      if (smat%smatmul_initialized) then
-         call yaml_mapping_open('sparse matrix multiplication')
+         call yaml_mapping_open('sparse matrix multiplication setup')
          call yaml_map('segments',smat%smmm%nseg)
          call yaml_map('non-zero elements',sum(smat%smmm%nvctr_par))
          call yaml_map('sparsity in %', &
@@ -4759,9 +4759,23 @@ module sparsematrix_init
                  ii = ii + 1
                  nonzero(2,ii) = irow
                  nonzero(1,ii) = icol
+                 !!write(200,*) 'ii, nonzero(1,ii), nonzero(2,ii)', ii, nonzero(1,ii), nonzero(2,ii)
              end if
          end do
      end do
+
+     !!! new version... not well tested
+     !!ii = 0
+     !!do iseg=1,nseg
+     !!    do i=keyg(1,1,iseg),keyg(2,1,iseg)
+     !!        ii = ii + 1
+     !!        nonzero(2,ii) = keyg(1,2,iseg)
+     !!        nonzero(1,ii) = i
+     !!        write(300,*) 'ii, nonzero(1,ii), nonzero(2,ii)', ii, nonzero(1,ii), nonzero(2,ii)
+     !!    end do
+     !!end do
+     
+
      if (ii/=nvctr) then
          call f_err_throw('ii/=nvctr')
      end if

@@ -135,6 +135,7 @@ module module_input_keys
      logical :: plot_locreg_grids
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
      real(kind=8) :: precision_FOE_eigenvalues !< decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
+     logical :: orthogonalize_ao !< orthogonalize the AO generated as input guess
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -2165,6 +2166,8 @@ contains
           in%lin%support_functions_converged = val
        case (correction_orthoconstraint)
           in%lin%correctionOrthoconstraint = val
+       case (orthogonalize_ao)
+          in%lin%orthogonalize_ao = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

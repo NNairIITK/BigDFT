@@ -265,6 +265,7 @@ module public_keys
   character(len=*), parameter :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter :: FIX_BASIS       ='fix_basis'
   character(len=*), parameter :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter :: ORTHOGONALIZE_AO = 'orthogonalize_ao'
   character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
   character(len=*), parameter :: EXTRA_STATES="extra_states"

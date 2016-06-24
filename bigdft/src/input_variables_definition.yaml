@@ -1803,6 +1803,9 @@
            - 1 => don't take into account
        default: 1
        RANGE:  [0,1]
+     orthogonalize_ao:
+       COMMENT: Orthogonalize the atomic orbitals used as input guess
+       default: Yes    
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
