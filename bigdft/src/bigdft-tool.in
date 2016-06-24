@@ -28,7 +28,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "convert-positions", "manual", "wizard", "transform-coordinates",
            "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
            "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
-           "plot-wavefunction", "suggest-cutoff", "multipole-analysis",
+           "plot-wavefunction", "suggest-cutoff", "multipole-analysis", "dos", 
            "export-proj", "fit-proj",
            "convert-matrix-format", "calculate-selected-eigenvalues"]
 
@@ -281,6 +281,14 @@ def parse():
     group.add_option("--multipole_matrix_2_4", type="str", default="mpmat_2_2.bin", metavar="MULTIPOLE_MATRIX_2_2",
              		 help="multipole matrix 2 2 [default: %default]")
 
+
+    # density of states for the linear scaling version
+    group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[22],
+                        "density of states for the linear scaling version")
+    group.add_option("--sigma", type="float", default=0.01, metavar="NUM",
+             		 help="spread of the peaks [default: %default]")
+    group.add_option("--npts", type="int", default=1400, metavar="NUM",
+                     help="number of points for the discretization [default: %default]")
 
     # convert from the BigDFT to the CCS format or the other way round
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
@@ -1120,6 +1128,10 @@ options:
     if options.action == "charge-analysis":
         #print 'calling utilities to perform a Loewdin multipole analysis'
         command = "%s %s multipole-analysis %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (options.mpirun, utilities, options.method, options.matrix_basis, options.metadata_file, options.overlap_file, options.kernel_file, options.hamiltonian_file, options.multipole_matrix_0_0, options.multipole_matrix_1_0, options.multipole_matrix_1_1, options.multipole_matrix_1_2, options.multipole_matrix_2_0, options.multipole_matrix_2_1, options.multipole_matrix_2_2, options.multipole_matrix_2_3, options.multipole_matrix_2_4)
+        print command
+    if options.action == 'dos':
+        print 'calling memguess for DOS'
+        command = "%s 1 %s dd dos %s %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.sigma, options.npts)
         #print command
     if options.action == "convert-matrix-format":
         print command

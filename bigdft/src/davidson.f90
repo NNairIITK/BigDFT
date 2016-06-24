@@ -1849,7 +1849,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                   val = orbsv%eval(iorb+(ikpt-1)*orbsv%norb)!(iorb, ikpt, 1)
                end if
                call yaml_sequence(advance='no')
-               call yaml_map('e_occupied',val, fmt='(1pe21.14)',advance='no')
+               call yaml_map('e_occ',val, fmt='(1pe21.14)',advance='no')
                call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
                !write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
             end do
@@ -1863,14 +1863,14 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             !   &   ' eV)'
             do iorb=1,orbsv%norb - occnorb
                call yaml_sequence(advance='no')
-               call yaml_map('e_virtual',&
+               call yaml_map('e_vrt',&
                     & orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb), fmt='(1pe21.14)',advance='no')
                call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
                !write(*,'(1x,a,i4,a,1x,1pe21.14)') &
                !   &   'e_virtual(',iorb,')=',orbsv%eval(iorb+occnorb+(ikpt-1)*orbsv%norb)!e(iorb+occnorb,ikpt,1)
             end do
          end do
-         call yaml_sequence_close()
+         !call yaml_sequence_close()
       else
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
@@ -1929,7 +1929,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
             do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
                jorb=orbsv%norbu+iorb+occnorbd
                call yaml_sequence(advance='no')
-               call yaml_map('e_virt', (/ &
+               call yaml_map('e_vrt', (/ &
                &  orbsv%eval(iorb+(ikpt-1)*orbsv%norb), &
                &  orbsv%eval(jorb+(ikpt-1)*orbsv%norb) /), fmt='(1pe21.14)', advance='no')
                call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
@@ -1958,8 +1958,10 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                end do
             end if
          end do
-         call yaml_sequence_close()
+         !call yaml_sequence_close()
       end if
+      call yaml_sequence_close()
+      !call yaml_sequence_close()
    end if
 
 END SUBROUTINE write_eigen_objects

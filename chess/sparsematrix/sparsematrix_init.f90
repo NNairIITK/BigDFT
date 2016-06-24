@@ -1054,7 +1054,7 @@ module sparsematrix_init
 
 
 
-      ! Initialize the parameters for the spare matrix matrix multiplication
+      ! Initialize the parameters for the sparse matrix matrix multiplication
       if (init_matmul_) then
           sparsemat%smatmul_initialized = .true.
 

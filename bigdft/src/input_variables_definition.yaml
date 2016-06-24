@@ -1137,7 +1137,8 @@
      COMMENT: Time-Dependent DFT method
      EXCLUSIVE:
        none: no tddft post-processing
-       TDA: Tamm Dancoff approximation
+       TDA: Casida's LR-TDDFT using Tamm-Dancoff Approximation
+       full: Full Casida's LR-TDDFT
      default: none
    decompose_perturbation:
      COMMENT: Indicate the directory of the perturbation to be decomposed in the basis of empty states

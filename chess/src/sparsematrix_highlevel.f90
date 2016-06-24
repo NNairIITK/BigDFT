@@ -184,7 +184,6 @@ module sparsematrix_highlevel
       ! Read in the matrix
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
-
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else

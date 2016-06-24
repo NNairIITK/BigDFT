@@ -1,0 +1,22 @@
+#Add the condition testing to run tests and includes PyYaml
+
+conditions.add("testing")
+
+modules = ['bigdft',]
+
+module_autogenargs['libyaml']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['futile']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['libxc']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['psolver']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['libABINIT']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['GaIn']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['bigdft']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
+module_autogenargs['spred']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013.1.117/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013.1.117/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
+
