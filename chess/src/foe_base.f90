@@ -21,6 +21,7 @@ module foe_base
     integer :: npl_min !< minimal polynomial degree
     integer :: npl_max !< maximal polynomial degree
     integer :: npl_stride !< stride to increase the polynomial order when searching for the degree yielding the desired precision
+    real(kind=mp) :: betax !< exponent to be used for the exponential penalty function
   end type foe_data
 
 
@@ -210,6 +211,8 @@ module foe_base
               call f_err_throw('eval_multiplicator not associated')
           end if
           foe_obj%eval_multiplicator(ind) = val
+      case ("betax")
+          foe_obj%betax = val
       case default
           stop 'wrong arguments'
       end select
@@ -287,6 +290,8 @@ module foe_base
               call f_err_throw('eval_multiplicator not associated')
           end if
           val = foe_obj%eval_multiplicator(ind)
+      case ("betax")
+          val = foe_obj%betax
       case default
           stop 'wrong arguments'
       end select

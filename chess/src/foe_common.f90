@@ -1008,7 +1008,7 @@ module foe_common
     subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
                fscale_lowerbound, fscale_upperbound, eval_multiplicator, &
-               npl_min, npl_max, npl_stride)
+               npl_min, npl_max, npl_stride, betax)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       implicit none
 
@@ -1030,6 +1030,7 @@ module foe_common
       integer,intent(in),optional :: npl_min
       integer,intent(in),optional :: npl_max
       integer,intent(in),optional :: npl_stride
+      integer,intent(in),optional :: betax
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1048,6 +1049,7 @@ module foe_common
       integer :: npl_min_
       integer :: npl_max_
       integer :: npl_stride_
+      real(kind=mp) :: betax_
 
       !call timing(iproc,'init_matrCompr','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
@@ -1067,6 +1069,7 @@ module foe_common
       npl_min_ = 10
       npl_max_ = 5000
       npl_stride_ = 10
+      betax_ = -500
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1082,6 +1085,7 @@ module foe_common
       if (present(npl_min)) npl_min_ = npl_min
       if (present(npl_max)) npl_max_ = npl_max
       if (present(npl_stride)) npl_stride_ = npl_stride
+      if (present(betax)) betax_ = betax
     
       foe_obj = foe_data_null()
 
@@ -1098,6 +1102,7 @@ module foe_common
       call foe_data_set_int(foe_obj,"npl_min",npl_min_)
       call foe_data_set_int(foe_obj,"npl_max",npl_max_)
       call foe_data_set_int(foe_obj,"npl_stride",npl_stride_)
+      call foe_data_set_real(foe_obj,"betax",betax_)
 
       foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
       foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
@@ -2384,7 +2389,7 @@ module foe_common
 
 
 
-    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, &
+    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, betax, ncalc, func_name, &
                do_scaling, bounds_factor_low, bounds_factor_up, foe_verbosity, &
                smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
@@ -2395,6 +2400,7 @@ module foe_common
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, foe_verbosity
+      real(mp),intent(in) :: betax
       type(sparse_matrix),intent(in) :: smatm, smatl
       type(matrices),intent(in) :: ham_
       logical,intent(in) :: do_scaling
@@ -2471,6 +2477,7 @@ module foe_common
 
       if (iproc==0 .and. foe_verbosity>0) then
           call yaml_sequence_open('determine eigenvalue bounds')
+          call yaml_map('beta for penaltyfunction',betax,fmt='(f7.1)')
       end if
       bounds_loop: do
           !efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
