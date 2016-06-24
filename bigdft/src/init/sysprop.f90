@@ -333,7 +333,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      if(iproc==0 .and. dump) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
-  if (iproc == 0 .and. dump) then
+  if (.not.(inputpsi .hasattr. 'LINEAR') .and. iproc == 0 .and. dump) then
      nB=max(orbs%npsidim_orbs,orbs%npsidim_comp)*8
      nMB=nB/1024/1024
      nKB=(nB-nMB*1024*1024)/1024
@@ -387,7 +387,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
   !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
   !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
-  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd)
+  call orbital_basis_associate(ob,orbs=orbs,Lzd=Lzd,id='system_initialization')
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,ob,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
@@ -428,7 +428,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
-      if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
+      !if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 
@@ -868,10 +868,10 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   integer, parameter :: ndegree_ip = 16
 
 !!$  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-!!$       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+!!$       geocode,denspot%dpbox%mesh%ndims,denspot%dpbox%hgrids,ndegree_ip,&
 !!$       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
   denspot%pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,&
+       geocode,denspot%dpbox%mesh%ndims,denspot%dpbox%mesh%hgrids,&
        mpi_env=denspot%dpbox%mpi_env)
 
   !create the sequential kernel if the exctX parallelisation scheme requires it
@@ -880,10 +880,10 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
 !!$     denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-!!$          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+!!$          geocode,denspot%dpbox%mesh%ndims,denspot%dpbox%hgrids,ndegree_ip,&
 !!$          alg=in%GPS_method,cavity=in%set_epsilon)
      denspot%pkernelseq=pkernel_init(0,1,in%PS_dict_seq,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids)
+          geocode,denspot%dpbox%mesh%ndims,denspot%dpbox%mesh%hgrids)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -1456,7 +1456,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 
   !allocate pointer rhocore
      chg_at=f_malloc0(at%astruct%ntypes,id='chg_at')
-  rhocore = f_malloc0_ptr((/ dpbox%ndims(1) , dpbox%ndims(2) , dpbox%n3d , 10 /), id = 'rhocore')
+  rhocore = f_malloc0_ptr((/ dpbox%mesh%ndims(1) , dpbox%mesh%ndims(2) ,max(dpbox%n3d,1) , 10 /), id = 'rhocore')
   !perform the loop on any of the atoms which have this feature
   do ityp = 1, at%astruct%ntypes
      if (at%npspcode(ityp) == PSPCODE_PAW) then
@@ -1480,7 +1480,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
            ! ncmax=1+int(1.1_dp*nfft*four_pi/(three*ucvol)*rshp**3)
            ! ncmax=1+int(1.1d0*((rshp/dpbox%hgrids(1))*(rshp/dpbox%hgrids(2))*pi_param))
            ! Calculation is done per z plane.
-           ncmax = 1 + int(4._gp * pi_param * rloc ** 2 / dpbox%hgrids(1) / dpbox%hgrids(2))
+           ncmax = 1 + int(4._gp * pi_param * rloc ** 2 / dpbox%mesh%hgrids(1) / dpbox%mesh%hgrids(2))
         else
            ncmax = 1
         end if
@@ -1502,14 +1502,14 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
         
         if (at%npspcode(ityp) == PSPCODE_PAW) then
            call mkcore_paw_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
-                & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
-                & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
+                & dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3), &
+                & dpbox%mesh%ndims(1), dpbox%mesh%ndims(2),dpbox%mesh%ndims(3), &
                 & dpbox%i3s,dpbox%n3d,core_mesh, rhocore, ncmax, ifftsph, &
                 & rr, rcart, raux)
         else
            call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
-                & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
-                & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
+                & dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3), &
+                & dpbox%mesh%ndims(1), dpbox%mesh%ndims(2),dpbox%mesh%ndims(3), &
                 & dpbox%i3s,dpbox%n3d,chgat,rhocore)
            chg_at(ityp)=chg_at(ityp)+chgat
         end if
@@ -1541,8 +1541,8 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 !!$stop
   tt=0.0_wp
   do j3=1,dpbox%n3p
-     do i2=1,dpbox%ndims(2)
-        do i1=1,dpbox%ndims(1)
+     do i2=1,dpbox%mesh%ndims(2)
+        do i1=1,dpbox%mesh%ndims(1)
            !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
            tt=tt+rhocore(i1,i2,j3+dpbox%i3xcsh,1)
         enddo
@@ -1550,7 +1550,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   enddo
 
   if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-  tt=tt*product(dpbox%hgrids)
+  tt=tt*dpbox%mesh%volume_element
   if (bigdft_mpi%iproc == 0) then
      call yaml_mapping_open('Analytic core charges for atom species')
      do ityp=1,at%astruct%ntypes
@@ -2675,8 +2675,8 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpt
   do i = 1, at%astruct%nat
      atindx1(i) = i
   end do
-  !ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
-  call abi_wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s + dpbox%i3xcsh, &
+  !ucvol = product(denspot%dpbox%mesh%ndims) * product(denspot%dpbox%mesh%hgrids)
+  call abi_wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%mesh%hgrids, dpbox%i3s + dpbox%i3xcsh, &
        & size(at%pawtab), at%astruct%nat, nattyp, at%astruct%ntypes, &
        & d%n1, d%n1i, d%n2, d%n2i, d%n3, dpbox%n3pi, &
        & optcut, optgr0, optgr1, optgr2, optrad, &

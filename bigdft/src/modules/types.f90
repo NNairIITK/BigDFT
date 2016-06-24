@@ -167,7 +167,6 @@ module module_types
      type(locreg_descriptors), dimension(:), pointer :: Llr !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
 
-
   !!> Fermi Operator Expansion parameters
   !type, public :: foe_data
   !  integer :: nseg
@@ -347,6 +346,7 @@ module module_types
      type(comms_linear) :: collcom_sr                        !< describes collective communication for the calculation of the charge density
      integer(kind = 8) :: c_obj                              !< Storage of the C wrapper object. it has to be initialized to zero
      type(foe_data) :: foe_obj                               !< describes the structure of the matrices for the linear method foe
+     type(foe_data) :: ice_obj                               !< describes the structure of the matrices for the linear method ice
      type(linear_matrices) :: linmat
      integer :: npsidim_orbs  !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
@@ -1140,6 +1140,7 @@ contains
   !! It is of course assumed that f_lib_initialize has already been called
   subroutine bigdft_init_timing_categories()
     use Poisson_Solver, only: PS_initialize_timing_categories
+    use sparsematrix_base
     implicit none
     !local variables
     integer :: icls,icat
@@ -1176,6 +1177,9 @@ contains
        call f_timing_category(trim(cats(1,icat)),trim(cats(2,icat)),trim(cats(3,icat)),&
             cat_ids(icat))
     end do
+
+    ! Initialize sparse matrix timings
+    call sparsematrix_initialize_timing_categories()
 
   end subroutine bigdft_init_timing_categories
 

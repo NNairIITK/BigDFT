@@ -106,14 +106,28 @@ AX_LINALG()
 AX_ETSF_IO()
 
 dnl Agregate all the optional libs.
-LIB_PSOLVER_DEPS="$LIBCUDA_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIB_PSOLVER_DEPS="$LIBETSFIO_LIBS $LIB_FUTILE_LIBS"
+dnl if the futile libraries are dynamic add the dependencies
+if test $ax_FUTILE_static != "yes" ; then
+  LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
+fi
 LIB_PSOLVER_PKG=""
 if test $ax_build_dynamic != "yes" ; then
   LIB_PSOLVER_PKG="$LIB_PSOLVER_DEPS"
 fi
 AC_SUBST(LIB_PSOLVER_PKG)
-LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIB_FUTILE_LIBS"
 AC_SUBST(LIB_PSOLVER_DEPS)
+
+dnl LIB_PSOLVER_DEPS="$LIBETSFIO_LIBS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
+dnl LIB_PSOLVER_PKG=""
+dnl if test $ax_build_dynamic != "yes" ; then
+dnl   LIB_PSOLVER_PKG="$LIB_PSOLVER_DEPS"
+dnl fi
+dnl AC_SUBST(LIB_PSOLVER_PKG)
+dnl LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIB_FUTILE_LIBS"
+dnl AC_SUBST(LIB_PSOLVER_DEPS)
+
+AX_DOC()
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
@@ -121,6 +135,8 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 psolver.pc
+doc/Makefile
+doc/Doxyfile
 src/configure.inc
 src/Makefile
 tests/Makefile

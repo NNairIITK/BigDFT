@@ -9,7 +9,8 @@
 
 
 !> Calculate the coupling matrix for the TD-DFT a la Casida
-subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,tddft_approach,orbs,orbsv,i3s,fxc,pkernelseq,psi,psiv,exc_fac)
+subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,tddft_approach,orbs,&
+     orbsv,i3s,fxc,pkernelseq,psi,psiv,exc_fac)
   use module_base
   use module_types
   implicit none

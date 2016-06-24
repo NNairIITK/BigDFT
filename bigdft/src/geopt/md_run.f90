@@ -58,7 +58,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
   CHARACTER(LEN=5), DIMENSION(:), POINTER :: alabel
 
   REAL(KIND=8) :: dist, dd(3), epe, eke, ete, T0ions, Tions, dt, &
-       com(3)
+       com(3), tcpu0, tcpu1
   REAL(KIND=8), PARAMETER :: amu_to_au=1822.888485D0
 
   character(len=*), parameter :: subname='bomd'
@@ -68,6 +68,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   call f_routine(id='bomd')
 
+  call cpu_time(tcpu0)
   natoms=bigdft_nat(run_md)
 
   !Getting a local copy of the coordinates
@@ -76,7 +77,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
   ionode=.false.
   IF(iproc==0)ionode=.true. 
 
-  maxsteps= run_md%inputs%mdsteps
+  if(ionode) call yaml_comment('Starting BO MD',hfill='*')
+
   dt= run_md%inputs%dt 
   T0ions=run_md%inputs%temperature
   printfrq=run_md%inputs%md_printfrq
@@ -101,11 +103,6 @@ subroutine bomd(run_md,outs,nproc,iproc)
   fxyz = f_malloc_ptr([3,natoms],id='fxyz')
   amass = f_malloc_ptr(natoms,id='amass')
   alabel = f_malloc_str_ptr(len(alabel),natoms,id='alabel')
-!!not permitted directly, see http://bigdft.org/Wiki/index.php?title=Coding_Rules#Low_level_operations
-!!$  ALLOCATE(vxyz(3,natoms))
-!!$  ALLOCATE(fxyz(3,natoms))
-!!$  ALLOCATE(amass(natoms))
-!!$  ALLOCATE(alabel(natoms))
 
   DO iat=1,natoms
      ii=run_md%atoms%astruct%iatype(iat)
@@ -126,7 +123,20 @@ subroutine bomd(run_md,outs,nproc,iproc)
      call nose_energy(natoms,ndof,T0ions,nhc)
   END IF
 
+  istep=0
 
+  !Restart 
+  !if(ionode)&
+  call restart_md('read',iproc,run_md%inputs%restart_pos,&
+                         run_md%inputs%restart_vel, &
+                         run_md%inputs%restart_nose,&
+                         natoms,istep,alabel,&
+                         run_md%inputs%dir_output,rxyz,vxyz,nhc)
+
+  if(run_md%inputs%restart_vel)call temperature(natoms,3,ndof,amass,vxyz,Tions,eke)
+  if(run_md%inputs%restart_nose)call nose_energy(natoms,ndof,T0ions,nhc)
+  !Do SCF if coordinates are restarted
+  if(run_md%inputs%restart_pos)call bigdft_state(run_md,outs,ierr)
   epe=outs%energy
   DO iat=1,natoms
      fxyz(1:3,iat)=outs%fxyz(1:3,iat)/amass(iat)
@@ -135,23 +145,30 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   !Total energy
   ete=epe+eke+nhc%enose
-  !  ete=epe+eke
 
-  istep=0
-
-
+  call cpu_time(tcpu1)
+  
   !MD printout energies
   IF (ionode)THEN 
      CALL write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
-     CALL write_md_energy(istep,Tions,eke,epe,ete)
+     CALL write_md_energy(istep,Tions,eke,epe,ete,tcpu1-tcpu0)
      call yaml_comment('Starting MD',hfill='*')
      call yaml_map('Number of degrees of freedom',ndof)
+     call yaml_flush_document()
   END IF
   
+  maxsteps= run_md%inputs%mdsteps+istep 
+
+  !setting inputpsiid=1 (after the first SCF)
+  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, run_md)
+
   !----------------------------------------------------------------------!
   MD_loop: DO !MD loop starts here
 
+     call cpu_time(tcpu0)
+
      istep=istep+1
+     IF(istep.gt.maxsteps)exit MD_loop
 
      IF(nhc%NHCHAIN)CALL NOSE_EVOLVE(natoms,ndof,T0ions,amass,vxyz,nhc)
 
@@ -181,13 +198,20 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
      ete=epe+eke+nhc%enose
 
-     IF (ionode) & 
-          CALL write_md_energy(istep,Tions,eke,epe,ete)
 
      IF (ionode.and.mod(istep,printfrq)==0)& 
           CALL write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
 
-     IF(istep+1.gt.maxsteps)exit MD_loop
+     if(ionode)&
+       call restart_md('write',iproc,run_md%inputs%restart_pos,&
+                               run_md%inputs%restart_vel, &
+                               run_md%inputs%restart_nose,&
+                               natoms,istep,alabel,&
+                               run_md%inputs%dir_output,rxyz,vxyz,nhc)
+     call cpu_time(tcpu1)
+     IF (ionode) & 
+          CALL write_md_energy(istep,Tions,eke,epe,ete,tcpu1-tcpu0)
+
   END DO MD_loop !MD loop ends here
   !----------------------------------------------------------------------!
 
@@ -204,7 +228,9 @@ end subroutine bomd
 
 !>Initialize velocities for MD using Box-Muller Sampling
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
-  use numerics, only: pi,au_to_k => Ha_K 
+  use numerics, only: pi,au_to_k => Ha_K
+  use dynamic_memory, only: f_release_routine,f_routine
+  use random, only: builtin_rand
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
   REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms)
@@ -212,19 +238,20 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
   REAL(KIND=8) :: sigma, dum(2)
   INTEGER      :: iat, k
-  REAL(KIND=4) :: builtin_rand
   INTEGER      :: idum=0
+  
+  call f_routine(id='init_velocities')
 
   !FIXME: a proper ndof has to be determined
   DO iat=1,natoms,2
      DO k=1,ndim
         dum(1)=real(builtin_rand(idum),8)
         dum(2)=real(builtin_rand(idum),8)
-        sigma=DSQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
-        vxyz(k,iat)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DCOS(2.D0*pi*dum(1))
+        sigma=SQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
+        vxyz(k,iat)=sigma*SQRT(-2.D0*LOG(dum(2)))*COS(2.D0*pi*dum(1))
         IF(iat+1.LE.natoms)then 
-           sigma=DSQRT(T0ions/au_to_k/amass(iat+1)) 
-           vxyz(k,iat+1)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DSIN(2.D0*pi*dum(1))
+           sigma=SQRT(T0ions/au_to_k/amass(iat+1)) 
+           vxyz(k,iat+1)=sigma*SQRT(-2.D0*LOG(dum(2)))*SIN(2.D0*pi*dum(1))
         END IF
      END DO
   END DO
@@ -233,6 +260,8 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
 
   CALL rescale_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
+  call f_release_routine()
+
 END SUBROUTINE init_velocities
 
 
@@ -275,7 +304,7 @@ SUBROUTINE temperature(natoms,ndim,ndof,amass,vxyz,Tinst,eke)
      END DO
   END DO
   eke=0.5d0*mv2
-  Tinst=mv2*au_to_k/DFLOAT(ndof)
+  Tinst=mv2*au_to_k/real(ndof,kind=8)
 END SUBROUTINE temperature
 
 
@@ -332,28 +361,29 @@ SUBROUTINE write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
   call f_close(unt)
 END SUBROUTINE write_md_trajectory
 
-SUBROUTINE write_md_energy(istep,Tions,eke,epe,ete)
+SUBROUTINE write_md_energy(istep,Tions,eke,epe,ete,tcpu)
   use yaml_output
   use yaml_strings
   use f_utils
   IMPLICIT NONE
   INTEGER :: istep
-  REAL(KIND=8) :: Tions, eke, epe, ete
+  REAL(KIND=8) :: Tions, eke, epe, ete,tcpu
   !local variables
-  character(len=*), parameter :: fm='(f16.6)'
+  character(len=*), parameter :: fm='(f16.6)', fm2='(f10.2)'
   integer :: unt
   unt = 111
   !IF(istep.eq.0)PRINT "(2X,A,5A16)", "(MD)","ISTEP","TEMP.","EKE","EPE","ETE"
   !PRINT "(2X,A,I16,4F16.6)","(MD)",istep,Tions,eke,epe,ete
   call yaml_mapping_open("(MD)",flow=.true.)
   call yaml_map('istep',istep,fmt='(i6)')
-  call yaml_map('T',Tions,fmt=fm)
+  call yaml_map('T',Tions,fmt=fm2)
   call yaml_map('Eke',eke,fmt=fm)
   call yaml_map('Epe',epe,fmt=fm)
   call yaml_map('Ete',ete,fmt=fm)
+  call yaml_map('tcpu',tcpu,fmt=fm2)
   call yaml_mapping_close()
   call f_open_file(unt,FILE='energy.dat',STATUS='UNKNOWN',position='APPEND',binary=.false.)
-  WRITE(unt,"(I16,4F16.6)")istep,Tions,eke,epe,ete
+  WRITE(unt,"(I16,F10.2,3F16.6,F10.2)")istep,Tions,eke,epe,ete,tcpu
   call f_close(unt)
 END SUBROUTINE write_md_energy
 
@@ -371,7 +401,7 @@ SUBROUTINE remove_lin_momentum(natoms,vxyz)
      rlm(2)=rlm(2) + vxyz(2,iat)
      rlm(3)=rlm(3) + vxyz(3,iat)
   END DO
-  rlm(1:3)=rlm(1:3)/dfloat(natoms)
+  rlm(1:3)=rlm(1:3)/real(natoms,kind=8)
   DO iat=1,natoms
      vxyz(1,iat)=vxyz(1,iat) - rlm(1)
      vxyz(2,iat)=vxyz(2,iat) - rlm(2)
@@ -411,34 +441,110 @@ SUBROUTINE shift_com(natoms,com,rxyz)
   END DO
 END SUBROUTINE shift_com
 
-SUBROUTINE write_restart_md(natoms,istep,alabel,rxyz,vxyz,nhc)
+SUBROUTINE restart_md(control,iproc,restart_pos,restart_vel,restart_nose,natoms,istep,&
+                      alabel,dir,rxyz,vxyz,nhc)
   use f_utils
   use nose_hoover_chains
+  use yaml_output
   implicit none
-  integer :: istep, natoms
+  integer :: istep, natoms, iproc
   real(kind=8) :: rxyz(3,*), vxyz(3,*)
-  character(len=*) :: alabel(*)
+  character(len=*) :: alabel(*), dir, control
   type(NHC_data), intent(inout) :: nhc
+  logical :: restart_pos, restart_vel, restart_nose
   !
-  integer :: iat
+  integer :: iat,ierr, ios
   integer :: unt
-  real (kind=8) :: bohr_to_ang=0.529d0
+  real (kind=8) :: dum(3)
+  !real (kind=8), parameter :: bohr_to_ang=0.529d0
+  character (len=20) :: dummy_char
 
-unt=113
+  unt=113
 
-!TODO: it is better to sync coordinates, velocities, and their wavefunction
-!information in the same restart folder with user specified frequency in say data1/ , data2/ ...folders?
-  call f_open_file(unt,FILE='md.restart',STATUS='UNKNOWN',position='REWIND',binary=.false.)
 
-  !write coordinates in xyz format for easy editing by the users
-  write(unt,*)natoms
-  write(unt,'(A,I16)')'Step:',istep
-  do iat=1,natoms
-     write(unt,'(A,6e16.8)')alabel(iat),rxyz(1:3,iat)*bohr_to_ang,vxyz(1:3,iat)*bohr_to_ang
-  end do
-
-  call write_nhc_restart(unt,nhc)
-
-  call f_close(unt)
-END SUBROUTINE write_restart_md
+  select case (trim(control))
+  case ('write')
+    !only done at iproc==0
+    if(iproc==0)then
+      call f_open_file(unt,file=trim(dir)//'md.restart',status='UNKNOWN',position='REWIND',binary=.false.)
+      call yaml_map('MD Restart file opened for writing',trim(dir)//'md.restart')
+      !write coordinates in xyz format for easy editing by the users
+      write(unt,*)natoms
+      write(unt,'(A,I16)')'Step:',istep
+      do iat=1,natoms
+         write(unt,'(A,6e16.8)')alabel(iat),rxyz(1:3,iat),vxyz(1:3,iat)
+      end do
+      call write_nhc_restart(unt,nhc)
+      call f_close(unt)
+    end if
+!
+  case ('read')
+    !done by all the processors
+    call f_open_file(unt,file=trim(dir)//'md.restart',status='UNKNOWN',position='REWIND',binary=.false.)
+    if(iproc==0)call yaml_map('MD Restart file opened for reading',trim(dir)//'md.restart')
+    if(restart_pos.and.restart_vel)then
+      !read positions and velocities
+      read(unt,*)iat
+      if(iat/=natoms)&
+      call f_err_throw('Error reading md.restart! wrong number of atoms', &
+                       err_name='BIGDFT_RUNTIME_ERROR')
+      read(unt,*)dummy_char,istep
+      do iat=1,natoms
+         read(unt,*,iostat=ios)alabel(iat),rxyz(1:3,iat),vxyz(1:3,iat)
+      end do
+      if(ios/=0) call f_err_throw('Error reading pos and vel from md.restart!', &
+                       err_name='BIGDFT_RUNTIME_ERROR')
+      if(iproc==0)then
+        call yaml_map('Initial positions  restarted from step',istep)
+        call yaml_map('Initial velocities restarted from step',istep)
+      end if
+    else if(restart_pos)then
+      read(unt,*,iostat=ios)iat
+      if(iat/=natoms)&
+        call f_err_throw('Error reading md.restart! wrong number of atoms', &
+                         err_name='BIGDFT_RUNTIME_ERROR')
+      read(unt,*,iostat=ios)dummy_char,istep
+      do iat=1,natoms
+        read(unt,*,iostat=ios)alabel(iat),rxyz(1:3,iat)
+      end do
+      if(ios/=0) call f_err_throw('Error reading pos from md.restart!', &
+                         err_name='BIGDFT_RUNTIME_ERROR')
+      if(iproc==0)then
+        call yaml_map('Initial positions restarted from step',istep)
+      end if
+    else if(restart_vel)then
+      !read velocities 
+      read(unt,*,iostat=ios)iat
+      if(iat/=natoms)&
+        call f_err_throw('Error reading md.restart! wrong number of atoms', &
+                       err_name='BIGDFT_RUNTIME_ERROR')
+      read(unt,*,iostat=ios)dummy_char,istep
+      do iat=1,natoms
+         read(unt,*,iostat=ios)alabel(iat),dum(1:3),vxyz(1:3,iat)
+      end do
+      if(ios/=0) call f_err_throw('Error reading vel from md.restart!', &
+                         err_name='BIGDFT_RUNTIME_ERROR')
+      if(iproc==0)&
+        call yaml_map('Initial velocities restarted from step',istep)
+    end if
+    if(restart_nose)then
+      rewind(unt)
+      read(unt,*,iostat=ios)iat
+      read(unt,*,iostat=ios)dummy_char,istep 
+      do iat=1,natoms 
+        read(unt,*,iostat=ios) ! skip atomic positions and velocities from the restart
+      end do
+      if(ios/=0) call f_err_throw('Error skipping data while reading nose info from md.restart!', &
+                       err_name='BIGDFT_RUNTIME_ERROR')
+      call read_nhc_restart(unt,nhc,ierr)
+      if(ierr==0.and.iproc==0) &
+        call yaml_map('Initial Nose Hoover Chains restarted from step',istep)
+      if(ierr/=0.and.iproc==0)then
+         call yaml_warning('Nose Hoover information is absent in the md.restart file')
+         call yaml_warning('Nose Hoover information is not restarted')
+      end if
+    end if
+    call f_close(unt)
+  end select
+END SUBROUTINE restart_md
 

@@ -26,10 +26,10 @@ program memguess
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
    use psp_projectors_base, only: free_DFT_PSP_projectors
-   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, &
-                 read_linear_coefficients
-   use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
-                                sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL
+   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients
+   use sparsematrix_base!, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
+                        !        sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL, &
+                        !        sparsematrix_init_errors
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
    use sparsematrix_io, only: read_sparse_matrix
@@ -120,6 +120,7 @@ program memguess
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
    call bigdft_init_errors()
+   call sparsematrix_init_errors()
    call bigdft_init_timing_categories()
    ! Get arguments
    !call getarg(1,tatonam)
@@ -576,16 +577,17 @@ program memguess
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%ndims,nspin)
-      rhocoeff=f_malloc_ptr([dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),nspin],id='rhocoeff')
-      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%ndims, &
-           dpbox%hgrids,nspin2,product(dpbox%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%mesh%ndims,nspin)
+      rhocoeff=f_malloc_ptr([dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),nspin],id='rhocoeff')
+      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%mesh%ndims, &
+           dpbox%mesh%hgrids,nspin2,product(dpbox%mesh%ndims),&
+           nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
       !call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
-      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%ndims,dpbox%hgrids,nspin,rhocoeff,&
+      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%mesh%ndims,dpbox%mesh%hgrids,nspin,rhocoeff,&
                       at%astruct%rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
 
       call f_free_ptr(rhocoeff)
@@ -965,108 +967,108 @@ program memguess
    end if
 
    if (calculate_dos) then
-
-       iproc=mpirank()
-       nproc=mpisize()
-
-       !Read coefficients       
-       iunit01=98
-       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
-       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
-            eval=eval_ptr)
-       call f_close(iunit01)
-
-       !Read the overlap matrix
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
-            iproc, nproc, smat_s, ovrlp_mat, &
-            init_matmul=.true.)
-
-       ! call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-       !      matrix_compr)!, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-       !      !at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
-       ! call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       ! call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
-       !      on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
-       ! ovrlp_mat = matrices_null()
-       ! ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
-       ! call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
-       ! call f_free_ptr(matrix_compr)
-
-       !Read the Hamiltonian
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(ham_file), &
-            iproc, nproc, smat_m, ham_mat, &
-            init_matmul=.true.)
-
-       ! call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
-       !      matrix_compr)!, on_which_atom=on_which_atom_m)
-       ! call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-       ! call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
-       !      on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
-       ! ham_mat = matrices_null()
-       ! ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
-       ! call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
-       ! call f_free_ptr(matrix_compr)
-
-       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
-
-       !allocate tables containing the eigenvalues and the occupation of each eigenstate
-       !dos = f_malloc0(npts,id='dos')
-       eigenv = f_malloc0((/norbks/),id='eigenv')
-       fe = f_malloc0((/norbks/),id='fe')
-
-       !define the outpute file
-       output_dos='DoS.dat'
-       call yaml_map('output file',trim(output_dos))
-
-       ! Calculate a partial kernel for each KS orbital
-       total_fe = 0.d0
-       !fe_dos = 0.d0
-       do iorb=1,norbks
-           !call yaml_map('orbital being processed',iorb)
-           call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
-                coeff_ptr(1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
-
-           !Compute all eigenvalues
-           eigenv(iorb) = 0.d0
-           do ispin=1,nspin
-               !!$omp parallel default(none) &
-               !!$omp shared(ispin,iorb,ntmb,denskernel,ham_mat,eigenv) &
-               !!$omp private(itmb,jtmb)
-               !!$omp do reduction(+:eigenv)
-               do itmb=1,ntmb
-                   do jtmb=1,ntmb
-                      eigenv(iorb) = eigenv(iorb) + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
-                   end do
-               end do
-               !!$omp end do
-               !!$omp end parallel
-               !write(*,*) 'eigenv(',iorb,')=',eigenv(iorb)
-           end do
-
-           !Compute all occupations of eigenstates
-           fe(iorb) = 0.d0
-           do ispin=1,nspin
-               !!$omp do reduction(+:fe(iorb))
-               do itmb=1,ntmb!ipdos,ntmb,npdos
-                   do jtmb=1,ntmb!ipdos,ntmb,npdos
-                       fe(iorb) = fe(iorb) + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
-                   end do
-               end do
-               !!$omp end do
-               !write(*,*) 'fe(',iorb,')=',fe(iorb)
-           end do
-
-           total_fe = total_fe + fe(iorb)
-
-       end do
-
-       call yaml_map('sum of all occupation',total_fe)
-
-       call write_gaussian_peaks(norbks,fe,eigenv,sigma,npts,output_dos)
-       call yaml_map('written output file',trim(output_dos))
-       
-       stop
-
+      call f_err_throw('This functionality is now handled by utilities')
+!!!       iproc=mpirank()
+!!!       nproc=mpisize()
+!!!
+!!!       !Read coefficients       
+!!!       iunit01=98
+!!!       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+!!!       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
+!!!            eval=eval_ptr)
+!!!       call f_close(iunit01)
+!!!
+!!!       !Read the overlap matrix
+!!!       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+!!!            iproc, nproc, smat_s, ovrlp_mat, &
+!!!            init_matmul=.true.)
+!!!
+!!!       ! call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+!!!       !      matrix_compr)!, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+!!!       !      !at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+!!!       ! call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+!!!       ! call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
+!!!       !      on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+!!!       ! ovrlp_mat = matrices_null()
+!!!       ! ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
+!!!       ! call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
+!!!       ! call f_free_ptr(matrix_compr)
+!!!
+!!!       !Read the Hamiltonian
+!!!       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(ham_file), &
+!!!            iproc, nproc, smat_m, ham_mat, &
+!!!            init_matmul=.true.)
+!!!
+!!!       ! call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+!!!       !      matrix_compr)!, on_which_atom=on_which_atom_m)
+!!!       ! call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+!!!       ! call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
+!!!       !      on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+!!!       ! ham_mat = matrices_null()
+!!!       ! ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
+!!!       ! call uncompress_matrix(iproc, smat_m, matrix_compr, ham_mat%matrix)
+!!!       ! call f_free_ptr(matrix_compr)
+!!!
+!!!       denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
+!!!
+!!!       !allocate tables containing the eigenvalues and the occupation of each eigenstate
+!!!       !dos = f_malloc0(npts,id='dos')
+!!!       eigenv = f_malloc0((/norbks/),id='eigenv')
+!!!       fe = f_malloc0((/norbks/),id='fe')
+!!!
+!!!       !define the outpute file
+!!!       output_dos='DoS.dat'
+!!!       call yaml_map('output file',trim(output_dos))
+!!!
+!!!       ! Calculate a partial kernel for each KS orbital
+!!!       total_fe = 0.d0
+!!!       !fe_dos = 0.d0
+!!!       do iorb=1,norbks
+!!!           !call yaml_map('orbital being processed',iorb)
+!!!           call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
+!!!                coeff_ptr(1,iorb), ntmb, 0.d0, denskernel(1,1), ntmb)
+!!!
+!!!           !Compute all eigenvalues
+!!!           eigenv(iorb) = 0.d0
+!!!           do ispin=1,nspin
+!!!               !!$omp parallel default(none) &
+!!!               !!$omp shared(ispin,iorb,ntmb,denskernel,ham_mat,eigenv) &
+!!!               !!$omp private(itmb,jtmb)
+!!!               !!$omp do reduction(+:eigenv)
+!!!               do itmb=1,ntmb
+!!!                   do jtmb=1,ntmb
+!!!                      eigenv(iorb) = eigenv(iorb) + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
+!!!                   end do
+!!!               end do
+!!!               !!$omp end do
+!!!               !!$omp end parallel
+!!!               !write(*,*) 'eigenv(',iorb,')=',eigenv(iorb)
+!!!           end do
+!!!
+!!!           !Compute all occupations of eigenstates
+!!!           fe(iorb) = 0.d0
+!!!           do ispin=1,nspin
+!!!               !!$omp do reduction(+:fe(iorb))
+!!!               do itmb=1,ntmb!ipdos,ntmb,npdos
+!!!                   do jtmb=1,ntmb!ipdos,ntmb,npdos
+!!!                       fe(iorb) = fe(iorb) + denskernel(itmb,jtmb)*ovrlp_mat%matrix(jtmb,itmb,ispin)
+!!!                   end do
+!!!               end do
+!!!               !!$omp end do
+!!!               !write(*,*) 'fe(',iorb,')=',fe(iorb)
+!!!           end do
+!!!
+!!!           total_fe = total_fe + fe(iorb)
+!!!
+!!!       end do
+!!!
+!!!       call yaml_map('sum of all occupation',total_fe)
+!!!
+!!!       call write_gaussian_peaks(norbks,fe,eigenv,sigma,npts,output_dos)
+!!!       call yaml_map('written output file',trim(output_dos))
+!!!       
+!!!       stop
+!!!
    end if
 
    if (kernel_analysis) then
@@ -1130,35 +1132,36 @@ program memguess
        stop
    end if
 
-   if (solve_eigensystem) then
-!!$       call mpi_initialized(mpi_initd, ierror)
-!!$       if (mpi_initd) then
-!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-!!$       else
-!!$           iproc = 0
-!!$           nproc = 1
-!!$       end if
-      iproc=mpirank()
-      nproc=mpisize()
-
-       ham = f_malloc((/ntmb,ntmb/),id='ham')
-       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
-       eval = f_malloc(ntmb,id='eval')
-       rxyz = f_malloc((/3,nat/),id='rxyz')
-       call f_open_file(iunit01, file=trim(ham_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, rxyz=rxyz)
-       call f_close(iunit01)
-       call f_open_file(iunit01, file=trim(overlap_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
-       call f_close(iunit01)
-       call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
-       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
-       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
-       call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
-            ntmb, ntmb, ntmb, ham, eval)
-       stop
-   end if
+!!   if (solve_eigensystem) then
+!!         call f_err_throw('solve-eigensystem is now handled by utilities')
+!!!!$       call mpi_initialized(mpi_initd, ierror)
+!!!!$       if (mpi_initd) then
+!!!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!!!$       else
+!!!!$           iproc = 0
+!!!!$           nproc = 1
+!!!!$       end if
+!!      iproc=mpirank()
+!!      nproc=mpisize()
+!!
+!!       ham = f_malloc((/ntmb,ntmb/),id='ham')
+!!       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+!!       eval = f_malloc(ntmb,id='eval')
+!!       rxyz = f_malloc((/3,nat/),id='rxyz')
+!!       call f_open_file(iunit01, file=trim(ham_file), binary=.false.)
+!!       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, rxyz=rxyz)
+!!       call f_close(iunit01)
+!!       call f_open_file(iunit01, file=trim(overlap_file), binary=.false.)
+!!       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+!!       call f_close(iunit01)
+!!       call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+!!       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
+!!       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+!!       call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
+!!            ntmb, ntmb, ntmb, ham, eval)
+!!       stop
+!!   end if
 
    if (analyze_coeffs) then
 !!$       call mpi_initialized(mpi_initd, ierror)

@@ -564,11 +564,11 @@
    Box                                 :  [  91,  91,  101 ]
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.0763E-04, -5.0763E-04, -5.4690E-04 ]
-   norm(P)                             :  9.024876E-04
+   P vector                            :  [ -5.2306E-04, -5.2306E-04, -5.6277E-04 ]
+   norm(P)                             :  9.294589E-04
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.2903E-03, -1.2903E-03, -1.3901E-03 ]
-   norm(P)                             :  2.293894E-03
+   P vector                            :  [ -1.3295E-03, -1.3295E-03, -1.4304E-03 ]
+   norm(P)                             :  2.362449E-03
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.13964092E-05, y:  1.13964092E-05, z: -1.80910187E-04, 

@@ -28,8 +28,6 @@ PS_input_variables_fetch.o: PS_input_variables_definition-inc.h
 PS_input_variables_definition-inc.h: PS_input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
-
-
 if HAVE_ETSF_IO
 etsf_files = IOetsf.f90
 etsf_dep   = IOetsf.o
@@ -57,6 +55,7 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
 	box.f90 \
+	exctx_calculation.f90 \
 	$(fdder_file) \
 	IObox.f90 \
 	$(c_level) \
@@ -65,7 +64,7 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 # Modules.
 if CAPITALIZE
 modules = POISSON_SOLVER.@MODULE_EXT@ \
-	ENVIRONMENT.@MODULE_EXT@ \
+	PSOLVER_ENVIRONMENT.@MODULE_EXT@ \
 	PSTYPES.@MODULE_EXT@ \
 	PSBASE.@MODULE_EXT@ \
 	PSBOX.@MODULE_EXT@ \
@@ -145,7 +144,7 @@ endif
 SUFFIXES = .cu
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
+NVCC_FLAGS = @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)
@@ -177,7 +176,7 @@ conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 IOetsf.o: PSbase.o
 IOetsf_fake.o: PSbase.o
-wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
+exctx_calculation.o wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 .cu.o:
 	$(NVCC) $(NVCC_FLAGS) $(AM_CPPFLAGS) -c $< -o $@

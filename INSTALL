@@ -10,17 +10,20 @@ A bigdft-suite directory is created.
 
 mkdir build; cd build
 
-Typing ../bigdft-suite/Installer.py -h gives the help.
+Typing ../bigdft-suite/Installer.py help gives the help.
 
-To indicate the required configuration, you can use the variable BIGDFT_CONFIGURE_FLAGS
-or copy an rcfile from bigdft-suite/rcfiles/ (cp ../bigdft-suite/rcfiles/zathar-mpif90.rc buildrc).
-By default, Installer.py is trying to find a file rcfiles/`hostname`*.rc if it exists.
+To indicate the required configuration, you can use the command-line option "-c" 
+or specify with the option "-f" a rcfile, either from bigdft-suite/rcfiles/  or from CWD.
+By default, Installer.py is trying to find a file rcfiles/`*hostname`*.rc if it exists.
 
 At the end of the build, Installer.py will create a buildrc file in the current directory which will be used.
 
-So type ../bigdft-suite/Installer.py build
-to build and install in build/install/bin
+If everything goes smmothly, the command
 
-You need also to specify the LD_LIBRARY_PATH as
+../bigdft-suite/Installer.py build 
+
+should therefore install the BigDFT suite in the install/bin directory of the build tree.
+
+In some cases, you may need also to specify the LD_LIBRARY_PATH as
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:'location-of-your-build'/install/lib to specify mainly the location of libyaml.so
 

@@ -65,7 +65,7 @@ module time_profiling
 
   public :: f_timing_reset,f_timing,f_timing_checkpoint,f_timing_stop,timing_errors
   public :: f_timing_category,f_timing_category_group,f_timing_finalize,f_timing_initialize
-  public :: get_category_name,f_clock
+  public :: get_category_name,f_clock,f_profile,f_profile_end
 
   contains
 
@@ -960,6 +960,65 @@ module time_profiling
          getname(1:len(getname))=name
       end if
     end subroutine get_category_name
+
+    subroutine f_profile(entry_point,id,repeat,jmpbuf,dump_results,unit)
+      use f_jmp
+      use yaml_output
+      use f_utils, only: f_humantime
+      implicit none
+      logical, intent(in) :: dump_results
+      character(len=*), intent(in) :: id
+      integer, intent(in) :: repeat
+      type(f_jmpbuf), intent(inout) :: jmpbuf
+      integer, intent(in), optional :: unit !< stream id
+      external :: entry_point
+      !local variables
+      integer(f_long) :: t1
+
+      !first of all determine if setjmp has already been called
+      jmpbuf%id=id
+      jmpbuf%destroy_signal=repeat
+      jmpbuf%t0 = f_time()
+      jmpbuf%callback=f_loc(entry_point)
+      !print *,'start'
+      call f_jmpbuf_set(jmpbuf)
+      !otherwise we have already set the jump point, nothing to do 
+
+      !here we also end the calculation
+      if (dump_results) then
+         t1=f_time()
+         call yaml_mapping_open('Ending profiling section',unit=unit,&
+              flow=.true.)
+         call yaml_map('Id',jmpbuf%id,unit=unit)
+         call yaml_map('Times repeated',jmpbuf%destroy_signal,unit=unit)
+         call yaml_map('Elapsed time','"'//trim(f_humantime(t1-jmpbuf%t0))//'"',unit=unit)
+         call yaml_mapping_close(unit=unit)
+      end if
+      call f_jmpbuf_free(jmpbuf)
+
+    end subroutine f_profile
+
+    subroutine f_profile_end(entry_point,jmpbuf)
+      use f_jmp
+      implicit none
+      type(f_jmpbuf), intent(inout) :: jmpbuf
+
+      external :: entry_point
+
+      !print *,'there',jmpbuf%signal,jmpbuf%destroy_signal,&
+      !     associated(jmpbuf%jmp_buf)
+      if (.not. associated(jmpbuf%jmp_buf)) return
+      !print *,'there2',jmpbuf%signal,jmpbuf%destroy_signal
+      if (f_loc(entry_point) /= jmpbuf%callback) &
+           call f_err_throw('Inconsistent entry points, exiting',&
+              err_id=TIMING_INVALID)
+
+      !here we should jmp back if the jmpbuffer need it
+      if (jmpbuf%signal /= jmpbuf%destroy_signal) then
+         call f_longjmp(jmpbuf) !increase signal
+      end if
+
+    end subroutine f_profile_end
 
   end module time_profiling
 

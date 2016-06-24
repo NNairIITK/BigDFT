@@ -112,6 +112,28 @@ AC_CHECK_FUNCS([clock_gettime])
 AC_CHECK_FUNCS([strndup])
 AC_LANG_POP(C)
 
+dnl Test Python availability
+AX_PYTHON_DEV()
+
+dnl Test Glib availability
+AC_ARG_WITH(gobject, AS_HELP_STRING([--with-gobject], [Compile with GLib (disabled by default).]),
+              ax_have_glib=$withval, ax_have_glib="no")
+if test x"$ax_have_glib" = x"yes" ; then
+  PKG_CHECK_MODULES(GLIB, glib-2.0 gobject-2.0 >= 2.22, [ax_have_glib=yes], [ax_have_glib=no])
+fi
+if test x"$ax_have_glib" = x"yes" ; then
+  AC_DEFINE([HAVE_GLIB], [], [If set, we can call glib.h])
+  AC_SUBST([GLIB_TRUE], [""])
+  AC_SUBST([GLIB_END_TRUE], [""])
+  AC_SUBST([GLIB_FALSE], ["/*"])
+  AC_SUBST([GLIB_END_FALSE], ["*/"])
+else
+  AC_SUBST([GLIB_TRUE], ["/*"])
+  AC_SUBST([GLIB_END_TRUE], ["*/"])
+  AC_SUBST([GLIB_FALSE], [""])
+  AC_SUBST([GLIB_END_FALSE], [""])
+fi
+
 dnl Test accelerators
 AX_ACC_CUDA()
 AX_ACC_OCL()
@@ -126,7 +148,7 @@ dnl Use the dgemmsy
 AX_DGEMMSY()
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LINALG_LIBS $LIB_YAML_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LIBCUDA_LIBS $LINALG_LIBS $LIB_YAML_LIBS $MPI_LDFLAGS $MPI_LIBS $GLIB_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
 LIB_FUTILE_LIBS="-lfutile-1"
 if test $ax_build_dynamic != "yes" ; then
@@ -134,19 +156,29 @@ if test $ax_build_dynamic != "yes" ; then
 fi
 AC_SUBST(LIB_FUTILE_LIBS)
 
+dnl Test for the developers' documentation.
+AX_DOC()
+
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+doc/Makefile
+doc/Doxyfile
 flib/Makefile
 flib/f_utils.inc
 wrappers/Makefile
+c-bindings/Makefile
+c-bindings/futile_cst.h
+src/configure.inc
 src/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/flib/Makefile
+tests/wrappers/Makefile
+tests/c-bindings/Makefile
 ])
 
 AC_OUTPUT

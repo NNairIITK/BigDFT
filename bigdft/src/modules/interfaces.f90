@@ -173,7 +173,7 @@ module module_interfaces
       type(rho_descriptors),intent(in) :: rhodsc
       type(denspot_distribution), intent(in) :: dpbox
       real(dp), dimension(:,:), pointer :: rho_p !< partial density in orbital distribution scheme
-      real(dp), dimension(max(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
+      real(dp), dimension(max(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d,1),nspin), intent(out) :: rho
         END SUBROUTINE communicate_density
       end interface
 
@@ -810,7 +810,7 @@ module module_interfaces
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
           correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
+          wt_philarge, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
           cdft, input_frag, ref_frags)
         use module_defs, only: gp,dp,wp
         use module_types
@@ -852,7 +852,7 @@ module module_interfaces
         logical,intent(in) :: correction_co_contra
         type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
-        type(work_transpose),intent(inout) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+        type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
         type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
         logical, intent(in) :: frag_calc
         !these must all be present together
@@ -1062,19 +1062,19 @@ module module_interfaces
          END SUBROUTINE input_check_psi_id
        end interface
 
-       interface
-         subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
-         use module_defs, only: gp,dp,wp
-         use module_types
-         implicit none
-         integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
-         integer,dimension(nlr),intent(in):: Localnorb
-         real(kind=8),dimension(norb),intent(in):: spinsgn
-         integer,dimension(0:nproc-1),intent(in):: norb_par
-         real(8),dimension(3,nlr),intent(in):: rxyz
-         integer,dimension(:),pointer,intent(out):: inwhichlocreg
-         END SUBROUTINE assignToLocreg2
-       end interface
+       !!interface
+       !!  subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
+       !!  use module_defs, only: gp,dp,wp
+       !!  use module_types
+       !!  implicit none
+       !!  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
+       !!  integer,dimension(nlr),intent(in):: Localnorb
+       !!  real(kind=8),dimension(norb),intent(in):: spinsgn
+       !!  integer,dimension(0:nproc-1),intent(in):: norb_par
+       !!  real(8),dimension(3,nlr),intent(in):: rxyz
+       !!  integer,dimension(:),pointer,intent(out):: inwhichlocreg
+       !!  END SUBROUTINE assignToLocreg2
+       !!end interface
 
        interface
          subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
@@ -1095,7 +1095,7 @@ module module_interfaces
        interface
          subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, locregCenter, glr_tmp, &
                   useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
-                  orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+                  orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lice, lbcollcom_sr)
          use module_defs, only: gp,dp,wp
          use module_types
          use foe_base, only: foe_data
@@ -1117,6 +1117,7 @@ module module_interfaces
          type(foe_data),intent(inout),optional :: lfoe
          type(comms_linear),intent(inout):: lbcollcom
          type(comms_linear),intent(inout),optional :: lbcollcom_sr
+         type(foe_data),intent(inout),optional :: lice
          END SUBROUTINE update_locreg
        end interface
 
@@ -1193,7 +1194,7 @@ module module_interfaces
           !real(gp), dimension(3,at%astruct%nat), intent(out) :: rxyz_old
           character(len=*), intent(in) :: dir_output, filename
           type(fragmentInputParameters), intent(in) :: input_frag
-          type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+          type(system_fragment), dimension(:), pointer :: ref_frags
           logical, intent(in) :: frag_calc, kernel_restart
           integer, intent(in) :: max_nbasis_env
           integer, dimension(input_frag%nfrag,max_nbasis_env,3), intent(inout) :: frag_env_mapping
@@ -1390,7 +1391,7 @@ module module_interfaces
        logical, intent(in) :: add_derivatives
        character(len=*), intent(in) :: input_dir
        type(fragmentInputParameters), intent(in) :: input_frag
-       type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
+       type(system_fragment), dimension(:), pointer :: ref_frags
        real(gp),intent(out) :: max_shift
      END SUBROUTINE reformat_supportfunctions
   end interface
@@ -1488,20 +1489,20 @@ module module_interfaces
      END SUBROUTINE calculate_residue_ks
   end interface
 
-  interface
-     subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
-       use module_defs, only: gp,dp,wp
-       use module_types, only: energy_terms
-       use f_enums, only: f_enumerator
-       implicit none
-       integer, intent(in) :: iter
-       type(energy_terms), intent(in) :: energs
-       real(gp), intent(in) :: gnrm,gnrm_zero
-       character(len=*), intent(in) :: comment
-       type(f_enumerator), intent(in), optional :: scf_mode
-       logical,intent(in),optional :: only_energies
-     END SUBROUTINE write_energies
-  end interface
+  !!interface
+  !!   subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
+  !!     use module_defs, only: gp,dp,wp
+  !!     use module_types, only: energy_terms
+  !!     use f_enums, only: f_enumerator
+  !!     implicit none
+  !!     integer, intent(in) :: iter
+  !!     type(energy_terms), intent(in) :: energs
+  !!     real(gp), intent(in) :: gnrm,gnrm_zero
+  !!     character(len=*), intent(in) :: comment
+  !!     type(f_enumerator), intent(in), optional :: scf_mode
+  !!     logical,intent(in),optional :: only_energies
+  !!   END SUBROUTINE write_energies
+  !!end interface
 
 
   interface

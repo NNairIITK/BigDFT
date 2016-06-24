@@ -178,9 +178,11 @@ subroutine f_lib_finalize()
   use time_profiling, only: f_timing_finalize,f_clock
   use yaml_strings, only: operator(//)
   use f_utils, only: f_humantime
+  use module_f_objects, only: f_object_finalize
   implicit none
   !local variables
   integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
+  call f_object_finalize()
   call f_malloc_finalize(process_id=iproc)
   !print maximal value of dictionary usage
   if (iproc == 0) then
@@ -197,6 +199,7 @@ subroutine f_lib_finalize()
   call f_timing_finalize()
   !debug, once again
   call dictionary_check_leak()
+
 end subroutine f_lib_finalize
 
 
@@ -214,3 +217,23 @@ subroutine f_lib_finalize_noreport()
   call f_err_finalize()
   call f_timing_finalize()
 end subroutine f_lib_finalize_noreport
+
+!> Some constants about Futile.
+module f_lib_package
+include 'configure.inc'
+end module f_lib_package
+
+!> complete module of futile, to be used for high-level programs
+module futile
+  use yaml_strings
+  use dictionaries
+  use yaml_output
+  use f_utils
+  use yaml_parse
+  use dynamic_memory
+  use f_refcnts
+  use time_profiling
+  use f_input_file
+  use f_enums
+  use f_ternary
+end module futile

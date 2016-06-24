@@ -6,8 +6,10 @@ EXTRA_DIST = \
 	README
 
 SUBDIRS = \
-	  flib \
-	  fft
+	flib \
+	fft \
+	wrappers \
+	c-bindings
 
 #Installation of some python file (use $pythondir to access into).
 python_PYTHON = fldiff_yaml.py yaml_hl.py report.py fldiff.py

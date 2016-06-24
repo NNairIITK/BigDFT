@@ -80,6 +80,7 @@ CONTAINS
   !!
   subroutine nose_init(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
     use numerics, only: au_to_k=>Ha_K, pi, cubroot => onethird
+    use random, only: builtin_rand
     implicit none 
     integer :: NATOMS,NDOF
     REAL (KIND=8)   :: dt, T0ions, amass(natoms),vxyz(3,natoms) 
@@ -94,7 +95,6 @@ CONTAINS
     !
     !
     REAL (KIND=8), PARAMETER  ::  cmi_to_au = 7.26D-7 
-    REAL(KIND=4) :: builtin_rand
     INTEGER      :: idum=0
 
 
@@ -314,9 +314,30 @@ CONTAINS
     integer :: unt
     type(NHC_data), intent(inout) :: nhc
     if(nhc%nhchain)then
+     write(unt,*)'NOSE'
      write(unt,*)nhc%eta_size,nhc%nhnc,nhc%nmultint,nhc%nsuzuki,nhc%nosefrq
      write(unt,*)nhc%eta(1:nhc%eta_size)
      write(unt,*)nhc%veta(1:nhc%eta_size)
    end if 
   end subroutine write_nhc_restart
+
+  subroutine read_nhc_restart(unt,nhc,ierr)
+    implicit none 
+    !     Function : read Nose Hoover chain thermostat info to the restart file
+    integer :: unt, ierr
+    type(NHC_data), intent(inout) :: nhc
+    character (len=10) :: section_char
+    if(nhc%nhchain)then
+      read(unt,*,iostat=ierr)section_char
+      if(ierr/=0)return
+      if(index(section_char,'NOSE')/=0)then
+        read(unt,*)nhc%eta_size,nhc%nhnc,nhc%nmultint,nhc%nsuzuki,nhc%nosefrq
+        read(unt,*)nhc%eta(1:nhc%eta_size)
+        read(unt,*)nhc%veta(1:nhc%eta_size)
+        ierr=0
+      else
+        ierr=1
+      end if
+    end if 
+  end subroutine read_nhc_restart
 end module Nose_Hoover_Chains

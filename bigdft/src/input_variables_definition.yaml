@@ -434,6 +434,16 @@
      #  MASTER_KEY: output_denspot
      #  WHEN:
      #  - 22
+   occupancy_control:
+    COMMENT: Dictionary of the atomic matrices to be applied for a given iteration number
+    DESCRIPTION: |
+     The atomic species or the atoms written as Atom No are specified, followed by a dictionary
+     of the shells for which the density matrix can be controlled. The Value of the matrix can be specified either as
+     a trace or as explicit matrix elements.
+    default: None
+   itermax_occ_ctrl:
+     COMMENT: Number of iterations of occupancy control scheme. Should be between itermin and itermax
+     default: 0
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out
@@ -741,10 +751,6 @@
      default: No
    beta_stretchx:
      COMMENT: Stepsize for steepest descent in stretching mode direction (only if in biomode)
-     CONDITION:
-       MASTER_KEY: biomode
-       WHEN:
-       - Yes
      RANGE: [0., 100.]
      default: 5e-1
    maxrise:
@@ -1003,6 +1009,15 @@
      DESCRIPTION: A value greater than 0 activates wfn extrapolation
      EXCLUSIVE: [ 0, 1, 2, 4 ]
      default: 0
+   restart_nose:
+     COMMENT: Restart Nose Hoover Chain information from md.restart
+     default: No
+   restart_pos:
+     COMMENT: Restart nuclear position information from md.restart
+     default: No
+   restart_vel:
+     COMMENT: Restart nuclear velocities information from md.restart
+     default: No
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
    DESCRIPTION: |
@@ -1148,6 +1163,12 @@
        sw: Stillinger-Weber for Si
        multi: Mixed approach where parts of the system are treated with different methods
      default: dft
+   nab_options:
+     COMMENT: String to be passed to nab_init compiler in the case of ambertools compilation
+     default: ntpr=1
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: amber
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
@@ -1647,7 +1668,7 @@
          Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
-       COMMENT: extra states to optimize (dmin only)
+       COMMENT: Number of extra states to include in support function and kernel optimization (dmin only), must be equal to norbsempty
        default: 0
        RANGE: [0, 10000]
      calculate_onsite_overlap:
@@ -1659,24 +1680,34 @@
          Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
          Possible values are:
          * 0 => no calculation
-                    * 1 => new approach using Loewdin and orthogonalized support functions
-                    * 2 => new approach using simple projector and orthogonalized support functions
+                    * 1 => Loewdin approach, however without explicit orthogonalization
+                    #* 2 => new approach using simple projector and orthogonalized support functions
                     #* 3 => new approach using full projector and orthogonalized support functions
-                    * 11 => same a 1, but with non-orthogonalized support functions
-                    * 12 => same as 2, but with non-orthogonalized support functions
+                    * 11 => Mulliken approach
+                    #* 12 => same as 2, but with non-orthogonalized support functions
                     #* 13 => same as 3, but with non-orthogonalized support functions
        default: 0
        EXCLUSIVE:
          0: no calculation
-         1: new approach using Loewdin and orthogonalized support functions
-         2: new approach using simple projector and orthogonalized support functions
+         1: Loewdin approach, however without explicit orthogonalization
+         #2: new approach using simple projector and orthogonalized support functions
          #3: new approach using full projector and orthogonalized support functions
-         11: same a 1, but with non-orthogonalized support functions
-         12: same as 2, but with non-orthogonalized support functions
+         11: Mulliken approach
+         #12: same as 2, but with non-orthogonalized support functions
          #13: same as 3, but with non-orthogonalized support functions
      support_function_multipoles:
        COMMENT: Calculate the multipole moments of the support functions
        default: False
+     plot_locreg_grids:
+       COMMENT: plot the scaling function and wavelets grid of each localization region
+       default: False
+     calculate_FOE_eigenvalues:
+       COMMENT: First and last eigenvalue to be calculated using the FOE procedure
+       default: [0,-1]
+     precision_FOE_eigenvalues:
+       COMMENT: decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
+       default: 5.e-3
+       RANGE: [0.0,1.e-1]
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1978,7 +2009,7 @@ linear_accurate:
   DESCRIPTION: |
           This profile should be chosen if highly accurate energy differences are required.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
   perf:
@@ -2010,13 +2041,28 @@ linear_accurate:
     alphamix: 0.1
     rpnrm_cv: [1.e-12,1.e-12]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 linear_moderate:
   COMMENT: Appropriate input parameters for a moderate accuracy linear scaling calculation
   DESCRIPTION: |
           This profile should be chosen if accurate forces are required,
           but there is no need for extremely accurate energies.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
   perf:
@@ -2043,12 +2089,27 @@ linear_moderate:
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-11,1.e-11]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 linear_fast:
   COMMENT: Appropriate input parameters for a low accuracy linear scaling calculation
   DESCRIPTION: |
           This profile should be chosen if speed is more important than accuracy.
   dft:
-    hgrids: accurate
+    hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
   perf:
@@ -2071,10 +2132,25 @@ linear_fast:
     correction_orthoconstraint: 0
   lin_kernel:
     nit: [10,10]
-    idsx: [6,0]
+    idsx: [6,6]
     alphamix: [0.2,0.2]
     rpnrm_cv: [1.e-10,1.e-10]
     linear_method: FOE
+  lin_basis_params:
+    ao_confinement: -1.0
+    confinement: -1.0
+    rloc_kernel: 10.0
+    rloc_kernel_foe: 12.0
+    H:  {nbasis: 1, rloc: 5.0}
+    C:  {nbasis: 4, rloc: 5.5}
+    N:  {nbasis: 4, rloc: 5.5}
+    O:  {nbasis: 4, rloc: 5.5}
+    P:  {nbasis: 4, rloc: 6.0}
+    S:  {nbasis: 4, rloc: 6.0}
+    Cl: {nbasis: 4, rloc: 6.0}
+    Na: {nbasis: 1, rloc: 7.5}
+    K:  {nbasis: 1, rloc: 8.0}
+    Sn: {nbasis: 4, rloc: 6.5}
 mixing:
   COMMENT: To be used for metallic systems
   DECRIPTION: |
@@ -2151,6 +2227,7 @@ linear:
    rloc_kernel: 10.0
    rloc_kernel_foe: 12.0
    H:  {nbasis: 1, rloc: 5.0}
+   Li:  {nbasis: 1, rloc: 5.5}
    C:  {nbasis: 4, rloc: 5.5}
    N:  {nbasis: 4, rloc: 5.5}
    O:  {nbasis: 4, rloc: 5.5}

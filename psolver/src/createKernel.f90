@@ -249,7 +249,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
   kernelnproc=kernel%mpi_env%nproc
   if (kernel%igpu == 1) kernelnproc=1
-
+  kernel%stay_on_gpu=0
 
   select case(kernel%geocode)
      !if (kernel%geocode == 'P') then
@@ -599,7 +599,8 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
     n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
     !perform the estimation of the processors
-    call mpinoderanks(kernel%mpi_env,myiproc_node,mynproc_node)
+    call mpinoderanks(kernel%mpi_env%iproc,kernel%mpi_env%nproc,kernel%mpi_env%mpi_comm,&
+         myiproc_node,mynproc_node)
 
     call cuda_estimate_memory_needs(kernel, n, &
          int(myiproc_node,kind=8), int(mynproc_node,kind=8)) !LG: why longs?

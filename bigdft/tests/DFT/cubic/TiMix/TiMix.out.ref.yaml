@@ -639,12 +639,19 @@
    BC                                  : Free
    Box                                 :  [  139,  127,  127 ]
    MPI tasks                           :  3
+ Multipole analysis origin             :  [  8.986033E+00,  1.080000E+01,  1.080000E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [ -6.4058E+00, -3.4006E-02, -3.4119E-02 ]
-   norm(P)                             :  6.406007E+00
+   P vector                            :  [ -6.4059E+00, -3.4079E-02, -3.4192E-02 ]
+   norm(P)                             :  6.406068E+00
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.6282E+01, -8.6435E-02, -8.6723E-02 ]
-   norm(P)                             :  1.628244E+01
+   P vector                            :  [ -1.6282E+01, -8.6620E-02, -8.6908E-02 ]
+   norm(P)                             :  1.628260E+01
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [-7.7929E+01, -6.0786E-02, -6.0697E-02]
+   -  [-6.0786E-02,  3.9099E+01,  1.7929E+00]
+   -  [-6.0697E-02,  1.7929E+00,  3.8830E+01]
+   trace                               : -7.72E-12
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #WARNING: Self-consistent cycle did not meet convergence criteria

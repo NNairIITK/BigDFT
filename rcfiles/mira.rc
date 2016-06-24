@@ -3,7 +3,7 @@ def getcwd():
   return os.getcwd()
 
 def fcflags():
-  return """'FCFLAGS= -g -O3 -qsmp=omp  -qarch=qp -qtune=qp -qcache=auto -qunroll=auto -qfree=f90 -qxlf90=autodealloc -qessl -qstrict -qmaxmem=-1 -qsimd=noauto -qnoipa -qnohot'"""
+  return """'FCFLAGS= -g -O3 -qsmp=omp  -qarch=qp -qtune=qp -qcache=auto -qunroll=auto -qfree=f90 -qxlf90=autodealloc -qessl -qstrict -qmaxmem=-1 -qsimd=noauto -qnoipa -qnohot' --without-gobject"""
 
 def fcflags_short():
   return """'FCFLAGS= -g -O3'"""
@@ -15,7 +15,7 @@ def linalg():
   return """'--with-ext-linalg-path=-L/soft/libraries/essl/current/lib64 -L/soft/libraries/alcf/current/xl/SCALAPACK/lib' '--with-ext-linalg=-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -L/soft/libraries/essl/current/lib64 -L/soft/libraries/alcf/current/xl/SCALAPACK/lib -llapack -lscalapack -lesslsmpbg -Wl,--allow-multiple-definition ' '--with-blas-path=-L/soft/libraries/essl/current/lib64'"""
 
 def complete_line():
-  return linalg()+""" 'CFLAGS= -g -O3 ' 'CC=mpixlc' 'CXX=mpixlcxx' 'FC=mpixlf90' """+libs()+""" 'CPPFLAGS=-I.' """+fcflags()+" --without-gobject"
+  return linalg()+""" 'CFLAGS= -g -O3 ' 'CC=mpixlc' 'CXX=mpixlcxx' 'FC=mpixlf90' """+libs()+""" 'CPPFLAGS=-I.' """+fcflags()
 
 def simple_line():
   return """'CFLAGS= -g -O3 ' 'CC=xlc' 'CXX=xlcxx' 'FC=xlf90' 'CPPFLAGS=-I.' """+fcflags_short()
@@ -31,4 +31,3 @@ module_autogenargs.update({
     'bigdft': complete_line(),
     'psolver': complete_line(),
     'spred': complete_line() })
-

@@ -25,6 +25,7 @@ module module_atoms
        & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE
   use dictionaries, only: dictionary
   use f_trees, only: f_tree
+  use f_blas, only: f_matrix,f_matrix_allocate_ptr
   implicit none
 
   private
@@ -92,6 +93,8 @@ module module_atoms
      integer, dimension(:), pointer :: nlcc_ngv,nlcc_ngc !< Number of valence and core gaussians describing NLCC
      real(gp), dimension(:,:), pointer :: nlccpar        !< Parameters for the non-linear core correction, if present
      logical, dimension(:,:), pointer :: dogamma         !< density matrix is calculated
+     type(f_matrix), dimension(:,:,:), pointer :: gamma_targets !<array containing target gammas
+     logical :: apply_gamma_target !< apply the gamma target to the NL PSP operator
      type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
      type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
      type(pawang_type) :: pawang                         !< PAW angular mesh definition.
@@ -113,6 +116,7 @@ module module_atoms
      logical, dimension(3) :: frz                   !< Array of frozen coordinate of the atom
      real(gp), dimension(3) :: rxyz                 !< Atom positions
      type(atomic_structure), pointer :: astruct_ptr !< Private pointer to the atomic structure from which it derives
+     type(dictionary), pointer :: attrs
   end type atoms_iterator
 
 
@@ -148,6 +152,7 @@ contains
     it%frz=.false.
     it%rxyz=0.0_gp
     nullify(it%astruct_ptr)
+    nullify(it%attrs)
   end subroutine nullify_atoms_iterator
 
 
@@ -186,6 +191,7 @@ contains
     it%frz(2)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),2)
     it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)
     it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
+    it%attrs=>it%astruct_ptr%attributes(it%iat)%d
   end subroutine atoms_refresh_iterator
 
 
@@ -306,6 +312,7 @@ contains
     at%multipole_preserving=.false.
     at%mp_isf=0
     at%iat_absorber=-1
+    at%apply_gamma_target=.false.
     !     nullify(at%iasctype)
     nullify(at%nelpsp)
     nullify(at%npspcode)
@@ -317,6 +324,7 @@ contains
     !nullify(at%rloc)
     nullify(at%psppar)
     nullify(at%dogamma)
+    nullify(at%gamma_targets)
     nullify(at%nlcc_ngv)
     nullify(at%nlcc_ngc)
     nullify(at%nlccpar)
@@ -402,8 +410,9 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms)
     use module_base
-    use m_pawrad, only: pawrad_free
+    use f_blas, only: f_free_matrix_ptr
     use m_pawtab, only: pawtab_free
+    use m_pawrad, only: pawrad_free
     use m_pawang, only: pawang_free
     implicit none
     type(atoms_data), intent(inout) :: atoms
@@ -421,6 +430,8 @@ contains
     call f_free_ptr(atoms%nzatom)
     call f_free_ptr(atoms%psppar)
     call f_free_ptr(atoms%dogamma)
+    call f_free_matrix_ptr(atoms%gamma_targets)
+    atoms%apply_gamma_target=.false.
     call f_free_ptr(atoms%nelpsp)
     call f_free_ptr(atoms%ixcpsp)
     call f_free_ptr(atoms%npspcode)
@@ -499,13 +510,14 @@ contains
     END FUNCTION astruct_neighbours_next
 
     !> determine the atomic dictionary from the key
-    subroutine get_atomic_dict(dict_tmp,dict,iat,name)
+    subroutine get_atomic_dict(dict_tmp,dict,iat,name,fromname)
       use dictionaries
       use yaml_strings
       implicit none
       integer, intent(in) :: iat
       character(len=*), intent(in) :: name
       type(dictionary), pointer :: dict_tmp,dict
+      logical, intent(out), optional :: fromname
       !local variables
       character(len = max_field_length) :: at
 
@@ -513,61 +525,162 @@ contains
 
       call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(iat))),dest=at)
       dict_tmp = dict .get. at
-      if (.not. associated(dict_tmp)) dict_tmp = &
-           dict .get. name
+      if (present(fromname)) fromname=.not. associated(dict_tmp)
+      if (.not. associated(dict_tmp)) then
+         dict_tmp = dict .get. name
+         if (present(fromname)) fromname=associated(dict_tmp)
+      end if
 
     end subroutine get_atomic_dict
 
-    subroutine atoms_gamma_from_dict(dict,lmax,astruct, dogamma)
+    subroutine atoms_gamma_from_dict(dict,dict_targets,&
+         lmax,astruct, dogamma,gamma_targets)
       use module_defs, only: gp
-      use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
-           print_eleconf,aoig_set,shell_toi
+      use ao_inguess, only: shell_toi
       use dictionaries
-      use yaml_output, only: yaml_warning, yaml_dict_dump
       use yaml_strings, only: f_strcpy, yaml_toa
-      use module_base, only: bigdft_mpi
       use dynamic_memory
+      use f_blas
       implicit none
       integer, intent(in) :: lmax
-      type(dictionary), pointer :: dict
+      type(dictionary), pointer :: dict,dict_targets
       type(atomic_structure), intent(in) :: astruct
       logical, dimension(0:lmax,astruct%nat), intent(out) :: dogamma
+      type(f_matrix), dimension(:,:,:), pointer :: gamma_targets
       !local variables
-      integer :: ln,i
+      logical :: sometarget,fromname
+      integer :: ln,i,ishell,ispin
+      character(len=1) :: shell
       character(len=1), dimension(lmax+1) :: shells
-      type(dictionary), pointer :: dict_tmp
+      type(dictionary), pointer :: dict_tmp,iter
       type(atoms_iterator) :: it
+      type(f_matrix), dimension(:,:,:), pointer :: gamma_ntypes
 
       call f_routine(id='atomic_gamma_from_dict')
+
+      sometarget=.false.
+
+      call f_matrix_allocate_ptr(gamma_ntypes,[0.to.lmax,1.to.2,1.to.astruct%ntypes])
 
       !iterate above atoms
       it=atoms_iter(astruct)
       do while(atoms_iter_next(it))
-        dogamma(:,it%iat)=.false.
-        ! Possible overwrite, if the dictionary has the item
-        !get the particular species
-        call get_atomic_dict(dict_tmp,dict,it%iat,it%name)
-        !according to the dictionary
-        if (associated(dict_tmp)) then
-          !list case
-          ln=dict_len(dict_tmp)
-          if (ln > 0) then
-            shells(1:ln)=dict_tmp
-          else
-            ln=1
-            shells(1)=dict_tmp
-          end if
-          do i=1,ln
-            dogamma(shell_toi(shells(i)),it%iat)=.true.
-          end do
-        end if
-
+         dogamma(:,it%iat)=.false.
+         ! Possible overwrite, if the dictionary has the item
+         !get the particular species
+         call get_atomic_dict(dict_tmp,dict,it%iat,it%name)
+         !according to the dictionary
+         if (associated(dict_tmp)) then
+            !list case
+            ln=dict_len(dict_tmp)
+            if (ln > 0) then
+               shells(1:ln)=dict_tmp
+            else
+               ln=1
+               shells(1)=dict_tmp
+            end if
+            do i=1,ln
+               dogamma(shell_toi(shells(i)),it%iat)=.true.
+            end do
+         end if
+         !get the particular occupancy control
+         call get_atomic_dict(dict_tmp,dict_targets,it%iat,it%name,fromname=fromname)
+         if (.not. associated(dict_tmp)) cycle
+         nullify(iter)
+         do while(iterating(iter,on=dict_tmp))
+            if (len_trim(dict_key(iter))/=1) cycle
+            call f_strcpy(src=dict_key(iter),dest=shell)
+            ishell=shell_toi(shell)
+            !let us now see if the matrix has been already extracted
+            do ispin=1,2
+               if (.not. fromname .or. .not. associated(gamma_ntypes(ishell,ispin,it%ityp)%dmat)) &
+                    call get_gamma_target(iter,ishell,ispin,gamma_targets(ishell,ispin,it%iat))
+               if (fromname) then
+                  if (associated(gamma_ntypes(ishell,ispin,it%ityp)%dmat)) then
+                     gamma_targets(ishell,ispin,it%iat)=&
+                          gamma_ntypes(ishell,ispin,it%ityp)
+                  else
+                     !store it for future reference
+                     gamma_ntypes(ishell,ispin,it%ityp)=&
+                          gamma_targets(ishell,ispin,it%iat)
+                  end if
+               end if
+            end do
+            dogamma(ishell,it%iat)=.true.
+         end do
+         sometarget=.true.
       end do
+
+      call f_free_matrix_ptr(gamma_ntypes)
+      if (.not. sometarget) call f_free_matrix_ptr(gamma_targets)
 
    call f_release_routine()
 
   end subroutine atoms_gamma_from_dict
 
+  subroutine get_gamma_target(dict,l,ispin,mat)
+    use yaml_strings
+    use dictionaries
+    use f_blas
+    implicit none
+    integer, intent(in) :: ispin,l
+    type(dictionary), pointer :: dict
+    type(f_matrix), intent(inout) :: mat
+    !local variables
+    character(len=4) :: aspin
+    integer :: ishell
+    type(dictionary), pointer :: iter
+    
+    select case(ispin)
+    case(1)
+       call f_strcpy(src='up',dest=aspin)
+    case(2)
+       call f_strcpy(src='down',dest=aspin)
+    end select
+
+    if (aspin .in. dict) then
+       iter => dict // aspin
+    else
+       iter => dict
+    end if
+    call f_matrix_allocate(mat,n=2*l+1)
+    call get_matrix_from_dict(iter,l,mat%dmat)
+  end subroutine get_gamma_target
+
+  subroutine get_matrix_from_dict(dict,l,mat)
+    use dictionaries
+    use yaml_strings
+    use f_utils, only: f_zero
+    implicit none
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: l
+    real(gp), dimension(2*l+1,2*l+1), intent(out) :: mat
+    !local variables
+    integer :: i,j,ln
+    real(gp) :: tr
+
+    call f_zero(mat)
+    ln=dict_len(dict)
+    !first check if the matrix is given row by row
+    if (ln > 0) then
+       if (ln /= 2*l+1) then
+          call f_err_throw(&
+            'The number of lines of the matrix should be '//&
+            trim(yaml_toa(2*l+1))//', found '//trim(yaml_toa(ln)),&
+            err_name='BIGDFT_INPUT_FILE_ERROR')
+          return
+       end if
+       do i=0,2*l
+          mat(:,i+1)=dict//i
+       end do
+    else
+       !the matrix is given as a trace
+       tr=dict
+       do i=1,2*l+1
+          mat(i,i)=tr/real(2*l+1,gp)
+       end do
+    end if
+  end subroutine get_matrix_from_dict
 
 
     subroutine atomic_data_set_from_dict(dict, key, atoms, nspin)
@@ -614,11 +727,6 @@ contains
          if (key .in. dict) then
             !get the particular species
             call get_atomic_dict(dict_tmp,dict//key,it%iat,it%name)
-!!$            !override by particular atom if present
-!!$            call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(it%iat))),dest=at)
-!!$            dict_tmp = dict // key .get. at
-!!$            if (.not. associated(dict_tmp)) dict_tmp = &
-!!$                 dict // key .get. it%name
             !therefore the aiog structure has to be rebuilt
             !according to the dictionary
             if (associated(dict_tmp)) then
@@ -1193,67 +1301,71 @@ contains
       atData => dict_iter(dict)
       do while(associated(atData))
          str = dict_key(atData)
-         if (trim(str) == ASTRUCT_ATT_FROZEN) then
+         select case(trim(str))
+         case(ASTRUCT_ATT_FROZEN)
+            !if (trim(str) == ASTRUCT_ATT_FROZEN) then
             str = dict_value(atData)
             if (present(ifrztyp)) call frozen_ftoi(str(1:4), ifrztyp, ierr)
-         else if (trim(str) == ASTRUCT_ATT_IGSPIN) then
+         case(ASTRUCT_ATT_IGSPIN)
             if (present(igspin)) igspin = atData
-         else if (trim(str) == ASTRUCT_ATT_IGCHRG) then
+         case(ASTRUCT_ATT_IGCHRG)
             if (present(igchrg)) igchrg = atData
-         else if (trim(str) == ASTRUCT_ATT_IXYZ_1) then
+         case(ASTRUCT_ATT_IXYZ_1)
             if (present(ixyz)) ixyz(1) = atData
             if (present(ixyz_add)) then
                call f_memcpy(icoord(1), ixyz_add, 3)
                icoord(1) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_IXYZ_2) then
+         case(ASTRUCT_ATT_IXYZ_2)
             if (present(ixyz)) ixyz(2) = atData
             if (present(ixyz_add)) then
                call f_memcpy(icoord(1), ixyz_add, 3)
                icoord(2) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_IXYZ_3) then
+         case(ASTRUCT_ATT_IXYZ_3)
             if (present(ixyz)) ixyz(3) = atData
             if (present(ixyz_add)) then
                call f_memcpy(icoord(1), ixyz_add, 3)
                icoord(3) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_MODE) then
+         case(ASTRUCT_ATT_MODE)
             if (present(mode)) then
                mode = dict_value(atData)
             end if
-         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_1) then
+         case(ASTRUCT_ATT_RXYZ_INT_1)
             if (present(rxyz_int)) rxyz_int(1) = atData
             if (present(rxyz_int_add)) then
                call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
                rcoord_int(1) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_2) then
+         case(ASTRUCT_ATT_RXYZ_INT_2)
             if (present(rxyz_int)) rxyz_int(2) = atData
             if (present(rxyz_int_add)) then
                call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
                rcoord_int(2) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_3) then
+         case(ASTRUCT_ATT_RXYZ_INT_3)
             if (present(rxyz_int)) rxyz_int(3) = atData
             if (present(rxyz_int_add)) then
                call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
                rcoord_int(3) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
-         else if (dict_len(atData) == 3) then
-            if (present(symbol)) symbol = str
-            if (present(rxyz)) rxyz = atData
-            if (present(rxyz_add)) then
-               rcoord = atData
-               call f_memcpy(rxyz_add, rcoord(1), 3)
+         case default
+            if (dict_len(atData) == 3) then
+               if (present(symbol)) symbol = str
+               if (present(rxyz)) rxyz = atData
+               if (present(rxyz_add)) then
+                  rcoord = atData
+                  call f_memcpy(rxyz_add, rcoord(1), 3)
+               end if
             end if
-         end if
+         end select
          atData => dict_next(atData)
       end do
     end subroutine astruct_at_from_dict
@@ -1957,6 +2069,7 @@ subroutine allocate_atoms_nat(atoms)
   use module_base
   use module_atoms, only: atoms_data
   use ao_inguess, only : aoig_data_null,lmax_ao
+  use f_blas, only: f_matrix_allocate_ptr
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
@@ -1970,6 +2083,9 @@ subroutine allocate_atoms_nat(atoms)
 
   atoms%dogamma=f_malloc_ptr([0.to.lmax_ao,1.to.atoms%astruct%nat],&
        id='dogamma')
+
+  !put also spin in the allocations
+  call f_matrix_allocate_ptr(atoms%gamma_targets,[0.to.lmax_ao,1.to.2,1.to.atoms%astruct%nat])
 
 END SUBROUTINE allocate_atoms_nat
 
