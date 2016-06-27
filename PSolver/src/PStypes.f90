@@ -29,6 +29,7 @@ module PStypes
   character(len=*), parameter :: EPSILON_KEY             = 'epsilon' 
   character(len=*), parameter :: EDENSMAXMIN             = 'edensmaxmin' 
   character(len=*), parameter :: DELTA_KEY               = 'delta' 
+  character(len=*), parameter :: FACT_RIGID              = 'fact_rigid' 
   character(len=*), parameter :: CAVITATION              = 'cavitation' 
   character(len=*), parameter :: GAMMAS_KEY              = 'gammaS' 
   character(len=*), parameter :: ALPHAS_KEY              = 'alphaS' 
@@ -734,6 +735,8 @@ contains
           dummy_d=val
           ! Divided by 4 because both rigid cavities are 4*delta spread 
           k%cavity%delta=0.25_gp*dummy_d
+       case (FACT_RIGID)
+          k%cavity%fact_rigid=val
        case (CAVITATION)
           dummy_l=val
           opt%only_electrostatic=.not. dummy_l
