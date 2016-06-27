@@ -1161,8 +1161,13 @@
        cp2k: CP2K
        dftbp: DFTP+
        sw: Stillinger-Weber for Si
+       bazant:  Bazant force for Si
        multi: Mixed approach where parts of the system are treated with different methods
      default: dft
+   add_coulomb_force:
+     COMMENT: Boolean to add coulomb force on top of any of above selected force
+     MASTER_KEY: method
+     default: No
    nab_options:
      COMMENT: String to be passed to nab_init compiler in the case of ambertools compilation
      default: ntpr=1
