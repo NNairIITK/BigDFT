@@ -55,7 +55,7 @@ module sparsematrix_highlevel
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
-          init_matmul_ = .true.
+          init_matmul_ = .false.
       end if
     
       ! Generate the sparse_matrix type
@@ -259,7 +259,7 @@ module sparsematrix_highlevel
       real(kind=mp),dimension(3) :: cell_dim
       integer,dimension(:),pointer :: on_which_atom
 
-      call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
+      call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
 
       ! Read in the matrix
       call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)

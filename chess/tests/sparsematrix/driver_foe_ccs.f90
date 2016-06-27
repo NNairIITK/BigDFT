@@ -55,7 +55,8 @@ program driver_css
   ! Get these descriptors from an auxiliary routine using matrix3.dat
   call get_ccs_data_from_file('density_kernel_ccs.dat', nfvctr, nvctr, row_ind, col_ptr)
   call sparse_matrix_init_from_data_ccs(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, row_ind, col_ptr, smat_k)
+       nfvctr, nvctr, row_ind, col_ptr, smat_k, &
+       init_matmul=.true., nvctr_mult=nvctr, row_ind_mult=row_ind, col_ptr_mult=col_ptr)
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat_k, mat_k)
