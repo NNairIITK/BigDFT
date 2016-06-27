@@ -2232,7 +2232,7 @@ linear:
    rloc_kernel: 10.0
    rloc_kernel_foe: 12.0
    H:  {nbasis: 1, rloc: 5.0}
-   Li:  {nbasis: 1, rloc: 5.5}
+   Li: {nbasis: 1, rloc: 5.5}
    C:  {nbasis: 4, rloc: 5.5}
    N:  {nbasis: 4, rloc: 5.5}
    O:  {nbasis: 4, rloc: 5.5}
