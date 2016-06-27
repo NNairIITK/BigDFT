@@ -38,6 +38,8 @@ ACTIONS={'build':
          'Wipe out all the build directories and recompile the important parts',
          'autogen':
          'Perform the autogen in the modules which need that. For developers only.',
+         'update':
+         'Useful to update a pre-compiled branch after a merge',
          'dist':
          'Creates a tarfile for the suite tailored to reproduce the compilation options specified.',
          'check':
@@ -518,7 +520,7 @@ group.add_argument("-v", "--verbose", action="store_true",help='Verbose output, 
 group.add_argument("-q", "--quiet", action="store_true",help='Verbosity disabled output, default from a development branch')
 
 parser.add_argument('-d','--debug',action='store_true',
-                   help='Verbose output, default from a development brach')
+                   help='Verbose output, default from a development branch')
 parser.add_argument('-y','--yes',action='store_true',
                    help='Answer yes to dialog questions')
 parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
@@ -560,5 +562,10 @@ if args.action=='help':
     print 'Developer: From a development branch, start by "autogen", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
+elif args.action=='update':
+    yes=args.yes
+    for action in ['clean','autogen','build']:
+        BigDFTInstaller(action,args.package,args.file,args.verbose,args.quiet,yes)
+        yes=True
 else:
     BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet,args.yes)
