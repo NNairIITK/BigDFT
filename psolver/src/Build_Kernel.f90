@@ -1089,7 +1089,7 @@ subroutine Free_Kernel(n01,n02,n03,nfft1,nfft2,nfft3,n1k,n2k,n3k,&
  integer :: i_gauss, n_range, n_cell
  integer :: i1, i2, i3, iproc1
  integer :: i03, iMin, iMax
- logical, parameter :: high_accuracy=.false.!.true.
+ logical, parameter :: high_accuracy=.false.
 
  !!! PSolver n1-n2 plane mpi partitioning !!!
 

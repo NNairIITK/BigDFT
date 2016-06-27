@@ -1,6 +1,6 @@
 EXTRA_DIST = \
-	html/PSolver_Logo.png \
-	html/extra.css
+	PSolver_logo.png \
+	extra.css
 
 CLEANFILES = *.aux *.toc *.log *.xml
 

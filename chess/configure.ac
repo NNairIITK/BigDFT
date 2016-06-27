@@ -7,7 +7,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[libCheSS])
+AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[CheSS])
 
 AC_CONFIG_MACRO_DIR([m4])
 

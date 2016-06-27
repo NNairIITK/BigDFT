@@ -420,8 +420,10 @@ contains
     integer, parameter :: n_blocks = 128
     integer :: i, j, ipts, ixc, ndvxc, ngr2, nd2vxc, nvxcdgr, order
     integer :: ipte, nb
+    integer :: ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nspden_tmp,nvxcdgr_tmp
     real(dp), dimension(n_blocks) :: exctmp(n_blocks)
     real(dp), dimension(nspden, n_blocks) :: rhotmp, vxctmp
+    real(dp), allocatable :: rho_tmp(:,:), vxc_tmp(:,:), dvxci_tmp(:,:)
     real(dp), dimension(2*min(nspden,2)-1, n_blocks) :: sigma, vsigma
     real(dp), dimension(3, n_blocks) :: v2rho2
     real(dp), dimension(6, n_blocks) :: v2rhosigma, v2sigma2
@@ -442,15 +444,72 @@ contains
 
        !let us apply ABINIT routines
        select case (xcObj%family(1))
+
        case (XC_FAMILY_LDA)
           if (order**2 <=1 .or. ixc >= 31 .and. ixc <= 34) then
              call abi_drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
                   ndvxc,ngr2,nd2vxc,nvxcdgr)
+
+          !Correction of the difference bw the nspin==1 and unpolarized nspin==2 case
+          !For nspin==1, ABINIT routines do not respect f_xc = dvxc/drho (but they do for nspin==2).
+          !We then force the code to do as if nspin==2.
+          else if (nspden==1) then
+             ! ABINIT case, call drivexc
+             ixc = xcObj%id(1)
+             !Allocations of the exchange-correlation terms, depending on the ixc value
+             order = 1
+             if ( present(dvxci) ) order = -2
+             
+             !temporary nspden==2, to force the code to do as if nspin==2
+             nspden_tmp=2
+             !define the size of the temporary variables
+             call abi_size_dvxc(ixc,ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nspden_tmp,nvxcdgr_tmp,order)
+             !allocate the temporary variables
+             rho_tmp=f_malloc([npts,nspden_tmp],id='rho_tmp')
+             vxc_tmp=f_malloc([npts,nspden_tmp],id='vxc_tmp')
+             dvxci_tmp=f_malloc([npts,ndvxc_tmp],id='dvxci_tmp')
+
+             !fill density
+             call f_memcpy(n=npts,dest=rho_tmp(1,1),src=rho(1,1))
+             call f_memcpy(n=npts,dest=rho_tmp(1,2),src=rho(1,1))
+             !!fill potential
+             !call f_memcpy(n=npts,dest=vxc_tmp(1,1),src=vxc(1,1))
+             !call f_memcpy(n=npts,dest=vxc_tmp(1,2),src=vxc(1,1))
+
+             !!$$the density of nspin==1 is too big by a factor 2 (contains the up and down contribution).
+             !!$$rho_tmp=0.5*rho_tmp
+
+             !fill vxc_tmp and dvxci_tmp
+             call abi_drivexc(exc,ixc,npts,nspden_tmp,order,rho_tmp,vxc_tmp,&
+                  ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nvxcdgr_tmp, dvxc=dvxci_tmp)
+             !write(*,*) 'avant', 106+((106-1)+(25-1)*213)*213, vxc_tmp(106+((106-1)+(25-1)*213)*213,1),&
+             !            vxc_tmp(106+((106-1)+(25-1)*213)*213,2)
+             !write(*,*) 'avant', 25, vxc_tmp(25,1), vxc_tmp(25,2)
+             !write(*,*) 'avant', 100, vxc_tmp(100,1), vxc_tmp(100,2)
+
+             !fill the true vxc
+             call axpy(npts,1.d0,vxc_tmp(1,2),1,vxc_tmp(1,1),1) 
+             call f_memcpy(n=npts,src=vxc_tmp(1,1),dest=vxc(1,1))
+             !fill the true dvxci
+             call f_memcpy(n=2*npts,src=dvxci_tmp(1,1),dest=dvxci(1,1))
+
+             !write(*,*) 'après', 106+((106-1)+(25-1)*213)*213, vxc(106+((106-1)+(25-1)*213)*213,1),&
+             !                vxc(106+((106-1)+(25-1)*213)*213,2)
+             !write(*,*) 'après', 25, vxc(25,1), vxc(25,2)
+             !write(*,*) 'après', 100, vxc(100,1), vxc(100,2)
+
+             !free the temporary variables
+             call f_free(rho_tmp)
+             call f_free(vxc_tmp)
+             call f_free(dvxci_tmp)
+
           else
              call abi_drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
                   ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   dvxc=dvxci)
           end if
+
+
        case (XC_FAMILY_GGA)
           !case with gradient, no big order
           if (ixc /= 13) then             

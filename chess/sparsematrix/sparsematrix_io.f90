@@ -74,9 +74,11 @@ module sparsematrix_io
       read(iunit,*) nspin, nfvctr, nseg, nvctr
       keyv = f_malloc_ptr(nseg,id='keyv')
       keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+
       do iseg=1,nseg
           read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
       end do
+
       mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
       ind = 0
       do ispin=1,nspin
@@ -89,6 +91,7 @@ module sparsematrix_io
               end do
           end do
       end do
+
 
       call f_close(iunit)
 

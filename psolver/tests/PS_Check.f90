@@ -164,6 +164,7 @@ program PS_Check
        density,potential,rhopot,pot_ion,offset)
   !calculate the Poisson potential in parallel
   !with the global data distribution (also for xc potential)
+
   call H_potential('G',pkernel,rhopot,pot_ion,ehartree,offset,.false.) !optional argument
 
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then

@@ -932,6 +932,7 @@ contains
   subroutine orbital_basis_release(ob)
     use module_base, only: bigdft_mpi
     use dynamic_memory
+    use module_base, only: bigdft_mpi
     use f_precisions
     implicit none
     type(orbital_basis), intent(inout) :: ob
@@ -948,7 +949,7 @@ contains
        call f_purge_database(isize,sizeof(ob%dd),iadd,'dd','orbital_basis_release')
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
-    if (bigdft_mpi%nproc>1) call f_free_ptr(ob%phis_wvl_t)
+    if (bigdft_mpi%nproc >1) call f_free_ptr(ob%phis_wvl_t)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
 

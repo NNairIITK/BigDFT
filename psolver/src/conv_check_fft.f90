@@ -13,18 +13,24 @@
 
 !> Program test for the convolution in GPU
 program conv_check_fft
-  use dictionaries
   use Poisson_Solver
+  use futile, dict_set=>set
+  use wrapper_linalg
+  use wrapper_mpi
+  use overlap_point_to_point
+  use PSbase
+  use dictionaries
   implicit none
+  integer, parameter :: wp=kind(1.0d0)
   integer  :: n1,n2,n3 
   real(gp) :: hx,r2,sigma2,x,y,z,maxdiff,arg
-  real(wp), dimension(:,:,:,:), allocatable :: psi_in,psi_out 
+  real(kind=8), dimension(:,:,:,:), allocatable :: psi_in,psi_out 
   !local variables
   character(len=*), parameter :: subname='conv_check_fft'
   character(len=50) :: chain
   integer :: i,i_stat,j,i1,i2,i3,ntimes,i_all
   integer :: l,ierror
-  real(wp) :: tt,scale
+  real(kind=8) :: tt,scale
   real(gp) :: CPUtime,GPUtime,ekin,ehartree
   integer, dimension(:), allocatable :: modarr
   real(kind=8), dimension(:), allocatable :: psi 
@@ -45,9 +51,14 @@ program conv_check_fft
   integer, dimension(3) :: ndim
   integer, dimension(3) :: n
   integer, dimension(3) :: geo
+  integer :: verbose 
   real(kind=8), dimension(3) :: hgriddim
   type(coulomb_operator) :: pkernel,pkernel2
   type(dictionary), pointer :: dict
+
+  call f_lib_initialize() 
+  call mpiinit()
+  verbose=0
 
   write(chain,'(a6)') 'fort.1'
   open(unit=1,file=trim(chain),status='old',iostat=ierror)
@@ -265,6 +276,7 @@ ntimes=1
    !calculate the kernel in parallel for each processor
    !pkernel=pkernel_init(.true.,0,1,0,'P',ndim,hgriddim,16)
    dict=>dict_new()
+   call dict_set(dict //'setup'//'verbose', .false.)
    pkernel=pkernel_init(0,1,dict,'P',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
@@ -284,6 +296,7 @@ ntimes=1
 
    !here the GPU part
    dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   call dict_set(dict //'setup'//'verbose', .false.)
    pkernel2=pkernel_init(0,1,dict,'P',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
@@ -318,6 +331,7 @@ ntimes=1
    ndim(3)=n3/2
 
    dict => dict_new()
+   call dict_set(dict //'setup'//'verbose', .false.)
    pkernel=pkernel_init(0,1,dict,'F',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
@@ -338,6 +352,7 @@ print *,'ehartree',ehartree
 
    !here the GPU part
    dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   call dict_set(dict //'setup'//'verbose', .false.)
    pkernel2=pkernel_init(0,1,dict,'F',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
@@ -374,6 +389,7 @@ print *,'ehartree',ehartree
    ndim(3)=n3
 
    dict => dict_new()
+   call dict_set(dict //'setup'//'verbose', .false.)
    pkernel=pkernel_init(0,1,dict,'S',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
@@ -393,6 +409,7 @@ print *,'ehartree',ehartree
 
    !here the GPU part
    dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   call dict_set(dict //'setup'//'verbose', .false.)
    pkernel2=pkernel_init(0,1,dict,'S',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
@@ -427,7 +444,8 @@ print *,'ehartree',ehartree
    ndim(2)=n2/2
    ndim(3)=n3
    dict => dict_new()
-   pkernel=pkernel_init(.true.,0,1,dict,'W',ndim,hgriddim)
+   call dict_set(dict //'setup'//'verbose', .false.)
+   pkernel=pkernel_init(0,1,dict,'W',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
 
@@ -446,7 +464,8 @@ print *,'ehartree',ehartree
 
    !here the GPU part
    dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
-   pkernel2=pkernel_init(.true.,0,1,dict,'W',ndim,hgriddim)
+   call dict_set(dict //'setup'//'verbose', .false.)
+   pkernel2=pkernel_init(0,1,dict,'W',ndim,hgriddim)
    call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
 
@@ -474,6 +493,7 @@ print *,'ehartree',ehartree
 contains
 
   subroutine print_time(time,nbelem,nop,ntimes)
+    use wrapper_linalg
     implicit none
     real(gp),intent(in)::time
     integer,intent(in)::nbelem,ntimes
@@ -506,6 +526,7 @@ contains
   end subroutine compare_time
 
   subroutine compare_3D_results(dim1, dim2, dim3, psi_ref, psi, maxdiff, printdiff)
+    use wrapper_linalg
     implicit none
     integer,intent(in):: dim1, dim2, dim3
     real(gp),intent(in):: psi_ref(dim1,dim2,dim3), psi(dim1,dim2,dim3)
@@ -531,6 +552,7 @@ contains
   end subroutine compare_3D_results
 
   subroutine compare_3D_cplx_results(dim1, dim2, dim3, psi_ref, psi, maxdiff, printdiff)
+    use wrapper_linalg
     implicit none
     integer,intent(in):: dim1, dim2, dim3
     real(gp),intent(in):: psi_ref(2,dim1,dim2,dim3), psi(2,dim1,dim2,dim3)
@@ -565,6 +587,7 @@ contains
 
 
   subroutine compare_2D_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
+  use wrapper_linalg
     implicit none
     integer,intent(in):: dim1, dim2
     real(gp),intent(in):: psi_ref(dim1,dim2), psi(dim1,dim2)
@@ -588,6 +611,7 @@ contains
   end subroutine compare_2D_results
 
   subroutine compare_2D_cplx_results(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
+  use wrapper_linalg
     implicit none
     integer,intent(in):: dim1, dim2
     real(gp),intent(in):: psi_ref(2,dim1,dim2), psi(2,dim1,dim2)
@@ -614,6 +638,7 @@ contains
 
 
   subroutine compare_2D_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
+  use wrapper_linalg
     implicit none
     integer,intent(in):: dim1, dim2
     real(gp),intent(in):: psi_ref(dim1,dim2), psi(dim2,dim1)
@@ -637,6 +662,7 @@ contains
   end subroutine compare_2D_results_t
 
   subroutine compare_2D_cplx_results_t(dim1, dim2, psi_ref, psi, maxdiff, printdiff)
+  use wrapper_linalg
     implicit none
     integer,intent(in):: dim1, dim2
     real(gp),intent(in):: psi_ref(2,dim1,dim2), psi(2,dim2,dim1)
@@ -663,6 +689,7 @@ contains
 
 
   subroutine compare_1D_results(dim1, psi_ref, psi, maxdiff, printdiff)
+  use wrapper_linalg
     implicit none
     integer,intent(in):: dim1
     real(gp),intent(in):: psi_ref(dim1), psi(dim1)
@@ -685,14 +712,16 @@ contains
 
 
   subroutine transpose_kernel_forGPU(geocode,n0,pkernel,pkernel2,offset)
+  use wrapper_linalg
     use module_base
     use Poisson_Solver
+    use PSbase
     implicit none
     integer, intent(in) :: offset
     integer, dimension(3), intent(in) :: n0
     character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-    real(dp), dimension(*), intent(in) :: pkernel
-    real(dp), dimension(:), pointer :: pkernel2
+    real(kind=8), dimension(*), intent(in) :: pkernel
+    real(kind=8), dimension(:), pointer :: pkernel2
     !local variables
     character(len=*), parameter :: subname='transpose_kernel_forGPU'
     integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,nproc,i1,i2,i3,ind,indt
@@ -732,7 +761,7 @@ contains
        end do
     end do
     !offset to zero
-    if (offset.eq.1) pkernel2(1)=0.0_dp
+    if (offset.eq.1) pkernel2(1)=0.0_wp
 
   end subroutine transpose_kernel_forGPU
 
@@ -740,12 +769,13 @@ contains
   subroutine transpose_kernel_forGPU_cufft3D(geocode,n0,pkernel,pkernel2,offset)
     use module_base
     use Poisson_Solver
+    use PSbase
     implicit none
     integer, intent(in) :: offset
     integer, dimension(3), intent(in) :: n0
     character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-    real(dp), dimension(*), intent(in) :: pkernel
-    real(dp), dimension(:), pointer :: pkernel2
+    real(kind=8), dimension(*), intent(in) :: pkernel
+    real(kind=8), dimension(:), pointer :: pkernel2
     !local variables
     character(len=*), parameter :: subname='transpose_kernel_forGPU'
     integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3,nproc,i1,i2,i3,ind,indt
@@ -785,7 +815,7 @@ contains
        end do
     end do
     !offset to zero
-    if (offset.eq.1) pkernel2(1)=0.0_dp
+    if (offset.eq.1) pkernel2(1)=0.0_wp
 
   end subroutine transpose_kernel_forGPU_cufft3D
 

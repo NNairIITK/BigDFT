@@ -9,6 +9,8 @@ modules = ['bigdft',]
 # Specific configure arguments for each module
 module_autogenargs['futile'] = "FC=mpif90 CFLAGS='-Wall -g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --enable-dynamic-libraries"
 
+module_autogenargs['chess'] = "FC=mpif90 CFLAGS='-Wall -g -O2 -fPIC' FCFLAGS='-O2 -g -Wall -fbounds-check -fPIC'"
+
 module_autogenargs['psolver'] = "FC=mpif90 CFLAGS='-Wall -g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --enable-dynamic-libraries"
 
 module_autogenargs['libxc'] = "CC=gcc --enable-shared"

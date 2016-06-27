@@ -39,7 +39,7 @@ getarg_files =
 else
 getarg_files = get_command_argument_fake.f90
 endif
-libflib_a_SOURCES = utils.c utilsadd.c \
+libflib_a_SOURCES = utils.c utilsadd.c f_plugin.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
 	f_enums.f90 f_precisions.f90 \

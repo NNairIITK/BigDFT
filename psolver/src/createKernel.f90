@@ -79,13 +79,13 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp!
+        kernel%minres=1.0e-8_dp!
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp!
+        kernel%minres=1.0e-8_dp!
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -249,7 +249,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
   kernelnproc=kernel%mpi_env%nproc
   if (kernel%igpu == 1) kernelnproc=1
-
+  kernel%stay_on_gpu=0
 
   select case(kernel%geocode)
      !if (kernel%geocode == 'P') then

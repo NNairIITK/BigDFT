@@ -8,5 +8,5 @@ Name: libbigdft
 Description: Library for DFT calculation over wavelets.
 Requires: psolver futile
 Version: @VERSION@
-Libs: -L${libdir} -lbigdft-1 @LIB_BIGDFT_PKG@
+Libs: -L${libdir} @FC_RPATH@${libdir} -lbigdft-1 @LIB_BIGDFT_PKG@
 Cflags: -I${includedir}

@@ -66,11 +66,32 @@ void FC_FUNC_(call_external_c_fromadd_data, CALL_EXTERNAL_C_FROMADD_DATA)(f_subr
     (*add)(*dataadd);
 }
 
+typedef void (*f_subroutine_data_str)(void *dataadd, int ln);
+void FC_FUNC_(call_external_c_fromadd_data_str, CALL_EXTERNAL_C_FROMADD_DATA_STR)(f_subroutine_data_str *add, void **dataadd, int *ln)
+{
+  if (add && dataadd)
+    (*add)(*dataadd, *ln);
+}
+
 typedef void (*f_subroutine_data_data)(void *dataadd, void *dataadd2);
 void FC_FUNC_(call_external_c_fromadd_data_data, CALL_EXTERNAL_C_FROMADD_DATA_DATA)(f_subroutine_data_data *add, void **dataadd, void **dataadd2)
 {
   if (add && dataadd && dataadd2)
     (*add)(*dataadd, *dataadd2);
+}
+
+typedef void (*f_subroutine_data_data_str)(void *dataadd, void *dataadd2, int ln);
+void FC_FUNC_(call_external_c_fromadd_data_data_str, CALL_EXTERNAL_C_FROMADD_DATA_DATA_STR)(f_subroutine_data_data_str *add, void **dataadd, void **dataadd2, int *ln)
+{
+  if (add && dataadd && dataadd2)
+    (*add)(*dataadd, *dataadd2, *ln);
+}
+
+typedef void (*f_subroutine_data_data_str_str)(void *dataadd, void *dataadd2, int ln, int ln2);
+void FC_FUNC_(call_external_c_fromadd_data_data_str_str, CALL_EXTERNAL_C_FROMADD_DATA_DATA_STR_STR)(f_subroutine_data_data_str_str *add, void **dataadd, void **dataadd2, int *ln, int *ln2)
+{
+  if (add && dataadd && dataadd2)
+    (*add)(*dataadd, *dataadd2, *ln, *ln2);
 }
 
 //Symbol duplications for fortran interfaces

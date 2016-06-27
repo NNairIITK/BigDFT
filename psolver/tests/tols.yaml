@@ -6,7 +6,7 @@ Default tolerances:
 #  Energy differences: 2.1e-10
   Exc: 1.e-8
   EVxc: 4.6e-9
-  Some values: &value 1.13e-8
+  Some values: &value 1.13e-7
   Maximum discrepancy: 1.e-14
   Value: *value
   beta: 7.4e-10
@@ -19,6 +19,7 @@ Default tolerances:
   Diff of expected-computed Hartree energy: *en1
   Expected hartree energy: 1.88e-15
   Integral of the density in the nonvacuum region: 6.06e-15
+  minres: 1.e-6
 #  Energies: 2.1e-10
 
 Keys to ignore:
