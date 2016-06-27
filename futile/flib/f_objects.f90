@@ -1,3 +1,16 @@
+!> @file
+!! Manage signals or hooks to call registered methods at
+!! given entries in the code. Also defines a declarative
+!! API to export objects and related method to language
+!! bindings.
+!! @author
+!!    Copyright (C) 2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+!> Module used to define, emit and connect to signals.
 module module_f_objects
   use dictionaries
 
@@ -5,12 +18,13 @@ module module_f_objects
 
   private
 
+  integer, private, save :: ERROR_OBJECT
   type(dictionary), pointer :: class_library => null()
 
-  public :: f_object_new, f_object_add_method, f_object_get_method
+  public :: f_object_new_, f_object_add_method, f_object_get_method
   public :: f_object_finalize
   public :: f_object_add_signal, f_object_signal_prepare
-  public :: f_object_signal_add_arg, f_object_signal_add_str
+  public :: f_object_signal_add_arg_, f_object_signal_add_str_
   public :: f_object_signal_emit, f_object_signal_connect
 
   public :: f_object_has_signal
@@ -19,7 +33,12 @@ contains
 
   subroutine ensure_init()
     implicit none
-    if (.not. associated(class_library)) call dict_init(class_library)
+
+    if (associated(class_library)) return
+
+    call dict_init(class_library)
+    call f_err_define('ERROR_OBJECT', 'object class error', &
+         ERROR_OBJECT, err_action='Check the code.')
   end subroutine ensure_init
 
   subroutine f_object_finalize()
@@ -27,21 +46,25 @@ contains
     if (associated(class_library)) call dict_free(class_library)
   end subroutine f_object_finalize
 
-  subroutine f_object_new(obj_id, constructor_add, destructor_add)
+  !> @private
+  !! Don't use this method directy because it uses address instead of
+  !! method names, prefer f_object_new().
+  subroutine f_object_new_(obj_id, constructor_add, destructor_add)
     use f_precisions
     implicit none
     character(len = *), intent(in) :: obj_id
     integer(f_address), optional, intent(in) :: constructor_add, destructor_add
     
     call ensure_init()
-    if (obj_id .in. class_library) stop
+    if (f_err_raise(obj_id .in. class_library, &
+         & "object '" // obj_id // "' already exists.", err_id = ERROR_OBJECT)) return
 
     call set(class_library // obj_id, "")
     if (present(constructor_add)) &
          & call f_object_add_method(obj_id, "constructor", constructor_add, 1)
     if (present(destructor_add)) &
          & call f_object_add_method(obj_id, "destructor", destructor_add, 0)
-  end subroutine f_object_new
+  end subroutine f_object_new_
   
   subroutine f_object_add_method(obj_id, id, method_add, n_args, isfunc)
     use f_precisions
@@ -52,7 +75,8 @@ contains
     logical, optional, intent(in) :: isfunc
 
     call ensure_init()
-    if (.not. (obj_id .in. class_library) .and. obj_id /= "class") stop
+    if (f_err_raise(.not. (obj_id .in. class_library) .and. obj_id /= "class", &
+         & "object '" // obj_id // "' not defined.", err_id = ERROR_OBJECT)) return
     
     call set(class_library // obj_id // "methods" // id // "address", method_add)
     call set(class_library // obj_id // "methods" // id // "n_args", n_args)
@@ -97,7 +121,8 @@ contains
     integer, intent(in) :: n_args
 
     call ensure_init()
-    if (.not. (obj_id .in. class_library) .and. obj_id /= "class") stop
+    if (f_err_raise(.not. (obj_id .in. class_library) .and. obj_id /= "class", &
+         & "object '" // obj_id // "' not defined.", err_id = ERROR_OBJECT)) return
     
     call set(class_library // obj_id // "signals" // id // "n_args", n_args)
   end subroutine f_object_add_signal
@@ -109,9 +134,11 @@ contains
     type(dictionary), pointer :: tmp
 
     call ensure_init()
-    if (.not. (obj_id .in. class_library) .and. obj_id /= "class") stop
+    if (f_err_raise(.not. (obj_id .in. class_library) .and. obj_id /= "class", &
+         & "object '" // obj_id // "' not defined.", err_id = ERROR_OBJECT)) return
     tmp =>  class_library // obj_id // "signals" 
-    if (.not. (id .in. tmp)) stop
+    if (f_err_raise(.not. (id .in. tmp), &
+         & "signal '" // id // "' not defined.", err_id = ERROR_OBJECT)) return
     
     ensure_signal = .true.
   end function ensure_signal
@@ -130,7 +157,7 @@ contains
     emit = (dict_len(class_library // obj_id // "signals" // id // "hooks") > 0)
   end function f_object_signal_prepare
 
-  subroutine f_object_signal_add_arg(obj_id, id, arg_add)
+  subroutine f_object_signal_add_arg_(obj_id, id, arg_add)
     use f_precisions
     implicit none
     character(len = *), intent(in) :: obj_id, id
@@ -139,9 +166,9 @@ contains
     if (.not. ensure_signal(obj_id, id)) return
 
     call add(class_library // obj_id // "signals" // id // "arguments", arg_add)
-  end subroutine f_object_signal_add_arg
+  end subroutine f_object_signal_add_arg_
 
-  subroutine f_object_signal_add_str(obj_id, id, arg_add, ln)
+  subroutine f_object_signal_add_str_(obj_id, id, arg_add, ln)
     use f_precisions
     implicit none
     character(len = *), intent(in) :: obj_id, id
@@ -152,7 +179,7 @@ contains
 
     call add(class_library // obj_id // "signals" // id // "arguments", arg_add)
     call add(class_library // obj_id // "signals" // id // "strings", ln)
-  end subroutine f_object_signal_add_str
+  end subroutine f_object_signal_add_str_
 
   subroutine f_object_signal_emit(obj_id, id)
     use f_precisions
@@ -169,7 +196,11 @@ contains
 
     signal => class_library // obj_id // "signals" // id
     n_args = signal // "n_args"
-    if (dict_len(signal // "arguments") /= n_args) stop
+
+    if (f_err_raise(dict_len(signal // "arguments") /= n_args, &
+         & "not enough packed arguments for signal '" // id // "'.", &
+         & err_id = ERROR_OBJECT)) return
+
     if (n_args > 0) args(1:n_args) = signal // "arguments"
     n_strs = dict_len(signal // "strings")
     if (n_strs > 0) lens(1:n_strs) = signal // "strings"
@@ -251,16 +282,19 @@ end module module_f_objects
 
 
 
-
+!> @relates module_f_objects
+!! Define a new object with given routines for constructor
+!! and destructors.
 subroutine f_object_new(id, constructor, destructor)
   use f_precisions
-  use module_f_objects, only: wrapper_new => f_object_new
+  use module_f_objects, only: wrapper_new => f_object_new_
   character(len = *), intent(in) :: id
   external :: constructor, destructor
   
   call wrapper_new(id, f_loc(constructor), f_loc(destructor))
 end subroutine f_object_new
 
+!> @relates module_f_objects
 subroutine f_object_add_method(obj_id, id, method, n_args)
   use f_precisions
   use module_f_objects, only: wrapper_add => f_object_add_method
@@ -271,6 +305,7 @@ subroutine f_object_add_method(obj_id, id, method, n_args)
   call wrapper_add(obj_id, id, f_loc(method), n_args)
 end subroutine f_object_add_method
 
+!> @relates module_f_objects
 subroutine f_object_add_function(obj_id, id, method, n_args)
   use f_precisions
   use module_f_objects, only: wrapper_add => f_object_add_method
@@ -281,6 +316,7 @@ subroutine f_object_add_function(obj_id, id, method, n_args)
   call wrapper_add(obj_id, id, f_loc(method), n_args, .true.)
 end subroutine f_object_add_function
 
+!> @relates module_f_objects
 subroutine f_object_get_method(obj_id, method_id, n_args, isfunc, callback)
   use f_precisions
   use module_f_objects, only: wrapper_get => f_object_get_method
@@ -291,24 +327,29 @@ subroutine f_object_get_method(obj_id, method_id, n_args, isfunc, callback)
   call wrapper_get(obj_id, method_id, n_args, isfunc, callback)
 end subroutine f_object_get_method
 
+!> @relates module_f_objects
+!! Add a new argument to the stack before calling f_object_signal_emit().
+!! Use "class" as obj_id to add an argument to a generic signal.
 subroutine f_object_signal_add_arg(obj_id, id, arg)
   use f_precisions
-  use module_f_objects, only: wrapper_add => f_object_signal_add_arg
-  character(len = *), intent(in) :: obj_id, id
-  external :: arg
+  use module_f_objects, only: wrapper_add => f_object_signal_add_arg_
+  character(len = *), intent(in) :: obj_id, id !< object and signal names.
+  external :: arg !< A variable, whatever kind
 
   call wrapper_add(obj_id, id, f_loc(arg))
 end subroutine f_object_signal_add_arg
 
+!> @relates module_f_objects
 subroutine f_object_signal_add_str(obj_id, id, arg)
   use f_precisions
-  use module_f_objects, only: wrapper_add => f_object_signal_add_str
+  use module_f_objects, only: wrapper_add => f_object_signal_add_str_
   character(len = *), intent(in) :: obj_id, id
   character(len = *), intent(in) :: arg
 
   call wrapper_add(obj_id, id, f_loc(arg), len(arg))
 end subroutine f_object_signal_add_str
 
+!> @relates module_f_objects
 subroutine f_object_signal_connect(obj_id, id, hook, n_args, sid)
   use f_precisions
   use module_f_objects, only: wrapper_connect => f_object_signal_connect
