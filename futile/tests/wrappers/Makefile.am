@@ -18,7 +18,7 @@ CLEANFILES = op2p_check.out.yaml \
 	mpi_layer.@MODULE_EXT@ MPI_LAYER.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ OVERLAP_POINT_TO_POINT.@MODULE_EXT@
 
-AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@ -I. -I$(srcdir)
+AM_FCFLAGS = -I$(top_builddir)/includes @LIB_YAML_CFLAGS@ @MPI_INCLUDE@ -I. -I$(srcdir)
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
