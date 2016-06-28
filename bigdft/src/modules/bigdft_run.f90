@@ -846,9 +846,9 @@ contains
   end subroutine state_properties_set_from_dict
 
   subroutine run_objects_type_init()
-    use module_f_objects, only: f_object_new, f_object_add_signal
+    use module_f_objects, only: f_object_new_, f_object_add_signal
 
-    call f_object_new("run_objects")
+    call f_object_new_("run_objects")
     
     call f_object_add_method("run_objects", "nat", bigdft_nat_bind, 1)
 
@@ -857,7 +857,7 @@ contains
     call f_object_add_signal("run_objects", "post", 2)
     call f_object_add_signal("run_objects", "destroy", 1)
 
-    call f_object_new("state_properties")
+    call f_object_new_("state_properties")
 
     call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
     call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
