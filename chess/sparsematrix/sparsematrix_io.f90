@@ -217,6 +217,34 @@ module sparsematrix_io
 
           call f_free(matrix_compr)
 
+          write(*,*) 'smat%smatmul_initialized',smat%smatmul_initialized
+          if (smat%smatmul_initialized) then
+              iunit = 99
+              call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
+
+              write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%nseg, smat%nvctr, '   # nspin, nfvctr, nseg, nvctr'
+              do iseg=1,smat%nseg
+                  write(iunit,'(5i12,a)') smat%smmm%keyv(iseg), smat%smmm%keyg(1,1,iseg), smat%smmm%keyg(2,1,iseg), &
+                      smat%smmm%keyg(1,2,iseg), smat%smmm%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+              end do
+              ind = 0
+              do ispin=1,smat%nspin
+                  do iseg=1,smat%smmm%nseg
+                      icol = smat%smmm%keyg(1,2,iseg)
+                      !iat = smat%on_which_atom(icol)
+                      do jorb=smat%smmm%keyg(1,1,iseg),smat%smmm%keyg(2,1,iseg)
+                          irow = jorb
+                          !jat = smat%on_which_atom(irow)
+                          ind = ind + 1
+                          !write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+                          write(iunit,'(es24.16,a,i0,a)') 0123456789._mp,'   # matrix_compr(',ind,')'
+                      end do
+                  end do
+              end do
+
+              call f_close(iunit)
+          end if
+
       end if
 
       call f_release_routine()
