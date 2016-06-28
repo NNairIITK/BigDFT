@@ -1,4 +1,4 @@
-program driver_css
+program driver_foe_css
   ! The following module are part of the sparsematrix library
   use sparsematrix_base
   use foe_base, only: foe_data, foe_data_deallocate
@@ -9,9 +9,10 @@ program driver_css
                                     sparse_matrix_init_from_data_ccs, &
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_fermi_operator_expansion, &
-                                    trace_A, trace_AB
+                                    trace_A, trace_AB, sparse_matrix_metadata_init_from_file
   use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix
-  use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix_init, only: matrixindex_in_compressed, write_sparsematrix_info, &
+                               get_number_of_electrons
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
@@ -21,13 +22,15 @@ program driver_css
   type(sparse_matrix) :: smat_s, smat_h, smat_k
   type(matrices) :: mat_s, mat_h, mat_k, mat_ek
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
-  integer :: nfvctr, nvctr, ierr, iproc, nproc
+  type(sparse_matrix_metadata) :: smmd
+  integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge
   integer,dimension(:),pointer :: row_ind, col_ptr
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge
   real(mp) :: energy, tr_KS, tr_KS_check
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr
+  !$ integer :: omp_get_max_threads
 
   ! Initialize flib
   call f_lib_initialize()
@@ -43,20 +46,71 @@ program driver_css
   call sparsematrix_init_errors()
   call sparsematrix_initialize_timing_categories()
 
+
+  if (iproc==0) then
+      call yaml_new_document()
+      !call print_logo()
+  end if
+
+  !Time initialization
+  call f_timing_reset(filename='time.yaml',master=(iproc==0),verbose_mode=.false.)
+
+  if (iproc==0) then
+      call yaml_scalar('',hfill='~')
+      call yaml_scalar('CHESS FOE TEST DRIVER',hfill='~')
+  end if
+
+  if (iproc==0) then
+      call yaml_mapping_open('Parallel environment')
+      call yaml_map('MPI tasks',nproc)
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      call yaml_map('OpenMP threads',nthread)
+      call yaml_mapping_close()
+  end if
+
+
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat_s) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat_s%matrix_compr.
   ! Do the same also for matrix2.dat
+  if (iproc==0) then
+      call yaml_scalar('Initializing overlap matrix',hfill='-')
+      call yaml_map('Reading from file','overlap_ccs.dat')
+  end if
   call sparse_matrix_and_matrices_init_from_file_ccs('overlap_ccs.dat', &
        iproc, nproc, mpi_comm_world, smat_s, mat_s)
+
+  if (iproc==0) then
+      call yaml_scalar('Initializing Hamiltonian matrix',hfill='-')
+      call yaml_map('Reading from file','hamiltonian_ccs.dat')
+  end if
   call sparse_matrix_and_matrices_init_from_file_ccs('hamiltonian_ccs.dat', &
        iproc, nproc, mpi_comm_world, smat_h, mat_h)
 
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using matrix3.dat
+  if (iproc==0) then
+      call yaml_scalar('Initializing Hamiltonian matrix',hfill='-')
+      call yaml_map('Reading from file','density_kernel_ccs.dat')
+  end if
   call get_ccs_data_from_file('density_kernel_ccs.dat', nfvctr, nvctr, row_ind, col_ptr)
   call sparse_matrix_init_from_data_ccs(iproc, nproc, mpi_comm_world, &
        nfvctr, nvctr, row_ind, col_ptr, smat_k, &
        init_matmul=.true., nvctr_mult=nvctr, row_ind_mult=row_ind, col_ptr_mult=col_ptr)
+
+  if (iproc==0) then
+      call yaml_mapping_open('Matrix properties')
+      call write_sparsematrix_info(smat_s, 'Overlap matrix')
+      call write_sparsematrix_info(smat_h, 'Hamiltonian matrix')
+      call write_sparsematrix_info(smat_k, 'Density kernel')
+      call yaml_mapping_close()
+  end if
+
+  call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
+  call get_number_of_electrons(smmd, ncharge)
+  if (iproc==0) then
+      call yaml_map('Number of electrons',ncharge)
+  end if
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat_k, mat_k)
@@ -66,7 +120,7 @@ program driver_css
   ! Initialize the opaque object holding the parameters required for the Fermi Operator Expansion.
   ! Only provide the mandatory values and take for the optional values the default ones.
   charge = f_malloc(smat_s%nspin,id='charge')
-  charge(:) = 722.d0
+  charge(:) = real(ncharge,kind=mp)
   call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
@@ -81,7 +135,8 @@ program driver_css
        foe_obj, ice_obj, smat_s, smat_h, smat_k, &
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
        calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
-       calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+       calculate_energy_density_kernel=.false.)
+       !calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
 
   if (iproc==0) then
       call yaml_map('Energy from FOE',energy)
@@ -90,8 +145,8 @@ program driver_css
       call yaml_map('Difference',abs(energy-tr))
   end if
 
-  ! Write the result in YAML format to the standard output (required for non-regression tests).
-  if (iproc==0) call write_matrix_compressed('Result of FOE', smat_k, mat_k)
+  !! Write the result in YAML format to the standard output (required for non-regression tests).
+  !if (iproc==0) call write_matrix_compressed('Result of FOE', smat_k, mat_k)
 
   ! Calculate trace(KS)
   !tr_KS = trace_sparse(iproc, nproc, smat_s, smat_k, mat_s%matrix_compr, mat_k%matrix_compr, 1)
@@ -155,4 +210,4 @@ program driver_css
   ! some things are printed nproc times instead of once.
   if (iproc==0) call f_lib_finalize()
 
-end program driver_css
+end program driver_foe_css
