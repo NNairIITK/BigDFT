@@ -37,6 +37,7 @@ module sparsematrix_init
   public :: generate_random_symmetric_sparsity_pattern
   public :: distribute_on_tasks
   public :: write_sparsematrix_info
+  public :: get_number_of_electrons
 
 
   contains
@@ -4782,5 +4783,26 @@ module sparsematrix_init
 
      call f_free(mat)
    end subroutine calculate_nonzero_simple
+
+
+   subroutine get_number_of_electrons(smmd, ncharge)
+     use sparsematrix_base
+     implicit none
+   
+     ! Calling arguments
+     type(sparse_matrix_metadata),intent(in) :: smmd
+     integer,intent(out) :: ncharge
+   
+     ! Local variables
+     integer :: iat, itype, nel
+   
+     ncharge = 0
+     do iat=1,smmd%nat
+         itype = smmd%iatype(iat)
+         nel = smmd%nelpsp(itype)
+         ncharge = ncharge + nel
+     end do
+   
+   end subroutine get_number_of_electrons
 
 end module sparsematrix_init

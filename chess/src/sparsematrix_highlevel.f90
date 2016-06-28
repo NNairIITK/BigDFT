@@ -821,9 +821,13 @@ module sparsematrix_highlevel
       iashift=(ispin-1)*asmat%nvctrp_tg
       ibshift=(ispin-1)*bsmat%nvctrp_tg
 
+      write(*,*) 'start trace_AB, iproc', iproc
+
       trace_AB = trace_sparse_matrix_product(iproc, nproc, comm, asmat, bsmat, &
                  amat%matrix_compr(iashift+1:), &
                  bmat%matrix_compr(ibshift+1:))
+
+      write(*,*) 'at end trace_AB, iproc', iproc
 
     end function trace_AB
 

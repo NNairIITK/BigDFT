@@ -55,6 +55,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use io, only: plot_density,io_files_exists
   use PSbox, only: PS_gather
   use foe_common, only: init_foe
+  use sparsematrix_io, only: write_sparse_matrix
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -533,6 +534,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          call write_sparsematrix_info(tmb%linmat%l, 'Density kernel matrix')
          call yaml_mapping_close()
      end if
+     call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          tmb%linmat%l, tmb%linmat%kernel_, 'density_kernel_sparse.bin')
+
+
 
      tmb%linmat%kernel_ = matrices_null()
      tmb%linmat%ham_ = matrices_null()

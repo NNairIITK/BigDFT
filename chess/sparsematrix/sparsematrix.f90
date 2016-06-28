@@ -1956,45 +1956,41 @@ module sparsematrix
       !    call f_err_throw('The sparse matrix multiplications must &
       !         &be initialized to use the routine trace_sparse')
       !end if
+
+      write(*,'(a,i7)') 'start trace_sparse_matrix_product, iproc', iproc
     
       sumn=0.d0
-      !if (asmat%smmm%nfvctrp>0) then
-          !$omp parallel default(none) &
-          !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
-          !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
-          !$omp do reduction(+:sumn)
-          !do iseg=isegstart,isegend
-          !do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
-          !do iseg=1,asmat%nseg
-          do iseg=asmat%isseg,asmat%ieseg
-              iel = asmat%keyv(iseg) - 1
-              ii=iashift+asmat%keyv(iseg)-1
-              ! A segment is always on one line, therefore no double loop
-              do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
-                  iel = iel + 1
-                  !if (iel<asmat%smmm%isvctr_mm+1) cycle
-                  !if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
-                  if (iel<asmat%isvctr+1) cycle
-                  if (iel>asmat%isvctr+asmat%nvctrp) then
-                      !write(*,*) 'exit with iel',iel
-                      exit
-                  end if
-                  ii=ii+1
-                  iiorb = asmat%keyg(1,2,iseg)
-                  jjorb = jorb
-                  iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-                  !!write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
-                  !!    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
-                  sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
-              end do  
-          end do
-          !$omp end do
-          !$omp end parallel
-      !end if
+      !$omp parallel default(none) &
+      !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
+      !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
+      !$omp do reduction(+:sumn)
+      do iseg=asmat%isseg,asmat%ieseg
+          iel = asmat%keyv(iseg) - 1
+          ii=iashift+asmat%keyv(iseg)-1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<asmat%isvctr+1) cycle
+              if (iel>asmat%isvctr+asmat%nvctrp) then
+                  exit
+              end if
+              ii=ii+1
+              iiorb = asmat%keyg(1,2,iseg)
+              jjorb = jorb
+              iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
+              sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
+          end do  
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      write(*,'(a,i7)') 'mpiallred trace_sparse_matrix_product, iproc', iproc
     
       if (nproc > 1) then
           call mpiallred(sumn, 1, mpi_sum, comm=comm)
       end if
+
+      write(*,'(a,i7)') 'at end trace_sparse_matrix_product, iproc', iproc
     
     
       call f_release_routine()
