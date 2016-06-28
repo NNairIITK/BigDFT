@@ -1982,14 +1982,9 @@ module sparsematrix
       !$omp end do
       !$omp end parallel
 
-      write(*,'(a,i7)') 'mpiallred trace_sparse_matrix_product, iproc', iproc
-    
       if (nproc > 1) then
           call mpiallred(sumn, 1, mpi_sum, comm=comm)
       end if
-
-      write(*,'(a,i7)') 'at end trace_sparse_matrix_product, iproc', iproc
-    
     
       call f_release_routine()
     

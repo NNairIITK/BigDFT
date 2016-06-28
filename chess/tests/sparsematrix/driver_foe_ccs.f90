@@ -135,12 +135,12 @@ program driver_foe_css
        foe_obj, ice_obj, smat_s, smat_h, smat_k, &
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
        calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
-       calculate_energy_density_kernel=.false.)
-       !calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+       calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
 
+  !tr = trace_A(iproc, nproc, mpi_comm_world, smat_k, mat_ek, 1)
+  tr = trace_AB(iproc, nproc, mpi_comm_world, smat_s, smat_k, mat_s, mat_ek, 1)
   if (iproc==0) then
       call yaml_map('Energy from FOE',energy)
-      tr = trace_A(iproc, nproc, mpi_comm_world, smat_k, mat_ek, 1)
       call yaml_map('Trace of energy density kernel', tr)
       call yaml_map('Difference',abs(energy-tr))
   end if
