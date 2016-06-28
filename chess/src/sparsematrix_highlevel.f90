@@ -173,6 +173,10 @@ module sparsematrix_highlevel
       ! Deallocate the pointers
       call f_free_ptr(keyv)
       call f_free_ptr(keyg)
+      if (init_matmul_) then
+          call f_free_ptr(keyv_mult)
+          call f_free_ptr(keyg_mult)
+      end if
 
       call f_release_routine()
 

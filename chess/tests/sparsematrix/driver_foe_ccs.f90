@@ -187,11 +187,13 @@ program driver_foe_css
   call deallocate_sparse_matrix(smat_s)
   call deallocate_sparse_matrix(smat_h)
   call deallocate_sparse_matrix(smat_k)
+  call deallocate_sparse_matrix_metadata(smmd)
 
   ! Deallocate all the matrix data types
   call deallocate_matrices(mat_s)
   call deallocate_matrices(mat_h)
   call deallocate_matrices(mat_k)
+  call deallocate_matrices(mat_ek)
   call deallocate_matrices(mat_ovrlpminusonehalf(1))
 
   ! Deallocate all the remaining arrays
