@@ -30,6 +30,8 @@ program driver_foe_css
   real(mp) :: energy, tr_KS, tr_KS_check
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr
+  type(dictionary), pointer :: dict_timing_info
+  external :: gather_timings
   !$ integer :: omp_get_max_threads
 
   ! Initialize flib
@@ -125,6 +127,9 @@ program driver_foe_css
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
 
+  call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(), &
+       gather_routine=gather_timings)
+
   ! Calculate the density kernel for the system described by the pair smat_s/mat_s and smat_h/mat_h and 
   ! store the result in smat_k/mat_k.
   ! Attention: The sparsity pattern of smat_s must be contained within that of smat_h
@@ -136,6 +141,9 @@ program driver_foe_css
        mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
        calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
        calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+
+  call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(), &
+       gather_routine=gather_timings)
 
   !tr = trace_A(iproc, nproc, mpi_comm_world, smat_k, mat_ek, 1)
   tr = trace_AB(iproc, nproc, mpi_comm_world, smat_s, smat_k, mat_s, mat_ek, 1)
@@ -204,12 +212,69 @@ program driver_foe_css
   call f_free_ptr(overlap)
   call f_free_ptr(overlap_large)
 
+  call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(), &
+       gather_routine=gather_timings)
+
+  call build_dict_info(dict_timing_info)
+  call f_timing_stop(mpi_comm=mpi_comm_world,nproc=nproc,&
+       gather_routine=gather_timings,dict_info=dict_timing_info)
+  call dict_free(dict_timing_info)
+
+  if (iproc==0) then
+      call yaml_release_document()
+  end if
+
   ! Finalize MPI
   call mpifinalize()
 
   ! Finalize flib
   ! SM: I have the impression that every task should call this routine, but if I do so
   ! some things are printed nproc times instead of once.
-  if (iproc==0) call f_lib_finalize()
+  call f_lib_finalize()
+
+
+  contains
+
+    !> construct the dictionary needed for the timing information
+    !! SM: This routine should go to a module
+    subroutine build_dict_info(dict_info)
+      use wrapper_MPI
+      use dynamic_memory
+      use dictionaries
+      implicit none
+
+      type(dictionary), pointer :: dict_info
+      !local variables
+      integer :: ierr,namelen,nthreads
+      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+      type(dictionary), pointer :: dict_tmp
+      !$ integer :: omp_get_max_threads
+
+      call dict_init(dict_info)
+!  bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
+      !if (DoLastRunThings) then
+         call f_malloc_dump_status(dict_summary=dict_tmp)
+         call set(dict_info//'Routines timing and number of calls',dict_tmp)
+      !end if
+      nthreads = 0
+      !$  nthreads=omp_get_max_threads()
+      call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
+      if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+           nthreads)
+
+      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
+      if (nproc>1) then
+         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+         !gather the result between all the process
+         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+              mpi_comm_world,ierr)
+         if (iproc==0) call set(dict_info//'Hostnames',&
+                 list_new(.item. nodename))
+      end if
+      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+
+    end subroutine build_dict_info
 
 end program driver_foe_css
