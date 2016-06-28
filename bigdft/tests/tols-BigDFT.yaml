@@ -2364,6 +2364,8 @@ MD-wf-Expl:
    - No. of OMP Threads
 
 QMMM:
+  Electric Dipole Moment (AU): 2.1e-5
+  Electric Dipole Moment (Debye): 1.1e-4
   EKS: 1.2e-11
 
 Cavity_H2OfsccsPCG:
