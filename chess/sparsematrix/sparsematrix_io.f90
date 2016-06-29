@@ -217,15 +217,16 @@ module sparsematrix_io
 
           call f_free(matrix_compr)
 
-          write(*,*) 'smat%smatmul_initialized',smat%smatmul_initialized
           if (smat%smatmul_initialized) then
               iunit = 99
               call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
 
-              write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%nseg, smat%nvctr, '   # nspin, nfvctr, nseg, nvctr'
-              do iseg=1,smat%nseg
+              write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%smmm%nseg, sum(smat%smmm%nvctr_par), &
+                  '   # nspin, nfvctr, nseg, nvctr'
+              do iseg=1,smat%smmm%nseg
                   write(iunit,'(5i12,a)') smat%smmm%keyv(iseg), smat%smmm%keyg(1,1,iseg), smat%smmm%keyg(2,1,iseg), &
-                      smat%smmm%keyg(1,2,iseg), smat%smmm%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+                      smat%smmm%keyg(1,2,iseg), smat%smmm%keyg(2,2,iseg), &
+                      '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
               end do
               ind = 0
               do ispin=1,smat%nspin

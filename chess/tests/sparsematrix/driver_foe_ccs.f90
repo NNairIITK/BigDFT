@@ -23,8 +23,8 @@ program driver_foe_css
   type(matrices) :: mat_s, mat_h, mat_k, mat_ek
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
-  integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge
-  integer,dimension(:),pointer :: row_ind, col_ptr
+  integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult
+  integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge
   real(mp) :: energy, tr_KS, tr_KS_check
@@ -96,9 +96,17 @@ program driver_foe_css
       call yaml_map('Reading from file','density_kernel_ccs.dat')
   end if
   call get_ccs_data_from_file('density_kernel_ccs.dat', nfvctr, nvctr, row_ind, col_ptr)
+  call get_ccs_data_from_file('density_kernel_matmul_ccs.dat', nfvctr_mult, nvctr_mult, row_ind_mult, col_ptr_mult)
+  if (nfvctr_mult/=nfvctr) then
+      call f_err_throw('nfvctr_mult/=nfvctr',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+  end if
   call sparse_matrix_init_from_data_ccs(iproc, nproc, mpi_comm_world, &
        nfvctr, nvctr, row_ind, col_ptr, smat_k, &
-       init_matmul=.true., nvctr_mult=nvctr, row_ind_mult=row_ind, col_ptr_mult=col_ptr)
+       init_matmul=.true., nvctr_mult=nvctr_mult, row_ind_mult=row_ind_mult, col_ptr_mult=col_ptr_mult)
+  call f_free_ptr(row_ind)
+  call f_free_ptr(col_ptr)
+  call f_free_ptr(row_ind_mult)
+  call f_free_ptr(col_ptr_mult)
 
   if (iproc==0) then
       call yaml_mapping_open('Matrix properties')
@@ -206,8 +214,6 @@ program driver_foe_css
 
   ! Deallocate all the remaining arrays
   call f_free(charge)
-  call f_free_ptr(row_ind)
-  call f_free_ptr(col_ptr)
   call f_free_ptr(kernel)
   call f_free_ptr(overlap)
   call f_free_ptr(overlap_large)
@@ -230,7 +236,9 @@ program driver_foe_css
   ! Finalize flib
   ! SM: I have the impression that every task should call this routine, but if I do so
   ! some things are printed nproc times instead of once.
-  call f_lib_finalize()
+  if (iproc==0) then
+      call f_lib_finalize()
+  end if
 
 
   contains
