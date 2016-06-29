@@ -82,7 +82,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
   use public_keys, only: ASTRUCT_ATT_ORIG_ID
   use module_defs, only: gp
   use dictionaries
-  use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+  use module_f_objects
   implicit none
   ! Parameters
   type(run_objects), intent(inout) :: runObj
@@ -92,6 +92,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
   type(sub_state_properties), dimension(:), allocatable :: subouts
   integer :: ln, i
   type(atomic_structure) :: asub
+  type(signal_ctx) :: sig
 
   ln = size(runObj%sections)
   allocate(subouts(ln))
@@ -114,14 +115,14 @@ subroutine multi_mode_state(runObj, outs, infocode)
   end do
 
   ! Mix state_properties, either default or by signal.
-!!$  if (f_object_signal_prepare("run_objects", "mix")) then
-!!$     call f_object_signal_add_arg("run_objects", "mix", runObj)
-!!$     call f_object_signal_add_arg("run_objects", "mix", outs)
-!!$     call f_object_signal_add_arg("run_objects", "mix", subouts)
-!!$     call f_object_signal_emit("run_objects", "mix")
-!!$  else
-  call union_mix_subouts(runObj, outs, subouts)
-!!$  end if
+  if (f_object_signal_prepare("run_objects", "join", sig)) then
+     call f_object_signal_add_arg(sig, runObj)
+     call f_object_signal_add_arg(sig, outs)
+     call f_object_signal_add_arg(sig, subouts)
+     call f_object_signal_emit(sig)
+  else
+     call union_mix_subouts(runObj, outs, subouts)
+  end if
 
   do i = 1, ln
      call deallocate_sub_state_properties(subouts(i))

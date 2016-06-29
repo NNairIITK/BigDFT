@@ -9,8 +9,22 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+!!
+!! @defgroup FLIB_OBJECT  Define introspectable API for object method and signaling (flib)
+!! @ingroup FLIB
+!! @brief flib definition of introspectable object with associated methods and signals.
+!! @details
+!! module_f_objects provides routines to declare objects and their associated
+!! methods and signals, so they can be called from language bindings.
 
 !> Module used to define, emit and connect to signals.
+!! @ingroup FLIB_OBJECT
+!! @details
+!! Objects are reference by their id, which is a string to identify
+!! the class of a object. Use f_object_new() to register a new object class.
+!! The constructor and destructor methods are used by language bindings to
+!! create new objects of this class on the fly. Associated methods and functions
+!! can be added to a class using f_object_add_method() and f_object_add_function().
 module module_f_objects
   use dictionaries
 
@@ -21,10 +35,16 @@ module module_f_objects
   integer, private, save :: ERROR_OBJECT
   type(dictionary), pointer :: class_library => null()
 
+  type signal_ctx
+     character(len = max_field_length) :: obj_id, id
+     type(dictionary), pointer :: sig
+  end type signal_ctx
+
+  public :: signal_ctx
   public :: f_object_new_, f_object_add_method, f_object_get_method
   public :: f_object_finalize
   public :: f_object_add_signal, f_object_signal_prepare
-  public :: f_object_signal_add_arg_, f_object_signal_add_str_
+  public :: f_object_signal_add_arg_, f_object_signal_add_str
   public :: f_object_signal_emit, f_object_signal_connect
 
   public :: f_object_has_signal
@@ -49,6 +69,7 @@ contains
   !> @private
   !! Don't use this method directy because it uses address instead of
   !! method names, prefer f_object_new().
+  !! @internal
   subroutine f_object_new_(obj_id, constructor_add, destructor_add)
     use f_precisions
     implicit none
@@ -127,85 +148,99 @@ contains
     call set(class_library // obj_id // "signals" // id // "n_args", n_args)
   end subroutine f_object_add_signal
 
-  function ensure_signal(obj_id, id)
+  function ensure_signal(obj_id, id) result(sig)
     implicit none
     character(len = *), intent(in) :: obj_id, id
-    logical :: ensure_signal
-    type(dictionary), pointer :: tmp
+    type(dictionary), pointer :: tmp, sig
 
     call ensure_init()
+
+    nullify(sig)
     if (f_err_raise(.not. (obj_id .in. class_library) .and. obj_id /= "class", &
          & "object '" // obj_id // "' not defined.", err_id = ERROR_OBJECT)) return
     tmp =>  class_library // obj_id // "signals" 
     if (f_err_raise(.not. (id .in. tmp), &
          & "signal '" // id // "' not defined.", err_id = ERROR_OBJECT)) return
-    
-    ensure_signal = .true.
+    sig => tmp // id
   end function ensure_signal
 
-  function f_object_signal_prepare(obj_id, id) result(emit)
+  function f_object_signal_prepare(obj_id, id, ctx, reset) result(emit)
     implicit none
     character(len = *), intent(in) :: obj_id, id
-    logical :: emit
+    type(signal_ctx), intent(out) :: ctx
+    logical, intent(in), optional :: reset
 
-    if (.not. ensure_signal(obj_id, id)) return
+    logical :: emit, reset_
 
-    if (dict_len(class_library // obj_id // "signals" // id // "arguments") > 0) &
-         & call dict_remove(class_library // obj_id // "signals" // id, "arguments")
-    if (dict_len(class_library // obj_id // "signals" // id // "strings") > 0) &
-         & call dict_remove(class_library // obj_id // "signals" // id, "strings")
-    emit = (dict_len(class_library // obj_id // "signals" // id // "hooks") > 0)
+    emit = .false.
+
+    ctx%sig => ensure_signal(obj_id, id)
+    if (.not. associated(ctx%sig)) return
+    write(ctx%obj_id, "(A)") obj_id
+    write(ctx%id, "(A)") id
+
+    reset_ = .true.
+    if (present(reset)) reset_ = reset
+    if (dict_len(ctx%sig // "arguments") > 0 .and. reset_) &
+         & call dict_remove(ctx%sig, "arguments")
+    if (dict_len(ctx%sig // "strings") > 0 .and. reset_) &
+         & call dict_remove(ctx%sig, "strings")
+    emit = (dict_len(ctx%sig // "hooks") > 0)
   end function f_object_signal_prepare
 
-  subroutine f_object_signal_add_arg_(obj_id, id, arg_add)
+  subroutine f_object_signal_add_arg_(ctx, arg_add)
     use f_precisions
     implicit none
-    character(len = *), intent(in) :: obj_id, id
+    type(signal_ctx), intent(in) :: ctx
     integer(f_address), intent(in) :: arg_add
 
-    if (.not. ensure_signal(obj_id, id)) return
+    if (f_err_raise(.not. associated(ctx%sig), &
+         & trim(ctx%obj_id) // "::" // trim(ctx%id) // " not defined", &
+         & err_id = ERROR_OBJECT)) return
 
-    call add(class_library // obj_id // "signals" // id // "arguments", arg_add)
+    call add(ctx%sig // "arguments", arg_add)
   end subroutine f_object_signal_add_arg_
 
-  subroutine f_object_signal_add_str_(obj_id, id, arg_add, ln)
+  subroutine f_object_signal_add_str(ctx, arg)
     use f_precisions
     implicit none
-    character(len = *), intent(in) :: obj_id, id
-    integer(f_address), intent(in) :: arg_add
-    integer, intent(in) :: ln
+    type(signal_ctx), intent(in) :: ctx
+    character(len = *), intent(inout) :: arg
 
-    if (.not. ensure_signal(obj_id, id)) return
+    if (f_err_raise(.not. associated(ctx%sig), &
+         & trim(ctx%obj_id) // "::" // trim(ctx%id) // " not defined", &
+         & err_id = ERROR_OBJECT)) return
 
-    call add(class_library // obj_id // "signals" // id // "arguments", arg_add)
-    call add(class_library // obj_id // "signals" // id // "strings", ln)
-  end subroutine f_object_signal_add_str_
+    call add(ctx%sig // "arguments", f_loc(arg))
+    call add(ctx%sig // "strings", len(arg))
+  end subroutine f_object_signal_add_str
 
-  subroutine f_object_signal_emit(obj_id, id)
+  subroutine f_object_signal_emit(ctx)
     use f_precisions
     implicit none
-    character(len = *), intent(in) :: obj_id, id
+    type(signal_ctx), intent(in) :: ctx
     
-    type(dictionary), pointer :: iter, signal
+    type(dictionary), pointer :: iter
     integer(f_address) :: callback
     integer(f_address), dimension(2) :: args
     integer, dimension(2) :: lens
     integer :: n_args, n_strs
 
-    if (.not. ensure_signal(obj_id, id)) return
-
-    signal => class_library // obj_id // "signals" // id
-    n_args = signal // "n_args"
-
-    if (f_err_raise(dict_len(signal // "arguments") /= n_args, &
-         & "not enough packed arguments for signal '" // id // "'.", &
+    if (f_err_raise(.not. associated(ctx%sig), &
+         & trim(ctx%obj_id) // "::" // trim(ctx%id) // " not defined", &
          & err_id = ERROR_OBJECT)) return
 
-    if (n_args > 0) args(1:n_args) = signal // "arguments"
-    n_strs = dict_len(signal // "strings")
-    if (n_strs > 0) lens(1:n_strs) = signal // "strings"
+    n_args = ctx%sig // "n_args"
 
-    iter => dict_iter(signal // "hooks")
+    if (f_err_raise(dict_len(ctx%sig // "arguments") /= n_args, &
+         & "not enough packed arguments for signal '" // ctx%id // "'.", &
+         & err_id = ERROR_OBJECT)) return
+
+    if (n_args > 0) args(1:n_args) = ctx%sig // "arguments"
+    n_strs = dict_len(ctx%sig // "strings")
+    if (n_strs > 0) lens(1:n_strs) = ctx%sig // "strings"
+
+    iter => dict_iter(ctx%sig // "hooks")
     do while (associated(iter))
        callback = iter // "address"
        select case(n_args)
@@ -240,12 +275,13 @@ contains
     integer, intent(in) :: n_args
     integer, intent(out) :: sid
 
-    type(dictionary), pointer :: hook
+    type(dictionary), pointer :: sig, hook
     integer :: n_args_signal
 
     sid = -1
 
-    if (.not. ensure_signal(obj_id, id)) return
+    sig => ensure_signal(obj_id, id)
+    if (.not. associated(sig)) return
 
     n_args_signal = class_library // obj_id // "signals" // id // "n_args"
     if (n_args_signal /= n_args) stop
@@ -295,12 +331,15 @@ subroutine f_object_new(id, constructor, destructor)
 end subroutine f_object_new
 
 !> @relates module_f_objects
+!! Define the name of the method with \c id. The number of arguments
+!! the method is using is also mandatory to allow runtime checks.
 subroutine f_object_add_method(obj_id, id, method, n_args)
   use f_precisions
   use module_f_objects, only: wrapper_add => f_object_add_method
-  character(len = *), intent(in) :: obj_id, id
-  integer, intent(in) :: n_args
-  external :: method
+  character(len = *), intent(in) :: obj_id !< Object class identifier
+  character(len = *), intent(in) :: id     !< Method name
+  integer, intent(in) :: n_args            !< Number of argumnets
+  external :: method                       !< Subroutine corresponding to the method
   
   call wrapper_add(obj_id, id, f_loc(method), n_args)
 end subroutine f_object_add_method
@@ -330,24 +369,14 @@ end subroutine f_object_get_method
 !> @relates module_f_objects
 !! Add a new argument to the stack before calling f_object_signal_emit().
 !! Use "class" as obj_id to add an argument to a generic signal.
-subroutine f_object_signal_add_arg(obj_id, id, arg)
+subroutine f_object_signal_add_arg(ctx, arg)
   use f_precisions
-  use module_f_objects, only: wrapper_add => f_object_signal_add_arg_
-  character(len = *), intent(in) :: obj_id, id !< object and signal names.
+  use module_f_objects, only: wrapper_add => f_object_signal_add_arg_, signal_ctx
+  type(signal_ctx), intent(in) :: ctx !< signal context.
   external :: arg !< A variable, whatever kind
 
-  call wrapper_add(obj_id, id, f_loc(arg))
+  call wrapper_add(ctx, f_loc(arg))
 end subroutine f_object_signal_add_arg
-
-!> @relates module_f_objects
-subroutine f_object_signal_add_str(obj_id, id, arg)
-  use f_precisions
-  use module_f_objects, only: wrapper_add => f_object_signal_add_str_
-  character(len = *), intent(in) :: obj_id, id
-  character(len = *), intent(in) :: arg
-
-  call wrapper_add(obj_id, id, f_loc(arg), len(arg))
-end subroutine f_object_signal_add_str
 
 !> @relates module_f_objects
 subroutine f_object_signal_connect(obj_id, id, hook, n_args, sid)

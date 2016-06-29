@@ -849,16 +849,15 @@ contains
     use module_f_objects, only: f_object_new_, f_object_add_signal
 
     call f_object_new_("run_objects")
-    
     call f_object_add_method("run_objects", "nat", bigdft_nat_bind, 1)
 
     call f_object_add_signal("run_objects", "init", 1)
     call f_object_add_signal("run_objects", "pre", 1)
     call f_object_add_signal("run_objects", "post", 2)
+    call f_object_add_signal("run_objects", "join", 3)
     call f_object_add_signal("run_objects", "destroy", 1)
 
     call f_object_new_("state_properties")
-
     call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
     call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
   end subroutine run_objects_type_init
@@ -950,21 +949,21 @@ contains
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
     use module_input_keys, only: free_input_variables
-    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+    use module_f_objects
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
     integer :: claim, i
-
+    type(signal_ctx) :: sig
 
     ! Fortran release ownership
     release = .true.
 
     if (.not. f_object_has_signal("run_objects", "destroy")) &
          & call run_objects_type_init()
-    if (f_object_signal_prepare("run_objects", "destroy")) then
-       call f_object_signal_add_arg("run_objects", "destroy", runObj)
-       call f_object_signal_emit("run_objects", "destroy")
+    if (f_object_signal_prepare("run_objects", "destroy", sig)) then
+       call f_object_signal_add_arg(sig, runObj)
+       call f_object_signal_emit(sig)
     end if
 
     if (runObj%c_obj /= 0) then
@@ -1140,7 +1139,7 @@ contains
     use module_input_keys, only: user_dict_from_files
     use yaml_output
     use dynamic_memory
-    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+    use module_f_objects
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -1161,8 +1160,9 @@ contains
     type(run_objects), intent(in), optional :: source
     !local variables
     logical :: dict_from_files
-    integer :: ierr, i
+    integer :: i
     character(len=max_field_length) :: radical, posinp_id
+    type(signal_ctx) :: sig
 
     call f_routine(id='run_objects_init')
 
@@ -1207,9 +1207,9 @@ contains
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
        end if
 
-       if (f_object_signal_prepare("run_objects", "init")) then
-          call f_object_signal_add_arg("run_objects", "init", runObj)
-          call f_object_signal_emit("run_objects", "init")
+       if (f_object_signal_prepare("run_objects", "init", sig)) then
+          call f_object_signal_add_arg(sig, runObj)
+          call f_object_signal_emit(sig)
        end if
 
     else if (present(source)) then
@@ -1638,7 +1638,7 @@ contains
     use f_enums, enum_int => toi
     use SWpotential
     use wrapper_linalg, only: vscal
-    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+    use module_f_objects
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1646,12 +1646,13 @@ contains
     integer, intent(inout) :: infocode
     !local variables
     logical :: write_mapping
-    integer :: nat, ierr
+    integer :: nat
     integer :: icc !for amber
     real(gp) :: maxdiff
     real(gp), dimension(3) :: alatint
     real(gp), dimension(:,:), pointer :: rxyz_ptr
     integer :: policy_tmp
+    type(signal_ctx) :: sig
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
     call f_routine(id='bigdft_state')
@@ -1698,9 +1699,9 @@ contains
     ! Run any pre hook
     if (.not. f_object_has_signal("run_objects", "pre")) &
          & call run_objects_type_init()
-    if (f_object_signal_prepare("run_objects", "pre")) then
-       call f_object_signal_add_arg("run_objects", "pre", runObj)
-       call f_object_signal_emit("run_objects", "pre")
+    if (f_object_signal_prepare("run_objects", "pre", sig)) then
+       call f_object_signal_add_arg(sig, runObj)
+       call f_object_signal_emit(sig)
     end if
 
     call clean_state_properties(outs) !zero the state first
@@ -1801,10 +1802,10 @@ contains
     call broadcast_state_properties(outs)
 
     ! Run any hook post run.
-    if (f_object_signal_prepare("run_objects", "post")) then
-       call f_object_signal_add_arg("run_objects", "post", runObj)
-       call f_object_signal_add_arg("run_objects", "post", outs)
-       call f_object_signal_emit("run_objects", "post")
+    if (f_object_signal_prepare("run_objects", "post", sig)) then
+       call f_object_signal_add_arg(sig, runObj)
+       call f_object_signal_add_arg(sig, outs)
+       call f_object_signal_emit(sig)
     end if
 
     call f_increment(runObj%nstate)
