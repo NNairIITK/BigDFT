@@ -1,4 +1,6 @@
+!!! [init]
 subroutine init()
+!!! [init]
   use yaml_output
 
   integer :: sid
