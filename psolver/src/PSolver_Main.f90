@@ -213,6 +213,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   i3s_pot_pb=0  !in the PCG case
   if (kernel%method == PS_PI_ENUM) i3s_pot_pb=i23sd2-1
 
+
   !switch between neutral and ionic solution (GPe or PBe)
   if (poisson_boltzmann) then
      if (kernel%opt%use_pb_input_guess) then
@@ -379,17 +380,16 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
-  if (build_c) then
+  if (build_c .or. .not. kernel%opt%only_electrostatic ) then
    kernel%IntSur=IntSur
    kernel%IntVol=IntVol
   end if
-  if (kernel%opt%only_electrostatic) then
+  if (kernel%opt%only_electrostatic .or. kernel%method == PS_VAC_ENUM) then
    kernel%IntSur=0.0_gp
    kernel%IntVol=0.0_gp
   end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
-
   energs%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
   energs%eVextra=e_static*product(kernel%hgrids)
   energs%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
@@ -701,7 +701,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
         potential_integral=offset,&
         final_call=(kernel%method .hasattr. 'rigid') .and.&
         present(stress_tensor))
-   
+
    if (sumpion .and. present(rho_ion) .and. kernel%method /= PS_VAC_ENUM) then
       call Electrostatic_Solver(kernel,rhopot,energies,pot_ion,rho_ion)
    else if (sumpion) then

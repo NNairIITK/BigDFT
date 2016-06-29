@@ -33,19 +33,21 @@ subroutine multi_mode_state(runObj, outs, infocode)
   use public_keys, only: ASTRUCT_ATT_ORIG_ID
   use module_defs, only: gp
   use dictionaries
+  use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
   implicit none
   ! Parameters
   type(run_objects), intent(inout) :: runObj
   type(state_properties), intent(inout) :: outs
   integer, intent(inout) :: infocode
   ! Local variables
-  type(state_properties) :: subouts
+  type(state_properties), dimension(:), allocatable :: subouts
   integer :: ln, i, iat, nat
   integer, dimension(:), allocatable :: map
   real(gp), dimension(:), allocatable :: coeffs
   type(atomic_structure) :: asub
 
   ln = size(runObj%sections)
+  allocate(subouts(ln))
   infocode = 0
   outs%energy = 0.
 
@@ -60,8 +62,8 @@ subroutine multi_mode_state(runObj, outs, infocode)
      call deallocate_atomic_structure(asub)
 
      nat = bigdft_nat(runObj%sections(i))
-     call init_state_properties(subouts, nat)
-     call process_run(trim(runObj%sections(i)%label), runObj%sections(i), subouts)
+     call init_state_properties(subouts(i), nat)
+     call process_run(trim(runObj%sections(i)%label), runObj%sections(i), subouts(i))
 
      map = f_malloc0((/ nat /), id = "map")
      coeffs = f_malloc0((/ nat /), id = "coeffs")
@@ -73,9 +75,6 @@ subroutine multi_mode_state(runObj, outs, infocode)
         end if
      end do
 
-     ! Mix the outs.
-     call multi_fxyz_axpy(coeffs, subouts, outs, map)
-
      ! Update the positions that may have been altered by the run.
      do iat = 1, nat
         if (map(iat) > 0) then
@@ -83,14 +82,27 @@ subroutine multi_mode_state(runObj, outs, infocode)
         end if
      end do
 
+     ! Mix the outs.
+     call multi_fxyz_axpy(coeffs, subouts(i), outs, map)
      !@todo The global energy is currently the sum of all energy sections. To be improved.
-     outs%energy = outs%energy + subouts%energy
+     outs%energy = outs%energy + subouts(i)%energy
 
      call f_free(coeffs)
      call f_free(map)
-
-     call deallocate_state_properties(subouts)
   end do
+
+  ! Signal, for custom mixing.
+!!$  if (f_object_signal_prepare("run_objects", "mix")) then
+!!$     call f_object_signal_add_arg("run_objects", "mix", runObj)
+!!$     call f_object_signal_add_arg("run_objects", "mix", outs)
+!!$     call f_object_signal_add_arg("run_objects", "mix", subouts)
+!!$     call f_object_signal_emit("run_objects", "mix")
+!!$  end if
+
+  do i = 1, ln
+     call deallocate_state_properties(subouts(i))
+  end do
+  deallocate(subouts)
 END SUBROUTINE multi_mode_state
 
 subroutine multi_fxyz_axpy(alpha, outx, outy, map)

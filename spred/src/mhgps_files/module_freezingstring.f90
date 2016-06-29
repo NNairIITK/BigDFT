@@ -85,7 +85,7 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
     integer :: finished
     integer :: i,j,iat
     integer :: npath,istring,istringmax,isidemax,ipathmax
-    integer :: nnodes,nstring,nstringmax=20
+    integer :: nnodes,nstring,nstringmax
     integer :: ncorr
     integer :: infocode
     real(gp), allocatable :: string(:,:,:)
@@ -100,6 +100,7 @@ subroutine get_ts_guess_freeze(mhgpsst,uinp,runObj,outs,rxyz1,rxyz2,&
     real(gp) :: yp1=huge(1._gp), ypn=huge(1._gp)!natural splines
     !functions
     real(gp) :: dnrm2
+    nstringmax=2*(1+int(1.d0/uinp%lst_interpol_stepfrct))
 
 
     string = f_malloc((/ 1.to.3*runObj%atoms%astruct%nat, 1.to.2, 1.to.nstringmax/),&
@@ -344,7 +345,7 @@ subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
     character(len=10), parameter :: method = 'linlst'
     !internal
     integer :: i,k,istart
-    integer, parameter :: resize=10
+    integer :: resize
     real(gp), allocatable :: stringTMP(:,:,:)
     real(gp) :: tangentleft(3*runObj%atoms%astruct%nat)
     real(gp) :: tangentright(3*runObj%atoms%astruct%nat)
@@ -353,6 +354,7 @@ subroutine grow_freezstring(mhgpsst,uinp,runObj,outs,gammainv,perpnrmtol,trust,&
     real(gp) :: trust_squared
     integer,parameter :: nresizemax=1
     integer :: nresizes
+    resize=int(1.d0/uinp%lst_interpol_stepfrct)+1
 
     success=.true.
     

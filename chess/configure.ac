@@ -7,7 +7,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[libCheSS])
+AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[CheSS])
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -70,6 +70,13 @@ AX_MPI()
 
 dnl Python YAML support.
 AX_PYYAML()
+
+dnl The utilities executable
+AC_ARG_ENABLE(binaries, AS_HELP_STRING([--disable-binaries], [build the binaries (default = yes).]), ac_build_bin_utilities=$enableval, ac_build_bin_utilities="yes")
+AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_utilities" = "yes")
+AC_MSG_CHECKING([for CheSS binaries build])
+AC_MSG_RESULT([$ac_build_bin_utilities])
+
 
 AX_FLIB()
 

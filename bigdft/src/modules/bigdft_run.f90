@@ -21,6 +21,7 @@ module bigdft_run
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
        bigdft_get_run_properties => dict_get_run_properties
   use public_enums
+
   private
 
   !>  Used to restart a new DFT calculation or to save information
@@ -49,6 +50,7 @@ module bigdft_run
      !> number of times bigdft_state is called with this instance
      character(len = max_field_length) :: label
      integer :: nstate
+     logical :: add_coulomb_force
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -1043,6 +1045,7 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
+    runObj%add_coulomb_force = runObj%inputs%add_coulomb_force
     !@todo Decorate the run mode, ugly here.
     if (runObj%run_mode == QM_RUN_MODE .or. runObj%run_mode == MULTI_RUN_MODE) then
        call f_enum_attr(runObj%run_mode, RUN_MODE_CREATE_DOCUMENT)
@@ -1635,6 +1638,8 @@ contains
     use module_cp2k
     use module_dftbp
     use module_tdpot
+    use module_bazant
+    use module_coulomb
     use f_enums, enum_int => toi
     use SWpotential
     use wrapper_linalg, only: vscal
@@ -1779,12 +1784,19 @@ contains
     case('MULTI_RUN_MODE')
        call multi_mode_state(runObj,outs,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('Multi mode infocode',infocode)
+    case('BAZANT_RUN_MODE')
+       ! Calculates bazant forces betweeen given atomic configuration using
+       ! periodic boundary conditions
+       call bazant_energyandforces(nat, rxyz_ptr, outs%fxyz, outs%energy)
 
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '+ enum_int(runObj%run_mode)//&
             '('+f_str(runObj%run_mode)+')',err_name='BIGDFT_RUNTIME_ERROR')
     end select
+    
+    if (runObj%add_coulomb_force)&
+         call coulomb_energyandforces(nat, rxyz_ptr, outs%fxyz, outs%energy)
 !!         anoise=2.d-5
 !!         if (anoise.ne.0.d0) then
 !!         do iat=1,nat

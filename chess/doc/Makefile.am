@@ -1,6 +1,6 @@
 EXTRA_DIST = \
-	html/chess_logo.png \
-	html/extra.css
+	chess_logo.png \
+	extra.css
 
 CLEANFILES = *.aux *.toc *.log *.xml
 

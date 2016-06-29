@@ -5,6 +5,7 @@
 #endif
 
 #include <signal.h>
+#include <stdlib.h>
 
 #include <futile.h>
 #include <dict-fapi.h>

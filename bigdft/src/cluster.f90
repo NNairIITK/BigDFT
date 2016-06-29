@@ -124,6 +124,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(energy_terms) :: energs_fake
   real(kind=8),dimension(:,:),allocatable :: locreg_centers
   real(kind=8),dimension(:),allocatable :: charge_fake
+  !Variable for TDHF
+  real(gp) :: exc_fac !Factor in front of the term to subtract when doing TDHF or TDDFT with hybrid functionals
 
   ! testing
   real(kind=8),dimension(:,:),pointer :: locregcenters
@@ -131,6 +133,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(f_enumerator) :: linear_iscf
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
+  !integer :: i1,i2,i3p,n1m,n2m,n3m !MM
 
   integer :: ishift, extra_states, i1, i2, i3, ii
   integer :: ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s
@@ -1288,7 +1291,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         end if
 
         !start the Casida's treatment
-        if (in%tddft_approach=='TDA') then
+        !if (in%tddft_approach=='TDA') then
+        
+        if (in%tddft_approach .ne. 'none') then
 
            !does it make sense to use GPU only for a one-shot sumrho?
            if (GPU%OCLconv) then
@@ -1318,20 +1323,91 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               denspot%f_XC = f_malloc_ptr((/ 1 , 1 , 1 , in%nspin+1 /),id='denspot%f_XC')
            end if
 
+!!$$!MM test
+!!$$ if (iproc==1) open(unit=201,file='density.dat')
+!!$$ n1m=KSwfn%Lzd%Glr%d%n1i
+!!$$ n2m=KSwfn%Lzd%Glr%d%n2i
+!!$$ n3m=denspot%dpbox%n3p
+!!$$ i1=n1m/2
+!!$$ i2=n2m/2
+!!$$ if (in%nspin==1) then
+!!$$    do i3p=1,n3m
+!!$$       if (iproc==1) write(201,'(E16.9E2,2x)') denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m)
+!!$$    end do
+!!$$ else
+!!$$    do i3p=1,n3m
+!!$$       if (iproc==1) write(201,'(2(E16.9E2,2x))') denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
+!!$$                             denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m)
+!!$$    end do
+!!$$ end if
+!!$$ if (iproc==1) close(201)
+!!$$!MM test END
+
+
            call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
                 denspot%dpbox%mesh%hgrids,&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,&
                 denspot%rhohat,denspot%V_XC,xcstr,denspot%f_XC)
+
+!!$$!MM test 
+!!$$           if (iproc==0) open(unit=201,file='toplot0.dat')
+!!$$           if (iproc==2) open(unit=203,file='toplot2.dat')
+!!$$           n1m=KSwfn%Lzd%Glr%d%n1i
+!!$$           n2m=KSwfn%Lzd%Glr%d%n2i
+!!$$           n3m=denspot%dpbox%n3p
+!!$$           i1=n1m/2
+!!$$           i2=n2m/2
+!!$$
+!!$$           if (in%nspin==1) then
+!!$$
+!!$$              do i3p=1,n3m
+!!$$                 if (iproc==0) write(201,'(i4,4(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2)
+!!$$                 if (iproc==2) write(203,'(i4,4(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2)
+!!$$              end do
+!!$$
+!!$$           else if (in%nspin==2) then
+!!$$
+!!$$              do i3p=1,n3m
+!!$$                 if (iproc==0) write(201,'(i4,7(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),& 
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), denspot%V_XC(i1,i2,i3p,2), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2), denspot%f_XC(i1,i2,i3p,3)
+!!$$                 if (iproc==2) write(203,'(i4,7(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),& 
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), denspot%V_XC(i1,i2,i3p,2), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2), denspot%f_XC(i1,i2,i3p,3)
+!!$$              end do
+!!$$
+!!$$           end if
+!!$$
+!!$$           if (iproc==0) close(unit=201)
+!!$$           if (iproc==2) close(unit=203)
+!!$$!MM end test 
+
+
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
 
            !select the active space if needed
+           exc_fac = 0.0
+           if (in%ixc==100) then 
+              !call yaml_comment('HF detected',hfill='-')
+              exc_fac=1.0 !if HF, exc_fac=1.0 
+           end if
 
            call tddft_casida(iproc,nproc,atoms,rxyz,&
                 denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3),&
                 denspot%dpbox%n3p,denspot%dpbox%ngatherarr(0,1),&
-                KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
-                denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi)
+                KSwfn%Lzd%Glr,in%tddft_approach,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
+                denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi,exc_fac)
 
            call f_free_ptr(denspot%f_XC)
 
@@ -2252,10 +2328,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 !!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
 
         !this will have to be replaced by a routine which plots the pkernel information
-!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
 !!$        
-!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-!!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
+        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
      end if
 !---------------------------------------------------
 

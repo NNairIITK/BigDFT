@@ -71,6 +71,8 @@ Keys to ignore:
  - noise
  - penalty
  - SCF criterion
+ - cavitation
+ - minres
  #- avg pot difference (actual/min)
  #- number of tasks
  #- IDs

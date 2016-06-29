@@ -1,5 +1,5 @@
           2   angstroem
 free
-Ca  0. 0. 0.  
-Ca  0. 0. 3.00  
+Ca  0. 0. 0.    {x2: rprb} #takes parabolic potential from the atomic_info
+Ca  0. 0. 3.00  {x2: 0.5e-3} #customize the value of a quartic potential 0.5*x**2
 

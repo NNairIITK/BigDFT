@@ -93,7 +93,7 @@ contains
 !!$  end function box_iter_c
 
   !>define an iterator over the cell points
-  function box_iter(mesh,nbox,origin,i3s,n3p,centered) result(boxit)
+  function box_iter(mesh,nbox,origin,i3s,n3p,centered,cutoff) result(boxit)
     implicit none
     type(cell), intent(in), target :: mesh
     !>when true the origin is placed at the center of the box, origin is ignored
@@ -104,28 +104,34 @@ contains
     integer, intent(in), optional :: n3p
     !> Box of start and end points which have to be considered
     integer, dimension(2,3), intent(in), optional :: nbox
+    real(dp), intent(in), optional :: cutoff !< determine the box around the origin
     !> real coordinates of the origin in the reference frame of the 
     !box (the first point has the 000 coordinate)
     real(dp), dimension(3), intent(in), optional :: origin
+
     type(box_iterator) :: boxit
     
     call nullify_box_iterator(boxit)
     
     !associate the mesh
     boxit%mesh => mesh
-    
+
+    if (present(origin)) boxit%oxyz=origin
+    if (present(centered)) then
+       if (centered) boxit%oxyz=0.5_dp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
+    end if
+
     if(present(nbox)) then
        boxit%nbox=nbox
+       boxit%whole=.false.
+    else if (present(cutoff)) then
+       boxit%nbox(1,:)=floor((boxit%oxyz-cutoff)/boxit%mesh%hgrids)
+       boxit%nbox(2,:)=ceiling((boxit%oxyz+cutoff)/boxit%mesh%hgrids)
        boxit%whole=.false.
     else
        boxit%whole=.true.
        boxit%nbox(1,:)=1
        boxit%nbox(2,:)=mesh%ndims
-    end if
-
-    if (present(origin)) boxit%oxyz=origin
-    if (present(centered)) then
-       if (centered) boxit%oxyz=0.5_dp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
     end if
 
     if (present(i3s)) then
@@ -387,8 +393,6 @@ contains
     boxit%rxyz(3)=cell_r(boxit%mesh,boxit%k,3)-boxit%oxyz(3)
 
   end subroutine update_boxit_z
-  
-
 
   !this routine should not use ibox as it is now prepared for the next step
   pure subroutine update_boxit(boxit)

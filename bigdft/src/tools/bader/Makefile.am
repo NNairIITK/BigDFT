@@ -18,6 +18,9 @@ bader_SOURCES = main.f90 $(bader_objects)
 bader_LDADD = @LIB_FUTILE_LIBS@
 
 AM_FCFLAGS = -I. @LIB_FUTILE_CFLAGS@
+if BUILD_DYNAMIC_LIBS
+AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(libdir)
+endif
 
 CLEANFILES = *.@MODULE_EXT@ 
 
