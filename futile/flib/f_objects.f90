@@ -35,6 +35,8 @@ module module_f_objects
   integer, private, save :: ERROR_OBJECT
   type(dictionary), pointer :: class_library => null()
 
+  integer, parameter :: MAX_ARGS_IMPLEMENTED = 3
+
   type signal_ctx
      character(len = max_field_length) :: obj_id, id
      type(dictionary), pointer :: sig
@@ -144,6 +146,9 @@ contains
     call ensure_init()
     if (f_err_raise(.not. (obj_id .in. class_library) .and. obj_id /= "class", &
          & "object '" // obj_id // "' not defined.", err_id = ERROR_OBJECT)) return
+    if (f_err_raise(n_args < 0 .or. n_args > MAX_ARGS_IMPLEMENTED, &
+         & "signal '" // id // "' defined with too many arguments.", &
+         & err_id = ERROR_OBJECT)) return
     
     call set(class_library // obj_id // "signals" // id // "n_args", n_args)
   end subroutine f_object_add_signal
@@ -222,8 +227,8 @@ contains
     
     type(dictionary), pointer :: iter
     integer(f_address) :: callback
-    integer(f_address), dimension(2) :: args
-    integer, dimension(2) :: lens
+    integer(f_address), dimension(MAX_ARGS_IMPLEMENTED) :: args
+    integer, dimension(MAX_ARGS_IMPLEMENTED) :: lens
     integer :: n_args, n_strs
 
     if (f_err_raise(.not. associated(ctx%sig), &
@@ -261,6 +266,21 @@ contains
              call call_external_c_fromadd_data_data_str(callback, args(1), args(2), lens(1))
           case (2)
              call call_external_c_fromadd_data_data_str_str(callback, args(1), args(2), lens(1), lens(2))
+          end select
+       case (3)
+          select case(n_strs)
+          case (0)
+             call call_external_c_fromadd_data_data_data(callback, &
+                  & args(1), args(2), args(3))
+          case (1)
+             call call_external_c_fromadd_data_data_data_str(callback, &
+                  & args(1), args(2), args(3), lens(1))
+          case (2)
+             call call_external_c_fromadd_data_data_data_str_str(callback, &
+                  & args(1), args(2), args(3), lens(1), lens(2))
+          case (3)
+             call call_external_c_fromadd_data_data_data_str_str_str(callback, &
+                  & args(1), args(2), args(3), lens(1), lens(2), lens(3))
           end select
        end select
        iter => dict_next(iter)
