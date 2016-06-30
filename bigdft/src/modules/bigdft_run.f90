@@ -64,6 +64,9 @@ module bigdft_run
 
      !> Subparts that needs to be executed separately
      type(run_objects), dimension(:), pointer :: sections
+     !> Mapping of atom ids. map(i) is the id in the parent
+     !! run object of atom #i in the section.
+     integer, dimension(:), pointer :: astruct_map
 
      integer(kind = 8) :: c_obj !< Pointer to a C wrapper
   end type run_objects
@@ -83,7 +86,7 @@ module bigdft_run
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
-  public :: run_objects_associate,bigdft_set_rxyz
+  public :: run_objects_associate,bigdft_set_rxyz,section_extract
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
   public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
   public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
@@ -877,6 +880,7 @@ contains
     nullify(runObj%mm_rst)
     nullify(runObj%py_hooks)
     nullify(runObj%sections)
+    nullify(runObj%astruct_map)
     runObj%c_obj = 0
   END SUBROUTINE nullify_run_objects
 
@@ -937,6 +941,9 @@ contains
           call release_run_objects(runObj%sections(i))
        end do
        deallocate(runObj%sections)
+    end if
+    if (associated(runObj%astruct_map)) then
+       call f_free_ptr(runObj%astruct_map)
     end if
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
@@ -999,6 +1006,10 @@ contains
           end do
           deallocate(runObj%sections)
        end if
+       if (associated(runObj%astruct_map)) then
+          call f_free_ptr(runObj%astruct_map)
+          nullify(runObj%astruct_map)
+       end if
        call nullify_run_objects(runObj)
     else
        call run_objects_wrapper_attach(runObj%c_obj, runObj)
@@ -1013,10 +1024,15 @@ contains
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
-    use public_keys, only: PY_HOOKS
+    use public_keys, only: PY_HOOKS, PLUGINS
     use dictionaries
+    use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
+
+    type(dictionary), pointer :: iter
+    character(len = 256) :: mess
+    integer :: ierr
 
     call f_routine(id='set_run_objects')
 
@@ -1042,7 +1058,7 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
-    !@todo Decorate the run mode, ugly here.
+    !> @todo Decorate the run mode, ugly here.
     if (runObj%run_mode == QM_RUN_MODE .or. runObj%run_mode == MULTI_RUN_MODE) then
        call f_enum_attr(runObj%run_mode, RUN_MODE_CREATE_DOCUMENT)
     end if
@@ -1052,10 +1068,63 @@ contains
        call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
     end if
 
+    ! Load plugins if any.
+    if (PLUGINS .in. runObj%user_inputs) then
+       iter => dict_iter(runObj%user_inputs // PLUGINS)
+       do while (associated(iter))
+          call plugin_load(trim(dict_key(iter)), ierr)
+          if (ierr /= 0) then
+             call plugin_error(mess)
+             call yaml_warning(trim(mess))
+          end if
+          iter => dict_next(iter)
+       end do
+    end if
+
     call f_release_routine()
     
   END SUBROUTINE set_run_objects
 
+  !> @todo make this routine private by reacting on a change to main coordinates.
+  subroutine section_extract(asub, map, runObj, section, passivation, buf, last)
+    use module_atoms, only: atomic_structure, astruct_at_from_dict
+    use public_keys, only: ASTRUCT_ATT_ORIG_ID
+    use dictionaries
+    use dynamic_memory
+    use f_utils
+    implicit none
+    ! Parameters
+    type(atomic_structure), intent(out) :: asub
+    integer, dimension(:), pointer :: map
+    type(run_objects), intent(in) :: runObj
+    character(len = *), intent(in) :: section
+    logical, intent(in) :: passivation, last
+    integer, intent(in) :: buf
+    ! Local variables
+    integer :: iat
+    logical, dimension(:), allocatable :: mask
+    character(len = max_field_length) :: mode
+
+    ! Generate the mask from the MODE atomic attribute.
+    mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
+    do iat = 1, runObj%atoms%astruct%nat
+       call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
+       mask(iat) = (trim(mode) == section) .or. (last .and. len_trim(mode) == 0)
+    end do
+    call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, &
+         & mask, passivation, buf, "yes")
+    call f_free(mask)
+
+    ! Generate a map of atom ids for the subset.
+    if (associated(map)) call f_free_ptr(map)
+    map = f_malloc_ptr((/ asub%nat /), id = "map")
+    call f_zero(map)
+    do iat = 1, asub%nat
+       if (ASTRUCT_ATT_ORIG_ID .in. asub%attributes(iat)%d) then
+          map(iat) = asub%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID
+       end if
+    end do
+  END SUBROUTINE section_extract
 
   !> Currently, set_run_objects() is not set recursively.
   !! This routine, handle a subpar of it for sections.
@@ -1105,7 +1174,7 @@ contains
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
        ! Generate posinp if necessary.
        if (POSINP .notin. runObj%sections(i)%user_inputs) then
-          call multi_mode_extract(asub, runObj, trim(dict_value(sect)), &
+          call section_extract(asub, runObj%sections(i)%astruct_map, runObj, trim(dict_value(sect)), &
                & runObj%inputs%multi_pass(i), runObj%inputs%multi_buf(i), (i == ln))
           call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
                & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))

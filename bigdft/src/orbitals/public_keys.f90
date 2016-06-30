@@ -16,6 +16,7 @@ module public_keys
   character(len = *), parameter :: RUN_NAME_KEY = "name"
 
   character(len = *), parameter :: PY_HOOKS = "py_hooks"
+  character(len = *), parameter :: PLUGINS = "plugins"
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"

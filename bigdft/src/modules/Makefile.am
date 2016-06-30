@@ -113,6 +113,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	IO.@MODULE_EXT@ \
 	POSTPROCESSING_LINEAR.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
+	BIGDFT_RUN_SECTIONS.@MODULE_EXT@ \
 	RHOPOTENTIAL.@MODULE_EXT@ \
 	MULTIPOLE_BASE.@MODULE_EXT@ \
 	FRAGMENT_BASE.@MODULE_EXT@ \
@@ -167,6 +168,7 @@ modules = module_types.@MODULE_EXT@ \
 	io.@MODULE_EXT@ \
 	postprocessing_linear.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
+	bigdft_run_sections.@MODULE_EXT@ \
 	rhopotential.@MODULE_EXT@ \
 	multipole_base.@MODULE_EXT@ \
 	fragment_base.@MODULE_EXT@ \
