@@ -1,7 +1,9 @@
 subroutine init()
   use yaml_output
   use module_base, only: bigdft_mpi
+  use module_f_objects
   integer :: sid
+  type(kernel_ctx) :: kernel
 
   interface
      subroutine smooth_mix(runObj, outs, subs)
@@ -13,7 +15,9 @@ subroutine init()
   end interface
 
   if (bigdft_mpi%iproc == 0) call yaml_map("mix plugin", .true.)
-  call f_object_signal_connect("run_objects", "join", smooth_mix, 3, sid)
+
+  call f_object_kernel_new(kernel, smooth_mix, 3)
+  call f_object_signal_connect("run_objects", "join", kernel, sid)
 end subroutine init
 
 subroutine smooth_mix(runObj, outs, subs)

@@ -87,12 +87,13 @@ subroutine changed1(obj)
   call yaml_map("obj changed", .true.)
 end subroutine changed1
 
-subroutine changed2(obj)
+subroutine changed2(obj, mess)
   use yaml_output
   use my_object
   type(my_object_type), intent(in) :: obj
+  character(len = *), intent(in) :: mess
   
-  call yaml_map("new value", obj%a_value)
+  call yaml_map(mess, obj%a_value)
 end subroutine changed2
 
 subroutine setLabel(obj, label)
@@ -113,8 +114,10 @@ end subroutine objadd
 
 program test_hooks
   use my_object
+  use module_f_objects
   use yaml_output
   type(my_object_type) :: o, o2
+  type(kernel_ctx) :: kernel
   external :: objtoyaml, objadd, changed1, changed2
 
   integer :: sid
@@ -130,11 +133,21 @@ program test_hooks
 
   call my_object_type_init()
 
-  call f_object_signal_connect("my_object", "serialize", objtoyaml, 1, sid)
-  call f_object_signal_connect("my_object", "add", objadd, 2, sid)
-  call f_object_signal_connect("my_object", "value-changed", changed1, 1, sid)
-  call f_object_signal_connect("my_object", "value-changed", changed2, 1, sid)
-  call f_object_signal_connect("my_object", "query-label", setLabel, 2, sid)
+  call f_object_kernel_new(kernel, objtoyaml, 1)
+  call f_object_signal_connect("my_object", "serialize", kernel, sid)
+
+  call f_object_kernel_new(kernel, objadd, 2)
+  call f_object_signal_connect("my_object", "add", kernel, sid)
+
+  call f_object_kernel_new(kernel, changed1, 1)
+  call f_object_signal_connect("my_object", "value-changed", kernel, sid)
+
+  call f_object_kernel_new(kernel, changed2, 2)
+  call f_object_kernel_add_str(kernel, "new value")
+  call f_object_signal_connect("my_object", "value-changed", kernel, sid)
+
+  call f_object_kernel_new(kernel, setLabel, 2)
+  call f_object_signal_connect("my_object", "query-label", kernel, sid)
 
   o%a_value = 42
   call serialize(o)

@@ -27,6 +27,7 @@
 !! can be added to a class using f_object_add_method() and f_object_add_function().
 module module_f_objects
   use dictionaries
+  use f_precisions, only: f_address
 
   implicit none
 
@@ -48,6 +49,16 @@ module module_f_objects
   public :: f_object_add_signal, f_object_signal_prepare
   public :: f_object_signal_add_arg_, f_object_signal_add_str
   public :: f_object_signal_emit, f_object_signal_connect
+
+  type kernel_ctx
+     integer(f_address) :: callback
+     integer :: callback_n_args
+     type(dictionary), pointer :: args
+  end type kernel_ctx
+
+  public :: kernel_ctx
+  public :: f_object_kernel_new_
+  public :: f_object_kernel_add_arg_, f_object_kernel_add_str
 
   public :: f_object_has_signal
 
@@ -73,7 +84,6 @@ contains
   !! method names, prefer f_object_new().
   !! @internal
   subroutine f_object_new_(obj_id, constructor_add, destructor_add)
-    use f_precisions
     implicit none
     character(len = *), intent(in) :: obj_id
     integer(f_address), optional, intent(in) :: constructor_add, destructor_add
@@ -90,7 +100,6 @@ contains
   end subroutine f_object_new_
   
   subroutine f_object_add_method(obj_id, id, method_add, n_args, isfunc)
-    use f_precisions
     implicit none
     character(len = *), intent(in) :: obj_id, id
     integer(f_address), intent(in) :: method_add
@@ -109,8 +118,6 @@ contains
   end subroutine f_object_add_method
 
   subroutine f_object_get_method(obj_id, method_id, n_args, isfunc, callback)
-    use f_precisions
-    use yaml_output
     implicit none
     character(len = *), intent(in) :: obj_id, method_id
     integer, intent(out) :: n_args, isfunc
@@ -194,7 +201,6 @@ contains
   end function f_object_signal_prepare
 
   subroutine f_object_signal_add_arg_(ctx, arg_add)
-    use f_precisions
     implicit none
     type(signal_ctx), intent(in) :: ctx
     integer(f_address), intent(in) :: arg_add
@@ -207,7 +213,7 @@ contains
   end subroutine f_object_signal_add_arg_
 
   subroutine f_object_signal_add_str(ctx, arg)
-    use f_precisions
+    use f_precisions, only: f_loc
     implicit none
     type(signal_ctx), intent(in) :: ctx
     character(len = *), intent(inout) :: arg
@@ -221,7 +227,6 @@ contains
   end subroutine f_object_signal_add_str
 
   subroutine f_object_signal_emit(ctx)
-    use f_precisions
     implicit none
     type(signal_ctx), intent(in) :: ctx
     
@@ -229,25 +234,36 @@ contains
     integer(f_address) :: callback
     integer(f_address), dimension(MAX_ARGS_IMPLEMENTED) :: args
     integer, dimension(MAX_ARGS_IMPLEMENTED) :: lens
-    integer :: n_args, n_strs
+    integer :: n_args_signal, n_args_kernel, n_args
+    integer :: n_strs_signal, n_strs_kernel, n_strs
 
     if (f_err_raise(.not. associated(ctx%sig), &
          & trim(ctx%obj_id) // "::" // trim(ctx%id) // " not defined", &
          & err_id = ERROR_OBJECT)) return
 
-    n_args = ctx%sig // "n_args"
+    n_args_signal = ctx%sig // "n_args"
 
-    if (f_err_raise(dict_len(ctx%sig // "arguments") /= n_args, &
+    if (f_err_raise(dict_len(ctx%sig // "arguments") /= n_args_signal, &
          & "not enough packed arguments for signal '" // ctx%id // "'.", &
          & err_id = ERROR_OBJECT)) return
 
-    if (n_args > 0) args(1:n_args) = ctx%sig // "arguments"
-    n_strs = dict_len(ctx%sig // "strings")
-    if (n_strs > 0) lens(1:n_strs) = ctx%sig // "strings"
+    if (n_args_signal > 0) args(1:n_args_signal) = ctx%sig // "arguments"
+    n_strs_signal = dict_len(ctx%sig // "strings")
+    if (n_strs_signal > 0) lens(1:n_strs_signal) = ctx%sig // "strings"
 
     iter => dict_iter(ctx%sig // "hooks")
     do while (associated(iter))
+       ! Add the kernel arguments here.
+       n_args_kernel = dict_len(iter // "arguments")
+       n_args = n_args_signal + max(n_args_kernel, 0)
+       if (n_args_kernel > 0) args(n_args_signal + 1:n_args) = iter // "arguments"
+       
+       n_strs_kernel = dict_len(iter // "strings")
+       n_strs = n_strs_signal + max(n_strs_kernel, 0)
+       if (n_strs_kernel > 0) lens(n_strs_signal + 1:n_strs) = iter // "strings"
+
        callback = iter // "address"
+       
        select case(n_args)
        case (0)
           call call_external_c_fromadd(callback)
@@ -287,16 +303,14 @@ contains
     end do
   end subroutine f_object_signal_emit
 
-  subroutine f_object_signal_connect(obj_id, id, hook_add, n_args, sid)
-    use f_precisions
+  subroutine f_object_signal_connect(obj_id, id, kernel, sid)
     implicit none
     character(len = *), intent(in) :: obj_id, id
-    integer(f_address), intent(in) :: hook_add
-    integer, intent(in) :: n_args
+    type(kernel_ctx), intent(in) :: kernel
     integer, intent(out) :: sid
 
     type(dictionary), pointer :: sig, hook
-    integer :: n_args_signal
+    integer :: n_args_signal, n_args_kernel
 
     sid = -1
 
@@ -304,7 +318,14 @@ contains
     if (.not. associated(sig)) return
 
     n_args_signal = class_library // obj_id // "signals" // id // "n_args"
-    if (n_args_signal /= n_args) stop
+    if ("arguments" .in. kernel%args) then
+       n_args_kernel = max(dict_len(kernel%args // "arguments"), 0)
+    else
+       n_args_kernel = 0
+    end if
+    if (f_err_raise(n_args_signal + n_args_kernel /= kernel%callback_n_args, &
+         & "kernel don't have the right number of arguments for signal " // &
+         & obj_id // "::" // id // ".", err_id = ERROR_OBJECT)) return
 
     ! Get the last hook, to retrieve its id.
     hook => class_library // obj_id // "signals" // id // "hooks"
@@ -318,7 +339,13 @@ contains
 
     call dict_init(hook)
     call set(hook // "id", sid)
-    call set(hook // "address", hook_add)
+    call set(hook // "address", kernel%callback)
+    if ("arguments" .in. kernel%args) &
+         & call dict_copy(hook // "arguments", kernel%args // "arguments")
+    if ("strings" .in. kernel%args) &
+         & call dict_copy(hook // "strings", kernel%args // "strings")
+    
+    call dict_free(kernel%args)
 
     call add(class_library // obj_id // "signals" // id // "hooks", hook)
   end subroutine f_object_signal_connect
@@ -334,6 +361,36 @@ contains
     if (f_object_has_signal) &
          & f_object_has_signal = (id .in. class_library // obj_id // "signals")
   end function f_object_has_signal
+
+  function f_object_kernel_new_(callback_add, n_args) result(ctx)
+    implicit none
+    integer(f_address), intent(in) :: callback_add
+    integer, intent(in) :: n_args
+    type(kernel_ctx) :: ctx
+
+    ctx%callback = callback_add
+    ctx%callback_n_args = n_args
+    nullify(ctx%args)
+    call dict_init(ctx%args)
+  end function f_object_kernel_new_
+
+  subroutine f_object_kernel_add_arg_(ctx, arg_add)
+    implicit none
+    type(kernel_ctx), intent(inout) :: ctx
+    integer(f_address), intent(in) :: arg_add
+
+    call add(ctx%args // "arguments", arg_add)
+  end subroutine f_object_kernel_add_arg_
+
+  subroutine f_object_kernel_add_str(ctx, arg)
+    use f_precisions, only: f_loc
+    implicit none
+    type(kernel_ctx), intent(inout) :: ctx
+    character(len = *), intent(in) :: arg
+
+    call add(ctx%args // "arguments", f_loc(arg))
+    call add(ctx%args // "strings", len(arg))
+  end subroutine f_object_kernel_add_str
 end module module_f_objects
 
 
@@ -399,12 +456,22 @@ subroutine f_object_signal_add_arg(ctx, arg)
 end subroutine f_object_signal_add_arg
 
 !> @relates module_f_objects
-subroutine f_object_signal_connect(obj_id, id, hook, n_args, sid)
+subroutine f_object_kernel_new(ctx, hook, n_args)
   use f_precisions
-  use module_f_objects, only: wrapper_connect => f_object_signal_connect
-  character(len = *), intent(in) :: obj_id, id
+  use module_f_objects, only: wrapper_new => f_object_kernel_new_, kernel_ctx
+  type(kernel_ctx), intent(out) :: ctx
+  integer, intent(in) :: n_args
   external :: hook
-  integer, intent(out) :: sid
 
-  call wrapper_connect(obj_id, id, f_loc(hook), n_args, sid)
-end subroutine f_object_signal_connect
+  ctx = wrapper_new(f_loc(hook), n_args)
+end subroutine f_object_kernel_new
+
+!> @relates module_f_objects
+subroutine f_object_kernel_add_arg(ctx, arg)
+  use f_precisions
+  use module_f_objects, only: wrapper_add => f_object_kernel_add_arg_, kernel_ctx
+  type(kernel_ctx), intent(inout) :: ctx !< kernel context.
+  external :: arg !< A variable, whatever kind
+
+  call wrapper_add(ctx, f_loc(arg))
+end subroutine f_object_kernel_add_arg

@@ -26,12 +26,14 @@
 !> Example of plugin usage to add capabilities.
 program test
   use yaml_output
-  use module_f_objects, except => f_object_signal_add_str, except2 => f_object_signal_connect
+  use module_f_objects
   use dictionaries
 
   implicit none
   
   integer :: ierr
+  type(kernel_ctx) :: kernel
+  type(signal_ctx) :: sig
   character(len = max_field_length) :: pong
   character(len = 256) :: mess
 
@@ -40,7 +42,8 @@ program test
   ! Define here some signals.
   call f_object_add_signal("class", "ping", 1)
 
-  call f_object_signal_connect("class", "ping", me, 1, ierr)
+  call f_object_kernel_new(kernel, me, 1)
+  call f_object_signal_connect("class", "ping", kernel, ierr)
 
 !!! [load]
   call plugin_load("pong", ierr)
@@ -51,9 +54,9 @@ program test
      call yaml_map("error", mess)
   end if
 
-  if (f_object_signal_prepare("class", "ping")) then
-     call f_object_signal_add_str("class", "ping", pong)
-     call f_object_signal_emit("class", "ping")
+  if (f_object_signal_prepare("class", "ping", sig)) then
+     call f_object_signal_add_str(sig, pong)
+     call f_object_signal_emit(sig)
      call yaml_map("ping", pong)
   else
      call yaml_map("ping", "no listeners")
