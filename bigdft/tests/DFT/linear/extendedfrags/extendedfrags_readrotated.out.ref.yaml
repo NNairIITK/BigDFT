@@ -28,19 +28,19 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-06-01 11:35:41.782
- Root process Hostname                 : phys-comp-03
- Number of MPI tasks                   :  8
+ Timestamp of this run                 : 2016-07-01 09:22:52.969
+ Root process Hostname                 : stephan-Latitude-E7450
+ Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  1
- MPI tasks of root process node        :  8
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  2
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
      " '--prefix' '/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install' 
      'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
-     '--with-ext-linalg=' 
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64 
+     -g' '--with-ext-linalg=' 
      'LDFLAGS=-L/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib ' 
      'C_INCLUDE_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/incl
      ude' 
@@ -53,7 +53,7 @@
      CFLAGS                            : -g -O2
      FCFLAGS:
        -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
-       -m64
+       -m64 -g
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : readrotated
@@ -213,6 +213,7 @@
    nit_ig                              : 50 #     maximal number of iterations to optimize the support functions in the extended input 
     #                                              guess (experimental mode only)
    gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   orthogonalize_ao                    : Yes #    Orthogonalize the atomic orbitals used as input guess
  lin_kernel:
    nit                                 : 10 #     number of iterations in the (self-consistent) optimization of the density kernel
    idsx                                : 6 #      mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
@@ -476,21 +477,20 @@
      global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
-   MPI tasks                           :  8
-   OpenMP threads per MPI task         :  1
+   MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Periodic
    Memory Requirements per MPI task:
-     Density (MB)                      :  2.08
-     Kernel (MB)                       :  0.24
+     Density (MB)                      :  8.07
+     Kernel (MB)                       :  1.06
      Full Grid Arrays (MB)             :  16.15
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-6                 : 100%
-         MPI task7                     : 78%
+         MPI tasks 0-1                 : 100%
        Kernel:
-         MPI tasks 0- 6                : 100%
-         MPI task 7                    :  89%
+         MPI tasks 0- 0                : 100%
+         MPI task 1                    :  97%
        Complete LB per task            : 1/3 LB_density + 2/3 LB_kernel
   #WARNING: The coarse grid does not fill the entire periodic box
   #Errors due to translational invariance breaking may occur
@@ -505,8 +505,7 @@
  Total Number of Electrons             :  40
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 3                     :  3
-   MPI tasks  4- 7                     :  2
+   MPI tasks  0- 1                     :  10
  Total Number of Orbitals              :  20
  Input Occupation Numbers:
     #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
@@ -516,9 +515,9 @@
  task with max load                    :  [  1 ]
  Total No. Support Functions           :  40
  Support Function Repartition:
-   Minimum                             :  5
-   Maximum                             :  5
-   Average                             :  5.0
+   Minimum                             :  20
+   Maximum                             :  20
+   Average                             :  20.0
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  10
@@ -531,8 +530,8 @@
    Total number of components          :  5402
    Percent of zero components          :  0
    Size of workspaces                  :  21624
-   Maximum size of masking arrays for a projector:  11100
-   Cumulative size of masking arrays   :  51948
+   Maximum size of masking arrays for a projector:  31044
+   Cumulative size of masking arrays   :  188736
   #------------------------------------------------------------ Sparse matrix initialization
  Check of kernel cutoff radius:
  -  {atom type: C, adjustment required:  No}
@@ -546,7 +545,7 @@
      taskgroup summary:
        number of taskgroups            :  1
        taskgroups overview:
-       -  {number of tasks:  8, start / end:  [  1,  1120 ], start / end disjoint: [ 1, 
+       -  {number of tasks:  2, start / end:  [  1,  1120 ], start / end disjoint: [ 1, 
   1120]}
    Hamiltonian matrix:
      total elements                    :  1600
@@ -557,7 +556,7 @@
      taskgroup summary:
        number of taskgroups            :  1
        taskgroups overview:
-       -  {number of tasks:  8, start / end:  [  1,  1600 ], start / end disjoint: [ 1, 
+       -  {number of tasks:  2, start / end:  [  1,  1600 ], start / end disjoint: [ 1, 
   1600]}
    Density kernel matrix:
      total elements                    :  1600
@@ -565,10 +564,14 @@
      non-zero elements                 :  1600
      sparsity in %                     :  0.00
      sparse matrix multiplication initialized:  Yes
+     sparse matrix multiplication setup:
+       segments                        :  40
+       non-zero elements               :  1600
+       sparsity in %                   :  0.00
      taskgroup summary:
        number of taskgroups            :  1
        taskgroups overview:
-       -  {number of tasks:  8, start / end:  [  1,  1600 ], start / end disjoint: [ 1, 
+       -  {number of tasks:  2, start / end:  [  1,  1600 ], start / end disjoint: [ 1, 
   1600]}
   #--------------------------------------------------------------------------- Unitary tests
  Results of unitary tests:
@@ -576,11 +579,11 @@
    Checking Communications of Enlarged Minimal Basis:
  Ion-Ion interaction energy            :  7.33772657390571E+01
   #---------------------------------------------------------------- Ionic Potential Creation
- Total ionic charge                    : -40.000000000000
+ Total ionic charge                    : -39.999999999999
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  108,  140,  140 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  2
  Interaction energy ions multipoles    :  0.0
  Interaction energy multipoles multipoles:  0.0
   #--------------------------------------------------------- Reading Wavefunctions from disk
@@ -596,14 +599,14 @@
      Molecule was rotated              :  40
      Wrapping/unwrapping               :  40
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.084E+00,  3.087E+00 ]}
-   Total charge                        :  3.999442634083E+01
+   -  {Process:  0, Timing:  [  1.226E+01,  7.801E+00 ]}
+   Total charge                        :  3.999443298885E+01
    Poisson Solver:
      BC                                : Periodic
      Box                               :  [  108,  140,  140 ]
-     MPI tasks                         :  8
- Total charge                          :  3.999442634083E+01
- update pot: {Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+     MPI tasks                         :  2
+ Total charge                          :  3.999443298885E+01
+ update pot: {Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
@@ -614,16 +617,16 @@
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian Applied:  Yes, 
- Components: {Ekin:  7.57565228996E+01, Epot: -7.20153099432E+01, Enl:  5.58600139293E+00}, 
-   Orthoconstraint:  Yes, summary: {npl:  20, bounds:  [  0.50,  1.50 ], 
-                              exp accur:  [  1.46E-11 ]}, correction orthoconstraint:  Yes, 
+ Components: {Ekin:  7.57552918069E+01, Epot: -7.20143550852E+01, Enl:  5.58589564408E+00}, 
+   Orthoconstraint:  Yes, summary: {npl:  110, bounds:  [  0.50,  1.50 ], 
+                              exp accur:  [  7.24E-14 ]}, correction orthoconstraint:  Yes, 
                         Preconditioning:  Yes, 
- iter:  1, fnrm:  5.87E-01, Omega: {TRACE: -2.126849189593135E+01}, D: -2.13E+01, 
+ iter:  1, fnrm:  5.87E-01, Omega: {TRACE: -2.126889131909428E+01}, D: -2.13E+01, 
                                    D best: -2.13E+01, 
                            exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
- Components: {Ekin:  7.57565228996E+01, Epot: -7.20153099432E+01, Enl:  5.58600139293E+00}, 
- nit:  1, fnrm:  5.87E-01, Omega: {TRACE: -2.126849189593135E+01}, D total:  0.00E+00}
+ Components: {Ekin:  7.57552918069E+01, Epot: -7.20143550852E+01, Enl:  5.58589564408E+00}, 
+ nit:  1, fnrm:  5.87E-01, Omega: {TRACE: -2.126889131909428E+01}, D total:  0.00E+00}
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.99E-02,  3.62E-02 ], warnings:  27}
      -  {type: C, mean / max value:  [  1.99E-02,  3.62E-02 ], warnings:  27}
@@ -638,91 +641,81 @@
        S^-1/2:
          Can take from memory          :  No
          determine eigenvalue bounds:
-         -  {npl:  15, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty: -1.3E-04, ok: [
-  Yes,  No], exp accur:  [  1.39E-09 ]}
-         -  {npl:  20, scale:  5.00E-01, bounds:  [  0.500,  1.800 ], penalty:  3.8E+00, ok: [
-  No,  Yes], exp accur:  [  3.17E-11 ]}
-         -  {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  6.0E-06, ok: [
-  Yes,  Yes], exp accur:  [  4.17E-10 ]}
-         summary: {npl:  20, bounds:  [  0.42,  1.80 ], exp accur:  [  4.17E-10 ]}
+         -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  3.1E-09, ok: [
+  Yes,  Yes], exp accur:  [  5.35E-14 ]}
+         summary: {npl:  110, bounds:  [  0.50,  1.50 ], exp accur:  [  5.35E-14 ]}
        Kernel calculation:
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  5.000E-02
          determine eigenvalue bounds:
-         -  {npl:  120, bounds:  [ -1.000,  1.000 ], penalty: -1.7E+03, ok:  [  Yes,  No ], 
-       exp accur:  [  2.17E-06 ]}
-         -  {npl:  130, bounds:  [ -1.000,  1.200 ], penalty: -1.5E+00, ok:  [  Yes,  No ], 
-       exp accur:  [  4.62E-06 ]}
-         -  {npl:  140, bounds:  [ -1.000,  1.440 ], penalty: -1.0E-04, ok:  [  Yes,  No ], 
-       exp accur:  [  3.89E-06 ]}
-         -  {npl:  150, bounds:  [ -1.000,  1.728 ], penalty:  7.3E-07, 
-              ok:  [  Yes,  Yes ], exp accur:  [  8.44E-06 ]}
-         summary: {npl:  150, bounds:  [  0.42,  1.80 ], exp accur:  [  8.44E-06 ]}
+         -  {npl:  150, bounds:  [ -1.000,  1.000 ], penalty: -2.2E+06, ok:  [  Yes,  No ], 
+       exp accur:  [  3.91E-08 ]}
+         -  {npl:  160, bounds:  [ -1.000,  1.200 ], penalty: -1.3E+06, ok:  [  Yes,  No ], 
+       exp accur:  [  6.99E-08 ]}
+         -  {npl:  160, bounds:  [ -1.000,  1.440 ], penalty:  9.6E-08, 
+              ok:  [  Yes,  Yes ], exp accur:  [  3.15E-07 ]}
+         summary: {npl:  160, bounds:  [  0.50,  1.50 ], exp accur:  [  3.15E-07 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.000000E-01, Tr(K):  3.9777062E+01, D Tr(K): -2.23E-01, new eF: bisec bounds}
+ eF: -1.000000E-01, Tr(K):  3.9777373E+01, D Tr(K): -2.23E-01, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  1.000000E-01, Tr(K):  4.7916766E+01, D Tr(K):  7.92E+00, new eF: bisection/secant}
+ eF:  1.000000E-01, Tr(K):  4.7916938E+01, D Tr(K):  7.92E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -4.726111E-02, Tr(K):  4.0250811E+01, D Tr(K):  2.51E-01, new eF: bisection/secant}
+ eF: -4.726488E-02, Tr(K):  4.0251328E+01, D Tr(K):  2.51E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -7.440628E-02, Tr(K):  4.0000710E+01, D Tr(K):  7.10E-04, new eF: bisection/secant}
+ eF: -7.443080E-02, Tr(K):  4.0000675E+01, D Tr(K):  6.75E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -8.084536E-02, Tr(K):  3.9962746E+01, D Tr(K): -3.73E-02, new eF: cubic interpol}
+ eF: -8.086177E-02, Tr(K):  3.9962719E+01, D Tr(K): -3.73E-02, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.451762E-02, Tr(K):  4.0000074E+01, D Tr(K):  7.40E-05, new eF: linear interpol}
+ eF: -7.453653E-02, Tr(K):  4.0000070E+01, D Tr(K):  7.01E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.453016E-02, Tr(K):  4.0000002E+01, D Tr(K):  2.29E-06, new eF: linear interpol}
+ eF: -7.454840E-02, Tr(K):  4.0000002E+01, D Tr(K):  2.13E-06, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -7.453056E-02, Tr(K):  4.0000000E+01, D Tr(K): -1.90E-12, new eF: linear interpol}
-         summary: {nit:  8, eF: -7.453056E-02, Tr(K):  4.0000000E+01, D Tr(K): -1.90E-12}
-         Asymmetry of kernel           :  1.04E-05
+ eF: -7.454877E-02, Tr(K):  4.0000000E+01, D Tr(K):  1.28E-13, new eF: linear interpol}
+         summary: {nit:  8, eF: -7.454877E-02, Tr(K):  4.0000000E+01, D Tr(K):  1.28E-13}
+         Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.636841848733E+01
-         EBS higher temperature        : -1.634836061426E+01
-         difference                    :  2.005787306636E-02
-         relative difference           :  1.225400797389E-03
+         EBS                           : -1.636889954760E+01
+         EBS higher temperature        : -1.634885974166E+01
+         difference                    :  2.003980593466E-02
+         relative difference           :  1.224261036998E-03
          modify error function decay length: decrease
-         trace(KS)                     :  40.0000000023678
+         trace(KS)                     :  39.9999999999999
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  2.500E-02
          determine eigenvalue bounds:
-         -  {npl:  300, bounds:  [ -1.000,  1.728 ], penalty:  7.3E-07, 
-              ok:  [  Yes,  Yes ], exp accur:  [  6.07E-06 ]}
-         summary: {npl:  300, bounds:  [  0.42,  1.80 ], exp accur:  [  6.07E-06 ]}
+         -  {npl:  270, bounds:  [ -1.000,  1.440 ], penalty:  1.8E-15, 
+              ok:  [  Yes,  Yes ], exp accur:  [  6.75E-06 ]}
+         summary: {npl:  270, bounds:  [  0.50,  1.50 ], exp accur:  [  6.75E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.555306E-01, Tr(K):  3.7995245E+01, D Tr(K): -2.00E+00, new eF: bisec bounds}
+ eF: -1.555488E-01, Tr(K):  3.7995229E+01, D Tr(K): -2.00E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF:  6.469442E-03, Tr(K):  4.2002113E+01, D Tr(K):  2.00E+00, new eF: bisection/secant}
+ eF:  6.451230E-03, Tr(K):  4.2004350E+01, D Tr(K):  2.00E+00, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.450386E-02, Tr(K):  4.0000028E+01, D Tr(K):  2.84E-05, new eF: bisection/secant}
+ eF: -7.454452E-02, Tr(K):  4.0000067E+01, D Tr(K):  6.66E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -9.476111E-02, Tr(K):  3.9999892E+01, D Tr(K): -1.08E-04, new eF: bisection/secant}
+ eF: -9.479693E-02, Tr(K):  3.9999872E+01, D Tr(K): -1.28E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -8.168097E-02, Tr(K):  3.9999941E+01, D Tr(K): -5.91E-05, new eF: linear interpol}
+ eF: -8.307638E-02, Tr(K):  3.9999933E+01, D Tr(K): -6.66E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -6.571530E-02, Tr(K):  4.0000041E+01, D Tr(K):  4.08E-05, new eF: linear interpol}
+ eF: -7.031320E-02, Tr(K):  4.0000072E+01, D Tr(K):  7.16E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.223042E-02, Tr(K):  4.0000052E+01, D Tr(K):  5.20E-05, new eF: bisection/secant}
+ eF: -7.692721E-02, Tr(K):  4.0000036E+01, D Tr(K):  3.63E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -7.680314E-02, Tr(K):  3.9999997E+01, D Tr(K): -3.33E-06, new eF: bisection/secant}
+ eF: -7.927431E-02, Tr(K):  3.9999996E+01, D Tr(K): -4.28E-06, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 9
- eF: -7.552241E-02, Tr(K):  4.0000015E+01, D Tr(K):  1.48E-05, new eF: bisection/secant}
-         -  { #----------------------------------------------------------------- it FOE: 10
- eF: -7.636558E-02, Tr(K):  4.0000003E+01, D Tr(K):  2.93E-06, new eF: bisection/secant}
-         -  { #----------------------------------------------------------------- it FOE: 11
- eF: -7.657751E-02, Tr(K):  4.0000000E+01, D Tr(K): -9.61E-08, new eF: linear interpol}
-         summary: {nit:  11, eF: -7.657079E-02, Tr(K):  4.0000000E+01, D Tr(K): -9.61E-08}
+ eF: -7.902711E-02, Tr(K):  4.0000000E+01, D Tr(K):  2.05E-07, new eF: linear interpol}
+         summary: {nit:  9, eF: -7.903842E-02, Tr(K):  4.0000000E+01, D Tr(K):  2.05E-07}
          Asymmetry of kernel           :  1.05E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.637479974435E+01
-         EBS higher temperature        : -1.637476062567E+01
-         difference                    :  3.911868556727E-05
-         relative difference           :  2.388956578279E-06
+         EBS                           : -1.637529417966E+01
+         EBS higher temperature        : -1.637524645537E+01
+         difference                    :  4.772428677668E-05
+         relative difference           :  2.914407903339E-06
          modify error function decay length: increase
-         trace(KS)                     :  39.99999990627478
+         trace(KS)                     :  40.00000020512458
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -732,12 +725,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11815849866E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18628583436E+02,  EXC: -1.72718432030E+01, EvXC: -2.25999933851E+01}, 
-    Total charge:  3.999999807873E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11809850965E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18628194476E+02,  EXC: -1.72717664898E+01, EvXC: -2.25998921178E+01}, 
+    Total charge:  3.999999837763E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  1, delta:  3.77E-07, energy: -5.62979672589432454E+01, D: -5.630E+01}
+ iter:  1, delta:  3.77E-07, energy: -5.62980972888943256E+01, D: -5.630E+01}
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -749,35 +742,33 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.125E-02
          determine eigenvalue bounds:
-         -  {npl:  230, bounds:  [ -1.000,  1.728 ], penalty:  7.0E-07, 
-              ok:  [  Yes,  Yes ], exp accur:  [  8.75E-06 ]}
-         summary: {npl:  230, bounds:  [  0.42,  1.80 ], exp accur:  [  8.75E-06 ]}
+         -  {npl:  220, bounds:  [ -1.000,  1.440 ], penalty: -6.9E-12, 
+              ok:  [  Yes,  Yes ], exp accur:  [  6.71E-06 ]}
+         summary: {npl:  220, bounds:  [  0.50,  1.50 ], exp accur:  [  6.71E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.421808E-01, Tr(K):  3.9009665E+01, D Tr(K): -9.90E-01, new eF: bisec bounds}
+ eF: -1.446484E-01, Tr(K):  3.8816846E+01, D Tr(K): -1.18E+00, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -1.096079E-02, Tr(K):  4.0729106E+01, D Tr(K):  7.29E-01, new eF: bisection/secant}
+ eF: -1.342842E-02, Tr(K):  4.0595408E+01, D Tr(K):  5.95E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.158684E-02, Tr(K):  4.0000143E+01, D Tr(K):  1.43E-04, new eF: bisection/secant}
+ eF: -6.819765E-02, Tr(K):  4.0000301E+01, D Tr(K):  3.01E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -8.924042E-02, Tr(K):  3.9998458E+01, D Tr(K): -1.54E-03, new eF: bisection/secant}
+ eF: -8.732008E-02, Tr(K):  3.9998940E+01, D Tr(K): -1.06E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -7.674778E-02, Tr(K):  3.9999814E+01, D Tr(K): -1.86E-04, new eF: linear interpol}
+ eF: -7.509590E-02, Tr(K):  3.9999971E+01, D Tr(K): -2.94E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.503835E-02, Tr(K):  3.9999917E+01, D Tr(K): -8.32E-05, new eF: linear interpol}
+ eF: -7.474734E-02, Tr(K):  3.9999983E+01, D Tr(K): -1.68E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.365057E-02, Tr(K):  4.0000004E+01, D Tr(K):  3.51E-06, new eF: linear interpol}
-         -  { #------------------------------------------------------------------ it FOE: 8
- eF: -7.370674E-02, Tr(K):  4.0000000E+01, D Tr(K): -8.96E-08, new eF: linear interpol}
-         summary: {nit:  8, eF: -7.370534E-02, Tr(K):  4.0000000E+01, D Tr(K): -8.96E-08}
+ eF: -7.428202E-02, Tr(K):  4.0000000E+01, D Tr(K):  8.65E-08, new eF: linear interpol}
+         summary: {nit:  7, eF: -7.428440E-02, Tr(K):  4.0000000E+01, D Tr(K):  8.65E-08}
          Asymmetry of kernel           :  1.04E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.637596313711E+01
-         EBS higher temperature        : -1.637547719290E+01
-         difference                    :  4.859442087195E-04
-         relative difference           :  2.967423684647E-05
+         EBS                           : -1.637654297138E+01
+         EBS higher temperature        : -1.637603271442E+01
+         difference                    :  5.102569620412E-04
+         relative difference           :  3.115779459272E-05
          modify error function decay length: increase
-         trace(KS)                     :  39.99999991274441
+         trace(KS)                     :  40.00000008652743
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -787,12 +778,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11815030868E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18620166724E+02,  EXC: -1.72672428961E+01, EvXC: -2.25939125520E+01}, 
-    Total charge:  3.999999808554E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11810086448E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18619663012E+02,  EXC: -1.72671479543E+01, EvXC: -2.25937872227E+01}, 
+    Total charge:  3.999999825937E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  2, delta:  2.46E-07, energy: -5.62921944664227425E+01, D:  5.773E-03}
+ iter:  2, delta:  2.46E-07, energy: -5.62923009756429167E+01, D:  5.796E-03}
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -804,72 +795,64 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.906E-02
          determine eigenvalue bounds:
-         -  {npl:  170, bounds:  [ -0.900,  1.555 ], penalty:  3.7E-05, ok:  [  No,  Yes ], 
-       exp accur:  [  6.29E-06 ]}
-         -  {npl:  190, bounds:  [ -1.080,  1.555 ], penalty: -9.7E-07, 
-              ok:  [  Yes,  Yes ], exp accur:  [  7.61E-06 ]}
-         summary: {npl:  190, bounds:  [  0.42,  1.80 ], exp accur:  [  7.61E-06 ]}
+         -  {npl:  160, bounds:  [ -0.900,  1.296 ], penalty: -4.6E-07, 
+              ok:  [  Yes,  Yes ], exp accur:  [  5.76E-06 ]}
+         summary: {npl:  160, bounds:  [  0.50,  1.50 ], exp accur:  [  5.76E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.268494E-01, Tr(K):  3.9470298E+01, D Tr(K): -5.30E-01, new eF: bisec bounds}
+ eF: -1.274285E-01, Tr(K):  3.9449298E+01, D Tr(K): -5.51E-01, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -2.056124E-02, Tr(K):  4.0617182E+01, D Tr(K):  6.17E-01, new eF: bisection/secant}
+ eF: -2.114030E-02, Tr(K):  4.0594913E+01, D Tr(K):  5.95E-01, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.573217E-02, Tr(K):  3.9999342E+01, D Tr(K): -6.58E-04, new eF: bisection/secant}
+ eF: -7.530987E-02, Tr(K):  3.9999656E+01, D Tr(K): -3.44E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -6.191006E-02, Tr(K):  4.0013523E+01, D Tr(K):  1.35E-02, new eF: bisection/secant}
+ eF: -6.175183E-02, Tr(K):  4.0013837E+01, D Tr(K):  1.38E-02, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -7.195600E-02, Tr(K):  4.0002214E+01, D Tr(K):  2.21E-03, new eF: cubic interpol}
+ eF: -7.175594E-02, Tr(K):  4.0002354E+01, D Tr(K):  2.35E-03, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.495667E-02, Tr(K):  3.9999926E+01, D Tr(K): -7.44E-05, new eF: linear interpol}
+ eF: -7.490319E-02, Tr(K):  3.9999959E+01, D Tr(K): -4.08E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.485906E-02, Tr(K):  3.9999999E+01, D Tr(K): -1.17E-06, new eF: linear interpol}
-         -  { #------------------------------------------------------------------ it FOE: 8
- eF: -7.485751E-02, Tr(K):  4.0000000E+01, D Tr(K): -1.18E-10, new eF: linear interpol}
-         summary: {nit:  8, eF: -7.485751E-02, Tr(K):  4.0000000E+01, D Tr(K): -1.18E-10}
+ eF: -7.484957E-02, Tr(K):  3.9999999E+01, D Tr(K): -8.56E-07, new eF: linear interpol}
+         summary: {nit:  7, eF: -7.484842E-02, Tr(K):  3.9999999E+01, D Tr(K): -8.56E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.637981872997E+01
-         EBS higher temperature        : -1.637532851051E+01
-         difference                    :  4.490219456102E-03
-         relative difference           :  2.741312056089E-04
+         EBS                           : -1.638057034125E+01
+         EBS higher temperature        : -1.637607963151E+01
+         difference                    :  4.490709743500E-03
+         relative difference           :  2.741485583192E-04
          modify error function decay length: decrease
-         trace(KS)                     :  40.00000000225135
+         trace(KS)                     :  39.99999914379073
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.953E-02
          determine eigenvalue bounds:
-         -  {npl:  370, bounds:  [ -1.080,  1.555 ], penalty: -9.7E-07, 
-              ok:  [  Yes,  Yes ], exp accur:  [  9.52E-06 ]}
-         summary: {npl:  370, bounds:  [  0.42,  1.80 ], exp accur:  [  9.52E-06 ]}
+         -  {npl:  310, bounds:  [ -0.900,  1.296 ], penalty: -4.5E-07, 
+              ok:  [  Yes,  Yes ], exp accur:  [  9.34E-06 ]}
+         summary: {npl:  310, bounds:  [  0.50,  1.50 ], exp accur:  [  9.34E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.179042E-01, Tr(K):  3.9999004E+01, D Tr(K): -9.96E-04, new eF: bisec bounds}
+ eF: -1.178951E-01, Tr(K):  3.9998985E+01, D Tr(K): -1.02E-03, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -3.181078E-02, Tr(K):  4.0001071E+01, D Tr(K):  1.07E-03, new eF: bisection/secant}
+ eF: -3.180170E-02, Tr(K):  4.0001045E+01, D Tr(K):  1.04E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.564563E-02, Tr(K):  4.0000039E+01, D Tr(K):  3.94E-05, new eF: bisection/secant}
+ eF: -7.515652E-02, Tr(K):  4.0000006E+01, D Tr(K):  6.19E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -8.701509E-02, Tr(K):  3.9999976E+01, D Tr(K): -2.37E-05, new eF: bisection/secant}
+ eF: -8.597074E-02, Tr(K):  3.9999994E+01, D Tr(K): -5.53E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -8.203575E-02, Tr(K):  3.9999928E+01, D Tr(K): -7.24E-05, new eF: bisection/secant}
+ eF: -8.071674E-02, Tr(K):  3.9999974E+01, D Tr(K): -2.55E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.836974E-02, Tr(K):  3.9999982E+01, D Tr(K): -1.81E-05, new eF: bisection/secant}
+ eF: -7.708965E-02, Tr(K):  3.9999991E+01, D Tr(K): -9.01E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.725938E-02, Tr(K):  4.0000006E+01, D Tr(K):  6.14E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 8
- eF: -7.767728E-02, Tr(K):  3.9999997E+01, D Tr(K): -3.06E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 9
- eF: -7.750333E-02, Tr(K):  4.0000001E+01, D Tr(K):  7.75E-07, new eF: linear interpol}
-         summary: {nit:  9, eF: -7.753850E-02, Tr(K):  4.0000001E+01, D Tr(K):  7.75E-07}
+ eF: -7.603362E-02, Tr(K):  3.9999999E+01, D Tr(K): -8.55E-07, new eF: bisection/secant}
+         summary: {nit:  7, eF: -7.576117E-02, Tr(K):  3.9999999E+01, D Tr(K): -8.55E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638034914304E+01
-         EBS higher temperature        : -1.638035320252E+01
-         difference                    : -4.059479959295E-06
-         relative difference           :  2.478262168801E-07
+         EBS                           : -1.638110026933E+01
+         EBS higher temperature        : -1.638111379048E+01
+         difference                    : -1.352115064179E-05
+         relative difference           :  8.254116280035E-07
          modify error function decay length: increase
-         trace(KS)                     :  40.00000077713221
+         trace(KS)                     :  39.99999914540286
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -879,12 +862,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11833765880E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18609420680E+02,  EXC: -1.72605270889E+01, EvXC: -2.25850307366E+01}, 
-    Total charge:  3.999999895045E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11830329241E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18608756028E+02,  EXC: -1.72604084015E+01, EvXC: -2.25848740692E+01}, 
+    Total charge:  3.999999731877E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  3, delta:  1.45E-08, energy: -5.62880004367168709E+01, D:  4.194E-03}
+ iter:  3, delta:  1.45E-08, energy: -5.62881248908247187E+01, D:  4.176E-03}
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -896,33 +879,35 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  2.441E-02
          determine eigenvalue bounds:
-         -  {npl:  300, bounds:  [ -1.080,  1.555 ], penalty: -9.7E-07, 
-              ok:  [  Yes,  Yes ], exp accur:  [  5.37E-06 ]}
-         summary: {npl:  300, bounds:  [  0.42,  1.80 ], exp accur:  [  5.37E-06 ]}
+         -  {npl:  220, bounds:  [ -0.810,  1.166 ], penalty: -2.2E+06, ok:  [  Yes,  No ], 
+       exp accur:  [  9.94E-06 ]}
+         -  {npl:  240, bounds:  [ -0.810,  1.400 ], penalty:  2.2E-14, 
+              ok:  [  Yes,  Yes ], exp accur:  [  8.24E-06 ]}
+         summary: {npl:  240, bounds:  [  0.50,  1.50 ], exp accur:  [  8.24E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.124063E-01, Tr(K):  3.9995234E+01, D Tr(K): -4.77E-03, new eF: bisec bounds}
+ eF: -1.106290E-01, Tr(K):  3.9996673E+01, D Tr(K): -3.33E-03, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -4.267065E-02, Tr(K):  4.0001594E+01, D Tr(K):  1.59E-03, new eF: bisection/secant}
+ eF: -4.089333E-02, Tr(K):  4.0002346E+01, D Tr(K):  2.35E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -6.884402E-02, Tr(K):  4.0000060E+01, D Tr(K):  5.96E-05, new eF: bisection/secant}
+ eF: -7.274408E-02, Tr(K):  4.0000098E+01, D Tr(K):  9.77E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -8.000381E-02, Tr(K):  3.9999981E+01, D Tr(K): -1.95E-05, new eF: bisection/secant}
+ eF: -8.275556E-02, Tr(K):  3.9999906E+01, D Tr(K): -9.44E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -7.583976E-02, Tr(K):  4.0000054E+01, D Tr(K):  5.43E-05, new eF: cubic interpol}
+ eF: -7.779222E-02, Tr(K):  4.0000004E+01, D Tr(K):  3.96E-06, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.925485E-02, Tr(K):  3.9999995E+01, D Tr(K): -5.34E-06, new eF: linear interpol}
+ eF: -7.800838E-02, Tr(K):  3.9999999E+01, D Tr(K): -1.24E-06, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.894907E-02, Tr(K):  4.0000000E+01, D Tr(K):  4.85E-07, new eF: linear interpol}
-         summary: {nit:  7, eF: -7.897453E-02, Tr(K):  4.0000000E+01, D Tr(K):  4.85E-07}
+ eF: -7.795688E-02, Tr(K):  4.0000000E+01, D Tr(K):  3.01E-10, new eF: linear interpol}
+         summary: {nit:  7, eF: -7.795689E-02, Tr(K):  4.0000000E+01, D Tr(K):  3.01E-10}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638254785896E+01
-         EBS higher temperature        : -1.638252266652E+01
-         difference                    :  2.519244045374E-05
-         relative difference           :  1.537760833701E-06
+         EBS                           : -1.638331818863E+01
+         EBS higher temperature        : -1.638327314801E+01
+         difference                    :  4.504062120247E-05
+         relative difference           :  2.749175758165E-06
          modify error function decay length: increase
-         trace(KS)                     :  40.00000048754025
+         trace(KS)                     :  40.00000000030118
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -932,12 +917,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11858658774E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18607057019E+02,  EXC: -1.72599812291E+01, EvXC: -2.25843093675E+01}, 
-    Total charge:  3.999999866086E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11855517341E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18606363628E+02,  EXC: -1.72598584374E+01, EvXC: -2.25841472863E+01}, 
+    Total charge:  3.999999817367E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  4, delta:  9.51E-09, energy: -5.62880110004159775E+01, D: -1.056E-05}
+ iter:  4, delta:  9.51E-09, energy: -5.62881272288013861E+01, D: -2.338E-06}
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -949,33 +934,33 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.052E-02
          determine eigenvalue bounds:
-         -  {npl:  220, bounds:  [ -0.972,  1.400 ], penalty: -5.0E-04, ok:  [  Yes,  No ], 
-       exp accur:  [  6.67E-06 ]}
-         -  {npl:  240, bounds:  [ -0.972,  1.680 ], penalty:  2.1E-06, 
-              ok:  [  Yes,  Yes ], exp accur:  [  6.32E-06 ]}
-         summary: {npl:  240, bounds:  [  0.42,  1.80 ], exp accur:  [  6.32E-06 ]}
+         -  {npl:  200, bounds:  [ -0.810,  1.400 ], penalty:  1.5E-11, 
+              ok:  [  Yes,  Yes ], exp accur:  [  4.9E-06 ]}
+         summary: {npl:  200, bounds:  [  0.50,  1.50 ], exp accur:  [  4.9E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -1.072175E-01, Tr(K):  3.9982003E+01, D Tr(K): -1.80E-02, new eF: bisec bounds}
+ eF: -1.061998E-01, Tr(K):  3.9984509E+01, D Tr(K): -1.55E-02, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -5.073158E-02, Tr(K):  4.0005258E+01, D Tr(K):  5.26E-03, new eF: bisection/secant}
+ eF: -4.971394E-02, Tr(K):  4.0006235E+01, D Tr(K):  6.24E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.123886E-02, Tr(K):  4.0000090E+01, D Tr(K):  9.02E-05, new eF: bisection/secant}
+ eF: -7.194085E-02, Tr(K):  4.0000036E+01, D Tr(K):  3.60E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -8.032326E-02, Tr(K):  3.9999875E+01, D Tr(K): -1.25E-04, new eF: bisection/secant}
+ eF: -8.054535E-02, Tr(K):  3.9999846E+01, D Tr(K): -1.54E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -7.541370E-02, Tr(K):  4.0000004E+01, D Tr(K):  3.91E-06, new eF: cubic interpol}
+ eF: -7.490904E-02, Tr(K):  3.9999971E+01, D Tr(K): -2.88E-05, new eF: cubic interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.565150E-02, Tr(K):  3.9999999E+01, D Tr(K): -7.13E-07, new eF: linear interpol}
-         summary: {nit:  6, eF: -7.561480E-02, Tr(K):  3.9999999E+01, D Tr(K): -7.13E-07}
+ eF: -7.335353E-02, Tr(K):  4.0000002E+01, D Tr(K):  2.08E-06, new eF: linear interpol}
+         -  { #------------------------------------------------------------------ it FOE: 7
+ eF: -7.345806E-02, Tr(K):  4.0000000E+01, D Tr(K): -1.69E-07, new eF: linear interpol}
+         summary: {nit:  7, eF: -7.345017E-02, Tr(K):  4.0000000E+01, D Tr(K): -1.69E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638532198252E+01
-         EBS higher temperature        : -1.638491793604E+01
-         difference                    :  4.040464751185E-04
-         relative difference           :  2.465905006625E-05
+         EBS                           : -1.638613129831E+01
+         EBS higher temperature        : -1.638579785743E+01
+         difference                    :  3.334408805244E-04
+         relative difference           :  2.034896916510E-05
          modify error function decay length: increase
-         trace(KS)                     :  39.99999928915096
+         trace(KS)                     :  39.99999983053613
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -985,12 +970,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11891044212E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18604047465E+02,  EXC: -1.72593395373E+01, EvXC: -2.25834614916E+01}, 
-    Total charge:  3.999999746246E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11888204287E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18603324905E+02,  EXC: -1.72592117323E+01, EvXC: -2.25832927918E+01}, 
+    Total charge:  3.999999800389E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  5, delta:  4.28E-09, energy: -5.62879817543697101E+01, D:  2.925E-05}
+ iter:  5, delta:  4.27E-09, energy: -5.62881094045926318E+01, D:  1.782E-05}
    -  #--------------------------------------------------------------------- kernel iter: 6
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1002,68 +987,72 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.815E-02
          determine eigenvalue bounds:
-         -  {npl:  190, bounds:  [ -0.972,  1.680 ], penalty:  2.1E-06, 
-              ok:  [  Yes,  Yes ], exp accur:  [  6.06E-06 ]}
-         summary: {npl:  190, bounds:  [  0.42,  1.80 ], exp accur:  [  6.06E-06 ]}
+         -  {npl:  160, bounds:  [ -0.810,  1.400 ], penalty:  2.3E-08, 
+              ok:  [  Yes,  Yes ], exp accur:  [  5.37E-06 ]}
+         summary: {npl:  160, bounds:  [  0.50,  1.50 ], exp accur:  [  5.37E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -9.849159E-02, Tr(K):  3.9962525E+01, D Tr(K): -3.75E-02, new eF: bisec bounds}
+ eF: -9.632696E-02, Tr(K):  3.9970506E+01, D Tr(K): -2.95E-02, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -5.273801E-02, Tr(K):  4.0032665E+01, D Tr(K):  3.27E-02, new eF: bisection/secant}
+ eF: -5.057338E-02, Tr(K):  4.0041449E+01, D Tr(K):  4.14E-02, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.483045E-02, Tr(K):  4.0000077E+01, D Tr(K):  7.68E-05, new eF: bisection/secant}
+ eF: -7.537784E-02, Tr(K):  3.9999824E+01, D Tr(K): -1.76E-04, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -8.076992E-02, Tr(K):  3.9996364E+01, D Tr(K): -3.64E-03, new eF: bisection/secant}
+ eF: -6.912441E-02, Tr(K):  4.0003737E+01, D Tr(K):  3.74E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -7.637672E-02, Tr(K):  3.9999180E+01, D Tr(K): -8.20E-04, new eF: linear interpol}
+ eF: -7.367418E-02, Tr(K):  4.0000815E+01, D Tr(K):  8.15E-04, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.509697E-02, Tr(K):  3.9999923E+01, D Tr(K): -7.72E-05, new eF: linear interpol}
+ eF: -7.494326E-02, Tr(K):  4.0000077E+01, D Tr(K):  7.65E-05, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.496396E-02, Tr(K):  4.0000000E+01, D Tr(K): -3.78E-07, new eF: linear interpol}
-         summary: {nit:  7, eF: -7.496331E-02, Tr(K):  4.0000000E+01, D Tr(K): -3.78E-07}
+ eF: -7.507474E-02, Tr(K):  4.0000000E+01, D Tr(K):  2.85E-07, new eF: linear interpol}
+         summary: {nit:  7, eF: -7.507523E-02, Tr(K):  4.0000000E+01, D Tr(K):  2.85E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638659839199E+01
-         EBS higher temperature        : -1.638287069175E+01
-         difference                    :  3.727700246646E-03
-         relative difference           :  2.274846894684E-04
+         EBS                           : -1.638738538293E+01
+         EBS higher temperature        : -1.638362073257E+01
+         difference                    :  3.764650356160E-03
+         relative difference           :  2.297285545065E-04
          modify error function decay length: decrease
-         trace(KS)                     :  39.99999962444141
+         trace(KS)                     :  40.00000028505359
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.907E-02
          determine eigenvalue bounds:
-         -  {npl:  380, bounds:  [ -0.972,  1.680 ], penalty:  2.1E-06, 
-              ok:  [  Yes,  Yes ], exp accur:  [  6.65E-06 ]}
-         summary: {npl:  380, bounds:  [  0.42,  1.80 ], exp accur:  [  6.65E-06 ]}
+         -  {npl:  320, bounds:  [ -0.810,  1.400 ], penalty:  5.6E-16, 
+              ok:  [  Yes,  Yes ], exp accur:  [  5.6E-06 ]}
+         summary: {npl:  320, bounds:  [  0.50,  1.50 ], exp accur:  [  5.6E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -9.349351E-02, Tr(K):  4.0000043E+01, D Tr(K):  4.35E-05, new eF: bisec bounds}
+ eF: -9.360544E-02, Tr(K):  4.0000020E+01, D Tr(K):  2.04E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -1.120237E-01, Tr(K):  3.9999922E+01, D Tr(K): -7.79E-05, new eF: bisec bounds}
+ eF: -1.121356E-01, Tr(K):  3.9999911E+01, D Tr(K): -8.85E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -5.643310E-02, Tr(K):  4.0000002E+01, D Tr(K):  1.52E-06, new eF: bisection/secant}
+ eF: -5.654503E-02, Tr(K):  3.9999981E+01, D Tr(K): -1.89E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -7.086361E-02, Tr(K):  4.0000039E+01, D Tr(K):  3.91E-05, new eF: bisection/secant}
+ eF: -3.820013E-02, Tr(K):  4.0000061E+01, D Tr(K):  6.10E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -8.802731E-02, Tr(K):  3.9999994E+01, D Tr(K): -5.55E-06, new eF: bisection/secant}
+ eF: -7.177246E-02, Tr(K):  4.0000030E+01, D Tr(K):  3.00E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -8.267016E-02, Tr(K):  3.9999957E+01, D Tr(K): -4.28E-05, new eF: bisection/secant}
+ eF: -8.697103E-02, Tr(K):  4.0000009E+01, D Tr(K):  9.01E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.663156E-02, Tr(K):  4.0000016E+01, D Tr(K):  1.57E-05, new eF: bisection/secant}
+ eF: -9.442487E-02, Tr(K):  4.0000015E+01, D Tr(K):  1.50E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 8
- eF: -7.895032E-02, Tr(K):  3.9999986E+01, D Tr(K): -1.36E-05, new eF: bisection/secant}
+ eF: -1.001326E-01, Tr(K):  3.9999973E+01, D Tr(K): -2.67E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 9
- eF: -7.783196E-02, Tr(K):  4.0000001E+01, D Tr(K):  5.43E-07, new eF: bisection/secant}
-         summary: {nit:  9, eF: -7.813301E-02, Tr(K):  4.0000001E+01, D Tr(K):  5.43E-07}
+ eF: -9.687588E-02, Tr(K):  3.9999995E+01, D Tr(K): -5.20E-06, new eF: bisection/secant}
+         -  { #----------------------------------------------------------------- it FOE: 10
+ eF: -9.594693E-02, Tr(K):  4.0000003E+01, D Tr(K):  2.73E-06, new eF: bisection/secant}
+         -  { #----------------------------------------------------------------- it FOE: 11
+ eF: -9.633889E-02, Tr(K):  3.9999999E+01, D Tr(K): -6.26E-07, new eF: linear interpol}
+         summary: {nit:  11, eF: -9.626569E-02, Tr(K):  3.9999999E+01, D Tr(K): -6.26E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638699267471E+01
-         EBS higher temperature        : -1.638699609325E+01
-         difference                    : -3.418536657307E-06
-         relative difference           :  2.086128141488E-07
+         EBS                           : -1.638778906901E+01
+         EBS higher temperature        : -1.638777584819E+01
+         difference                    :  1.322082593802E-05
+         relative difference           :  8.067486030204E-07
          modify error function decay length: increase
-         trace(KS)                     :  40.00000054564548
+         trace(KS)                     :  39.99999937398461
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1073,12 +1062,12 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11910050519E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18602285533E+02,  EXC: -1.72589655429E+01, EvXC: -2.25829673357E+01}, 
-    Total charge:  3.999999871895E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11907270022E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18601556775E+02,  EXC: -1.72588370724E+01, EvXC: -2.25827977588E+01}, 
+    Total charge:  3.999999754734E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  6, delta:  1.77E-10, energy: -5.62880106758704386E+01, D: -2.892E-05}
+ iter:  6, delta:  1.74E-10, energy: -5.62881194187942810E+01, D: -1.001E-05}
    -  #--------------------------------------------------------------------- kernel iter: 7
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1090,33 +1079,31 @@
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  2.384E-02
          determine eigenvalue bounds:
-         -  {npl:  270, bounds:  [ -0.875,  1.512 ], penalty:  9.8E-05, ok:  [  No,  Yes ], 
-       exp accur:  [  5.98E-06 ]}
-         -  {npl:  300, bounds:  [ -1.050,  1.512 ], penalty: -5.5E-06, 
-              ok:  [  Yes,  Yes ], exp accur:  [  7.45E-06 ]}
-         summary: {npl:  300, bounds:  [  0.42,  1.80 ], exp accur:  [  7.45E-06 ]}
+         -  {npl:  220, bounds:  [ -0.729,  1.260 ], penalty: -9.9E+04, ok:  [  Yes,  No ], 
+       exp accur:  [  6.38E-06 ]}
+         -  {npl:  250, bounds:  [ -0.729,  1.512 ], penalty:  1.3E-13, 
+              ok:  [  Yes,  Yes ], exp accur:  [  4.82E-06 ]}
+         summary: {npl:  250, bounds:  [  0.50,  1.50 ], exp accur:  [  4.82E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -9.464342E-02, Tr(K):  3.9999994E+01, D Tr(K): -5.60E-06, new eF: bisec bounds}
+ eF: -1.144271E-01, Tr(K):  3.9994742E+01, D Tr(K): -5.26E-03, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -6.162260E-02, Tr(K):  4.0000042E+01, D Tr(K):  4.20E-05, new eF: bisection/secant}
+ eF: -7.810424E-02, Tr(K):  3.9999966E+01, D Tr(K): -3.41E-05, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -8.444639E-02, Tr(K):  3.9999985E+01, D Tr(K): -1.52E-05, new eF: bisection/secant}
+ eF: -6.175893E-02, Tr(K):  4.0000061E+01, D Tr(K):  6.13E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -7.570444E-02, Tr(K):  3.9999958E+01, D Tr(K): -4.20E-05, new eF: bisection/secant}
+ eF: -7.522946E-02, Tr(K):  3.9999952E+01, D Tr(K): -4.76E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -6.866457E-02, Tr(K):  4.0000049E+01, D Tr(K):  4.87E-05, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.231469E-02, Tr(K):  4.0000001E+01, D Tr(K):  9.35E-07, new eF: bisection/secant}
-         summary: {nit:  6, eF: -7.319902E-02, Tr(K):  4.0000001E+01, D Tr(K):  9.35E-07}
+ eF: -6.891733E-02, Tr(K):  4.0000001E+01, D Tr(K):  8.91E-07, new eF: bisection/secant}
+         summary: {nit:  5, eF: -7.055333E-02, Tr(K):  4.0000001E+01, D Tr(K):  8.91E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638700262653E+01
-         EBS higher temperature        : -1.638699113909E+01
-         difference                    :  1.148743124446E-05
-         relative difference           :  7.010086900131E-07
+         EBS                           : -1.638779770820E+01
+         EBS higher temperature        : -1.638779066487E+01
+         difference                    :  7.043327023837E-06
+         relative difference           :  4.297909425813E-07
          modify error function decay length: increase
-         trace(KS)                     :  40.00000093742413
+         trace(KS)                     :  40.00000089093736
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1126,20 +1113,20 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11910208555E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18602272510E+02,  EXC: -1.72589622436E+01, EvXC: -2.25829629792E+01}, 
-    Total charge:  3.999999911073E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11907433681E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18601542962E+02,  EXC: -1.72588338228E+01, EvXC: -2.25827934696E+01}, 
+    Total charge:  3.999999906429E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  7, delta:  4.92E-11, energy: -5.62880086618747129E+01, D:  2.014E-06}
+ iter:  7, delta:  4.66E-11, energy: -5.62881152843414725E+01, D:  4.134E-06}
    -  &final_kernel001  { #-------------------------------------------------------- iter: 7
  summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  5.87E-11, 
- iter:  7, delta:  4.92E-11, energy: -5.62880086618747129E+01, D:  2.014E-06}}
+ iter:  7, delta:  4.66E-11, energy: -5.62881152843414725E+01, D:  4.134E-06}}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: FOE, iterations to converge kernel optimization:  7, 
- iter low:  1, delta out:  3.273E-07, energy: -5.62880086618747129E+01, D: -5.629E+01}
+ iter low:  1, delta out:  3.274E-07, energy: -5.62881152843414725E+01, D: -5.629E+01}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for high accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -1158,38 +1145,40 @@
      S^-1/2:
        Can take from memory            :  No
        determine eigenvalue bounds:
-       -  {npl:  20, scale:  1.00E+00, bounds:  [  0.417,  1.800 ], penalty:  6.0E-06, ok: [
-  Yes,  Yes], exp accur:  [  4.17E-10 ]}
-       summary: {npl:  20, bounds:  [  0.42,  1.80 ], exp accur:  [  4.17E-10 ]}
+       -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], penalty:  3.1E-09, ok: [
+  Yes,  Yes], exp accur:  [  5.35E-14 ]}
+       summary: {npl:  110, bounds:  [  0.50,  1.50 ], exp accur:  [  5.35E-14 ]}
      Kernel calculation:
      -  #--------------------------------------------------------------- ispin: 1, itemp: 1
        decay length of error function  :  2.980E-02
        determine eigenvalue bounds:
-       -  {npl:  240, bounds:  [ -1.050,  1.512 ], penalty: -5.5E-06, ok:  [  Yes,  Yes ], 
-     exp accur:  [  8.02E-06 ]}
-       summary: {npl:  240, bounds:  [  0.42,  1.80 ], exp accur:  [  8.02E-06 ]}
+       -  {npl:  200, bounds:  [ -0.729,  1.512 ], penalty: -1.8E-10, ok:  [  Yes,  Yes ], 
+     exp accur:  [  4.2E-06 ]}
+       summary: {npl:  200, bounds:  [  0.50,  1.50 ], exp accur:  [  4.2E-06 ]}
        determine Fermi energy:
        -  { #-------------------------------------------------------------------- it FOE: 1
- eF: -8.657245E-02, Tr(K):  3.9999604E+01, D Tr(K): -3.96E-04, new eF: bisec bounds}
+ eF: -8.673518E-02, Tr(K):  3.9999569E+01, D Tr(K): -4.31E-04, new eF: bisec bounds}
        -  { #-------------------------------------------------------------------- it FOE: 2
- eF: -5.982559E-02, Tr(K):  4.0000808E+01, D Tr(K):  8.08E-04, new eF: bisection/secant}
+ eF: -5.437148E-02, Tr(K):  4.0002134E+01, D Tr(K):  2.13E-03, new eF: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 3
- eF: -7.548964E-02, Tr(K):  3.9999986E+01, D Tr(K): -1.44E-05, new eF: bisection/secant}
+ eF: -7.592672E-02, Tr(K):  4.0000008E+01, D Tr(K):  7.56E-06, new eF: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 4
- eF: -7.143626E-02, Tr(K):  4.0000054E+01, D Tr(K):  5.43E-05, new eF: bisection/secant}
+ eF: -7.872209E-02, Tr(K):  3.9999947E+01, D Tr(K): -5.29E-05, new eF: bisection/secant}
        -  { #-------------------------------------------------------------------- it FOE: 5
- eF: -7.405114E-02, Tr(K):  4.0000008E+01, D Tr(K):  7.60E-06, new eF: linear interpol}
+ eF: -7.680052E-02, Tr(K):  3.9999990E+01, D Tr(K): -9.58E-06, new eF: linear interpol}
        -  { #-------------------------------------------------------------------- it FOE: 6
- eF: -7.447647E-02, Tr(K):  4.0000001E+01, D Tr(K):  9.75E-07, new eF: linear interpol}
-       summary: {nit:  6, eF: -7.453909E-02, Tr(K):  4.0000001E+01, D Tr(K):  9.75E-07}
+ eF: -7.637497E-02, Tr(K):  3.9999999E+01, D Tr(K): -1.08E-06, new eF: linear interpol}
+       -  { #-------------------------------------------------------------------- it FOE: 7
+ eF: -7.632099E-02, Tr(K):  4.0000000E+01, D Tr(K): -2.19E-08, new eF: linear interpol}
+       summary: {nit:  7, eF: -7.631987E-02, Tr(K):  4.0000000E+01, D Tr(K): -2.19E-08}
        Asymmetry of kernel             :  1.03E-05
        symmetrize_kernel               :  Yes
-       EBS                             : -1.638698070504E+01
-       EBS higher temperature          : -1.638670845660E+01
-       difference                      :  2.722484401225E-04
-       relative difference             :  1.661370358719E-05
+       EBS                             : -1.638777754042E+01
+       EBS higher temperature          : -1.638745876734E+01
+       difference                      :  3.187730774883E-04
+       relative difference             :  1.945187971353E-05
        modify error function decay length: increase
-       trace(KS)                       :  40.00000097774409
+       trace(KS)                       :  39.99999997811086
        need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
      Asymmetry of the matrices:
@@ -1202,16 +1191,16 @@
  - support function optimization: &it_supfun002
    -  { #-------------------------------------------------------------------------- iter: 1
  Hamiltonian Applied:  Yes, 
- Components: {Ekin:  7.57565228996E+01, Epot: -7.20247371975E+01, Enl:  5.58600139293E+00}, 
-   Orthoconstraint:  Yes, summary: {npl:  20, bounds:  [  0.42,  1.80 ], 
-                              exp accur:  [  3.65E-09 ]}, correction orthoconstraint:  Yes, 
+ Components: {Ekin:  7.57552918069E+01, Epot: -7.20241032978E+01, Enl:  5.58589564408E+00}, 
+   Orthoconstraint:  Yes, summary: {npl:  110, bounds:  [  0.50,  1.50 ], 
+                              exp accur:  [  7.24E-14 ]}, correction orthoconstraint:  Yes, 
                         Preconditioning:  Yes, 
- iter:  1, fnrm:  8.73E-01, Omega: {ENERGY: -4.742399510342290E+01}, D: -4.74E+01, 
+ iter:  1, fnrm:  8.73E-01, Omega: {ENERGY: -4.742408439100788E+01}, D: -4.74E+01, 
                                     D best: -4.74E+01, 
                             exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 1
- Components: {Ekin:  7.57565228996E+01, Epot: -7.20247371975E+01, Enl:  5.58600139293E+00}, 
- nit:  1, fnrm:  8.73E-01, Omega: {ENERGY: -4.742399510342290E+01}, D total:  0.00E+00}
+ Components: {Ekin:  7.57552918069E+01, Epot: -7.20241032978E+01, Enl:  5.58589564408E+00}, 
+ nit:  1, fnrm:  8.73E-01, Omega: {ENERGY: -4.742408439100788E+01}, D total:  0.00E+00}
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.99E-02,  3.62E-02 ], warnings:  27}
      -  {type: C, mean / max value:  [  1.99E-02,  3.62E-02 ], warnings:  27}
@@ -1226,77 +1215,67 @@
        S^-1/2:
          Can take from memory          :  No
          determine eigenvalue bounds:
-         -  {npl:  15, scale:  1.00E+00, bounds:  [  0.463,  1.620 ], penalty:  6.4E-04, ok: [
-  No,  Yes], exp accur:  [  9.46E-09 ]}
-         -  {npl:  20, scale:  2.00E+00, bounds:  [  0.386,  1.620 ], penalty: -5.7E+05, ok: [
-  Yes,  No], exp accur:  [  3.0E-10 ]}
-         -  {npl:  20, scale:  1.00E+00, bounds:  [  0.386,  1.944 ], penalty: -2.0E-06, ok: [
-  Yes,  Yes], exp accur:  [  2.75E-09 ]}
-         summary: {npl:  20, bounds:  [  0.39,  1.94 ], exp accur:  [  2.75E-09 ]}
+         -  {npl:  100, scale:  1.00E+00, bounds:  [  0.556,  1.350 ], penalty: -3.9E-09, ok: [
+  Yes,  Yes], exp accur:  [  2.44E-14 ]}
+         summary: {npl:  100, bounds:  [  0.56,  1.35 ], exp accur:  [  2.44E-14 ]}
        Kernel calculation:
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.725E-02
          determine eigenvalue bounds:
-         -  {npl:  200, bounds:  [ -1.050,  1.512 ], penalty: -5.5E-06, 
-              ok:  [  Yes,  Yes ], exp accur:  [  3.72E-06 ]}
-         summary: {npl:  200, bounds:  [  0.39,  1.94 ], exp accur:  [  3.72E-06 ]}
+         -  {npl:  160, bounds:  [ -0.729,  1.512 ], penalty:  9.1E-08, 
+              ok:  [  Yes,  Yes ], exp accur:  [  5.6E-06 ]}
+         summary: {npl:  160, bounds:  [  0.56,  1.35 ], exp accur:  [  5.6E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -8.537157E-02, Tr(K):  3.9993948E+01, D Tr(K): -6.05E-03, new eF: bisec bounds}
+ eF: -8.942717E-02, Tr(K):  3.9989511E+01, D Tr(K): -1.05E-02, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -6.370661E-02, Tr(K):  4.0006873E+01, D Tr(K):  6.87E-03, new eF: bisection/secant}
+ eF: -6.321257E-02, Tr(K):  4.0007425E+01, D Tr(K):  7.43E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -7.488308E-02, Tr(K):  4.0000034E+01, D Tr(K):  3.38E-05, new eF: bisection/secant}
+ eF: -7.519908E-02, Tr(K):  3.9999928E+01, D Tr(K): -7.24E-05, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -7.753435E-02, Tr(K):  3.9998839E+01, D Tr(K): -1.16E-03, new eF: bisection/secant}
+ eF: -7.214455E-02, Tr(K):  4.0001323E+01, D Tr(K):  1.32E-03, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -7.558343E-02, Tr(K):  3.9999723E+01, D Tr(K): -2.77E-04, new eF: linear interpol}
+ eF: -7.435616E-02, Tr(K):  4.0000305E+01, D Tr(K):  3.05E-04, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 6
- eF: -7.497250E-02, Tr(K):  3.9999994E+01, D Tr(K): -5.81E-06, new eF: linear interpol}
+ eF: -7.501928E-02, Tr(K):  4.0000008E+01, D Tr(K):  8.04E-06, new eF: linear interpol}
          -  { #------------------------------------------------------------------ it FOE: 7
- eF: -7.495939E-02, Tr(K):  4.0000000E+01, D Tr(K): -4.55E-09, new eF: linear interpol}
-         summary: {nit:  7, eF: -7.495938E-02, Tr(K):  4.0000000E+01, D Tr(K): -4.55E-09}
+ eF: -7.503723E-02, Tr(K):  4.0000000E+01, D Tr(K):  8.74E-09, new eF: linear interpol}
+         summary: {nit:  7, eF: -7.503725E-02, Tr(K):  4.0000000E+01, D Tr(K):  8.74E-09}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638670133409E+01
-         EBS higher temperature        : -1.638363033550E+01
-         difference                    :  3.070998593710E-03
-         relative difference           :  1.874079798673E-04
+         EBS                           : -1.638750576593E+01
+         EBS higher temperature        : -1.638444050129E+01
+         difference                    :  3.065264645866E-03
+         relative difference           :  1.870488828286E-04
          modify error function decay length: decrease
-         trace(KS)                     :  40.0000000575596
+         trace(KS)                     :  40.00000000873784
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
          decay length of error function:  1.863E-02
          determine eigenvalue bounds:
-         -  {npl:  380, bounds:  [ -1.050,  1.512 ], penalty: -5.5E-06, 
-              ok:  [  Yes,  Yes ], exp accur:  [  7.86E-06 ]}
-         summary: {npl:  380, bounds:  [  0.39,  1.94 ], exp accur:  [  7.86E-06 ]}
+         -  {npl:  320, bounds:  [ -0.729,  1.512 ], penalty:  1.2E-13, 
+              ok:  [  Yes,  Yes ], exp accur:  [  6.15E-06 ]}
+         summary: {npl:  320, bounds:  [  0.56,  1.35 ], exp accur:  [  6.15E-06 ]}
          determine Fermi energy:
          -  { #------------------------------------------------------------------ it FOE: 1
- eF: -8.373369E-02, Tr(K):  4.0000045E+01, D Tr(K):  4.53E-05, new eF: bisec bounds}
+ eF: -8.565416E-02, Tr(K):  3.9999993E+01, D Tr(K): -6.98E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 2
- eF: -9.250800E-02, Tr(K):  3.9999974E+01, D Tr(K): -2.59E-05, new eF: bisec bounds}
+ eF: -6.442034E-02, Tr(K):  3.9999991E+01, D Tr(K): -8.57E-06, new eF: bisec bounds}
          -  { #------------------------------------------------------------------ it FOE: 3
- eF: -6.618508E-02, Tr(K):  4.0000060E+01, D Tr(K):  5.95E-05, new eF: bisection/secant}
+ eF: -5.486511E-02, Tr(K):  4.0000008E+01, D Tr(K):  7.68E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 4
- eF: -8.193498E-02, Tr(K):  4.0000024E+01, D Tr(K):  2.39E-05, new eF: bisection/secant}
+ eF: -7.062336E-02, Tr(K):  4.0000007E+01, D Tr(K):  7.38E-06, new eF: bisection/secant}
          -  { #------------------------------------------------------------------ it FOE: 5
- eF: -8.711675E-02, Tr(K):  4.0000047E+01, D Tr(K):  4.66E-05, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 6
- eF: -9.019627E-02, Tr(K):  4.0000008E+01, D Tr(K):  8.15E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 7
- eF: -9.105064E-02, Tr(K):  3.9999995E+01, D Tr(K): -5.05E-06, new eF: bisection/secant}
-         -  { #------------------------------------------------------------------ it FOE: 8
- eF: -9.067353E-02, Tr(K):  4.0000001E+01, D Tr(K):  7.63E-07, new eF: bisection/secant}
-         summary: {nit:  8, eF: -9.079254E-02, Tr(K):  4.0000001E+01, D Tr(K):  7.63E-07}
+ eF: -7.824236E-02, Tr(K):  4.0000000E+01, D Tr(K): -4.75E-07, new eF: bisection/secant}
+         summary: {nit:  5, eF: -7.610728E-02, Tr(K):  4.0000000E+01, D Tr(K): -4.75E-07}
          Asymmetry of kernel           :  1.03E-05
          symmetrize_kernel             :  Yes
-         EBS                           : -1.638698620093E+01
-         EBS higher temperature        : -1.638697424952E+01
-         difference                    :  1.195140400156E-05
-         relative difference           :  7.293228818908E-07
+         EBS                           : -1.638779050506E+01
+         EBS higher temperature        : -1.638779258657E+01
+         difference                    : -2.081516175423E-06
+         relative difference           :  1.270162792709E-07
          modify error function decay length: increase
-         trace(KS)                     :  40.00000082461563
+         trace(KS)                     :  39.99999952500892
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
@@ -1306,29 +1285,27 @@
        Kohn-Sham residue               : not calculated
        Coefficients available          :  No
      SCF status: {
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11910122409E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18602281699E+02,  EXC: -1.72589635450E+01, EvXC: -2.25829646995E+01}, 
-    Total charge:  3.999999899792E+01, 
- Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  8}}
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11907333091E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18601553460E+02,  EXC: -1.72588352494E+01, EvXC: -2.25827953541E+01}, 
+    Total charge:  3.999999769836E+01, 
+ Poisson Solver: {BC: Periodic, Box:  [  108,  140,  140 ], MPI tasks:  2}}
      summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  8.73E-11, 
- iter:  1, delta:  2.75E-11, energy: -5.62880010061444267E+01, D:  7.656E-06}
+ iter:  1, delta:  3.03E-11, energy: -5.62881181210444765E+01, D: -2.837E-06}
    -  &final_kernel002  { #-------------------------------------------------------- iter: 1
  summary: {kernel method: FOE, mix entity: DENS, mix hist:  6, conv crit:  8.73E-11, 
- iter:  1, delta:  2.75E-11, energy: -5.62880010061444267E+01, D:  7.656E-06}}
+ iter:  1, delta:  3.03E-11, energy: -5.62881181210444765E+01, D: -2.837E-06}}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc002
    -  {iter:  2, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: FOE, iterations to converge kernel optimization:  1, 
- iter high:  2, delta out:  8.243E-12, energy: -5.62880010061444267E+01, D:  7.656E-06}
-    #WARNING: oscillation of the energy, increase counter
-   energy_scillation_counter           :  1
+ iter high:  2, delta out:  9.100E-12, energy: -5.62881181210444765E+01, D: -2.837E-06}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  2, 
- Energies: {Ekin:  7.57565228996E+01, Epot: -8.11910122409E+01, Enl:  5.58600139293E+00, 
-              EH:  1.18602285851E+02,  EXC: -1.72589641140E+01, EvXC: -2.25829654517E+01}, 
-       iter high:  2,            delta out:  8.243E-12, 
-          energy: -5.62880010061444267E+01,                       D:  0.000E+00,  #FINAL
+ Energies: {Ekin:  7.57552918069E+01, Epot: -8.11907333091E+01, Enl:  5.58589564408E+00, 
+              EH:  1.18601556023E+02,  EXC: -1.72588356669E+01, EvXC: -2.25827959081E+01}, 
+       iter high:  2,            delta out:  9.100E-12, 
+          energy: -5.62881181210444765E+01,                       D:  0.000E+00,  #FINAL
  }
  calculate S^x:
    mode                                : sparse
@@ -1336,64 +1313,63 @@
      x                                 : -1/2
    order                               :  1010
    determine eigenvalue bounds:
-   -  {npl:  20, scale:  1.00E+00, bounds:  [  0.386,  1.944 ], penalty: -2.0E-06, ok: [
-  Yes,  Yes], exp accur:  [  2.75E-09 ]}
-   summary: {npl:  20, bounds:  [  0.39,  1.94 ], exp accur:  [  2.75E-09 ]}
- Total charge                          :  3.999999899792E+01
+   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.617,  1.215 ], penalty: -1.1E-07, ok: [
+  Yes,  Yes], exp accur:  [  1.75E-14 ]}
+   summary: {npl:  80, bounds:  [  0.62,  1.22 ], exp accur:  [  1.75E-14 ]}
+ Total charge                          :  3.999999769836E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  108,  140,  140 ]
-   MPI tasks                           :  8
+   MPI tasks                           :  2
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  1.508447380658E-05,  5.579662419751E-09,  5.579414912566E-09 ]
-   -  [  5.579662419751E-09, -6.161842983774E-05,  9.807570874662E-09 ]
-   -  [  5.579414912566E-09,  9.807570874662E-09, -6.161843084799E-05 ]
+   -  [  1.508959899572E-05,  5.595486607662E-09,  5.595238833702E-09 ]
+   -  [  5.595486607662E-09, -6.158824636498E-05,  1.456770462737E-08 ]
+   -  [  5.595238833702E-09,  1.456770462737E-08, -6.158824739141E-05 ]
    Pressure:
-     Ha/Bohr^3                         : -3.60507956263828E-05
-     GPa                               : -1.06065
-     PV (Ha)                           : -0.79345234544298
+     Ha/Bohr^3                         : -3.60289649202233E-05
+     GPa                               : -1.06001
+     PV (Ha)                           : -0.79297186714273
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - The coarse grid does not fill the entire periodic box
  - The support function localization radii might be too small, got 27 warnings
  - support function optimization not converged
- - oscillation of the energy, increase counter
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  16.47
-   Elapsed time (s)                    :  16.50
+   CPU time (s)                        :  59.63
+   Elapsed time (s)                    :  33.14
  BigDFT infocode                       :  0
- Average noise forces: {x:  1.87662558E-03, y: -7.57530489E-03, z: -7.57531432E-03, 
-                    total:  1.08762289E-02}
- Clean forces norm (Ha/Bohr): {maxval:  1.063858385898E-02, fnrm2:  9.437912964314E-04}
+ Average noise forces: {x:  1.87606645E-03, y: -7.56219984E-03, z: -7.56220919E-03, 
+                    total:  1.08578773E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  1.090178020894E-02, fnrm2:  9.948887170524E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 9.395381988360E-03, -2.390123072000E-03, -2.390125781751E-03]} # 0001
- -  {C: [-7.604244238479E-03, -2.337784252363E-03, -2.337787595600E-03]} # 0002
- -  {C: [ 9.778829068583E-03, -2.434851119613E-03, -2.434853923415E-03]} # 0003
- -  {C: [-8.522887424931E-03, -2.396252815124E-03, -2.396256091352E-03]} # 0004
- -  {C: [ 9.703452023039E-03, -2.347059763422E-03, -2.347062547994E-03]} # 0005
- -  {C: [-9.669725595212E-03, -2.396635999045E-03, -2.396639130684E-03]} # 0006
- -  {C: [ 1.007409069402E-02, -2.417865813976E-03, -2.417868507344E-03]} # 0007
- -  {C: [-8.469886892991E-03, -2.466884168825E-03, -2.466887347779E-03]} # 0008
- -  {C: [ 9.369212091584E-03, -2.472279762104E-03, -2.472282402149E-03]} # 0009
- -  {C: [-8.119810580051E-03, -2.295480669119E-03, -2.295483907407E-03]} # 0010
- Energy (Hartree)                      : -5.62880010061444267E+01
- Force Norm (Hartree/Bohr)             :  3.07211864424437667E-02
+ -  {C: [ 9.674708910683E-03, -2.387012685483E-03, -2.387015376151E-03]} # 0001
+ -  {C: [-7.883891341137E-03, -2.332619796588E-03, -2.332623116690E-03]} # 0002
+ -  {C: [ 1.005846549692E-02, -2.431725303669E-03, -2.431728088208E-03]} # 0003
+ -  {C: [-8.802781707194E-03, -2.391079095648E-03, -2.391082348680E-03]} # 0004
+ -  {C: [ 9.983202978702E-03, -2.343916061645E-03, -2.343918826984E-03]} # 0005
+ -  {C: [-9.949568903213E-03, -2.391456580674E-03, -2.391459689395E-03]} # 0006
+ -  {C: [ 1.035311905792E-02, -2.414717849006E-03, -2.414720523419E-03]} # 0007
+ -  {C: [-8.749605515692E-03, -2.461746417366E-03, -2.461749573438E-03]} # 0008
+ -  {C: [ 9.648305973539E-03, -2.469183723246E-03, -2.469186344555E-03]} # 0009
+ -  {C: [-8.399311913306E-03, -2.290318092537E-03, -2.290321307868E-03]} # 0010
+ Energy (Hartree)                      : -5.62881181210444765E+01
+ Force Norm (Hartree/Bohr)             :  3.15418565885466212E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  7893
-   Tot. No. of Deallocations           :  7893
+   Tot. No. of Allocations             :  12856
+   Tot. No. of Deallocations           :  12856
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  155.798
+     Peak Value (MB)                   :  540.326
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 237.848 MB
- Walltime since initialization         : 00:00:16.900809938
- Max No. of dictionaries used          :  7041 #( 1015 still in use)
+     Memory Peak of process            : 585.196 MB
+ Walltime since initialization         : 00:00:33.520428592
+ Max No. of dictionaries used          :  7583 #( 1015 still in use)
  Number of dictionary folders allocated:  1

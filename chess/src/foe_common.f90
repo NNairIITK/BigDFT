@@ -2476,8 +2476,8 @@ module foe_common
 
 
       if (iproc==0 .and. foe_verbosity>0) then
-          call yaml_sequence_open('determine eigenvalue bounds')
           call yaml_map('beta for penaltyfunction',betax,fmt='(f7.1)')
+          call yaml_sequence_open('determine eigenvalue bounds')
       end if
       bounds_loop: do
           !efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)

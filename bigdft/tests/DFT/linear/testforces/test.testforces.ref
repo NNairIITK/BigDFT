@@ -11,91 +11,9 @@
   # 2) considering the forces over all atoms.
   #------------------------------------------------------------------------------------------- 
  <BigDFT> log of the run will be written in logfile: ./log.yaml
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  8.73115E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  8.73115E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 8.7311491E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 8.7311491E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  8.73115E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 8.7311491E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  8.73115E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 8.7311491E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 7.2759576E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 7.2759576E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  4.36557E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  4.36557E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  5.82077E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 5.8207661E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  5.82077E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 5.8207661E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 7.2759576E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 7.2759576E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  1.45519E-11
-  #WARNING: ERROR of checksum for orbital 2: difference of  1.45519E-11
-  #WARNING: ERROR of checksum for orbital 3: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  8.73115E-11
-  #WARNING: ERROR of checksum for orbital 3: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  8.73115E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 8.7311491E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 8.7311491E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  3.63798E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 7.2759576E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 7.2759576E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  1.45519E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  1.45519E-11
-  #WARNING: ERROR of checksum for orbital 3: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  5.82077E-11
-  #WARNING: ERROR of checksum for orbital 3: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  5.82077E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 5.8207661E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 5.8207661E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  1.81899E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.18279E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  1.81899E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.18279E-11
-  #WARNING: ERROR of checksum for orbital 4: difference of  7.27596E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 7.2759576E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 7.2759576E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR of checksum for orbital 1: difference of  7.27596E-12
-  #WARNING: ERROR of checksum for orbital 2: difference of  2.91038E-11
-  #WARNING: ERROR (Transposition): process 7 found an error of: 2.9103830E-11
-  #WARNING: ERROR (Transposition): process 6 found an error of: 2.9103830E-11
 
  Check correctness of forces
- Difference of total energies =   1.6931812216220976E-003
- Integral force*displacement =    1.8364137184869464E-003
- Difference =   -1.4323249686484883E-004
+ Difference of total energies =   1.6926360665330265E-003
+ Integral force*displacement =    1.8370158235095553E-003
+ Difference =   -1.4437975697652880E-004
 
