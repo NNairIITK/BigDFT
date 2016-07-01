@@ -21,6 +21,7 @@ program test_hooks
   call f_object_signal_connect("run_objects", "init", runInit, 1, sid)
   call f_object_signal_connect("run_objects", "pre", runPre, 1, sid)
   call f_object_signal_connect("run_objects", "post", runPost, 2, sid)
+  call f_object_signal_connect("run_objects", "mix", runMix, 3, sid)
   call f_object_signal_connect("run_objects", "destroy", runDestroy, 1, sid)
 
   call dict_init(run)
@@ -94,6 +95,14 @@ contains
        call f_python_execute_dict(obj%py_hooks // "post", ierr)
        if (ierr /= 0) stop
     end if
+  end subroutine runPost
+
+  subroutine runMix(obj, outs, subouts)
+    type(run_objects), intent(in) :: obj
+    type(state_properties), intent(out) :: outs
+    type(state_properties), dimension(size(obj%sections), intent(in) :: subouts
+
+    !...
   end subroutine runPost
 
   subroutine runDestroy(obj)

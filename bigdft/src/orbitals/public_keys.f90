@@ -14,7 +14,7 @@ module public_keys
   character(len = *), parameter :: MODE_VARIABLES = "mode"
   character(len = *), parameter :: METHOD_KEY = "method"
   character(len = *), parameter :: RUN_NAME_KEY = "name"
-
+  
   character(len = *), parameter :: PY_HOOKS = "py_hooks"
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
@@ -134,6 +134,7 @@ module public_keys
   character(len = *), parameter :: RESTART_NOSE="restart_nose"
 
   !mode parameter keywords
+  character(len = *), parameter :: ADD_COULOMB_FORCE_KEY = "add_coulomb_force"
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
   character(len = *), parameter :: SW_EQFACTOR = "sw_eqfactor"
@@ -578,4 +579,7 @@ module public_enums
        & f_enumerator('MULTI_RUN_MODE',-989,null())
   type(f_enumerator), parameter, public :: SW_RUN_MODE                 = &
        & f_enumerator('SW_RUN_MODE',-988,null())
+  type(f_enumerator), parameter, public :: BAZANT_RUN_MODE             = &
+       & f_enumerator('BAZANT_RUN_MODE',-987,null()) 
+
 end module public_enums

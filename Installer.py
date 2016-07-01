@@ -38,12 +38,16 @@ ACTIONS={'build':
          'Wipe out all the build directories and recompile the important parts',
          'autogen':
          'Perform the autogen in the modules which need that. For developers only.',
+         'update':
+         'Useful to update a pre-compiled branch after a merge',
          'dist':
-         'Creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified.',
+         'Creates a tarfile for the suite tailored to reproduce the compilation options specified.',
          'check':
          'Perform check in the bigdft branches, skip external libraries.',
          'dry_run':
-         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file."}
+         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file.",
+         'link':
+         'Show the linking line that have to be used to connect an external executable to the package (when applicable)' }
 
 #actions which need rcfile to be executed
 NEEDRC=['build','dist','dry_run','startover']
@@ -398,6 +402,23 @@ class BigDFTInstaller():
         "Do dry build"
         self.get_output(self.jhb+DOT+self.package+DOTCMD)
 
+    def link(self):
+        "Show the linking line, when applicable"
+        import os
+        PPATH="PKG_CONFIG_PATH"
+        addpath=os.path.join(self.builddir,'install','lib','pkgconfig')
+        if PPATH in os.environ:
+            if addpath not in os.environ[PPATH].split(':'):
+                os.environ[PPATH]+=':'+addpath
+        else:
+            os.environ[PPATH]=addpath
+        includes=self.get_output('pkg-config --cflags '+self.package)
+        libs=self.get_output('pkg-config --libs '+self.package)
+        #add the external linalg at the end to avod linking problems
+        linalg=self.get_output('pkg-config --variable linalglibs '+self.package)
+        print '--------- Linking line to build with package "'+self.package+'":'
+        print "  "+includes+libs
+
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
         import os
@@ -416,12 +437,17 @@ class BigDFTInstaller():
         rclist.append("""conditions.add("testing")""")
         rclist.append("""#List the module the this rcfile will build""")
         rclist.append("modules = ['"+self.package+"',]")
-        sep='"""'
+        sep=' """ '
         confline=sep+os.environ[BIGDFT_CFG]+sep
         rclist.append("#example of the potentialities of the python syntax in this file")
         rclist.append("def env_configuration():")
         rclist.append("    return "+confline)
-        rclist.append("""#here follow the configuration instructions for the modules built""")
+        rclist.append("#the following command sets the environment variable to give these settings")
+        rclist.append("#to all the modules")
+        rclist.append("import os")
+        rclist.append("os.environ['"+BIGDFT_CFG+"']=env_configuration()")
+        rclist.append("#here follow the configuration instructions for the modules built")
+        rclist.append("#we specify the configurations for the modules to customize the options if needed")
         rclist.append("module_autogenargs.update({")
         rclist.append("   ")
         for mod in self.modulelist:
@@ -494,7 +520,7 @@ group.add_argument("-v", "--verbose", action="store_true",help='Verbose output, 
 group.add_argument("-q", "--quiet", action="store_true",help='Verbosity disabled output, default from a development branch')
 
 parser.add_argument('-d','--debug',action='store_true',
-                   help='Verbose output, default from a development brach')
+                   help='Verbose output, default from a development branch')
 parser.add_argument('-y','--yes',action='store_true',
                    help='Answer yes to dialog questions')
 parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
@@ -533,8 +559,13 @@ if args.action=='help':
     print 50*'-'
     print 10*"QIFI-"+' (Quick Instructions For the Impatient)'
     print 'Ideally, there are two different policies:'
-    print 'Developer: From a development branch, start by "startover", then "build"'
+    print 'Developer: From a development branch, start by "autogen", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
+elif args.action=='update':
+    yes=args.yes
+    for action in ['clean','autogen','build']:
+        BigDFTInstaller(action,args.package,args.file,args.verbose,args.quiet,yes)
+        yes=True
 else:
     BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet,args.yes)

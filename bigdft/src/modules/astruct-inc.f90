@@ -549,12 +549,11 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            if (istart == 1) istart = index(line, "#") + 1
            do
               istop = index(line(istart:), ";") + istart - 2
-              if (istop == istart - 2) exit
+              if (istop == istart - 2 .or. count / 3 + 1 > astruct%nat) exit
               read(line(istart:istop), *) fxyz(modulo(count, 3) + 1, count / 3 + 1)
               count = count + 1
               istart = istop + 2
            end do
-           if (count > astruct%nat * 3) exit
         end if
      end do
   end if

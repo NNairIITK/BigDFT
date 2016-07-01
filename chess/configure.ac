@@ -7,7 +7,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[libCheSS])
+AC_INIT([Chebyshev Sparse Solvers],[1.0],[stephan.mohr@bsc.es],[CheSS])
 
 AC_CONFIG_MACRO_DIR([m4])
 
@@ -102,12 +102,17 @@ fi
 AC_SUBST(LIB_CHESS_PKG)
 AC_SUBST(LIB_CHESS_DEPS)
 
+dnl Test for the developers' documentation.
+AX_DOC()
+
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 chess.pc
+doc/Makefile
+doc/Doxyfile
 sparsematrix/Makefile
 src/configure.inc
 src/Makefile

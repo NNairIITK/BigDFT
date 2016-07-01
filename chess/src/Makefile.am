@@ -118,6 +118,7 @@ ice.o: chebyshev.o foe_base.o foe_common.o fermi_level.o
 matrix_operations.o: ice.o foe_base.o
 foe.o: chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
 sparsematrix_highlevel.o: ice.o foe.o
+chess_toolbox.o: $(libCheSS_1_a_OBJECTS)
 
 # Copy modules in a common include directory.
 all: all-am insmod

@@ -134,6 +134,31 @@ MODULE dipole_mod
     RETURN
   END SUBROUTINE dipole_cal
 
+  !> Give the symbol of element.
+  subroutine nzsymbol(nzatom, symbol)
+    implicit none
+    ! Arguments
+    integer, intent(in) :: nzatom
+    character(len=2), intent(out) :: symbol
+
+    character(len=2), parameter :: symbol_(94)=(/' H','He',        &
+         &   'Li','Be',' B',' C',' N',' O',' F','Ne',   &
+         &   'Na','Mg','Al','Si',' P',' S','Cl','Ar',   &
+         &   ' K','Ca','Sc','Ti',' V','Cr','Mn','Fe','Co','Ni',&
+         &        'Cu','Zn','Ga','Ge','As','Se','Br','Kr',     &
+         &   'Rb','Sr',' Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd',&
+         &        'Ag','Cd','In','Sn','Sb','Te',' I','Xe',     &
+         &   'Cs','Ba','La','Ce','Pr','Nd','Pm','Sm','Eu','Gd',&
+         &                       'Tb','Dy','Ho','Er','Tm','Yb',&
+         &             'Lu','Hf','Ta',' W','Re','Os','Ir','Pt',&
+         &        'Au','Hg','Tl','Pb','Bi','Po','At','Rn',     &
+         &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
+
+    if (nzatom <= 0 .or. nzatom > 94) then
+       stop "Wrong nzatom value"
+    end if
+    symbol = symbol_(nzatom)
+  END SUBROUTINE nzsymbol
 
 !> Write out a summary of the dipole moment calulations.
 !! dipole.dat : Stores the main output to the screen.
@@ -156,22 +181,31 @@ MODULE dipole_mod
     real(q2), dimension(3) :: tmp1, tmp2
     real(q2) :: stmp,stmp2
     integer :: i
+    character(len = 2) :: symbol
  
     !WRITE(*,'(A44,/)') 'WRITING BADER ATOMIC DIPOLES TO dipole.dat'
     !call yaml_map('Writing Bader atomic dipoles',dfile)
 
     !OPEN(UNIT=iunit,FILE='dipole.dat',STATUS='replace',ACTION='write')
     call yaml_set_stream(unit=iunit,filename=dfile)
-    call yaml_sequence_open('Atoms coordinates')
+    call yaml_new_document()
+    call yaml_comment('Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]')
+    call yaml_map('units', 'bohr')
+    call yaml_map('cell', (/ ions%lattice(1,1), ions%lattice(2,2), ions%lattice(3,3) /))
+    call yaml_sequence_open('positions')
     do i=1,ions%nions
+       tmp1= dpl%ion_polar(i,:)*dipoleunits
        call yaml_sequence(advance='no')
-       call yaml_comment('Atoms' // trim(yaml_toa(i)))
        call yaml_mapping_open(flow=.true.)
-       !call yaml_map('Coord.',ions%r_car(:,i))
-       call yaml_map('Coord.',ions%r_car(i,:))
+       call nzsymbol(ions%atomic_num(i), symbol)
+       call yaml_map(symbol,ions%r_car(i,:))
+       call yaml_comment('Atom' // trim(yaml_toa(i)))
        call yaml_map('Charge core',ions%ion_chg(i))
        call yaml_map('Charge elec.',-bdr%ionchg(i))
        call yaml_map('Charge net',dpl%ion_netchg(i))
+       call yaml_newline()
+       call yaml_map('P',tmp1)
+       call yaml_map('Norm P',sqrt(dot_product(tmp1,tmp1)))
        call yaml_mapping_close(unit=iunit)
     end do
     call yaml_sequence_close(unit=iunit)
@@ -194,22 +228,6 @@ MODULE dipole_mod
     ! WRITE(iunit,'(3A)')  & 
     ! 'atom#         Intra-atomic:                Px          Py          Pz          |P|'   !(1 D=0.3934 e.a0)
     ! WRITE(iunit,format_line) 
-
-    call yaml_comment('Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]')
-    call yaml_sequence_open('Atomic polarization dipole_moments')
-    do i=1,ions%nions
-       tmp1= dpl%ion_polar(i,:)*dipoleunits
-       stmp = sqrt(dot_product(tmp1,tmp1))
-       call yaml_sequence(advance='no')
-       call yaml_comment('Atoms' // trim(yaml_toa(i)))
-       call yaml_mapping_open(flow=.true.)
-       call yaml_map('P',tmp1)
-       call yaml_map('Norm P',sqrt(dot_product(tmp1,tmp1)))
-       call yaml_mapping_close(unit=iunit)
-       !WRITE(iunit,'(I3,33x,3F12.6,1x,F13.6,6x,F12.6,5x,F12.5)') & 
-       !&   i , tmp1(:), sqrt(DOT_PRODUCT(tmp1(:),tmp1(:)))
-    end do
-    call yaml_sequence_close(unit=iunit)
 
     !WRITE(iunit,format_line) 
     tmp1(1)= sum(dpl%ion_polar(:,1))*dipoleunits
