@@ -282,6 +282,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call f_routine(id=subname)
 
   energs = energy_terms_null()
+  energs_fake= energy_terms_null()
 
   DoLastRunThings=.false. !to avoid the implicit save attribute
 
@@ -1756,7 +1757,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   !normal opt%infocode, if everything go through smoothly we should keep this
   opt%infocode=0
   !yaml output
-  if (iproc==0) then
+  if (iproc==0 .and. opt%itrpmax > 0 ) then
      call yaml_comment('Self-Consistent Cycle',hfill='-')
      call yaml_sequence_open('Ground State Optimization')
   end if
@@ -1942,8 +1943,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if (opt%iter == opt%itermax .and. opt%infocode/=0) &
                 call yaml_warning('No convergence within the allowed number of minimization steps')
         end if
-        call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 
+        call last_orthon(iproc,nproc,opt%iter,KSwfn,energs%evsum,.true.) !never deallocate psit and hpsi
 !!$        !EXPERIMENTAL
 !!$        !check if after convergence the integral equation associated with Helmholtz' Green function is satisfied
 !!$        !note: valid only for negative-energy eigenstates
@@ -2084,7 +2085,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   if (iproc==0) call yaml_sequence_close() !opt%itrp
   !recuperate the information coming from the last iteration (useful for post-processing of the document)
   !only if everything got OK
-  if (iproc==0 .and. opt%infocode == BIGDFT_SUCCESS) &
+  if (iproc==0 .and. opt%infocode == BIGDFT_SUCCESS .and. opt%itrpmax > 0) &
        call yaml_map('Last Iteration','*FINAL'//trim(adjustl(yaml_toa(opt%itrep,fmt='(i3.3)'))))
 
   !!do i_all=1,size(rhopot)
