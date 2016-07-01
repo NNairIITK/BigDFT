@@ -50,10 +50,15 @@ module module_f_objects
   public :: f_object_signal_add_arg_, f_object_signal_add_str
   public :: f_object_signal_emit, f_object_signal_connect
 
+  integer, parameter :: MAX_KERNEL_ARGS = 7
   type kernel_ctx
      integer(f_address) :: callback
      integer :: callback_n_args
-     type(dictionary), pointer :: args
+     
+     integer :: n_args
+     integer(f_address), dimension(MAX_KERNEL_ARGS) :: args
+     integer :: n_strs
+     integer, dimension(MAX_KERNEL_ARGS) :: strs
   end type kernel_ctx
 
   public :: kernel_ctx
@@ -310,7 +315,7 @@ contains
     integer, intent(out) :: sid
 
     type(dictionary), pointer :: sig, hook
-    integer :: n_args_signal, n_args_kernel
+    integer :: n_args_signal, i
 
     sid = -1
 
@@ -318,12 +323,7 @@ contains
     if (.not. associated(sig)) return
 
     n_args_signal = class_library // obj_id // "signals" // id // "n_args"
-    if ("arguments" .in. kernel%args) then
-       n_args_kernel = max(dict_len(kernel%args // "arguments"), 0)
-    else
-       n_args_kernel = 0
-    end if
-    if (f_err_raise(n_args_signal + n_args_kernel /= kernel%callback_n_args, &
+    if (f_err_raise(n_args_signal + kernel%n_args /= kernel%callback_n_args, &
          & "kernel don't have the right number of arguments for signal " // &
          & obj_id // "::" // id // ".", err_id = ERROR_OBJECT)) return
 
@@ -340,12 +340,12 @@ contains
     call dict_init(hook)
     call set(hook // "id", sid)
     call set(hook // "address", kernel%callback)
-    if ("arguments" .in. kernel%args) &
-         & call dict_copy(hook // "arguments", kernel%args // "arguments")
-    if ("strings" .in. kernel%args) &
-         & call dict_copy(hook // "strings", kernel%args // "strings")
-    
-    call dict_free(kernel%args)
+    do i = 1, kernel%n_args
+       call add(hook // "arguments", kernel%args(i))
+    end do
+    do i = 1, kernel%n_strs
+       call add(hook // "strings", kernel%strs(i))
+    end do
 
     call add(class_library // obj_id // "signals" // id // "hooks", hook)
   end subroutine f_object_signal_connect
@@ -370,8 +370,8 @@ contains
 
     ctx%callback = callback_add
     ctx%callback_n_args = n_args
-    nullify(ctx%args)
-    call dict_init(ctx%args)
+    ctx%n_args = 0
+    ctx%n_strs = 0
   end function f_object_kernel_new_
 
   subroutine f_object_kernel_add_arg_(ctx, arg_add)
@@ -379,7 +379,12 @@ contains
     type(kernel_ctx), intent(inout) :: ctx
     integer(f_address), intent(in) :: arg_add
 
-    call add(ctx%args // "arguments", arg_add)
+    if (ctx%n_args == MAX_KERNEL_ARGS) then
+       call f_err_throw("Too many arguments for kernel", err_id = ERROR_OBJECT)
+       return
+    end if
+    ctx%n_args = ctx%n_args + 1
+    ctx%args(ctx%n_args) = arg_add
   end subroutine f_object_kernel_add_arg_
 
   subroutine f_object_kernel_add_str(ctx, arg)
@@ -388,8 +393,14 @@ contains
     type(kernel_ctx), intent(inout) :: ctx
     character(len = *), intent(in) :: arg
 
-    call add(ctx%args // "arguments", f_loc(arg))
-    call add(ctx%args // "strings", len(arg))
+    if (ctx%n_args == MAX_KERNEL_ARGS) then
+       call f_err_throw("Too many arguments for kernel", err_id = ERROR_OBJECT)
+       return
+    end if
+    ctx%n_args = ctx%n_args + 1
+    ctx%args(ctx%n_args) = f_loc(arg)
+    ctx%n_strs = ctx%n_strs + 1
+    ctx%strs(ctx%n_args) = len(arg)
   end subroutine f_object_kernel_add_str
 end module module_f_objects
 
