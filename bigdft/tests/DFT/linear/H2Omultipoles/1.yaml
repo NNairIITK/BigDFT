@@ -1,0 +1,133 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.55
+   rmult: [5.0, 7.0]
+   ixc: PBE (ABINIT)
+   gnrm_cv: 1.e-5 #accurate
+   itermax: 50
+   nrepmax: 10
+   ncong: 5
+   idsx: 6
+   disablesym: Yes
+   inputpsiid: linear
+   #qcharge: 1.0
+ perf:
+   ef_interpol_chargediff: 1.0
+   check_sumrho: 1
+   check_overlap: 1
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   check_matrix_compression: No
+   correction_co_contra: Yes
+   store_index: No
+   mixing_after_inputguess: 1
+   kappa_conv: 0.1
+   FOE_restart: 1
+   hamapp_radius_incr: 6
+   loewdin_charge_analysis: no #Yes
+   #debug: Yes
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   rpnrm_cv: 3.e-7 #1.0e-11
+   #calc_dipole: Yes
+   #output_wf: 1
+   output_mat: 1
+   output_coeff: 1
+   charge_multipoles: 1
+   calculate_FOE_eigenvalues: [0,7]
+   precision_FOE_eigenvalues: 2.e-2
+ lin_basis:
+   nit: 8
+   idsx: 8
+   gnrm_cv: 2.0e-3
+   deltae_cv: 1.0e-4
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+   gnrm_ig: 1.e-1
+ lin_kernel:
+   nstep: 10
+   nit: 6
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.1
+   linear_method: FOE
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+ lin_basis_params:
+   H:
+     nbasis: 1
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 4.5
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   Hw:
+     nbasis: 1
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 4.5
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   C:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.0
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   N:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.0
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   O:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.0
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   Ow:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.0
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   P:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.5
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   Cl:
+     nbasis: 4
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 5.5
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+   K:
+     nbasis: 1
+     ao_confinement: -1.0
+     confinement: -1.0
+     rloc: 7.0
+     rloc_kernel: 9.0
+     rloc_kernel_foe: 10.5
+ posinp:
+   positions:
+   - O: [1.991107840087889, 1.221655223875441, 0.6920672692234883]
+   - H: [0.233534956652829, 0.513721445220362, 0.5361759933301388]
+   - H: [2.366235518969471, 1.111238475158637, 2.450408084576114]

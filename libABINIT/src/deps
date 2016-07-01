@@ -1,938 +1,812 @@
-interfaces_linalg.o: 01_interfaces_ext/interfaces_linalg.F90
-	$(PPFCCOMPILE) -c -o interfaces_linalg.o `test -f '01_interfaces_ext/interfaces_linalg.F90' || echo '$(srcdir)/'`01_interfaces_ext/interfaces_linalg.F90
-
-defs_basis.o: 10_defs/defs_basis.F90
-	$(PPFCCOMPILE) -c -o defs_basis.o `test -f '10_defs/defs_basis.F90' || echo '$(srcdir)/'`10_defs/defs_basis.F90
-
-defs_datatypes.o: 10_defs/defs_datatypes.F90 \
-	defs_basis.o \
-	defs_parameters.o
-	$(PPFCCOMPILE) -c -o defs_datatypes.o `test -f '10_defs/defs_datatypes.F90' || echo '$(srcdir)/'`10_defs/defs_datatypes.F90
-
-defs_parameters.o: 10_defs/defs_parameters.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o defs_parameters.o `test -f '10_defs/defs_parameters.F90' || echo '$(srcdir)/'`10_defs/defs_parameters.F90
-
-interfaces_12_hide_mpi.o: 12_hide_mpi/interfaces_12_hide_mpi.F90
-	$(PPFCCOMPILE) -c -o interfaces_12_hide_mpi.o `test -f '12_hide_mpi/interfaces_12_hide_mpi.F90' || echo '$(srcdir)/'`12_hide_mpi/interfaces_12_hide_mpi.F90
-
-m_xmpi.o: 12_hide_mpi/m_xmpi.F90 \
-	defs_basis.o \
-	m_profiling.o \
+abi_ewald.o: abi_common/abi_ewald.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
 	$(mpi_include)
-	$(PPFCCOMPILE) -c -o m_xmpi.o `test -f '12_hide_mpi/m_xmpi.F90' || echo '$(srcdir)/'`12_hide_mpi/m_xmpi.F90
+	$(PPFCCOMPILE) -c -o abi_ewald.o `test -f 'abi_common/abi_ewald.F90' || echo '$(srcdir)/'`abi_common/abi_ewald.F90
 
-m_xomp.o: 12_hide_mpi/m_xomp.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o m_xomp.o `test -f '12_hide_mpi/m_xomp.F90' || echo '$(srcdir)/'`12_hide_mpi/m_xomp.F90
-
-interfaces_14_hidewrite.o: 14_hidewrite/interfaces_14_hidewrite.F90
-	$(PPFCCOMPILE) -c -o interfaces_14_hidewrite.o `test -f '14_hidewrite/interfaces_14_hidewrite.F90' || echo '$(srcdir)/'`14_hidewrite/interfaces_14_hidewrite.F90
-
-m_fstrings.o: 14_hidewrite/m_fstrings.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o m_fstrings.o `test -f '14_hidewrite/m_fstrings.F90' || echo '$(srcdir)/'`14_hidewrite/m_fstrings.F90
-
-m_io_tools.o: 14_hidewrite/m_io_tools.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o m_io_tools.o `test -f '14_hidewrite/m_io_tools.F90' || echo '$(srcdir)/'`14_hidewrite/m_io_tools.F90
-
-wrtout.o: 14_hidewrite/wrtout.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_io_tools.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o wrtout.o `test -f '14_hidewrite/wrtout.F90' || echo '$(srcdir)/'`14_hidewrite/wrtout.F90
-
-interfaces_16_hideleave.o: 16_hideleave/interfaces_16_hideleave.F90
-	$(PPFCCOMPILE) -c -o interfaces_16_hideleave.o `test -f '16_hideleave/interfaces_16_hideleave.F90' || echo '$(srcdir)/'`16_hideleave/interfaces_16_hideleave.F90
-
-leave_new.o: 16_hideleave/leave_new.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o leave_new.o `test -f '16_hideleave/leave_new.F90' || echo '$(srcdir)/'`16_hideleave/leave_new.F90
-
-m_errors.o: 16_hideleave/m_errors.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	m_fstrings.o \
-	m_io_tools.o \
-	m_xieee.o \
-	m_xmpi.o \
-	m_xomp.o \
+abi_ewald2.o: abi_common/abi_ewald2.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_numeric.o \
 	$(mpi_include)
-	$(PPFCCOMPILE) -c -o m_errors.o `test -f '16_hideleave/m_errors.F90' || echo '$(srcdir)/'`16_hideleave/m_errors.F90
+	$(PPFCCOMPILE) -c -o abi_ewald2.o `test -f 'abi_common/abi_ewald2.F90' || echo '$(srcdir)/'`abi_common/abi_ewald2.F90
 
-m_xieee.o: 16_hideleave/m_xieee.F90
-	$(PPFCCOMPILE) -c -o m_xieee.o `test -f '16_hideleave/m_xieee.F90' || echo '$(srcdir)/'`16_hideleave/m_xieee.F90
+abi_fconv.o: abi_common/abi_fconv.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_fconv.o `test -f 'abi_common/abi_fconv.F90' || echo '$(srcdir)/'`abi_common/abi_fconv.F90
 
-m_profiling.o: 18_memory/m_profiling.F90 \
-	defs_basis.o \
+abi_interfaces_common.o: abi_common/abi_interfaces_common.F90 \
+	abi_defs_basis.o \
+	abi_ewald.o \
+	abi_ewald2.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_common.o `test -f 'abi_common/abi_interfaces_common.F90' || echo '$(srcdir)/'`abi_common/abi_interfaces_common.F90
+
+abi_prtxvf.o: abi_common/abi_prtxvf.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_prtxvf.o `test -f 'abi_common/abi_prtxvf.F90' || echo '$(srcdir)/'`abi_common/abi_prtxvf.F90
+
+m_ab6_symmetry.o: abi_geometry/m_ab6_symmetry.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o m_ab6_symmetry.o `test -f 'abi_geometry/m_ab6_symmetry.F90' || echo '$(srcdir)/'`abi_geometry/m_ab6_symmetry.F90
+
+abi_bldgrp.o: abi_geometry/abi_bldgrp.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_bldgrp.o `test -f 'abi_geometry/abi_bldgrp.F90' || echo '$(srcdir)/'`abi_geometry/abi_bldgrp.F90
+
+abi_bonds_lgth_angles.o: abi_geometry/abi_bonds_lgth_angles.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_bonds_lgth_angles.o `test -f 'abi_geometry/abi_bonds_lgth_angles.F90' || echo '$(srcdir)/'`abi_geometry/abi_bonds_lgth_angles.F90
+
+abi_chkgrp.o: abi_geometry/abi_chkgrp.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_chkgrp.o `test -f 'abi_geometry/abi_chkgrp.F90' || echo '$(srcdir)/'`abi_geometry/abi_chkgrp.F90
+
+abi_chkprimit.o: abi_geometry/abi_chkprimit.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_chkprimit.o `test -f 'abi_geometry/abi_chkprimit.F90' || echo '$(srcdir)/'`abi_geometry/abi_chkprimit.F90
+
+abi_getptgroupma.o: abi_geometry/abi_getptgroupma.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_getptgroupma.o `test -f 'abi_geometry/abi_getptgroupma.F90' || echo '$(srcdir)/'`abi_geometry/abi_getptgroupma.F90
+
+abi_holocell.o: abi_geometry/abi_holocell.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_holocell.o `test -f 'abi_geometry/abi_holocell.F90' || echo '$(srcdir)/'`abi_geometry/abi_holocell.F90
+
+abi_interfaces_geometry.o: abi_geometry/abi_interfaces_geometry.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_geometry.o `test -f 'abi_geometry/abi_interfaces_geometry.F90' || echo '$(srcdir)/'`abi_geometry/abi_interfaces_geometry.F90
+
+abi_metric.o: abi_geometry/abi_metric.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_metric.o `test -f 'abi_geometry/abi_metric.F90' || echo '$(srcdir)/'`abi_geometry/abi_metric.F90
+
+abi_mkrdim.o: abi_geometry/abi_mkrdim.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_mkrdim.o `test -f 'abi_geometry/abi_mkrdim.F90' || echo '$(srcdir)/'`abi_geometry/abi_mkrdim.F90
+
+abi_ptgmadata.o: abi_geometry/abi_ptgmadata.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_ptgmadata.o `test -f 'abi_geometry/abi_ptgmadata.F90' || echo '$(srcdir)/'`abi_geometry/abi_ptgmadata.F90
+
+abi_smallprim.o: abi_geometry/abi_smallprim.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_smallprim.o `test -f 'abi_geometry/abi_smallprim.F90' || echo '$(srcdir)/'`abi_geometry/abi_smallprim.F90
+
+abi_spgdata.o: abi_geometry/abi_spgdata.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_spgdata.o `test -f 'abi_geometry/abi_spgdata.F90' || echo '$(srcdir)/'`abi_geometry/abi_spgdata.F90
+
+abi_strainsym.o: abi_geometry/abi_strainsym.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_linalg.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_strainsym.o `test -f 'abi_geometry/abi_strainsym.F90' || echo '$(srcdir)/'`abi_geometry/abi_strainsym.F90
+
+abi_strconv.o: abi_geometry/abi_strconv.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_strconv.o `test -f 'abi_geometry/abi_strconv.F90' || echo '$(srcdir)/'`abi_geometry/abi_strconv.F90
+
+abi_symanal.o: abi_geometry/abi_symanal.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symanal.o `test -f 'abi_geometry/abi_symanal.F90' || echo '$(srcdir)/'`abi_geometry/abi_symanal.F90
+
+abi_symatm.o: abi_geometry/abi_symatm.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symatm.o `test -f 'abi_geometry/abi_symatm.F90' || echo '$(srcdir)/'`abi_geometry/abi_symatm.F90
+
+abi_symaxes.o: abi_geometry/abi_symaxes.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symaxes.o `test -f 'abi_geometry/abi_symaxes.F90' || echo '$(srcdir)/'`abi_geometry/abi_symaxes.F90
+
+abi_symbrav.o: abi_geometry/abi_symbrav.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symbrav.o `test -f 'abi_geometry/abi_symbrav.F90' || echo '$(srcdir)/'`abi_geometry/abi_symbrav.F90
+
+abi_symchk.o: abi_geometry/abi_symchk.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symchk.o `test -f 'abi_geometry/abi_symchk.F90' || echo '$(srcdir)/'`abi_geometry/abi_symchk.F90
+
+abi_symdet.o: abi_geometry/abi_symdet.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symdet.o `test -f 'abi_geometry/abi_symdet.F90' || echo '$(srcdir)/'`abi_geometry/abi_symdet.F90
+
+abi_symfind.o: abi_geometry/abi_symfind.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symfind.o `test -f 'abi_geometry/abi_symfind.F90' || echo '$(srcdir)/'`abi_geometry/abi_symfind.F90
+
+abi_symlatt.o: abi_geometry/abi_symlatt.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symlatt.o `test -f 'abi_geometry/abi_symlatt.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlatt.F90
+
+abi_symlist_bcc.o: abi_geometry/abi_symlist_bcc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_bcc.o `test -f 'abi_geometry/abi_symlist_bcc.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_bcc.F90
+
+abi_symlist_fcc.o: abi_geometry/abi_symlist_fcc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_fcc.o `test -f 'abi_geometry/abi_symlist_fcc.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_fcc.F90
+
+abi_symlist_others.o: abi_geometry/abi_symlist_others.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_others.o `test -f 'abi_geometry/abi_symlist_others.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_others.F90
+
+abi_symlist_prim.o: abi_geometry/abi_symlist_prim.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_symlist_prim.o `test -f 'abi_geometry/abi_symlist_prim.F90' || echo '$(srcdir)/'`abi_geometry/abi_symlist_prim.F90
+
+abi_symplanes.o: abi_geometry/abi_symplanes.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symplanes.o `test -f 'abi_geometry/abi_symplanes.F90' || echo '$(srcdir)/'`abi_geometry/abi_symplanes.F90
+
+abi_symptgroup.o: abi_geometry/abi_symptgroup.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symptgroup.o `test -f 'abi_geometry/abi_symptgroup.F90' || echo '$(srcdir)/'`abi_geometry/abi_symptgroup.F90
+
+abi_symrelrot.o: abi_geometry/abi_symrelrot.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symrelrot.o `test -f 'abi_geometry/abi_symrelrot.F90' || echo '$(srcdir)/'`abi_geometry/abi_symrelrot.F90
+
+abi_symsgcube.o: abi_geometry/abi_symsgcube.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgcube.o `test -f 'abi_geometry/abi_symsgcube.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgcube.F90
+
+abi_symsghexa.o: abi_geometry/abi_symsghexa.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsghexa.o `test -f 'abi_geometry/abi_symsghexa.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsghexa.F90
+
+abi_symsgmono.o: abi_geometry/abi_symsgmono.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgmono.o `test -f 'abi_geometry/abi_symsgmono.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgmono.F90
+
+abi_symsgortho.o: abi_geometry/abi_symsgortho.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgortho.o `test -f 'abi_geometry/abi_symsgortho.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgortho.F90
+
+abi_symsgtetra.o: abi_geometry/abi_symsgtetra.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o
+	$(PPFCCOMPILE) -c -o abi_symsgtetra.o `test -f 'abi_geometry/abi_symsgtetra.F90' || echo '$(srcdir)/'`abi_geometry/abi_symsgtetra.F90
+
+abi_symspgr.o: abi_geometry/abi_symspgr.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_symspgr.o `test -f 'abi_geometry/abi_symspgr.F90' || echo '$(srcdir)/'`abi_geometry/abi_symspgr.F90
+
+abi_xredxcart.o: abi_geometry/abi_xredxcart.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_xredxcart.o `test -f 'abi_geometry/abi_xredxcart.F90' || echo '$(srcdir)/'`abi_geometry/abi_xredxcart.F90
+
+m_ab6_moldyn.o: abi_geomoptim/m_ab6_moldyn.F90 \
+	abi_defs_basis.o \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_isokinetic.F90.inc \
+	abi_defs_basis.o \
+	abi_geomoptim/abi_isotemp.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_isothermal.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_geomoptim/abi_langevin.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_common.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_moldyn.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_nose.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_geomoptim/abi_quenched.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_geomoptim/abi_velocity_verlet.F90.inc \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
+	abi_geomoptim/abi_xfpack.F90.inc
+	$(PPFCCOMPILE) -c -o m_ab6_moldyn.o `test -f 'abi_geomoptim/m_ab6_moldyn.F90' || echo '$(srcdir)/'`abi_geomoptim/m_ab6_moldyn.F90
+
+abi_defs_basis.o: abi_lowlevel/abi_defs_basis.F90
+	$(PPFCCOMPILE) -c -o abi_defs_basis.o `test -f 'abi_lowlevel/abi_defs_basis.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_defs_basis.F90
+
+abi_interfaces_lowlevel.o: abi_lowlevel/abi_interfaces_lowlevel.F90
+	$(PPFCCOMPILE) -c -o abi_interfaces_lowlevel.o `test -f 'abi_lowlevel/abi_interfaces_lowlevel.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_interfaces_lowlevel.F90
+
+abi_interfaces_linalg.o: abi_lowlevel/abi_interfaces_linalg.F90
+	$(PPFCCOMPILE) -c -o abi_interfaces_linalg.o `test -f 'abi_lowlevel/abi_interfaces_linalg.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_interfaces_linalg.F90
+
+abi_leave_new.o: abi_lowlevel/abi_leave_new.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	m_abi_xmpi.o
+	$(PPFCCOMPILE) -c -o abi_leave_new.o `test -f 'abi_lowlevel/abi_leave_new.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_leave_new.F90
+
+m_abi_xmpi.o: abi_lowlevel/m_abi_xmpi.F90 \
+	abi_defs_basis.o \
 	$(mpi_include)
-	$(PPFCCOMPILE) -c -o m_profiling.o `test -f '18_memory/m_profiling.F90' || echo '$(srcdir)/'`18_memory/m_profiling.F90
-
-interfaces_18_timing.o: 18_timing/interfaces_18_timing.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_18_timing.o `test -f '18_timing/interfaces_18_timing.F90' || echo '$(srcdir)/'`18_timing/interfaces_18_timing.F90
-
-timab.o: 18_timing/timab.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_18_timing.o
-	$(PPFCCOMPILE) -c -o timab.o `test -f '18_timing/timab.F90' || echo '$(srcdir)/'`18_timing/timab.F90
-
-interfaces_28_numeric_noabirule.o: 28_numeric_noabirule/interfaces_28_numeric_noabirule.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_28_numeric_noabirule.o `test -f '28_numeric_noabirule/interfaces_28_numeric_noabirule.F90' || echo '$(srcdir)/'`28_numeric_noabirule/interfaces_28_numeric_noabirule.F90
-
-m_splines.o: 28_numeric_noabirule/m_splines.F90 \
-	defs_basis.o m_errors.o
-	$(PPFCCOMPILE) -c -o m_splines.o `test -f '28_numeric_noabirule/m_splines.F90' || echo '$(srcdir)/'`28_numeric_noabirule/m_splines.F90
-
-sort_dp.o: 28_numeric_noabirule/sort_dp.F90
-	$(PPFCCOMPILE) -c -o sort_dp.o `test -f '28_numeric_noabirule/sort_dp.F90' || echo '$(srcdir)/'`28_numeric_noabirule/sort_dp.F90
-
-sort_int.o: 28_numeric_noabirule/sort_int.F90
-	$(PPFCCOMPILE) -c -o sort_int.o `test -f '28_numeric_noabirule/sort_int.F90' || echo '$(srcdir)/'`28_numeric_noabirule/sort_int.F90
-
-uniformrandom.o: 28_numeric_noabirule/uniformrandom.F90 \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o uniformrandom.o `test -f '28_numeric_noabirule/uniformrandom.F90' || echo '$(srcdir)/'`28_numeric_noabirule/uniformrandom.F90
-
-canon9.o: 32_util/canon9.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o canon9.o `test -f '32_util/canon9.F90' || echo '$(srcdir)/'`32_util/canon9.F90
-
-derfc.o: 32_util/derfc.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o derfc.o `test -f '32_util/derfc.F90' || echo '$(srcdir)/'`32_util/derfc.F90
-
-interfaces_32_util.o: 32_util/interfaces_32_util.F90 \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o interfaces_32_util.o `test -f '32_util/interfaces_32_util.F90' || echo '$(srcdir)/'`32_util/interfaces_32_util.F90
-
-mati3inv.o: 32_util/mati3inv.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o mati3inv.o `test -f '32_util/mati3inv.F90' || echo '$(srcdir)/'`32_util/mati3inv.F90
-
-matr3inv.o: 32_util/matr3inv.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o matr3inv.o `test -f '32_util/matr3inv.F90' || echo '$(srcdir)/'`32_util/matr3inv.F90
-
-matrginv.o: 32_util/matrginv.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_linalg.o
-	$(PPFCCOMPILE) -c -o matrginv.o `test -f '32_util/matrginv.F90' || echo '$(srcdir)/'`32_util/matrginv.F90
-
-wrap2_pmhalf.o: 32_util/wrap2_pmhalf.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o wrap2_pmhalf.o `test -f '32_util/wrap2_pmhalf.F90' || echo '$(srcdir)/'`32_util/wrap2_pmhalf.F90
-
-drivexc.o: 41_xc_lowlevel/drivexc.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_41_xc_lowlevel.o \
-	m_libxc_functionals.o
-	$(PPFCCOMPILE) -c -o drivexc.o `test -f '41_xc_lowlevel/drivexc.F90' || echo '$(srcdir)/'`41_xc_lowlevel/drivexc.F90
-
-interfaces_41_xc_lowlevel.o: 41_xc_lowlevel/interfaces_41_xc_lowlevel.F90 \
-	defs_abitypes.o \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_41_xc_lowlevel.o `test -f '41_xc_lowlevel/interfaces_41_xc_lowlevel.F90' || echo '$(srcdir)/'`41_xc_lowlevel/interfaces_41_xc_lowlevel.F90
-
-invcb.o: 41_xc_lowlevel/invcb.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o invcb.o `test -f '41_xc_lowlevel/invcb.F90' || echo '$(srcdir)/'`41_xc_lowlevel/invcb.F90
-
-m_libxc_functionals.o: 41_xc_lowlevel/m_libxc_functionals.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o m_libxc_functionals.o `test -f '41_xc_lowlevel/m_libxc_functionals.F90' || echo '$(srcdir)/'`41_xc_lowlevel/m_libxc_functionals.F90
-
-mkdenpos.o: 41_xc_lowlevel/mkdenpos.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o mkdenpos.o `test -f '41_xc_lowlevel/mkdenpos.F90' || echo '$(srcdir)/'`41_xc_lowlevel/mkdenpos.F90
-
-size_dvxc.o: 41_xc_lowlevel/size_dvxc.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o size_dvxc.o `test -f '41_xc_lowlevel/size_dvxc.F90' || echo '$(srcdir)/'`41_xc_lowlevel/size_dvxc.F90
-
-xchcth.o: 41_xc_lowlevel/xchcth.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_41_xc_lowlevel.o
-	$(PPFCCOMPILE) -c -o xchcth.o `test -f '41_xc_lowlevel/xchcth.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xchcth.F90
-
-xchelu.o: 41_xc_lowlevel/xchelu.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xchelu.o `test -f '41_xc_lowlevel/xchelu.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xchelu.F90
-
-xclb.o: 41_xc_lowlevel/xclb.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o xclb.o `test -f '41_xc_lowlevel/xclb.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xclb.F90
-
-xcpbe.o: 41_xc_lowlevel/xcpbe.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_41_xc_lowlevel.o
-	$(PPFCCOMPILE) -c -o xcpbe.o `test -f '41_xc_lowlevel/xcpbe.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcpbe.F90
-
-xcpzca.o: 41_xc_lowlevel/xcpzca.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcpzca.o `test -f '41_xc_lowlevel/xcpzca.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcpzca.F90
-
-xcspol.o: 41_xc_lowlevel/xcspol.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcspol.o `test -f '41_xc_lowlevel/xcspol.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcspol.F90
-
-xctetr.o: 41_xc_lowlevel/xctetr.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xctetr.o `test -f '41_xc_lowlevel/xctetr.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xctetr.F90
-
-xcwign.o: 41_xc_lowlevel/xcwign.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcwign.o `test -f '41_xc_lowlevel/xcwign.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcwign.F90
-
-xcxalp.o: 41_xc_lowlevel/xcxalp.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o xcxalp.o `test -f '41_xc_lowlevel/xcxalp.F90' || echo '$(srcdir)/'`41_xc_lowlevel/xcxalp.F90
-
-bldgrp.o: 42_geometry/bldgrp.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o bldgrp.o `test -f '42_geometry/bldgrp.F90' || echo '$(srcdir)/'`42_geometry/bldgrp.F90
-
-bldgrpaf.o: 42_geometry/bldgrpaf.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o bldgrpaf.o `test -f '42_geometry/bldgrpaf.F90' || echo '$(srcdir)/'`42_geometry/bldgrpaf.F90
-
-bonds_lgth_angles.o: 42_geometry/bonds_lgth_angles.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o bonds_lgth_angles.o `test -f '42_geometry/bonds_lgth_angles.F90' || echo '$(srcdir)/'`42_geometry/bonds_lgth_angles.F90
-
-chkdilatmx.o: 42_geometry/chkdilatmx.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o chkdilatmx.o `test -f '42_geometry/chkdilatmx.F90' || echo '$(srcdir)/'`42_geometry/chkdilatmx.F90
-
-chkgrp.o: 42_geometry/chkgrp.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o chkgrp.o `test -f '42_geometry/chkgrp.F90' || echo '$(srcdir)/'`42_geometry/chkgrp.F90
-
-chkorthsy.o: 42_geometry/chkorthsy.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o chkorthsy.o `test -f '42_geometry/chkorthsy.F90' || echo '$(srcdir)/'`42_geometry/chkorthsy.F90
-
-chkprimit.o: 42_geometry/chkprimit.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o chkprimit.o `test -f '42_geometry/chkprimit.F90' || echo '$(srcdir)/'`42_geometry/chkprimit.F90
-
-gensymshub.o: 42_geometry/gensymshub.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o gensymshub.o `test -f '42_geometry/gensymshub.F90' || echo '$(srcdir)/'`42_geometry/gensymshub.F90
-
-gensymshub4.o: 42_geometry/gensymshub4.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o gensymshub4.o `test -f '42_geometry/gensymshub4.F90' || echo '$(srcdir)/'`42_geometry/gensymshub4.F90
-
-gensymspgr.o: 42_geometry/gensymspgr.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o gensymspgr.o `test -f '42_geometry/gensymspgr.F90' || echo '$(srcdir)/'`42_geometry/gensymspgr.F90
-
-getptgroupma.o: 42_geometry/getptgroupma.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o getptgroupma.o `test -f '42_geometry/getptgroupma.F90' || echo '$(srcdir)/'`42_geometry/getptgroupma.F90
-
-getspinrot.o: 42_geometry/getspinrot.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o getspinrot.o `test -f '42_geometry/getspinrot.F90' || echo '$(srcdir)/'`42_geometry/getspinrot.F90
-
-gridgcart.o: 42_geometry/gridgcart.F90 \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o gridgcart.o `test -f '42_geometry/gridgcart.F90' || echo '$(srcdir)/'`42_geometry/gridgcart.F90
-
-holocell.o: 42_geometry/holocell.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o holocell.o `test -f '42_geometry/holocell.F90' || echo '$(srcdir)/'`42_geometry/holocell.F90
-
-interfaces_42_geometry.o: 42_geometry/interfaces_42_geometry.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_42_geometry.o `test -f '42_geometry/interfaces_42_geometry.F90' || echo '$(srcdir)/'`42_geometry/interfaces_42_geometry.F90
-
-m_ab6_symmetry.o: 42_geometry/m_ab6_symmetry.F90 \
-	defs_basis.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o m_ab6_symmetry.o `test -f '42_geometry/m_ab6_symmetry.F90' || echo '$(srcdir)/'`42_geometry/m_ab6_symmetry.F90
-
-metric.o: 42_geometry/metric.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o metric.o `test -f '42_geometry/metric.F90' || echo '$(srcdir)/'`42_geometry/metric.F90
-
-mkrdim.o: 42_geometry/mkrdim.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o mkrdim.o `test -f '42_geometry/mkrdim.F90' || echo '$(srcdir)/'`42_geometry/mkrdim.F90
-
-operat.o: 42_geometry/operat.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o operat.o `test -f '42_geometry/operat.F90' || echo '$(srcdir)/'`42_geometry/operat.F90
-
-prtspgroup.o: 42_geometry/prtspgroup.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o prtspgroup.o `test -f '42_geometry/prtspgroup.F90' || echo '$(srcdir)/'`42_geometry/prtspgroup.F90
-
-ptgmadata.o: 42_geometry/ptgmadata.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o ptgmadata.o `test -f '42_geometry/ptgmadata.F90' || echo '$(srcdir)/'`42_geometry/ptgmadata.F90
-
-smallprim.o: 42_geometry/smallprim.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o smallprim.o `test -f '42_geometry/smallprim.F90' || echo '$(srcdir)/'`42_geometry/smallprim.F90
-
-spgdata.o: 42_geometry/spgdata.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o spgdata.o `test -f '42_geometry/spgdata.F90' || echo '$(srcdir)/'`42_geometry/spgdata.F90
-
-strainsym.o: 42_geometry/strainsym.F90 \
-	defs_basis.o \
-	interfaces_32_util.o \
-	interfaces_linalg.o
-	$(PPFCCOMPILE) -c -o strainsym.o `test -f '42_geometry/strainsym.F90' || echo '$(srcdir)/'`42_geometry/strainsym.F90
-
-strconv.o: 42_geometry/strconv.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o strconv.o `test -f '42_geometry/strconv.F90' || echo '$(srcdir)/'`42_geometry/strconv.F90
-
-stresssym.o: 42_geometry/stresssym.F90 \
-	defs_basis.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o stresssym.o `test -f '42_geometry/stresssym.F90' || echo '$(srcdir)/'`42_geometry/stresssym.F90
-
-sym2cart.o: 42_geometry/sym2cart.F90 \
-	defs_basis.o \
-	interfaces_linalg.o
-	$(PPFCCOMPILE) -c -o sym2cart.o `test -f '42_geometry/sym2cart.F90' || echo '$(srcdir)/'`42_geometry/sym2cart.F90
-
-symanal.o: 42_geometry/symanal.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symanal.o `test -f '42_geometry/symanal.F90' || echo '$(srcdir)/'`42_geometry/symanal.F90
-
-symatm.o: 42_geometry/symatm.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symatm.o `test -f '42_geometry/symatm.F90' || echo '$(srcdir)/'`42_geometry/symatm.F90
-
-symaxes.o: 42_geometry/symaxes.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o symaxes.o `test -f '42_geometry/symaxes.F90' || echo '$(srcdir)/'`42_geometry/symaxes.F90
-
-symbrav.o: 42_geometry/symbrav.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symbrav.o `test -f '42_geometry/symbrav.F90' || echo '$(srcdir)/'`42_geometry/symbrav.F90
-
-symchk.o: 42_geometry/symchk.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symchk.o `test -f '42_geometry/symchk.F90' || echo '$(srcdir)/'`42_geometry/symchk.F90
-
-symdet.o: 42_geometry/symdet.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o symdet.o `test -f '42_geometry/symdet.F90' || echo '$(srcdir)/'`42_geometry/symdet.F90
-
-symfind.o: 42_geometry/symfind.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o
-	$(PPFCCOMPILE) -c -o symfind.o `test -f '42_geometry/symfind.F90' || echo '$(srcdir)/'`42_geometry/symfind.F90
-
-symlatt.o: 42_geometry/symlatt.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symlatt.o `test -f '42_geometry/symlatt.F90' || echo '$(srcdir)/'`42_geometry/symlatt.F90
-
-symlist_bcc.o: 42_geometry/symlist_bcc.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_bcc.o `test -f '42_geometry/symlist_bcc.F90' || echo '$(srcdir)/'`42_geometry/symlist_bcc.F90
-
-symlist_fcc.o: 42_geometry/symlist_fcc.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_fcc.o `test -f '42_geometry/symlist_fcc.F90' || echo '$(srcdir)/'`42_geometry/symlist_fcc.F90
-
-symlist_others.o: 42_geometry/symlist_others.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_others.o `test -f '42_geometry/symlist_others.F90' || echo '$(srcdir)/'`42_geometry/symlist_others.F90
-
-symlist_prim.o: 42_geometry/symlist_prim.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symlist_prim.o `test -f '42_geometry/symlist_prim.F90' || echo '$(srcdir)/'`42_geometry/symlist_prim.F90
-
-symmultsg.o: 42_geometry/symmultsg.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o symmultsg.o `test -f '42_geometry/symmultsg.F90' || echo '$(srcdir)/'`42_geometry/symmultsg.F90
-
-symplanes.o: 42_geometry/symplanes.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o symplanes.o `test -f '42_geometry/symplanes.F90' || echo '$(srcdir)/'`42_geometry/symplanes.F90
-
-symptgroup.o: 42_geometry/symptgroup.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symptgroup.o `test -f '42_geometry/symptgroup.F90' || echo '$(srcdir)/'`42_geometry/symptgroup.F90
-
-symredcart.o: 42_geometry/symredcart.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symredcart.o `test -f '42_geometry/symredcart.F90' || echo '$(srcdir)/'`42_geometry/symredcart.F90
-
-symrelrot.o: 42_geometry/symrelrot.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o symrelrot.o `test -f '42_geometry/symrelrot.F90' || echo '$(srcdir)/'`42_geometry/symrelrot.F90
-
-symsgcube.o: 42_geometry/symsgcube.F90 \
-	defs_basis.o \
-	interfaces_18_timing.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgcube.o `test -f '42_geometry/symsgcube.F90' || echo '$(srcdir)/'`42_geometry/symsgcube.F90
-
-symsghexa.o: 42_geometry/symsghexa.F90 \
-	defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsghexa.o `test -f '42_geometry/symsghexa.F90' || echo '$(srcdir)/'`42_geometry/symsghexa.F90
-
-symsgmono.o: 42_geometry/symsgmono.F90 \
-	defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgmono.o `test -f '42_geometry/symsgmono.F90' || echo '$(srcdir)/'`42_geometry/symsgmono.F90
-
-symsgortho.o: 42_geometry/symsgortho.F90 \
-	defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgortho.o `test -f '42_geometry/symsgortho.F90' || echo '$(srcdir)/'`42_geometry/symsgortho.F90
-
-symsgtetra.o: 42_geometry/symsgtetra.F90 \
-	defs_basis.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symsgtetra.o `test -f '42_geometry/symsgtetra.F90' || echo '$(srcdir)/'`42_geometry/symsgtetra.F90
-
-symspgr.o: 42_geometry/symspgr.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o symspgr.o `test -f '42_geometry/symspgr.F90' || echo '$(srcdir)/'`42_geometry/symspgr.F90
-
-symzat.o: 42_geometry/symzat.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o symzat.o `test -f '42_geometry/symzat.F90' || echo '$(srcdir)/'`42_geometry/symzat.F90
-
-xredxcart.o: 42_geometry/xredxcart.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o xredxcart.o `test -f '42_geometry/xredxcart.F90' || echo '$(srcdir)/'`42_geometry/xredxcart.F90
-
-interfaces_42_libpaw.o: 42_libpaw/interfaces_42_libpaw.F90 \
-	m_pawang.o m_pawrad.o m_pawtab.o m_pawrhoij.o m_errors.o
-	$(PPFCCOMPILE) -c -o interfaces_42_libpaw.o `test -f '42_libpaw/interfaces_42_libpaw.F90' || echo '$(srcdir)/'`42_libpaw/interfaces_42_libpaw.F90
-
-m_atompaw.o: 42_libpaw/m_atompaw.F90 \
-	defs_basis.o \
-	m_errors.o \
+	$(PPFCCOMPILE) -c -o m_abi_xmpi.o `test -f 'abi_lowlevel/m_abi_xmpi.F90' || echo '$(srcdir)/'`abi_lowlevel/m_abi_xmpi.F90
+
+abi_wrtout.o: abi_lowlevel/abi_wrtout.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	m_abi_xmpi.o
+	$(PPFCCOMPILE) -c -o abi_wrtout.o `test -f 'abi_lowlevel/abi_wrtout.F90' || echo '$(srcdir)/'`abi_lowlevel/abi_wrtout.F90
+
+abi_aprxdr.o: abi_mixing/abi_aprxdr.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_mixing.o
+	$(PPFCCOMPILE) -c -o abi_aprxdr.o `test -f 'abi_mixing/abi_aprxdr.F90' || echo '$(srcdir)/'`abi_mixing/abi_aprxdr.F90
+
+abi_dotprodm_v.o: abi_mixing/abi_dotprodm_v.F90 \
+	abi_defs_basis.o \
+	m_abi_xmpi.o
+	$(PPFCCOMPILE) -c -o abi_dotprodm_v.o `test -f 'abi_mixing/abi_dotprodm_v.F90' || echo '$(srcdir)/'`abi_mixing/abi_dotprodm_v.F90
+
+abi_dotprodm_vn.o: abi_mixing/abi_dotprodm_vn.F90 \
+	abi_defs_basis.o \
+	m_abi_xmpi.o
+	$(PPFCCOMPILE) -c -o abi_dotprodm_vn.o `test -f 'abi_mixing/abi_dotprodm_vn.F90' || echo '$(srcdir)/'`abi_mixing/abi_dotprodm_vn.F90
+
+abi_findminscf.o: abi_mixing/abi_findminscf.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_findminscf.o `test -f 'abi_mixing/abi_findminscf.F90' || echo '$(srcdir)/'`abi_mixing/abi_findminscf.F90
+
+abi_interfaces_mixing.o: abi_mixing/abi_interfaces_mixing.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_mixing.o `test -f 'abi_mixing/abi_interfaces_mixing.F90' || echo '$(srcdir)/'`abi_mixing/abi_interfaces_mixing.F90
+
+abi_scfcge.o: abi_mixing/abi_scfcge.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_mixing.o
+	$(PPFCCOMPILE) -c -o abi_scfcge.o `test -f 'abi_mixing/abi_scfcge.F90' || echo '$(srcdir)/'`abi_mixing/abi_scfcge.F90
+
+abi_scfeig.o: abi_mixing/abi_scfeig.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_scfeig.o `test -f 'abi_mixing/abi_scfeig.F90' || echo '$(srcdir)/'`abi_mixing/abi_scfeig.F90
+
+abi_scfopt.o: abi_mixing/abi_scfopt.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_linalg.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_mixing.o
+	$(PPFCCOMPILE) -c -o abi_scfopt.o `test -f 'abi_mixing/abi_scfopt.F90' || echo '$(srcdir)/'`abi_mixing/abi_scfopt.F90
+
+abi_sqnormm_v.o: abi_mixing/abi_sqnormm_v.F90 \
+	abi_defs_basis.o \
+	m_abi_xmpi.o
+	$(PPFCCOMPILE) -c -o abi_sqnormm_v.o `test -f 'abi_mixing/abi_sqnormm_v.F90' || echo '$(srcdir)/'`abi_mixing/abi_sqnormm_v.F90
+
+abi_derfc.o: abi_numeric/abi_derfc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_derfc.o `test -f 'abi_numeric/abi_derfc.F90' || echo '$(srcdir)/'`abi_numeric/abi_derfc.F90
+
+abi_interfaces_numeric.o: abi_numeric/abi_interfaces_numeric.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_numeric.o `test -f 'abi_numeric/abi_interfaces_numeric.F90' || echo '$(srcdir)/'`abi_numeric/abi_interfaces_numeric.F90
+
+abi_mati3inv.o: abi_numeric/abi_mati3inv.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_mati3inv.o `test -f 'abi_numeric/abi_mati3inv.F90' || echo '$(srcdir)/'`abi_numeric/abi_mati3inv.F90
+
+abi_matr3inv.o: abi_numeric/abi_matr3inv.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_matr3inv.o `test -f 'abi_numeric/abi_matr3inv.F90' || echo '$(srcdir)/'`abi_numeric/abi_matr3inv.F90
+
+abi_matrginv.o: abi_numeric/abi_matrginv.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_linalg.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_matrginv.o `test -f 'abi_numeric/abi_matrginv.F90' || echo '$(srcdir)/'`abi_numeric/abi_matrginv.F90
+
+abi_sort_dp.o: abi_numeric/abi_sort_dp.F90
+	$(PPFCCOMPILE) -c -o abi_sort_dp.o `test -f 'abi_numeric/abi_sort_dp.F90' || echo '$(srcdir)/'`abi_numeric/abi_sort_dp.F90
+
+abi_sort_int.o: abi_numeric/abi_sort_int.F90
+	$(PPFCCOMPILE) -c -o abi_sort_int.o `test -f 'abi_numeric/abi_sort_int.F90' || echo '$(srcdir)/'`abi_numeric/abi_sort_int.F90
+
+abi_uniformrandom.o: abi_numeric/abi_uniformrandom.F90 \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_uniformrandom.o `test -f 'abi_numeric/abi_uniformrandom.F90' || echo '$(srcdir)/'`abi_numeric/abi_uniformrandom.F90
+
+abi_wrap2_pmhalf.o: abi_numeric/abi_wrap2_pmhalf.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_wrap2_pmhalf.o `test -f 'abi_numeric/abi_wrap2_pmhalf.F90' || echo '$(srcdir)/'`abi_numeric/abi_wrap2_pmhalf.F90
+
+abi_getkgrid.o: abi_recipspace/abi_getkgrid.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
+	abi_interfaces_recipspace.o
+	$(PPFCCOMPILE) -c -o abi_getkgrid.o `test -f 'abi_recipspace/abi_getkgrid.F90' || echo '$(srcdir)/'`abi_recipspace/abi_getkgrid.F90
+
+abi_interfaces_recipspace.o: abi_recipspace/abi_interfaces_recipspace.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_recipspace.o `test -f 'abi_recipspace/abi_interfaces_recipspace.F90' || echo '$(srcdir)/'`abi_recipspace/abi_interfaces_recipspace.F90
+
+abi_irrzg.o: abi_recipspace/abi_irrzg.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_irrzg.o `test -f 'abi_recipspace/abi_irrzg.F90' || echo '$(srcdir)/'`abi_recipspace/abi_irrzg.F90
+
+m_ab6_kpoints.o: abi_recipspace/m_ab6_kpoints.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_recipspace.o \
+	m_ab6_symmetry.o
+	$(PPFCCOMPILE) -c -o m_ab6_kpoints.o `test -f 'abi_recipspace/m_ab6_kpoints.F90' || echo '$(srcdir)/'`abi_recipspace/m_ab6_kpoints.F90
+
+abi_smpbz.o: abi_recipspace/abi_smpbz.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_smpbz.o `test -f 'abi_recipspace/abi_smpbz.F90' || echo '$(srcdir)/'`abi_recipspace/abi_smpbz.F90
+
+abi_symkpt.o: abi_recipspace/abi_symkpt.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o
+	$(PPFCCOMPILE) -c -o abi_symkpt.o `test -f 'abi_recipspace/abi_symkpt.F90' || echo '$(srcdir)/'`abi_recipspace/abi_symkpt.F90
+
+abi_testkgrid.o: abi_recipspace/abi_testkgrid.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_geometry.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_numeric.o \
+	abi_interfaces_recipspace.o
+	$(PPFCCOMPILE) -c -o abi_testkgrid.o `test -f 'abi_recipspace/abi_testkgrid.F90' || echo '$(srcdir)/'`abi_recipspace/abi_testkgrid.F90
+
+abi_interfaces_xc_lowlevel.o: abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_xc_lowlevel.o `test -f 'abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_interfaces_xc_lowlevel.F90
+
+abi_drivexc.o: abi_xc_lowlevel/abi_drivexc.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_drivexc.o `test -f 'abi_xc_lowlevel/abi_drivexc.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_drivexc.F90
+
+abi_invcb.o: abi_xc_lowlevel/abi_invcb.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_invcb.o `test -f 'abi_xc_lowlevel/abi_invcb.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_invcb.F90
+
+abi_mkdenpos.o: abi_xc_lowlevel/abi_mkdenpos.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_mkdenpos.o `test -f 'abi_xc_lowlevel/abi_mkdenpos.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_mkdenpos.F90
+
+abi_size_dvxc.o: abi_xc_lowlevel/abi_size_dvxc.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_size_dvxc.o `test -f 'abi_xc_lowlevel/abi_size_dvxc.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_size_dvxc.F90
+
+abi_xchcth.o: abi_xc_lowlevel/abi_xchcth.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xchcth.o `test -f 'abi_xc_lowlevel/abi_xchcth.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xchcth.F90
+
+abi_xchelu.o: abi_xc_lowlevel/abi_xchelu.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xchelu.o `test -f 'abi_xc_lowlevel/abi_xchelu.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xchelu.F90
+
+abi_xclb.o: abi_xc_lowlevel/abi_xclb.F90 \
+	abi_defs_basis.o
+	$(PPFCCOMPILE) -c -o abi_xclb.o `test -f 'abi_xc_lowlevel/abi_xclb.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xclb.F90
+
+abi_xcpbe.o: abi_xc_lowlevel/abi_xcpbe.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o \
+	abi_interfaces_xc_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcpbe.o `test -f 'abi_xc_lowlevel/abi_xcpbe.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcpbe.F90
+
+abi_xcpzca.o: abi_xc_lowlevel/abi_xcpzca.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcpzca.o `test -f 'abi_xc_lowlevel/abi_xcpzca.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcpzca.F90
+
+abi_xcspol.o: abi_xc_lowlevel/abi_xcspol.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcspol.o `test -f 'abi_xc_lowlevel/abi_xcspol.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcspol.F90
+
+abi_xctetr.o: abi_xc_lowlevel/abi_xctetr.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xctetr.o `test -f 'abi_xc_lowlevel/abi_xctetr.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xctetr.F90
+
+abi_xcwign.o: abi_xc_lowlevel/abi_xcwign.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcwign.o `test -f 'abi_xc_lowlevel/abi_xcwign.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcwign.F90
+
+abi_xcxalp.o: abi_xc_lowlevel/abi_xcxalp.F90 \
+	abi_defs_basis.o \
+	abi_interfaces_lowlevel.o
+	$(PPFCCOMPILE) -c -o abi_xcxalp.o `test -f 'abi_xc_lowlevel/abi_xcxalp.F90' || echo '$(srcdir)/'`abi_xc_lowlevel/abi_xcxalp.F90
+
+abi_interfaces_add_libpaw.o: add_libpaw/abi_interfaces_add_libpaw.F90 \
+	m_abi_distribfft.o \
+	m_paw_an.o \
+	m_pawang.o \
+	m_pawcprj.o \
+	m_pawfgrtab.o \
+	m_paw_ij.o \
+	m_pawrad.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o
+	$(PPFCCOMPILE) -c -o abi_interfaces_add_libpaw.o `test -f 'add_libpaw/abi_interfaces_add_libpaw.F90' || echo '$(srcdir)/'`add_libpaw/abi_interfaces_add_libpaw.F90
+
+abi_initrhoij.o: add_libpaw/abi_initrhoij.F90 \
+	m_paral_atom.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_initrhoij.o `test -f 'add_libpaw/abi_initrhoij.F90' || echo '$(srcdir)/'`add_libpaw/abi_initrhoij.F90
+
+m_abi_distribfft.o: add_libpaw/m_abi_distribfft.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o m_abi_distribfft.o `test -f 'add_libpaw/m_abi_distribfft.F90' || echo '$(srcdir)/'`add_libpaw/m_abi_distribfft.F90
+
+abi_pawaccrhoij.o: add_libpaw/abi_pawaccrhoij.F90 \
+	m_paral_atom.o \
+	m_pawcprj.o \
+	m_pawrhoij.o \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawaccrhoij.o `test -f 'add_libpaw/abi_pawaccrhoij.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawaccrhoij.F90
+
+abi_pawdenpot.o: add_libpaw/abi_pawdenpot.F90 \
+	abi_interfaces_add_libpaw.o \
+	m_paral_atom.o \
+	m_paw_an.o \
+	m_pawang.o \
+	m_pawdij.o \
+	m_paw_ij.o \
+	m_pawrad.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_pawxc.o \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawdenpot.o `test -f 'add_libpaw/abi_pawdenpot.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawdenpot.F90
+
+abi_pawdensities.o: add_libpaw/abi_pawdensities.F90 \
+	m_pawang.o \
+	m_pawrad.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawdensities.o `test -f 'add_libpaw/abi_pawdensities.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawdensities.F90
+
+abi_pawinit.o: add_libpaw/abi_pawinit.F90 \
+	m_pawang.o \
+	m_paw_atom.o \
+	m_paw_numeric.o \
+	m_pawpsp.o \
+	m_pawrad.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawinit.o `test -f 'add_libpaw/abi_pawinit.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawinit.F90
+
+abi_pawmknhat.o: add_libpaw/abi_pawmknhat.F90 \
+	abi_interfaces_add_libpaw.o \
+	m_abi_distribfft.o \
+	m_paral_atom.o \
+	m_pawang.o \
+	m_pawfgrtab.o \
+	m_paw_finegrid.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawmknhat.o `test -f 'add_libpaw/abi_pawmknhat.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawmknhat.F90
+
+abi_pawmkrho.o: add_libpaw/abi_pawmkrho.F90 \
+	abi_interfaces_add_libpaw.o \
+	m_pawang.o \
+	m_pawfgrtab.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawmkrho.o `test -f 'add_libpaw/abi_pawmkrho.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawmkrho.F90
+
+abi_pawnhatfr.o: add_libpaw/abi_pawnhatfr.F90 \
+	m_paral_atom.o \
+	m_pawang.o \
+	m_pawfgrtab.o \
+	m_paw_finegrid.o \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawnhatfr.o `test -f 'add_libpaw/abi_pawnhatfr.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawnhatfr.F90
+
+abi_pawxenergy.o: add_libpaw/abi_pawxenergy.F90 \
+	m_pawrhoij.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_pawxenergy.o `test -f 'add_libpaw/abi_pawxenergy.F90' || echo '$(srcdir)/'`add_libpaw/abi_pawxenergy.F90
+
+abi_wvl_nhatgrid.o: add_libpaw/abi_wvl_nhatgrid.F90 \
+	m_pawfgrtab.o \
+	m_paw_finegrid.o \
+	m_pawtab.o \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o
+	$(PPFCCOMPILE) -c -o abi_wvl_nhatgrid.o `test -f 'add_libpaw/abi_wvl_nhatgrid.F90' || echo '$(srcdir)/'`add_libpaw/abi_wvl_nhatgrid.F90
+
+m_paw_atom.o: libpaw/m_paw_atom.F90 \
 	m_paw_numeric.o \
 	m_pawrad.o \
 	m_pawtab.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_atompaw.o `test -f '42_libpaw/m_atompaw.F90' || echo '$(srcdir)/'`42_libpaw/m_atompaw.F90
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_atom.o `test -f 'libpaw/m_paw_atom.F90' || echo '$(srcdir)/'`libpaw/m_paw_atom.F90
 
-m_gaussfit.o: 42_libpaw/m_gaussfit.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
+m_paw_gaussfit.o: libpaw/m_paw_gaussfit.F90 \
 	m_paw_numeric.o \
 	m_pawrad.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_gaussfit.o `test -f '42_libpaw/m_gaussfit.F90' || echo '$(srcdir)/'`42_libpaw/m_gaussfit.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_gaussfit.o `test -f 'libpaw/m_paw_gaussfit.F90' || echo '$(srcdir)/'`libpaw/m_paw_gaussfit.F90
 
-m_paral_atom.o: 42_libpaw/m_paral_atom.F90 \
-	defs_basis.o \
-	m_errors.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_paral_atom.o `test -f '42_libpaw/m_paral_atom.F90' || echo '$(srcdir)/'`42_libpaw/m_paral_atom.F90
+m_libpaw_defs.o: libpaw/m_libpaw_defs.F90
+	$(PPFCCOMPILE) -c -o m_libpaw_defs.o `test -f 'libpaw/m_libpaw_defs.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_defs.F90
 
-m_paw_an.o: 42_libpaw/m_paw_an.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
+m_libpaw_libxc.o: libpaw/m_libpaw_libxc.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_libpaw_libxc.o `test -f 'libpaw/m_libpaw_libxc.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_libxc.F90
+
+m_libpaw_mpi.o: libpaw/m_libpaw_mpi.F90 \
+	m_libpaw_defs.o \
+	libpaw.h \
+	$(mpi_include)
+	$(PPFCCOMPILE) -c -o m_libpaw_mpi.o `test -f 'libpaw/m_libpaw_mpi.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_mpi.F90
+
+m_libpaw_tools.o: libpaw/m_libpaw_tools.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_libpaw_tools.o `test -f 'libpaw/m_libpaw_tools.F90' || echo '$(srcdir)/'`libpaw/m_libpaw_tools.F90
+
+m_paral_atom.o: libpaw/m_paral_atom.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paral_atom.o `test -f 'libpaw/m_paral_atom.F90' || echo '$(srcdir)/'`libpaw/m_paral_atom.F90
+
+m_paw_an.o: libpaw/m_paw_an.F90 \
 	m_paral_atom.o \
 	m_pawang.o \
 	m_pawtab.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_paw_an.o `test -f '42_libpaw/m_paw_an.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_an.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_an.o `test -f 'libpaw/m_paw_an.F90' || echo '$(srcdir)/'`libpaw/m_paw_an.F90
 
-m_paw_finegrid.o: 42_libpaw/m_paw_finegrid.F90 \
-	defs_basis.o \
-	m_errors.o \
+m_paw_finegrid.o: libpaw/m_paw_finegrid.F90 \
 	m_paw_numeric.o \
+	m_paw_sphharm.o \
 	m_pawtab.o \
-	m_profiling.o \
-	m_sphharm.o
-	$(PPFCCOMPILE) -c -o m_paw_finegrid.o `test -f '42_libpaw/m_paw_finegrid.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_finegrid.F90
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_finegrid.o `test -f 'libpaw/m_paw_finegrid.F90' || echo '$(srcdir)/'`libpaw/m_paw_finegrid.F90
 
-m_paw_ij.o: 42_libpaw/m_paw_ij.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
+m_paw_ij.o: libpaw/m_paw_ij.F90 \
 	m_paral_atom.o \
-	m_pawio.o \
+	m_paw_io.o \
 	m_pawtab.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_paw_ij.o `test -f '42_libpaw/m_paw_ij.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_ij.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_ij.o `test -f 'libpaw/m_paw_ij.F90' || echo '$(srcdir)/'`libpaw/m_paw_ij.F90
 
-m_paw_numeric.o: 42_libpaw/m_paw_numeric.F90 \
-	defs_basis.o \
-	m_errors.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_paw_numeric.o `test -f '42_libpaw/m_paw_numeric.F90' || echo '$(srcdir)/'`42_libpaw/m_paw_numeric.F90
+m_paw_numeric.o: libpaw/m_paw_numeric.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_numeric.o `test -f 'libpaw/m_paw_numeric.F90' || echo '$(srcdir)/'`libpaw/m_paw_numeric.F90
 
-m_pawang.o: 42_libpaw/m_pawang.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling.o \
-	m_sphharm.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawang.o `test -f '42_libpaw/m_pawang.F90' || echo '$(srcdir)/'`42_libpaw/m_pawang.F90
+m_pawang.o: libpaw/m_pawang.F90 \
+	m_paw_sphharm.o \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawang.o `test -f 'libpaw/m_pawang.F90' || echo '$(srcdir)/'`libpaw/m_pawang.F90
 
-m_pawcprj.o: 42_libpaw/m_pawcprj.F90 \
-	defs_basis.o \
-	m_errors.o \
+m_pawcprj.o: libpaw/m_pawcprj.F90 \
 	m_pawtab.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawcprj.o `test -f '42_libpaw/m_pawcprj.F90' || echo '$(srcdir)/'`42_libpaw/m_pawcprj.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawcprj.o `test -f 'libpaw/m_pawcprj.F90' || echo '$(srcdir)/'`libpaw/m_pawcprj.F90
 
-m_pawdij.o: 42_libpaw/m_pawdij.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
+m_pawdij.o: libpaw/m_pawdij.F90 \
 	m_paral_atom.o \
 	m_paw_an.o \
 	m_pawang.o \
 	m_pawfgrtab.o \
 	m_paw_finegrid.o \
 	m_paw_ij.o \
-	m_pawio.o \
+	m_paw_io.o \
 	m_pawrad.o \
 	m_pawrhoij.o \
+	m_paw_sphharm.o \
 	m_pawtab.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawdij.o `test -f '42_libpaw/m_pawdij.F90' || echo '$(srcdir)/'`42_libpaw/m_pawdij.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawdij.o `test -f 'libpaw/m_pawdij.F90' || echo '$(srcdir)/'`libpaw/m_pawdij.F90
 
-m_pawfgrtab.o: 42_libpaw/m_pawfgrtab.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
+m_pawfgrtab.o: libpaw/m_pawfgrtab.F90 \
 	m_paral_atom.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawfgrtab.o `test -f '42_libpaw/m_pawfgrtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawfgrtab.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawfgrtab.o `test -f 'libpaw/m_pawfgrtab.F90' || echo '$(srcdir)/'`libpaw/m_pawfgrtab.F90
 
-m_pawio.o: 42_libpaw/m_pawio.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_pawio.o `test -f '42_libpaw/m_pawio.F90' || echo '$(srcdir)/'`42_libpaw/m_pawio.F90
+m_paw_io.o: libpaw/m_paw_io.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_io.o `test -f 'libpaw/m_paw_io.F90' || echo '$(srcdir)/'`libpaw/m_paw_io.F90
 
-m_pawpsp.o: 42_libpaw/m_pawpsp.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_libxc_functionals.o \
-	m_atompaw.o \
-	m_errors.o \
-	m_fstrings.o \
-	m_gaussfit.o \
+m_pawpsp.o: libpaw/m_pawpsp.F90 \
+	m_libpaw_libxc.o \
+	m_libpaw_tools.o \
 	m_pawang.o \
+	m_paw_atom.o \
+	m_paw_gaussfit.o \
 	m_paw_numeric.o \
 	m_pawrad.o \
 	m_pawtab.o \
 	m_pawxc.o \
 	m_pawxmlps.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawpsp.o `test -f '42_libpaw/m_pawpsp.F90' || echo '$(srcdir)/'`42_libpaw/m_pawpsp.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawpsp.o `test -f 'libpaw/m_pawpsp.F90' || echo '$(srcdir)/'`libpaw/m_pawpsp.F90
 
-m_pawrad.o: 42_libpaw/m_pawrad.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawrad.o `test -f '42_libpaw/m_pawrad.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrad.F90
+m_pawrad.o: libpaw/m_pawrad.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawrad.o `test -f 'libpaw/m_pawrad.F90' || echo '$(srcdir)/'`libpaw/m_pawrad.F90
 
-m_pawrhoij.o: 42_libpaw/m_pawrhoij.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_fstrings.o \
-	m_io_tools.o \
+m_pawrhoij.o: libpaw/m_pawrhoij.F90 \
+	m_libpaw_tools.o \
 	m_paral_atom.o \
 	m_pawang.o \
-	m_pawio.o \
+	m_paw_io.o \
 	m_pawtab.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawrhoij.o `test -f '42_libpaw/m_pawrhoij.F90' || echo '$(srcdir)/'`42_libpaw/m_pawrhoij.F90
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawrhoij.o `test -f 'libpaw/m_pawrhoij.F90' || echo '$(srcdir)/'`libpaw/m_pawrhoij.F90
 
-m_pawtab.o: 42_libpaw/m_pawtab.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o m_pawtab.o `test -f '42_libpaw/m_pawtab.F90' || echo '$(srcdir)/'`42_libpaw/m_pawtab.F90
+m_pawtab.o: libpaw/m_pawtab.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_mpi.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawtab.o `test -f 'libpaw/m_pawtab.F90' || echo '$(srcdir)/'`libpaw/m_pawtab.F90
 
-m_pawxc.o: 42_libpaw/m_pawxc.F90 \
-	defs_basis.o \
-	m_libxc_functionals.o \
-	m_errors.o \
+m_pawxc.o: libpaw/m_pawxc.F90 \
+	m_libpaw_libxc.o \
 	m_pawang.o \
 	m_pawrad.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_pawxc.o `test -f '42_libpaw/m_pawxc.F90' || echo '$(srcdir)/'`42_libpaw/m_pawxc.F90
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawxc.o `test -f 'libpaw/m_pawxc.F90' || echo '$(srcdir)/'`libpaw/m_pawxc.F90
 
-m_pawxmlps.o: 42_libpaw/m_pawxmlps.F90 \
-	defs_basis.o \
-	m_errors.o \
+m_pawxmlps.o: libpaw/m_pawxmlps.F90 \
 	m_paw_numeric.o \
 	m_pawrad.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_pawxmlps.o `test -f '42_libpaw/m_pawxmlps.F90' || echo '$(srcdir)/'`42_libpaw/m_pawxmlps.F90
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_pawxmlps.o `test -f 'libpaw/m_pawxmlps.F90' || echo '$(srcdir)/'`libpaw/m_pawxmlps.F90
 
-m_sphharm.o: 42_libpaw/m_sphharm.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	m_errors.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_sphharm.o `test -f '42_libpaw/m_sphharm.F90' || echo '$(srcdir)/'`42_libpaw/m_sphharm.F90
+m_paw_sphharm.o: libpaw/m_paw_sphharm.F90 \
+	m_libpaw_defs.o \
+	m_libpaw_tools.o \
+	libpaw.h
+	$(PPFCCOMPILE) -c -o m_paw_sphharm.o `test -f 'libpaw/m_paw_sphharm.F90' || echo '$(srcdir)/'`libpaw/m_paw_sphharm.F90
 
-defs_abitypes.o: 50_abitypes_defs/defs_abitypes.F90 \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o defs_abitypes.o `test -f '50_abitypes_defs/defs_abitypes.F90' || echo '$(srcdir)/'`50_abitypes_defs/defs_abitypes.F90
+fortran-symmetry.o: symm/fortran-symmetry.f90 \
+	iso_c_binding.o
+	$(FCCOMPILE) -c -o fortran-symmetry.o `test -f 'symm/fortran-symmetry.f90' || echo '$(srcdir)/'`symm/fortran-symmetry.f90
 
-aprxdr.o: 56_mixing/aprxdr.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	interfaces_56_mixing.o
-	$(PPFCCOMPILE) -c -o aprxdr.o `test -f '56_mixing/aprxdr.F90' || echo '$(srcdir)/'`56_mixing/aprxdr.F90
-
-dotprodm_v.o: 56_mixing/dotprodm_v.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	interfaces_18_timing.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o dotprodm_v.o `test -f '56_mixing/dotprodm_v.F90' || echo '$(srcdir)/'`56_mixing/dotprodm_v.F90
-
-dotprodm_vn.o: 56_mixing/dotprodm_vn.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	interfaces_18_timing.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o dotprodm_vn.o `test -f '56_mixing/dotprodm_vn.F90' || echo '$(srcdir)/'`56_mixing/dotprodm_vn.F90
-
-findminscf.o: 56_mixing/findminscf.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o findminscf.o `test -f '56_mixing/findminscf.F90' || echo '$(srcdir)/'`56_mixing/findminscf.F90
-
-interfaces_56_mixing.o: 56_mixing/interfaces_56_mixing.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_56_mixing.o `test -f '56_mixing/interfaces_56_mixing.F90' || echo '$(srcdir)/'`56_mixing/interfaces_56_mixing.F90
-
-m_ab6_mixing.o: 56_mixing/m_ab6_mixing.F90 \
-	defs_basis.o \
-	interfaces_18_timing.o \
-	interfaces_56_mixing.o \
-	m_profiling.o
-	$(PPFCCOMPILE) -c -o m_ab6_mixing.o `test -f '56_mixing/m_ab6_mixing.F90' || echo '$(srcdir)/'`56_mixing/m_ab6_mixing.F90
-
-scfcge.o: 56_mixing/scfcge.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	interfaces_14_hidewrite.o \
-	interfaces_56_mixing.o
-	$(PPFCCOMPILE) -c -o scfcge.o `test -f '56_mixing/scfcge.F90' || echo '$(srcdir)/'`56_mixing/scfcge.F90
-
-scfeig.o: 56_mixing/scfeig.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o scfeig.o `test -f '56_mixing/scfeig.F90' || echo '$(srcdir)/'`56_mixing/scfeig.F90
-
-scfopt.o: 56_mixing/scfopt.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	interfaces_14_hidewrite.o \
-	interfaces_56_mixing.o \
-	interfaces_linalg.o
-	$(PPFCCOMPILE) -c -o scfopt.o `test -f '56_mixing/scfopt.F90' || echo '$(srcdir)/'`56_mixing/scfopt.F90
-
-sqnormm_v.o: 56_mixing/sqnormm_v.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	interfaces_18_timing.o \
-	m_xmpi.o
-	$(PPFCCOMPILE) -c -o sqnormm_v.o `test -f '56_mixing/sqnormm_v.F90' || echo '$(srcdir)/'`56_mixing/sqnormm_v.F90
-
-getkgrid.o: 56_recipspace/getkgrid.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o \
-	interfaces_56_recipspace.o
-	$(PPFCCOMPILE) -c -o getkgrid.o `test -f '56_recipspace/getkgrid.F90' || echo '$(srcdir)/'`56_recipspace/getkgrid.F90
-
-interfaces_56_recipspace.o: 56_recipspace/interfaces_56_recipspace.F90 \
-	defs_abitypes.o \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o interfaces_56_recipspace.o `test -f '56_recipspace/interfaces_56_recipspace.F90' || echo '$(srcdir)/'`56_recipspace/interfaces_56_recipspace.F90
-
-irrzg.o: 56_recipspace/irrzg.F90 \
-	defs_basis.o \
-	defs_datatypes.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_28_numeric_noabirule.o
-	$(PPFCCOMPILE) -c -o irrzg.o `test -f '56_recipspace/irrzg.F90' || echo '$(srcdir)/'`56_recipspace/irrzg.F90
-
-m_ab6_kpoints.o: 56_recipspace/m_ab6_kpoints.F90 \
-	defs_basis.o \
-	interfaces_56_recipspace.o \
-	m_ab6_symmetry.o
-	$(PPFCCOMPILE) -c -o m_ab6_kpoints.o `test -f '56_recipspace/m_ab6_kpoints.F90' || echo '$(srcdir)/'`56_recipspace/m_ab6_kpoints.F90
-
-smpbz.o: 56_recipspace/smpbz.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o smpbz.o `test -f '56_recipspace/smpbz.F90' || echo '$(srcdir)/'`56_recipspace/smpbz.F90
-
-symkpt.o: 56_recipspace/symkpt.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_28_numeric_noabirule.o
-	$(PPFCCOMPILE) -c -o symkpt.o `test -f '56_recipspace/symkpt.F90' || echo '$(srcdir)/'`56_recipspace/symkpt.F90
-
-testkgrid.o: 56_recipspace/testkgrid.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o \
-	interfaces_56_recipspace.o
-	$(PPFCCOMPILE) -c -o testkgrid.o `test -f '56_recipspace/testkgrid.F90' || echo '$(srcdir)/'`56_recipspace/testkgrid.F90
-
-ewald.o: 67_common/ewald.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o ewald.o `test -f '67_common/ewald.F90' || echo '$(srcdir)/'`67_common/ewald.F90
-
-ewald2.o: 67_common/ewald2.F90 \
-	defs_basis.o \
-	interfaces_32_util.o
-	$(PPFCCOMPILE) -c -o ewald2.o `test -f '67_common/ewald2.F90' || echo '$(srcdir)/'`67_common/ewald2.F90
-
-fconv.o: 67_common/fconv.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o fconv.o `test -f '67_common/fconv.F90' || echo '$(srcdir)/'`67_common/fconv.F90
-
-prtxvf.o: 67_common/prtxvf.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o
-	$(PPFCCOMPILE) -c -o prtxvf.o `test -f '67_common/prtxvf.F90' || echo '$(srcdir)/'`67_common/prtxvf.F90
-
-ab6_moldyn.o: 72_geomoptim/ab6_moldyn.F90 \
-	defs_basis.o \
-	defs_basis.o \
-	72_geomoptim/isokinetic.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o \
-	72_geomoptim/isotemp.F90 \
-	defs_basis.o \
-	defs_datatypes.o \
-	72_geomoptim/isothermal.F90 \
-	defs_basis.o \
-	72_geomoptim/langevin.F90 \
-	defs_basis.o \
-	defs_datatypes.o \
-	72_geomoptim/moldyn.F90 \
-	defs_basis.o \
-	72_geomoptim/nose.F90 \
-	defs_basis.o \
-	72_geomoptim/quenched.F90 \
-	defs_basis.o \
-	72_geomoptim/velocity_verlet.F90
-	$(PPFCCOMPILE) -c -o ab6_moldyn.o `test -f '72_geomoptim/ab6_moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/ab6_moldyn.F90
-
-isokinetic.o: 72_geomoptim/isokinetic.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o isokinetic.o `test -f '72_geomoptim/isokinetic.F90' || echo '$(srcdir)/'`72_geomoptim/isokinetic.F90
-
-isotemp.o: 72_geomoptim/isotemp.F90 \
-	defs_abitypes.o \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o isotemp.o `test -f '72_geomoptim/isotemp.F90' || echo '$(srcdir)/'`72_geomoptim/isotemp.F90
-
-isothermal.o: 72_geomoptim/isothermal.F90 \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o isothermal.o `test -f '72_geomoptim/isothermal.F90' || echo '$(srcdir)/'`72_geomoptim/isothermal.F90
-
-langevin.o: 72_geomoptim/langevin.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o langevin.o `test -f '72_geomoptim/langevin.F90' || echo '$(srcdir)/'`72_geomoptim/langevin.F90
-
-moldyn.o: 72_geomoptim/moldyn.F90 \
-	defs_basis.o \
-	defs_datatypes.o
-	$(PPFCCOMPILE) -c -o moldyn.o `test -f '72_geomoptim/moldyn.F90' || echo '$(srcdir)/'`72_geomoptim/moldyn.F90
-
-nose.o: 72_geomoptim/nose.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o nose.o `test -f '72_geomoptim/nose.F90' || echo '$(srcdir)/'`72_geomoptim/nose.F90
-
-others.o: 72_geomoptim/others.F90
-	$(PPFCCOMPILE) -c -o others.o `test -f '72_geomoptim/others.F90' || echo '$(srcdir)/'`72_geomoptim/others.F90
-
-quenched.o: 72_geomoptim/quenched.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o quenched.o `test -f '72_geomoptim/quenched.F90' || echo '$(srcdir)/'`72_geomoptim/quenched.F90
-
-velocity_verlet.o: 72_geomoptim/velocity_verlet.F90 \
-	defs_basis.o
-	$(PPFCCOMPILE) -c -o velocity_verlet.o `test -f '72_geomoptim/velocity_verlet.F90' || echo '$(srcdir)/'`72_geomoptim/velocity_verlet.F90
-
-xfpack.o: 72_geomoptim/xfpack.F90 \
-	defs_basis.o \
-	interfaces_14_hidewrite.o \
-	interfaces_16_hideleave.o \
-	interfaces_32_util.o \
-	interfaces_42_geometry.o
-	$(PPFCCOMPILE) -c -o xfpack.o `test -f '72_geomoptim/xfpack.F90' || echo '$(srcdir)/'`72_geomoptim/xfpack.F90
-
-pawinit.o: 42_libpaw/pawinit.F90 \
-	defs_basis.o \
-	m_errors.o \
-	m_profiling.o \
-	m_splines.o \
-	m_pawpsp.o \
-	m_atompaw.o \
-	m_pawang.o \
-	m_pawrad.o \
-	m_pawtab.o \
-	interfaces_18_timing.o
-	$(PPFCCOMPILE) -c -o pawinit.o `test -f '42_libpaw/pawinit.F90' || echo '$(srcdir)/'`42_libpaw/pawinit.F90
-
-initrhoij.o: 42_libpaw/initrhoij.F90 \
-	defs_basis.o \
-	m_errors.o \
-	m_profiling.o \
-	m_pawtab.o \
-	m_pawrhoij.o \
-	m_paral_atom.o
-	$(PPFCCOMPILE) -c -o initrhoij.o `test -f '42_libpaw/initrhoij.F90' || echo '$(srcdir)/'`42_libpaw/initrhoij.F90

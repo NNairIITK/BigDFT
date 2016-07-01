@@ -1,0 +1,21 @@
+ <BigDFT> log of the run will be written in logfile: ./log-periodic.yaml
+  #WARNING: ERROR of checksum for orbital 1: difference of  9.09495E-13
+  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-12
+  #WARNING: ERROR of checksum for orbital 5: difference of  1.45519E-11
+  #WARNING: ERROR of checksum for orbital 1: difference of  9.09495E-13
+  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-12
+  #WARNING: ERROR of checksum for orbital 5: difference of  1.45519E-11
+  #WARNING: ERROR (Transposition): process 7 found an error of: 1.4551915E-11
+  #WARNING: ERROR (Transposition): process 6 found an error of: 1.4551915E-11
+  #WARNING: ERROR of checksum for orbital 1: difference of  1.81899E-12
+  #WARNING: ERROR of checksum for orbital 1: difference of  1.81899E-12
+  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-12
+  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-12
+  #WARNING: ERROR of checksum for orbital 3: difference of  7.27596E-12
+  #WARNING: ERROR of checksum for orbital 3: difference of  7.27596E-12
+  #WARNING: ERROR of checksum for orbital 4: difference of  1.45519E-11
+  #WARNING: ERROR of checksum for orbital 4: difference of  1.45519E-11
+  #WARNING: ERROR of checksum for orbital 5: difference of  2.18279E-11
+  #WARNING: ERROR of checksum for orbital 5: difference of  2.18279E-11
+  #WARNING: ERROR (Transposition): process 7 found an error of: 2.1827873E-11
+  #WARNING: ERROR (Transposition): process 6 found an error of: 2.1827873E-11

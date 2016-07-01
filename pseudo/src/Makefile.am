@@ -8,17 +8,10 @@ include_level = \
 	recs16.inc \
 	sym_16.inc
 
-if BUILD_BINARIES_PSEUDO
-binaries_sources = atom pseudo
-else
-binaries_sources = 
-endif
+AM_FCFLAGS = $(FCFLAGS) -I. @LIB_XC_CFLAGS@ @MPI_INCLUDE@
+AM_FFLAGS = $(FFLAGS) -I. @LIB_XC_CFLAGS@ @MPI_INCLUDE@
 
-AM_FCFLAGS = $(FCFLAGS) -I. @LIBXC_INCLUDE@ @MPI_INCLUDE@
-AM_FFLAGS = $(FFLAGS) -I. @LIBXC_INCLUDE@ @MPI_INCLUDE@
-
-
-bin_PROGRAMS = $(binaries_sources)
+bin_PROGRAMS = atom pseudo
 
 if USE_MPI
 mpi_source =
@@ -34,7 +27,7 @@ atom_SOURCES = atom.f90 atom.splines.f90 $(xc_level)
 atom_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIBXC_LIBS@ \
+	@LIB_XC_LIBS@ \
 	@LINALG_LIBS@ \
 	$(libs_cuda)
 
@@ -42,11 +35,11 @@ pseudo_SOURCES = pseudo.f90 $(f90_level) $(xc_level) $(cuda_level) $(mpi_source)
 pseudo_LDADD = \
 	$(LMPI) \
 	@MPI_LIBS@ \
-	@LIBXC_LIBS@ \
+	@LIB_XC_LIBS@ \
 	@LINALG_LIBS@ \
 	$(libs_cuda)
 
-  
+
 #List of sources (objects) grouped by dependencies
 
 f90_level = \
@@ -80,12 +73,12 @@ xc_level = \
 	driveXC.f90
 
 
-if USE_CUDA_GPU
+#if USE_CUDA_GPU
 #cuda_level = cublas.fortran.bindings.o \
 	 ekin_gauss_wvlt.cublas.o
-else
+#else
 cuda_level =
-endif
+#endif
 
 
 CLEANFILES = mpif.h *.@MODULE_EXT@

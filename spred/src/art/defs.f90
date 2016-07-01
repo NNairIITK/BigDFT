@@ -10,7 +10,6 @@
 
 !> Module which defines almost all variables used across the program ART
 module defs
-
   implicit none
 
   real(kind=8), parameter :: VERSION_NUMBER  = 1.6           !< Version of the code
