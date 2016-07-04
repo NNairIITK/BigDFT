@@ -655,7 +655,7 @@ module ice
       integer :: isegstart, isegend, iismall, nsize_polynomial
       integer :: iismall_ovrlp, iismall_ham, npl_boundaries, i, ipl
       integer, parameter :: nplx=50000
-      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(kind=mp),dimension(:,:,:),pointer :: chebyshev_polynomials
       real(kind=mp),dimension(:,:,:),pointer :: inv_ovrlp_matrixp
       real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=mp),dimension(:,:,:),pointer :: cc
@@ -705,7 +705,7 @@ module ice
       if (present(verbosity)) then
           verbosity_ = verbosity
       else
-          verbosity_ = 1
+          verbosity_ = 100
       end if
 
       inv_ovrlp_matrixp_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp,1),ncalc/),id='inv_ovrlp_matrixp_new')
@@ -779,55 +779,72 @@ module ice
       end if
 
 
-      spin_loop: do ispin=1,ovrlp_smat%nspin
+      !!spin_loop: do ispin=1,ovrlp_smat%nspin
 
+
+      !eval_multiplicator = 1.d0
+      eval_multiplicator = foe_data_get_real(ice_obj,"eval_multiplicator",1)
+      eval_multiplicator_total = 1.d0
+
+
+      ! use inv_ovrlp(1)%matrix_compr as workarray to save memory
+      npl_min_fake = NPL_MIN !since intent(inout)
+      !!write(*,*) 'IN MAIN, sum(ovrlp_mat_matrix_compr(1:ovrlp_smat)), sum(ovrlp_mat_matrix_compr(ovrlp_smat+1:2*ovrlp_smat))',&
+      !!            sum(ovrlp_mat%matrix_compr(1:ovrlp_smat%nvctr)), &
+      !!            sum(ovrlp_mat%matrix_compr(ovrlp_smat%nvctr+1:2*ovrlp_smat%nvctr))
+      call get_bounds_and_polynomials(iproc, nproc, comm, 1, 1, NPL_MAX, NPL_STRIDE, betax, &
+           ncalc, FUNCTION_POLYNOMIAL, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
+           ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, ice_obj, npl_min_fake, &
+           inv_ovrlp(1)%matrix_compr, chebyshev_polynomials, &
+           npl, scale_factor, shift_value, hamscal_compr, &
+           ex=ex, scaling_factor_low=2.0_mp, scaling_factor_up=0.5_mp, &
+           eval_multiplicator=eval_multiplicator, eval_multiplicator_total=eval_multiplicator_total, &
+           cc=cc, max_errorx=max_error)
+
+
+
+      if (iproc==0) then
+          call yaml_mapping_open('summary',flow=.true.)
+          call yaml_map('npl',npl)
+          call yaml_map('bounds', &
+               (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f6.2)')
+          call yaml_map('exp accur',max_error,fmt='(es8.2)')
+          call yaml_mapping_close()
+      end if
+
+      spin_loop: do ispin=1,ovrlp_smat%nspin
           isshift=(ispin-1)*ovrlp_smat%nvctr
           ilshift=(ispin-1)*inv_ovrlp_smat%nvctr
           ilshift2=(ispin-1)*inv_ovrlp_smat%nvctrp_tg
-
-          !eval_multiplicator = 1.d0
-          eval_multiplicator = foe_data_get_real(ice_obj,"eval_multiplicator",ispin)
-          eval_multiplicator_total = 1.d0
-
-
-          ! use inv_ovrlp(1)%matrix_compr as workarray to save memory
-          npl_min_fake = NPL_MIN !since intent(inout)
-          call get_bounds_and_polynomials(iproc, nproc, comm, 1, ispin, NPL_MAX, NPL_STRIDE, betax, &
-               ncalc, FUNCTION_POLYNOMIAL, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
-               ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, ice_obj, npl_min_fake, &
-               inv_ovrlp(1)%matrix_compr(ilshift2+1:), chebyshev_polynomials, &
-               npl, scale_factor, shift_value, hamscal_compr, &
-               ex=ex, scaling_factor_low=2.0_mp, scaling_factor_up=0.5_mp, &
-               eval_multiplicator=eval_multiplicator, eval_multiplicator_total=eval_multiplicator_total, &
-               cc=cc, max_errorx=max_error)
-
-
-
-          if (iproc==0) then
-              call yaml_mapping_open('summary',flow=.true.)
-              call yaml_map('npl',npl)
-              call yaml_map('bounds', &
-                   (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f6.2)')
-              call yaml_map('exp accur',max_error,fmt='(es8.2)')
-              call yaml_mapping_close()
-          end if
           call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%smmm%nfvctrp, &
-               inv_ovrlp_smat, chebyshev_polynomials, ncalc, cc, inv_ovrlp_matrixp_small_new)
+               inv_ovrlp_smat, chebyshev_polynomials(:,:,ispin), ncalc, cc, inv_ovrlp_matrixp_small_new)
+          !!write(*,*) 'ispin, sum(chebyshev_polynomials(:,:,ispin))', ispin, sum(chebyshev_polynomials(:,:,ispin))
+          !!do icalc=1,ncalc
+          !!    write(*,*) 'ispin, icalc, sum(cc(:,icalc,1))', ispin, icalc, sum(cc(:,icalc,1))
+          !!end do
           do icalc=1,ncalc
               call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                    SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+              !!write(*,*) 'BEFORE ispin, sum(inv_ovrlp_matrixp_small_new(:,icalc))', &
+              !!    ispin, sum(inv_ovrlp_matrixp_small_new(:,icalc))
+              !!write(*,*) 'BEFORE ispin, sum(inv_ovrlp(icalc)%matrix_compr(ilshift2+1:ilshift2+inv_ovrlp_smat%nvctr))', &
+              !!            ispin, sum(inv_ovrlp(icalc)%matrix_compr(ilshift2+1:ilshift2+inv_ovrlp_smat%nvctr))
               call dscal(inv_ovrlp_smat%nvctrp_tg, 1.d0/eval_multiplicator_total**ex(icalc), &
                    inv_ovrlp(icalc)%matrix_compr(ilshift2+1), 1)
+              !!write(*,*) 'AFTER ispin, sum(inv_ovrlp(icalc)%matrix_compr(ilshift2+1:ilshift2+inv_ovrlp_smat%nvctr))', &
+              !!            ispin, sum(inv_ovrlp(icalc)%matrix_compr(ilshift2+1:ilshift2+inv_ovrlp_smat%nvctr))
+              !!write(*,*) 'eval_multiplicator_total, 1.d0/eval_multiplicator_total**ex(icalc)', &
+              !!           eval_multiplicator_total, 1.d0/eval_multiplicator_total**ex(icalc)
           end do
-
-          call f_free_ptr(cc)
-          call f_free_ptr(chebyshev_polynomials)
-
-          call foe_data_set_real(ice_obj,"eval_multiplicator",eval_multiplicator_total,ispin)
-
       end do spin_loop
+
+      call f_free_ptr(cc)
+      call f_free_ptr(chebyshev_polynomials)
+
+      call foe_data_set_real(ice_obj,"eval_multiplicator",eval_multiplicator_total,1)
+
 
       call f_free(inv_ovrlp_matrixp_small_new)
       call f_free(inv_ovrlp_matrixp_new)
