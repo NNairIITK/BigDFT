@@ -830,7 +830,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !end of the initialization part
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
-
+!!$call yaml_map('evals',KSwfn%orbs%eval)
+!!$KSwfn%orbs%eval=-0.3d0 !to test if they are erased
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
