@@ -2073,6 +2073,11 @@ module foe_common
              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                   fermi_small_new(:,jspin), &
                   kernel_%matrix_compr(ilshift+1:))
+             !!tt = 0.d0
+             !!do i=1,smatl%nfvctr
+             !!    tt = tt + kernel_%matrix_compr(ilshift+(i-1)*smatl%nfvctr+1)
+             !!end do
+             !!write(*,*) 'jspin, tt kernel', jspin, tt
              !!write(*,*) 'ispin, sum(F), sum(K)', &
              !!    ispin, sum(fermi_small_new(:,jspin)), sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
          end do
@@ -2215,9 +2220,7 @@ module foe_common
               case (FUNCTION_POLYNOMIAL)
                   call func_set(FUNCTION_POLYNOMIAL, powerx=ex(icalc))
               case (FUNCTION_ERRORFUNCTION)
-                  !call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=fscale(icalc))
-                  if (ipl==npl_min) write(*,*) 'WARNING hack with fscale'
-                  call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=5.d-3)
+                  call func_set(FUNCTION_ERRORFUNCTION, efx=ef(icalc), fscalex=fscale(icalc))
               end select
               call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                    foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,1), &

@@ -204,11 +204,11 @@ module foe
       !!    imshift=(ispin-1)*smatm%nvctrp_tg
       !!    ilshift=(ispin-1)*smatl%nvctrp_tg
 
-      do ispin=1,smatl%nspin
-          isshift=(ispin-1)*smats%nvctrp_tg
-          imshift=(ispin-1)*smatm%nvctrp_tg
-          call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
-      end do
+      !!do ispin=1,smatl%nspin
+      !!    isshift=(ispin-1)*smats%nvctrp_tg
+      !!    imshift=(ispin-1)*smatm%nvctrp_tg
+      !!    call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
+      !!end do
 
           degree_sufficient=.true.
 
@@ -358,7 +358,8 @@ module foe
                       istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
                       !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
                       !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
-                      ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+                      !ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+                      ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
                       !!write(*,*) 'ispin, sum(kernel_%matrix_compr), sum(hamscal_compr)', &
                       !!    sum(kernel_%matrix_compr), sum(hamscal_compr)
                       !write(*,*) 'ebsp',ebsp
@@ -388,6 +389,7 @@ module foe
                       diff=abs(ebs_check-ebsp)
                       diff=diff/abs(ebsp)
 
+                      !write(*,*) 'ispin, ebsp', ispin, ebsp
                       ebsp_allspins = ebsp_allspins + ebsp
                       ebs_check_allspins = ebs_check_allspins + ebs_check
 
@@ -618,6 +620,7 @@ module foe
       integer :: iseg, ii, i, lwork, info, ieval
       real(kind=mp),dimension(:,:,:),allocatable :: tempmat
       real(kind=mp),dimension(:),allocatable :: eval, work
+      !!real(mp) :: tt5, tt7
 
       call f_routine(id='get_minmax_eigenvalues')
 
@@ -650,11 +653,17 @@ module foe
       work = f_malloc(lwork,id='work')
       call sygv(1, 'n','l', ovrlp_smat%nfvctr, tempmat(1,1,1), ovrlp_smat%nfvctr, tempmat(1,1,2), ovrlp_smat%nfvctr, &
            eval(1), work(1), lwork, info)
-      if (iproc==0) then
-          do ieval=1,ovrlp_smat%nfvctr
-              write(*,*) 'ieval',ieval,eval(ieval)
-          end do 
-      end if
+      !!if (iproc==0) then
+      !!    tt5 = 0.d0
+      !!    tt7 = 0.d0
+      !!    do ieval=1,ovrlp_smat%nfvctr
+      !!        write(*,*) 'ieval',ieval,eval(ieval)
+      !!        if (ieval<=5) tt5 = tt5 + eval(ieval)
+      !!        if (ieval<=7) tt7 = tt7 + eval(ieval)
+      !!    end do 
+      !!    write(*,*) 'SUM of evals up to 5', tt5
+      !!    write(*,*) 'SUM of evals up to 7', tt7
+      !!end if
       if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
 
       call f_free(tempmat)

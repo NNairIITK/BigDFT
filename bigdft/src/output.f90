@@ -144,7 +144,7 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
   !local variables
   logical :: degup,degdw
   integer :: ikptw,iorb,ikpt,jorb,isorb,nwrtmsg,ndegen
-  real(gp) :: spinsignw,mx,my,mz,mpol,tolerance,tt
+  real(gp) :: spinsignw,mx,my,mz,mpol,tolerance
   character(len=64) :: message
   character(len=150) :: commentline
   real(wp), dimension(2) :: preval
@@ -226,17 +226,14 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
            my=UNINITIALIZED(1.0_gp)
            mz=UNINITIALIZED(1.0_gp)
 
-           tt = 0.d0
            do iorb=1,min(orbs%norbu,orbs%norbd)
               jorb=orbs%norbu+iorb
               call yaml_sequence()
               call write_orbital_data(orbs%eval(isorb + iorb),orbs%occup(isorb+iorb),&
                    1.0_gp,ikptw,mx,my,mz)
-              tt = tt + orbs%eval(isorb + iorb)*orbs%occup(isorb+iorb)
               call yaml_sequence()
               call write_orbital_data(orbs%eval(isorb + jorb),orbs%occup(isorb+jorb),&
                    -1.0_gp,ikptw,mx,my,mz)
-              tt = tt + orbs%eval(isorb + jorb)*orbs%occup(isorb+jorb)
               !yaml output (carriage return)
               degup=find_degeneracy_up(iorb+isorb)
               degdw=find_degeneracy_up(jorb+isorb)
@@ -260,7 +257,6 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                  call yaml_sequence()
                  call write_orbital_data(orbs%eval(isorb+iorb),orbs%occup(isorb+iorb),&
                       1.0_gp,ikptw,mx,my,mz)
-                 tt = tt + orbs%eval(isorb + iorb)*orbs%occup(isorb+iorb)
                  !yaml output (carriage return)
                  degup = find_degeneracy_up(iorb+isorb)
                  if (iorb == orbs%norbu .and. ikpt == orbs%nkpts) then
@@ -278,7 +274,6 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                  call yaml_sequence()
                  call write_orbital_data(orbs%eval(isorb+iorb),orbs%occup(isorb+iorb),&
                       -1.0_gp,ikptw,mx,my,mz)
-                 tt = tt + orbs%eval(isorb + iorb)*orbs%occup(isorb+iorb)
                  !yaml output (carriage return)
                  degdw = find_degeneracy_down(iorb+isorb)
                  if (iorb == orbs%norbu+orbs%norbd .and. ikpt == orbs%nkpts) then
@@ -292,7 +287,6 @@ subroutine write_eigenvalues_data(etol,orbs,mom_vec)
                  end if
               end do
            end if
-           write(*,*) 'SUM OF OCC EVALS', tt
         end if
      end do
      ! Close the map of Eigenvalues and New Occupations Numbers
