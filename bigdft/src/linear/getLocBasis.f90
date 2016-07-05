@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
-    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
     pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
@@ -45,7 +45,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, occopt
   integer,intent(inout) :: order_taylor
   real(kind=8),intent(in) :: max_inversion_error
   type(orbitals_data),intent(inout) :: orbs
@@ -64,7 +64,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(work_mpiaccumulate),intent(inout) :: energs_work
   logical,intent(in) :: remove_coupling_terms
-  real(kind=8), intent(in) :: factor
+  real(kind=8), intent(in) :: factor, tel
   integer,intent(in) :: pexsi_npoles
   real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
@@ -415,15 +415,19 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           end do
 
           ! Copy the diagonalized matrix to the coeff array.
-          ! In principle I would prefer to copy orbs%norbu/orbs%norbd states.
-          ! However this is not possible since the extra states are not included in there (WHY?!)
-          ! Therefore as a workaround I use the following dirty solution with different cases.
+          ! SM: I think it is ok now...
+          !!! In principle I would prefer to copy orbs%norbu/orbs%norbd states.
+          !!! However this is not possible since the extra states are not included in there (WHY?!)
+          !!! Therefore as a workaround I use the following dirty solution with different cases.
           if (tmb%linmat%l%nspin/=1) then
-              if (extra_states>0) stop 'extra states and spin polarization not possible at the moment'
+              !write(*,*) 'orbs%norbu, orbs%norbd, orbs%norb, extra_states', orbs%norbu, orbs%norbd, orbs%norb, extra_states
+              !if (extra_states>0) stop 'extra states and spin polarization not possible at the moment'
               ! Only copy the occupied states
               if (ispin==1) then
+                  !write(*,*) 'DEBUG NORBU', orbs%norbu
                   call vcopy(orbs%norbu*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
               else if (ispin==2) then
+                  !write(*,*) 'DEBUG NORBD', orbs%norbd
                   call vcopy(orbs%norbd*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,orbs%norbu+1), 1)
               end if
           else
@@ -485,6 +489,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
          !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         !if (Tel > 0.0_gp) then
+             !write(*,*) 'BEFORE orbs%occup', orbs%occup
+             call evaltoocc(iproc,nproc,.false.,tel,orbs,occopt)
+             !write(*,*) 'AFTER orbs%occup', orbs%occup
+         !end if
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,update_kernel)

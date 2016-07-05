@@ -976,12 +976,14 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,input%lin%scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor,&
+           input%tel, input%occopt, &
            input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
            input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
+           input%tel, input%occopt, &
            input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
            input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
 

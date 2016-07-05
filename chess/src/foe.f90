@@ -126,7 +126,7 @@ module foe
       !!fermip_check = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp/),id='fermip_check')
       fermi_check_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
       kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
-      sumn_allspins = f_malloc(2,id='sumn_allspins')
+      sumn_allspins = f_malloc(smatl%nspin,id='sumn_allspins')
 
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
       !!fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
@@ -197,8 +197,8 @@ module foe
       !spin_loop: do ispin=1,smatl%nspin
 
 
-      !!    fscale_new = fscale_newx
-      !!    call foe_data_set_real(foe_obj,"fscale",fscale_new)
+          fscale_new = fscale_newx
+          call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
       !!    isshift=(ispin-1)*smats%nvctrp_tg
       !!    imshift=(ispin-1)*smatm%nvctrp_tg
@@ -411,7 +411,11 @@ module foe
                       call yaml_map('EBS higher temperature',ebs_check_allspins,fmt='(es19.12)')
                       call yaml_map('difference',ebs_check_allspins-ebsp_allspins,fmt='(es19.12)')
                       call yaml_map('relative difference',diff,fmt='(es19.12)')
-                      if (iproc==0) call yaml_map('trace(KS)',sumn_allspins)
+                      if (smatl%nspin==1) then
+                          call yaml_map('trace(KS)',sumn_allspins(1))
+                      else
+                          call yaml_map('trace(KS)',sumn_allspins)
+                      end if
                   end if
 
                   if (diff<5.d-5) then

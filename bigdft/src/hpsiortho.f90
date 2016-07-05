@@ -2707,8 +2707,10 @@ subroutine eFermi_nosmearing(iproc,orbs)
    real(gp) :: charge
    real(wp) :: eF
 
-   iu=0
-   id=0
+   !SM: I think iu and id should be initialized to these values, in case the
+   ! large if will not be executed.
+   iu=orbs%norbu
+   id=orbs%norbd
    eF = 0._wp
    do ikpt=1,orbs%nkpts
       !number of zero orbitals for the given k-point
