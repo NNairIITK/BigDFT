@@ -463,6 +463,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           err_name='BIGDFT_RUNTIME_ERROR')
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (iproc==0) call yaml_map('method','directmin')
+     !do i=1,orbs%norb
+     !    write(*,*) 'i, eval(i)', i, orbs%eval(i)
+     !end do
+     !write(*,*) 'orbs%norbu, orbs%norbd, orbs%norb, extra_states', orbs%norbu, orbs%norbd, orbs%norb, extra_states
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
              curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder, extra_states)
@@ -485,13 +489,16 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
   if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
+      !write(*,*) 'BEFORE orbs%occup', orbs%occup
+      call evaltoocc(iproc,nproc,.false.,tel,orbs,occopt)
+      !write(*,*) 'AFTER orbs%occup', orbs%occup
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
          !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
          !if (Tel > 0.0_gp) then
              !write(*,*) 'BEFORE orbs%occup', orbs%occup
-             call evaltoocc(iproc,nproc,.false.,tel,orbs,occopt)
+       !      call evaltoocc(iproc,nproc,.false.,tel,orbs,occopt)
              !write(*,*) 'AFTER orbs%occup', orbs%occup
          !end if
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
@@ -1204,7 +1211,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          if (tmb%linmat%l%nspin>1) stop 'THIS IS NOT TESTED FOR SPIN POLARIZED SYSTEMS!'
+          !if (tmb%linmat%l%nspin>1) stop 'THIS IS NOT TESTED FOR SPIN POLARIZED SYSTEMS!'
           call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, &
                tmb%linmat%kernel_%matrix_compr(1), 1)
           call f_free(kernel_compr_tmp)
