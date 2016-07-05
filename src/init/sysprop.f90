@@ -821,19 +821,34 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           call vcopy(lorbs%norb,lorbs%inwhichlocreg(1),1,inwhichlocreg_tmp(1),1)
           call vcopy(lorbs%norb,lorbs%onwhichatom(1),1,onwhichatom_tmp(1),1)
 
+          !!print*,lorbs%norb
+          !!print*,lorbs%inwhichlocreg
+          !!print*,lorbs%onwhichatom
+
           ! might be a better way of doing this...
+          ! assume that norbu==norbd etc, check if this is always true...
           iorbn=0
           do iat=1,atoms%astruct%nat
-             do iorb=1,lorbs%norb
+             do iorb=1,lorbs%norbu
                 if (onwhichatom_tmp(iorb)/=iat) cycle
                 iorbn = iorbn+1
                 lorbs%onwhichatom(iorbn) = iat
                 lorbs%inwhichlocreg(iorbn) = inwhichlocreg_tmp(iorb)
+                ! perform the same change for spin down
+                lorbs%onwhichatom(iorbn+lorbs%norbu) = iat
+                lorbs%inwhichlocreg(iorbn+lorbs%norbu) = inwhichlocreg_tmp(iorb+lorbs%norbu)
                 ! double check - might not always be true in future
-                if (iorbn /= inwhichlocreg_tmp(iorb)) stop 'Error reordering tmbs for fragment calculation'
+                if (iorbn /= inwhichlocreg_tmp(iorb)) then
+                   write(*,*) 'Error reordering tmbs for fragment calculation (1)',iorbn,inwhichlocreg_tmp(iorb)
+                   stop
+                end if
              end do
           end do
-          if (iorbn /= lorbs%norb) stop 'Error reordering tmbs for fragment calculation'
+          if (iorbn /= lorbs%norbu) then
+             write(*,*) 'Error reordering tmbs for fragment calculation (2)',iorbn,lorbs%norb
+             stop
+          end if
+
 
           call f_free(inwhichlocreg_tmp)
           call f_free(onwhichatom_tmp)

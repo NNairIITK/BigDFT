@@ -1535,12 +1535,18 @@
           *  1 => Plain text in sparse format
           * 11 => Plain text in dense format
           * 21 => Plain text in both formats
+          *  2 => Fortran binary in sparse format
+          * 12 => Fortran binary in dense format
+          * 22 => Fortran binary in both formats
        default: 0
        EXCLUSIVE:
          0:  None
          1:  Plain text sparse
          11: Plain text dense
          21: Plain text sparse and dense
+         2:  Fortran binary sparse
+         12: Fortran binary dense
+         22: Fortran binary sparse and dense
      output_coeff:
        COMMENT: output KS coefficients; 0 no output, 1 formatted output
        DESCRIPTION: |
