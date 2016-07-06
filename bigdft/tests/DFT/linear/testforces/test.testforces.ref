@@ -13,7 +13,7 @@
  <BigDFT> log of the run will be written in logfile: ./log.yaml
 
  Check correctness of forces
- Difference of total energies =   1.6926360665330265E-003
- Integral force*displacement =    1.8370158235095553E-003
- Difference =   -1.4437975697652880E-004
+ Difference of total energies =   1.6928741002324443E-003
+ Integral force*displacement =    1.8369939892225809E-003
+ Difference =   -1.4411988899013656E-004
 

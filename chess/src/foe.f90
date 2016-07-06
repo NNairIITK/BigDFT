@@ -293,8 +293,8 @@ module foe
                   spin_loop: do ispin=1,smatl%nspin
 
 
-                      fscale_new = fscale_newx
-                      call foe_data_set_real(foe_obj,"fscale",fscale_new)
+                      !fscale_new = fscale_newx
+                      !call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
                       isshift=(ispin-1)*smats%nvctrp_tg
                       imshift=(ispin-1)*smatm%nvctrp_tg
@@ -562,8 +562,9 @@ module foe
           call yaml_sequence_close()
       end if
 
-      !!! This always takes the value for ispin=2... should be improved
-      call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
+      !!!!! This always takes the value for ispin=2... should be improved
+      !!call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
+      call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
       degree_sufficient=.true.
 
