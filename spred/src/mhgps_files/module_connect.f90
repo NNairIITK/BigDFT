@@ -228,7 +228,7 @@ recursive subroutine connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,out
              call astruct_dump_to_file(&
                   bigdft_get_astruct_ptr(runObj),mhgpsst%currDir//&
                   '/sad'//trim(adjustl(mhgpsst%isadc))//'_pushL',&
-                  comment,cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
+                  '',cobj%enerleft(mhgpsst%nsad),cobj%leftmin(:,:,mhgpsst%nsad),&
                   cobj%fleft(:,:,mhgpsst%nsad))
 
         call minimize(mhgpsst,uinp,runObj,outs,rcov,&
@@ -317,7 +317,7 @@ recursive subroutine connect_recursively(spredinputs,mhgpsst,fsw,uinp,runObj,out
         if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity >= 3)&
              call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
              mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_pushR',&
-             comment,&
+             '',&
              cobj%enerright(mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad),&
              cobj%fright(1,1,mhgpsst%nsad))
 

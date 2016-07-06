@@ -76,6 +76,7 @@ END MODULE saddles
 subroutine find_saddle( success, saddle_energy )
 
   use defs
+  use module_base
   use saddles, only : type_events
   use bigdft_forces, only : in_system
   use wrapper_MPI
@@ -202,6 +203,7 @@ END SUBROUTINE global_move
 subroutine local_move( )
 
   use defs
+  use module_base
   use random
   use saddles
   use wrapper_MPI
@@ -787,6 +789,7 @@ subroutine coord_based_move( )
   use defs
   use random
   use saddles
+  use module_base
   implicit none
  
   !Local variable
@@ -936,6 +939,7 @@ subroutine guess_direction ( )
 
   use defs
   use saddles
+  use module_base
 
   implicit none
 

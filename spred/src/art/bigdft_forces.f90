@@ -15,7 +15,7 @@
 !> Module which contains information for BigDFT run inside ART
 module bigdft_forces
 
-   use module_base!, only : gp,wp,dp,Bohr_Ang
+   use module_defs, only : gp
    use bigdft_run   
    use module_atoms
    use module_interfaces
@@ -54,8 +54,8 @@ module bigdft_forces
    !> ART init_all_atoms
    !! Routine to initialize all the positions. uses BigDFT read files
    subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, file )
-
      use numerics, only: Bohr_Ang
+     use dynamic_memory
       implicit none
 
       !Arguments
@@ -126,6 +126,7 @@ module bigdft_forces
    subroutine bigdft_init_art( nat, me_, nproc_, my_gnrm,passivate,total_nb_atoms )
      use dictionaries
      use module_input_dicts
+     use module_base, only: bigdft_mpi
      use module_atoms, only: read_atomic_file=>set_astruct_from_file
       implicit none
 
@@ -274,7 +275,8 @@ module bigdft_forces
    !> ART calcforce_bigdft
    !! Calculation of forces
    subroutine calcforce_bigdft( posa, forca, boxl, energy, evalf_number, conv )
-
+     use bigdft_run
+     use module_base
       implicit none
 
       !Arguments
@@ -373,7 +375,8 @@ module bigdft_forces
 
    !> Minimise geometry
    subroutine mingeo( posa, forca, boxl, evalf_number, total_energy, success )
-
+     use module_base
+     use bigdft_run
       implicit none
 
       !Arguments
@@ -683,7 +686,8 @@ module bigdft_forces
 
 
    subroutine check_force_clean_wf( posa, boxl, evalf_number, total_energy, success )
-
+     use bigdft_run
+     use module_base
       implicit none
 
       real(kind=8), intent(inout), dimension(3*atoms_all%astruct%nat) :: posa

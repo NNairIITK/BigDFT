@@ -1,0 +1,32 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+#List the module the this rcfile will build
+modules = ['spred',]
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    return """"FC=ftn" "CC=cc" "CXX=icpc" "FCFLAGS=-I/opt/intel/15.0.1.133/composer_xe_2015/mkl/include -O2 -openmp" "--with-ext-linalg=-L/opt/intel/15.0.1.133/composer_xe_2015/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" "--enable-opencl" "--enable-cuda-gpu" "--with-cuda-path=/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9836.8.1" "--with-ocl-path=/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9836.8.1" "LIBS=-L/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9836.8.1/lib64 -lnvToolsExt" "CFLAGS=-O2" "FCLIBS= " """
+#here follow the configuration instructions for the modules built
+module_autogenargs.update({
+   
+'libyaml': env_configuration(),
+   
+'futile': env_configuration(),
+   
+'psolver': env_configuration(),
+
+'libxc': env_configuration(),
+
+'chess': env_configuration(),
+   
+'libABINIT': env_configuration(),
+   
+'GaIn': env_configuration(),
+   
+'bigdft': env_configuration(),
+   
+'spred': env_configuration(),
+   
+})

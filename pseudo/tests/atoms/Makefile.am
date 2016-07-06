@@ -141,10 +141,10 @@ check: $(CHECKS) check_and_report
 clean: $(CLEANS)
 
 check_and_report: $(CHECKS)
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 atom.out: $(abs_top_builddir)/pseudo/src/atom
 	$(run_parallel) $(abs_top_builddir)/pseudo/src/atom > $@
