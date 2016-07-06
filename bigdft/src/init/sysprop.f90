@@ -844,8 +844,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                 lorbs%onwhichatom(iorbn) = iat
                 lorbs%inwhichlocreg(iorbn) = inwhichlocreg_tmp(iorb)
                 ! perform the same change for spin down
-                lorbs%onwhichatom(iorbn+lorbs%norbu) = iat
-                lorbs%inwhichlocreg(iorbn+lorbs%norbu) = inwhichlocreg_tmp(iorb+lorbs%norbu)
+                if (lorbs%nspin==2) then
+                   lorbs%onwhichatom(iorbn+lorbs%norbu) = iat
+                   lorbs%inwhichlocreg(iorbn+lorbs%norbu) = inwhichlocreg_tmp(iorb+lorbs%norbu)
+                end if
                 ! double check - might not always be true in future
                 if (iorbn /= inwhichlocreg_tmp(iorb)) then
                    write(*,*) 'Error reordering tmbs for fragment calculation (1)',iorbn,inwhichlocreg_tmp(iorb)
