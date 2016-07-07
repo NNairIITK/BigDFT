@@ -1775,7 +1775,9 @@ module io
     !subroutine read_dense_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename, binary, orbs)
     !eventually have the same header information as write_sparse?
     !differs in behaviour though as assumes all matrices are alrady allocated to correct size - think more about whether this is the best approach...
-    subroutine read_dense_matrix(filename, binary, nspin, ntmb, mat, nat, rxyz, on_which_atom) 
+    !SM: metadata like nat, onwhichatom are not stored together with the matrices any more, but they
+    ! are now in a metadate file.
+    subroutine read_dense_matrix(filename, binary, nspin, ntmb, mat)!, nat, rxyz, on_which_atom) 
                !ntypes, nzatom, nelpsp, atomnames, iatype)
       use module_base
       use module_types
@@ -1784,13 +1786,14 @@ module io
       ! Calling arguments
       character(len=*),intent(in) :: filename
       logical, intent(in) :: binary
-      integer, intent(in) :: ntmb, nat, nspin
+      !integer, intent(in) :: nat
+      integer, intent(in) :: ntmb, nspin
       real(kind=8),dimension(ntmb,ntmb,nspin),intent(inout) :: mat
       !integer,intent(out),optional :: ntypes
       !integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
       !character(len=*),dimension(:),pointer,intent(inout),optional :: atomnames
-      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
-      integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
+      !!real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      !!integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
       ! Local variables
       integer :: iunit, dummy_int, ispin, iat, iorb, jorb, ntmb_old, nat_old, nspin_old
@@ -1800,73 +1803,77 @@ module io
 
       call f_routine(id='read_dense_matrix')
 
-      if (present(rxyz)) then
-          read_rxyz = .true.
-      else
-          read_rxyz = .false.
-      end if
+      !!if (present(rxyz)) then
+      !!    read_rxyz = .true.
+      !!else
+      !!    read_rxyz = .false.
+      !!end if
       
-      if (present(on_which_atom)) then
-          read_on_which_atom = .true.
-      else
-          read_on_which_atom = .false.
-      end if
+      !!if (present(on_which_atom)) then
+      !!    read_on_which_atom = .true.
+      !!else
+      !!    read_on_which_atom = .false.
+      !!end if
 
       iunit = 99
       call f_open_file(iunit, file=trim(filename), binary=binary)
 
       !check heading information is consistent
       if (.not. binary) then
-          read(iunit,*) dummy_char, ntmb_old, nat_old, nspin_old
+          !!read(iunit,*) dummy_char, ntmb_old, nat_old, nspin_old
+          read(iunit,*) nspin_old, ntmb_old
       else
-          read(iunit) dummy_char, ntmb_old, nat_old, nspin_old
+          !!read(iunit) dummy_char, ntmb_old, nat_old, nspin_old
+          read(iunit) nspin_old, ntmb_old
       end if
       if (ntmb_old/=ntmb) call f_err_throw("Number of tmbs incorrect in read_dense_matrix", &
            err_name='BIGDFT_RUNTIME_ERROR')
-      if (nat_old/=nat) call f_err_throw("Number of atoms incorrect in read_dense_matrix", &
-           err_name='BIGDFT_RUNTIME_ERROR')
+      !!if (nat_old/=nat) call f_err_throw("Number of atoms incorrect in read_dense_matrix", &
+      !!     err_name='BIGDFT_RUNTIME_ERROR')
       if (nspin_old/=nspin) call f_err_throw("Number of spins incorrect in read_dense_matrix", &
            err_name='BIGDFT_RUNTIME_ERROR')
 
-      if (read_rxyz) then
-          do iat=1,nat
-              if (.not. binary) then
-                  read(iunit,*) dummy_char,rxyz(1:3,iat)
-              else
-                  read(iunit) dummy_char,rxyz(1:3,iat)
-              end if
-          end do  
-      else
-          do iat=1,nat
-              read(iunit,*) dummy_char, dummy_double, dummy_double, dummy_double
-          end do
-      end if
+      !!if (read_rxyz) then
+      !!    do iat=1,nat
+      !!        if (.not. binary) then
+      !!            read(iunit,*) dummy_char,rxyz(1:3,iat)
+      !!        else
+      !!            read(iunit) dummy_char,rxyz(1:3,iat)
+      !!        end if
+      !!    end do  
+      !!else
+      !!    do iat=1,nat
+      !!        read(iunit,*) dummy_char, dummy_double, dummy_double, dummy_double
+      !!    end do
+      !!end if
 
-      if (read_on_which_atom) then
+      !!if (read_on_which_atom) then
+      !!    do ispin=1,nspin
+      !!       do iorb=1,ntmb
+      !!          do jorb=1,ntmb
+      !!             if (.not. binary) then
+      !!                read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin),on_which_atom(iorb),on_which_atom(jorb)
+      !!             else
+      !!                read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin),on_which_atom(iorb),on_which_atom(jorb)
+      !!             end if
+      !!          end do
+      !!       end do
+      !!    end do
+      !!else
           do ispin=1,nspin
              do iorb=1,ntmb
                 do jorb=1,ntmb
                    if (.not. binary) then
-                      read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin),on_which_atom(iorb),on_which_atom(jorb)
+                      !!read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin),dummy_int,dummy_int
+                      read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin)
                    else
-                      read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin),on_which_atom(iorb),on_which_atom(jorb)
+                      !!read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin),dummy_int,dummy_int
+                      read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin)
                    end if
                 end do
              end do
           end do
-      else
-          do ispin=1,nspin
-             do iorb=1,ntmb
-                do jorb=1,ntmb
-                   if (.not. binary) then
-                      read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin),dummy_int,dummy_int
-                   else
-                      read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin),dummy_int,dummy_int
-                   end if
-                end do
-             end do
-          end do
-      end if
+      !!end if
 
       call f_close(iunit)
 

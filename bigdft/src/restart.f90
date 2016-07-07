@@ -2652,8 +2652,10 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         !should fragments have some knowledge of spin?
         !assume kernel is in binary if tmbs are...
         binary=(iformat == WF_FORMAT_BINARY)
+        !!call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+        !!     ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat)
         call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-             ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat)
+             ref_frags(ifrag_ref)%kernel)
 
 
         if (ref_frags(ifrag_ref)%nbasis_env/=0) then
@@ -2661,8 +2663,10 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            !should fragments have some knowledge of spin?
            !assume kernel is in binary if tmbs are...
            binary=(iformat == WF_FORMAT_BINARY)
+           !!call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%nbasis_env, &
+           !!     ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat)
            call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%nbasis_env, &
-                ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat)
+                ref_frags(ifrag_ref)%kernel_env)
         end if
 
         !!if (iproc==0) then

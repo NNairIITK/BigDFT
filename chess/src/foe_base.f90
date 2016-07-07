@@ -105,7 +105,7 @@ module foe_base
       case ("npl_stride")
           foe_obj%npl_stride = val
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end subroutine foe_data_set_int
@@ -134,7 +134,7 @@ module foe_base
       case ("npl_stride")
           val = foe_obj%npl_stride
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end function foe_data_get_int
@@ -214,7 +214,7 @@ module foe_base
       case ("betax")
           foe_obj%betax = val
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end subroutine foe_data_set_real
@@ -293,7 +293,7 @@ module foe_base
       case ("betax")
           val = foe_obj%betax
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end function foe_data_get_real
@@ -306,7 +306,7 @@ module foe_base
 
       select case (fieldname)
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end subroutine foe_data_set_logical
@@ -318,7 +318,7 @@ module foe_base
 
       select case (fieldname)
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end function foe_data_get_logical

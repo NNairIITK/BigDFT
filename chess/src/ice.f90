@@ -745,6 +745,7 @@ module ice
                call foe_data_set_int(ice_obj_,"npl_min",10)
                call foe_data_set_int(ice_obj_,"npl_max",5000)
                call foe_data_set_int(ice_obj_,"npl_stride",10)
+               call foe_data_set_real(ice_obj_,"betax",-500.d0)
           !@ ################################################
           ice_obj => ice_obj_
       end if

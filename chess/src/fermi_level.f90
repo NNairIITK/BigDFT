@@ -364,7 +364,7 @@ module fermi_level
         case ("bisection_shift")
             val = f%bisection_shift
         case default
-            stop 'ERROR: wrong argument'
+            call f_err_throw("wrong argument for "//trim(fieldname))
         end select
     end function fermilevel_get_real
 
@@ -380,7 +380,7 @@ module fermi_level
         case ("bisection_bounds_ok(2)")
             val = f%bisection_bounds_ok(2)
         case default
-            stop 'ERROR: wrong argument'
+            call f_err_throw("wrong argument for "//trim(fieldname))
         end select
     end function fermilevel_get_logical
 

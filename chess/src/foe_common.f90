@@ -2146,7 +2146,7 @@ module foe_common
 
     !> Determine the polynomial degree which yields the desired precision
     subroutine get_polynomial_degree(iproc, nproc, comm, ispin, ncalc, fun, foe_obj, &
-               npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
+               npl_min, npl_max, npl_stride, max_polynomial_degree, betax, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
       use foe_base, only: foe_data, foe_data_get_real
@@ -2158,7 +2158,7 @@ module foe_common
       integer,intent(in) :: iproc, nproc, comm, ispin, ncalc, fun, verbosity
       integer,intent(in) :: npl_min, npl_max, npl_stride
       type(foe_data),intent(in) :: foe_obj
-      real(kind=mp),intent(in) :: max_polynomial_degree
+      real(kind=mp),intent(in) :: max_polynomial_degree, betax
       integer,intent(out) :: npl
       real(kind=mp),dimension(:,:,:),pointer,intent(inout) :: cc
       real(kind=mp),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
@@ -2254,7 +2254,7 @@ module foe_common
           end do
           if (error_ok) then
               do icalc=1,ncalc
-                  call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                  call func_set(FUNCTION_EXPONENTIAL, betax=betax, &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
@@ -2534,12 +2534,12 @@ module foe_common
     
                   if (func_name==FUNCTION_ERRORFUNCTION) then
                       call get_polynomial_degree(iproc, nproc, comm, 1, ncalc, FUNCTION_ERRORFUNCTION, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc_, &
+                           npl_min, npl_max, npl_stride, 1.d-5, betax, 0, npl, cc_, &
                            max_error, x_max_error, mean_error, anoise, &
                            ef=efarr, fscale=fscale_arr)
                   else if (func_name==FUNCTION_POLYNOMIAL) then
                       call get_polynomial_degree(iproc, nproc, comm, 1, ncalc, FUNCTION_POLYNOMIAL, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-8, 0, npl, cc_, &
+                           npl_min, npl_max, npl_stride, 1.d-8, betax, 0, npl, cc_, &
                            max_error, x_max_error, mean_error, anoise, &
                            ex=ex)
                   end if
