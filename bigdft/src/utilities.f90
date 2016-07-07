@@ -20,7 +20,8 @@ program utilities
                                 SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, &
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices, &
                                 sparse_matrix_metadata, deallocate_sparse_matrix_metadata
-   use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+   use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple, &
+                                write_sparsematrix_info
    use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
@@ -255,15 +256,23 @@ program utilities
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
-            init_matmul=.true.)
-
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
-            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
-            init_matmul=.true.)
+            init_matmul=.false.)
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
-            init_matmul=.true.)
+            init_matmul=.false.)
+
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+            bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
+            init_matmul=.true., filename_mult='density_kernel_sparse.bin_matmul')
+
+       if (bigdft_mpi%iproc==0) then
+           call yaml_mapping_open('Matrix properties')
+           call write_sparsematrix_info(smat_s, 'Overlap matrix')
+           call write_sparsematrix_info(smat_m, 'Hamiltonian matrix')
+           call write_sparsematrix_info(smat_l, 'Density kernel')
+           call yaml_mapping_close()
+       end if
 
        ! Check which multipole matrices are present
        do l=0,lmax

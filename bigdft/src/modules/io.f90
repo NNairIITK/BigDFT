@@ -508,21 +508,27 @@ module io
                     binary=binary)
     
                if (.not. binary) then
-                   write(unitm,'(a,3i10,a)') '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-                       ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                   !!write(unitm,'(a,3i10,a)') '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                   !!    ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                   !!    '    number of basis functions, number of atoms, number of spins'
+                   write(unitm,'(3i10,a)') linmat%m%nspin, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                       ref_frags(ifrag_ref)%astruct_frg%nat,  &
                        '    number of basis functions, number of atoms, number of spins'
                else
-                   write(unitm) '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-                       ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                   !!write(unitm) '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                   !!    ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                   !!    '    number of basis functions, number of atoms, number of spins'
+                   write(unitm) linmat%m%nspin, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                       ref_frags(ifrag_ref)%astruct_frg%nat,  &
                        '    number of basis functions, number of atoms, number of spins'
                end if
-               do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat
-                   if (.not. binary) then
-                       write(unitm,'(a,3es24.16)') '#  ',rxyz_frag(1:3,ia)
-                   else
-                       write(unitm) '#  ',rxyz_frag(1:3,ia)
-                   end if
-               end do
+               !!do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat
+               !!    if (.not. binary) then
+               !!        write(unitm,'(a,3es24.16)') '#  ',rxyz_frag(1:3,ia)
+               !!    else
+               !!        write(unitm) '#  ',rxyz_frag(1:3,ia)
+               !!    end if
+               !!end do
  
                ! need to fix spin
                !do ispin=1,linmat%m%nspin
@@ -556,19 +562,23 @@ module io
                        binary=binary)
     
                   if (.not. binary) then
-                      write(unitm,'(a,3i10,a)') '#  ', ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
-                          linmat%m%nspin, '    number of basis functions, number of atoms, number of spins'
+                      !!write(unitm,'(a,3i10,a)') '#  ', ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
+                      !!    linmat%m%nspin, '    number of basis functions, number of atoms, number of spins'
+                      write(unitm,'(3i10,a)') linmat%m%nspin, ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
+                          '    number of basis functions, number of atoms, number of spins'
                   else
-                      write(unitm) '#  ', ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
-                          linmat%m%nspin, '    number of basis functions, number of atoms, number of spins'
+                      !!write(unitm) '#  ', ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
+                      !!    linmat%m%nspin, '    number of basis functions, number of atoms, number of spins'
+                      write(unitm) linmat%m%nspin, ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
+                          '    number of basis functions, number of atoms, number of spins'
                   end if
-                  do ia=1,ref_frags(ifrag_ref)%astruct_env%nat
-                      if (.not. binary) then
-                          write(unitm,'(a,3es24.16)') '#  ',ref_frags(ifrag_ref)%astruct_env%rxyz(1:3,ia)
-                      else
-                          write(unitm) '#  ',ref_frags(ifrag_ref)%astruct_env%rxyz(1:3,ia)
-                      end if
-                  end do
+                  !!do ia=1,ref_frags(ifrag_ref)%astruct_env%nat
+                  !!    if (.not. binary) then
+                  !!        write(unitm,'(a,3es24.16)') '#  ',ref_frags(ifrag_ref)%astruct_env%rxyz(1:3,ia)
+                  !!    else
+                  !!        write(unitm) '#  ',ref_frags(ifrag_ref)%astruct_env%rxyz(1:3,ia)
+                  !!    end if
+                  !!end do
  
                   ! need to fix spin
                   !do ispin=1,linmat%m%nspin

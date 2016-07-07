@@ -2174,7 +2174,7 @@ module sparsematrix_init
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
-          init_matmul_ = .true.
+          init_matmul_ = .false.
       end if
 
       if (init_matmul_) then
