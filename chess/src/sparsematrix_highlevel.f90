@@ -259,7 +259,7 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
 
 
-    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat, init_matmul, filename_mult)
+    recursive subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat, init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
