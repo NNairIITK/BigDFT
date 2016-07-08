@@ -17,7 +17,8 @@ program chess_toolbox
    !!use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
    !!use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base
-   use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
+   use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple, &
+                                write_sparsematrix_info
    use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
@@ -42,11 +43,13 @@ program chess_toolbox
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
    !!character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
+   character(len=128) :: kernel_matmul_file, fragment_file
    logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
    logical :: convert_matrix_format = .false.
    logical :: calculate_selected_eigenvalues = .false.
+   logical :: kernel_purity = .false.
    !!type(atoms_data) :: at
    type(sparse_matrix_metadata) :: smmd
    integer :: iproc, nproc
@@ -54,31 +57,34 @@ program chess_toolbox
    integer :: nfvctr_m, nseg_m, nvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l
    !integer :: nfvctrp_l, isfvctr_l, nfvctrp_m, isfvctr_m, nfvctrp_s, isfvctr_s
-   integer :: iconv, iev, iev_min, iev_max, l, ll, m
+   integer :: iconv, iev, iev_min, iev_max, l, ll, m, jat, jat_start, jtype
    integer,dimension(:),pointer :: on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
    integer,dimension(:),pointer :: col_ptr, row_ind
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
+   integer,dimension(:),allocatable :: fragment_atom_id
    !!logical,dimension(-lmax:lmax) :: file_present
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
+   real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
    logical,dimension(:,:),allocatable :: calc_array
-   logical :: file_exists, found
+   logical :: file_exists, found, found_a_fragment, found_icol, found_irow
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
    type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(matrices),dimension(:,:),allocatable :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
-   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb
+   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag
    character(len=20),dimension(:),pointer :: atomnames
-   character(len=30),dimension(:),allocatable :: pdos_name
+   character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
-   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale
+   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    ! Presumably well suited colorschemes from colorbrewer2.org
@@ -232,6 +238,18 @@ program chess_toolbox
             call get_command_argument(i_arg, value = fscale_)
             read(fscale_,fmt=*,iostat=ierr) fscale
             calculate_selected_eigenvalues = .true.
+        else if (trim(tatonam)=='kernel-purity') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = metadata_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_matmul_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = fragment_file)
+            kernel_purity = .true.
          end if
          i_arg = i_arg + 1
       end do loop_getargs
@@ -799,6 +817,196 @@ program chess_toolbox
 
    end if
 
+
+
+   if (kernel_purity) then
+       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+            init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+            iproc, nproc, mpiworld(), smat_l, kernel_mat, &
+            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
+
+       if (iproc==0) then
+           call yaml_mapping_open('Matrix properties')
+           call write_sparsematrix_info(smat_s, 'Overlap matrix')
+           call write_sparsematrix_info(smat_l, 'Density kernel')
+           call yaml_mapping_close()
+       end if
+
+       iunit=99
+       call f_open_file(iunit, file=fragment_file, binary=.false.)
+       read(iunit,*) nat_frag
+       fragment_atomnames = f_malloc_str(len(fragment_atomnames),nat_frag,id='nat_frag')
+       do iat=1,nat_frag
+           read(iunit,*) fragment_atomnames(iat)
+       end do
+       call f_close(iunit)
+
+
+       fragment_atom_id = f_malloc(nat_frag,id='fragment_atom_id')
+       jat_start = 1
+       found_a_fragment = .false.
+       ifrag = 0
+       call yaml_map('Fragment composition',fragment_atomnames)
+       call yaml_sequence_open('Purity analysis of fragment')
+       search_fragments: do
+           ifrag = ifrag + 1
+           fragment_loop: do iat=1,nat_frag
+               found = .false.
+               search_loop: do jat=jat_start,smmd%nat
+                   jtype = smmd%iatype(jat)
+                   if (trim(fragment_atomnames(iat))==trim(smmd%atomnames(jtype))) then
+                       ! Found an atom beloning to the fragment
+                       fragment_atom_id(iat) = jat
+                       jat_start = jat + 1
+                       found = .true.
+                       exit search_loop
+                   end if
+               end do search_loop
+               if (.not.found) then
+                   exit fragment_loop
+               end if
+           end do fragment_loop
+           if (found) then
+               found_a_fragment = .true.
+           else
+               exit search_fragments
+           end if
+           
+           ! Count how many support functions belong to the fragment
+           nfvctr_frag = 0
+           do i=1,smat_l%nfvctr
+               iiat = smmd%on_which_atom(i)
+               do iat=1,nat_frag
+                   if (iiat==fragment_atom_id(iat)) then
+                       nfvctr_frag = nfvctr_frag + 1
+                   end if
+               end do
+           end do
+
+
+
+           kernel_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='kernel_fragment')
+           overlap_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='overlap_fragment')
+           ksk_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='ksk_fragment')
+           tmpmat = f_malloc((/nfvctr_frag,nfvctr_frag/),id='tmpmat')
+
+           call extract_fragment_submatrix(smmd, smat_s, ovrlp_mat, nat_frag, nfvctr_frag, fragment_atom_id, overlap_fragment)
+           call extract_fragment_submatrix(smmd, smat_l, kernel_mat, nat_frag, nfvctr_frag, fragment_atom_id, kernel_fragment)
+
+           if (smat_l%nspin==1) then
+               factor = 0.5_mp
+           else if (smat_l%nspin==2) then
+               factor = 1.0_mp
+           end if
+           call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, factor, kernel_fragment(1,1), nfvctr_frag, &
+                overlap_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
+           call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, 1.d0, tmpmat(1,1), nfvctr_frag, &
+                kernel_fragment(1,1), nfvctr_frag, 0.d0, ksk_fragment(1,1), nfvctr_frag)
+
+           maxdiff = 0.0_mp
+           meandiff = 0.0_mp
+           do i=1,nfvctr_frag
+               do j=1,nfvctr_frag
+                   tt = abs(kernel_fragment(j,i)-ksk_fragment(j,i))
+                   maxdiff = max(maxdiff,tt)
+                   meandiff = meandiff + tt
+               end do
+           end do
+           meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
+
+           call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
+           call yaml_sequence(advance='no')
+           !call yaml_mapping_open(flow=.false.)
+           call yaml_map('Atoms ID',fragment_atom_id)
+           call yaml_map('Submatrix size',nfvctr_frag)
+           call yaml_map('max(KSK-K)',maxdiff,fmt='(es10.3)')
+           call yaml_map('mean(KSK-K)',meandiff,fmt='(es10.3)')
+           !call yaml_mapping_close()
+
+
+           !!iicol = 0
+           !!seg_loop: do iseg=1,smat_l%nseg
+           !!    icol = smat_l%keyg(1,2,iseg)
+           !!    icol_atom = smmd%on_which_atom(icol)
+           !!    ! Search whether this column belongs to the fragment
+           !!    found_icol = .false.
+           !!    do iat=1,nat_frag
+           !!        iiat = fragment_atom_id(iat)
+           !!        if (icol_atom==iiat) then
+           !!            found_icol = .true.
+           !!        end if
+           !!    end do
+           !!    if (found_icol) then
+           !!        iicol = iicol + 1
+           !!    else
+           !!        cycle seg_loop
+           !!    end if
+           !!    ii=smat_l%keyv(iseg)
+           !!    iirow = 0
+           !!    do i=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg) 
+           !!        irow = i
+           !!        irow_atom = smmd%on_which_atom(irow)
+           !!        ! Search whether this column belongs to the fragment
+           !!        found_irow = .false.
+           !!        do iat=1,nat_frag
+           !!            iiat = fragment_atom_id(iat)
+           !!            if (irow_atom==iiat) then
+           !!                found_irow = .true.
+           !!            end if
+           !!        end do
+           !!        if (found_irow .and. found_icol) then
+           !!            iirow = iirow + 1
+           !!            kernel_fragment(iirow,iicol) = kernel_mat%matrix_compr(ii)
+           !!        end if
+           !!        ii = ii + 1
+           !!    end do
+           !!end do seg_loop
+
+           !call yaml_map('kernel_fragment',kernel_fragment,fmt='(f7.3)')
+           !call yaml_map('kernel ',reshape(kernel_mat%matrix_compr,(/smat_l%nfvctr,smat_l%nfvctr/)),fmt='(f7.3)')
+           !call yaml_map('overlap_fragment',overlap_fragment,fmt='(f7.3)')
+           !call yaml_map('overlap ',reshape(ovrlp_mat%matrix_compr,(/smat_l%nfvctr,smat_l%nfvctr/)),fmt='(f7.3)')
+           !call yaml_map('ksk_fragment',ksk_fragment,fmt='(f7.3)')
+
+           !!if (jat_start>smmd%nat) then
+           !!    ! The search has reached the end
+           !!    exit
+           !!end if
+
+           call f_free(kernel_fragment)
+           call f_free(overlap_fragment)
+           call f_free(ksk_fragment)
+           call f_free(tmpmat)
+
+       end do search_fragments
+       call yaml_sequence_close()
+       if (.not.found_a_fragment) then
+           call f_err_throw('The specified fragment is not present')
+       end if
+
+       call deallocate_sparse_matrix_metadata(smmd)
+       call deallocate_sparse_matrix(smat_s)
+       call deallocate_sparse_matrix(smat_l)
+       call deallocate_matrices(ovrlp_mat)
+       call deallocate_matrices(kernel_mat)
+       call f_free_str(len(fragment_atomnames),fragment_atomnames)
+       call f_free(fragment_atom_id)
+       !call f_free(kernel_fragment)
+       !call f_free(overlap_fragment)
+       !call f_free(ksk_fragment)
+       !call f_free(tmpmat)
+
+       call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&
+                    gather_routine=gather_timings)
+
+
+   end if
+
+
+
    call build_dict_info(iproc, nproc, dict_timing_info)
    call f_timing_stop(mpi_comm=mpiworld(),nproc=nproc,&
         gather_routine=gather_timings,dict_info=dict_timing_info)
@@ -879,3 +1087,63 @@ end program chess_toolbox
 !!$  call f_close(unitwf)
 !!$
 !!$end subroutine completeness_relation
+
+
+
+
+
+
+subroutine extract_fragment_submatrix(smmd, smat, mat, nat_frag, nfvctr_frag, fragment_atom_id, mat_frag)
+  use sparsematrix_base
+  implicit none
+
+  ! Calling arguments
+  type(sparse_matrix_metadata),intent(in) :: smmd
+  type(sparse_matrix),intent(in) :: smat
+  type(matrices),intent(in) :: mat
+  integer,intent(in) :: nat_frag, nfvctr_frag
+  integer,dimension(nat_frag),intent(in) :: fragment_atom_id
+  real(mp),dimension(nfvctr_frag,nfvctr_frag),intent(out) :: mat_frag
+
+  ! Local variables
+  integer :: iicol, icol, icol_atom, iat, iiat, ii, iirow, i, irow, irow_atom, iseg
+  logical :: found_icol, found_irow
+
+  iicol = 0
+  seg_loop: do iseg=1,smat%nseg
+      icol = smat%keyg(1,2,iseg)
+      icol_atom = smmd%on_which_atom(icol)
+      ! Search whether this column belongs to the fragment
+      found_icol = .false.
+      do iat=1,nat_frag
+          iiat = fragment_atom_id(iat)
+          if (icol_atom==iiat) then
+              found_icol = .true.
+          end if
+      end do
+      if (found_icol) then
+          iicol = iicol + 1
+      else
+          cycle seg_loop
+      end if
+      ii=smat%keyv(iseg)
+      iirow = 0
+      do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg) 
+          irow = i
+          irow_atom = smmd%on_which_atom(irow)
+          ! Search whether this column belongs to the fragment
+          found_irow = .false.
+          do iat=1,nat_frag
+              iiat = fragment_atom_id(iat)
+              if (irow_atom==iiat) then
+                  found_irow = .true.
+              end if
+          end do
+          if (found_irow .and. found_icol) then
+              iirow = iirow + 1
+              mat_frag(iirow,iicol) = mat%matrix_compr(ii)
+          end if
+          ii = ii + 1
+      end do
+  end do seg_loop
+end subroutine extract_fragment_submatrix

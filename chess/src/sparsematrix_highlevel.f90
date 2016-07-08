@@ -282,7 +282,7 @@ module sparsematrix_highlevel
       logical :: init_matmul_
       type(sparse_matrix) :: smat_mult
 
-      call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
+      call f_routine(id='sparse_matrix_init_from_file_bigdft')
 
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
