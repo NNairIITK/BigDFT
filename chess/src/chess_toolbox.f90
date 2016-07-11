@@ -65,13 +65,12 @@ program chess_toolbox
    integer,dimension(:),pointer :: col_ptr, row_ind
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    integer,dimension(:),allocatable :: fragment_atom_id, fragment_supfun_id
-   real(mp),dimension(:),allocatable :: mat1dtmp
    !!logical,dimension(-lmax:lmax) :: file_present
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
-   real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat, ovrlp_global, kernel_global
+   real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found, found_a_fragment, found_icol, found_irow
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large
@@ -230,6 +229,8 @@ program chess_toolbox
             call get_command_argument(i_arg, value = hamiltonian_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_matmul_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = iev_min_)
             read(iev_min_,fmt=*,iostat=ierr) iev_min
@@ -762,7 +763,7 @@ program chess_toolbox
             init_matmul=.false.)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
-            init_matmul=.true.)
+            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
        call matrices_init(smat_l, ovrlp_minus_one_half(1))
 
        !call timing(mpiworld(),'INIT','PR')
@@ -906,26 +907,10 @@ program chess_toolbox
            call transform_sparse_matrix(iproc, smat_s, smat_l, SPARSE_FULL, 'small_to_large', &
                                         smat_in=ovrlp_mat%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
 
-
-           !call extract_fragment_submatrix(smmd, smat_s, ovrlp_mat, nat_frag, nfvctr_frag, fragment_atom_id, overlap_fragment)
            call extract_fragment_submatrix(smmd, smat_l, ovrlp_large, nat_frag, nfvctr_frag, &
                 fragment_atom_id, fragment_supfun_id, overlap_fragment)
            call extract_fragment_submatrix(smmd, smat_l, kernel_mat, nat_frag, nfvctr_frag, &
                 fragment_atom_id, fragment_supfun_id, kernel_fragment)
-           !!mat1dtmp = f_malloc(nfvctr_frag**2,id='mat1dtmp')
-           !!call transform_sparse_matrix(iproc, smat_s, smat_l, SPARSE_FULL, 'small_to_large', &
-           !!                             smat_in=ovrlp_mat%matrix_compr, lmat_out=mat1dtmp)
-           !!do i=1,nfvctr_frag**2
-           !!    write(100,*) i, mat1dtmp(i)
-           !!    irow = (i-1)/nfvctr_frag + 1
-           !!    icol = mod(i-1,nfvctr_frag)+1
-           !!    write(200,*) i, overlap_fragment(irow,icol)
-           !!end do
-           !!ovrlp_global = f_malloc((/smat_l%nfvctr,smat_l%nfvctr/),id='ovrlp_global')
-           !!kernel_global = f_malloc((/smat_l%nfvctr,smat_l%nfvctr/),id='kernel_global')
-
-           !!call uncompress_matrix(iproc, nproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_global)
-           !!call uncompress_matrix(iproc, nproc, smat_l, inmat=kernel_mat%matrix_compr, outmat=kernel_global)
 
 
            if (smat_l%nspin==1) then
@@ -937,10 +922,6 @@ program chess_toolbox
                 overlap_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
            call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, 1.d0, tmpmat(1,1), nfvctr_frag, &
                 kernel_fragment(1,1), nfvctr_frag, 0.d0, ksk_fragment(1,1), nfvctr_frag)
-           !!call gemm('n', 'n', smat_l%nfvctr, smat_l%nfvctr, smat_l%nfvctr, factor, kernel_fragment(1,1), smat_l%nfvctr, &
-           !!     overlap_fragment(1,1), smat_l%nfvctr, 0.d0, tmpmat(1,1), smat_l%nfvctr)
-           !!call gemm('n', 'n', smat_l%nfvctr, smat_l%nfvctr, smat_l%nfvctr, 1.d0, tmpmat(1,1), smat_l%nfvctr, &
-           !!     kernel_fragment(1,1), smat_l%nfvctr, 0.d0, ksk_fragment(1,1), smat_l%nfvctr)
 
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
@@ -952,14 +933,6 @@ program chess_toolbox
                end do
            end do
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
-           !!do i=1,nfvctr_frag
-           !!    do j=1,nfvctr_frag
-           !!        tt = abs(kernel_fragment(j,i)-ksk_fragment(j,i))
-           !!        maxdiff = max(maxdiff,tt)
-           !!        meandiff = meandiff + tt
-           !!    end do
-           !!end do
-           !!meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
 
            if (iproc==0) then
                call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
@@ -971,58 +944,6 @@ program chess_toolbox
                call yaml_map('mean(KSK-K)',meandiff,fmt='(es10.3)')
                !call yaml_mapping_close()
            end if
-           !!write(*,*) 'maxloc(abs(kernel_fragment(:,:)-ksk_fragment(:,:)))', maxloc(abs(kernel_fragment(:,:)-ksk_fragment(:,:)))
-           !!write(*,*) 'kernel_fragment(65,65),ksk_fragment(65,65)', kernel_fragment(65,65),ksk_fragment(65,65)
-
-
-           !!iicol = 0
-           !!seg_loop: do iseg=1,smat_l%nseg
-           !!    icol = smat_l%keyg(1,2,iseg)
-           !!    icol_atom = smmd%on_which_atom(icol)
-           !!    ! Search whether this column belongs to the fragment
-           !!    found_icol = .false.
-           !!    do iat=1,nat_frag
-           !!        iiat = fragment_atom_id(iat)
-           !!        if (icol_atom==iiat) then
-           !!            found_icol = .true.
-           !!        end if
-           !!    end do
-           !!    if (found_icol) then
-           !!        iicol = iicol + 1
-           !!    else
-           !!        cycle seg_loop
-           !!    end if
-           !!    ii=smat_l%keyv(iseg)
-           !!    iirow = 0
-           !!    do i=smat_l%keyg(1,1,iseg),smat_l%keyg(2,1,iseg) 
-           !!        irow = i
-           !!        irow_atom = smmd%on_which_atom(irow)
-           !!        ! Search whether this column belongs to the fragment
-           !!        found_irow = .false.
-           !!        do iat=1,nat_frag
-           !!            iiat = fragment_atom_id(iat)
-           !!            if (irow_atom==iiat) then
-           !!                found_irow = .true.
-           !!            end if
-           !!        end do
-           !!        if (found_irow .and. found_icol) then
-           !!            iirow = iirow + 1
-           !!            kernel_fragment(iirow,iicol) = kernel_mat%matrix_compr(ii)
-           !!        end if
-           !!        ii = ii + 1
-           !!    end do
-           !!end do seg_loop
-
-           !call yaml_map('kernel_fragment',kernel_fragment,fmt='(f7.3)')
-           !call yaml_map('kernel ',reshape(kernel_mat%matrix_compr,(/smat_l%nfvctr,smat_l%nfvctr/)),fmt='(f7.3)')
-           !call yaml_map('overlap_fragment',overlap_fragment,fmt='(f7.3)')
-           !call yaml_map('overlap ',reshape(ovrlp_mat%matrix_compr,(/smat_l%nfvctr,smat_l%nfvctr/)),fmt='(f7.3)')
-           !call yaml_map('ksk_fragment',ksk_fragment,fmt='(f7.3)')
-
-           !!if (jat_start>smmd%nat) then
-           !!    ! The search has reached the end
-           !!    exit
-           !!end if
 
            call f_free(kernel_fragment)
            call f_free(overlap_fragment)
@@ -1048,10 +969,6 @@ program chess_toolbox
        call f_free_str(len(fragment_atomnames),fragment_atomnames)
        call f_free(fragment_atom_id)
        call f_free(fragment_supfun_id)
-       !call f_free(kernel_fragment)
-       !call f_free(overlap_fragment)
-       !call f_free(ksk_fragment)
-       !call f_free(tmpmat)
 
        call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&
                     gather_routine=gather_timings)
@@ -1077,50 +994,6 @@ program chess_toolbox
    call f_lib_finalize()
 
 
-!!!  contains
-!!!
-!!!
-!!!    !> construct the dictionary needed for the timing information
-!!!    !! SM: This routine should go to a module
-!!!    subroutine build_dict_info(dict_info)
-!!!      use wrapper_MPI
-!!!      use dynamic_memory
-!!!      use dictionaries
-!!!      implicit none
-!!!
-!!!      type(dictionary), pointer :: dict_info
-!!!      !local variables
-!!!      integer :: ierr,namelen,nthreads
-!!!      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-!!!      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
-!!!      type(dictionary), pointer :: dict_tmp
-!!!      !$ integer :: omp_get_max_threads
-!!!
-!!!      call dict_init(dict_info)
-!!!!  bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
-!!!      !if (DoLastRunThings) then
-!!!         call f_malloc_dump_status(dict_summary=dict_tmp)
-!!!         call set(dict_info//'Routines timing and number of calls',dict_tmp)
-!!!      !end if
-!!!      nthreads = 0
-!!!      !$  nthreads=omp_get_max_threads()
-!!!      call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
-!!!      if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
-!!!           nthreads)
-!!!
-!!!      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
-!!!      if (nproc>1) then
-!!!         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-!!!         !gather the result between all the process
-!!!         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-!!!              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-!!!              mpiworld(),ierr)
-!!!         if (iproc==0) call set(dict_info//'Hostnames',&
-!!!                 list_new(.item. nodename))
-!!!      end if
-!!!      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
-!!!
-!!!    end subroutine build_dict_info
 
 
 end program chess_toolbox
