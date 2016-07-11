@@ -20,7 +20,8 @@ program chess_toolbox
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple, &
                                 write_sparsematrix_info
    use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
-   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2
+   use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2, &
+                           transform_sparse_matrix
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
                                      sparse_matrix_metadata_init_from_file, &
@@ -63,16 +64,17 @@ program chess_toolbox
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
    integer,dimension(:),pointer :: col_ptr, row_ind
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
-   integer,dimension(:),allocatable :: fragment_atom_id
+   integer,dimension(:),allocatable :: fragment_atom_id, fragment_supfun_id
+   real(mp),dimension(:),allocatable :: mat1dtmp
    !!logical,dimension(-lmax:lmax) :: file_present
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
-   real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
+   real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat, ovrlp_global, kernel_global
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found, found_a_fragment, found_icol, found_irow
-   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat
+   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large
    type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(matrices),dimension(:,:),allocatable :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
@@ -845,7 +847,10 @@ program chess_toolbox
        call f_close(iunit)
 
 
+       ovrlp_large = matrices_null()
+       ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='ovrlp_large%matrix_compr')
        fragment_atom_id = f_malloc(nat_frag,id='fragment_atom_id')
+       fragment_supfun_id = f_malloc(smat_l%nfvctr,id='fragment_supfun_id')
        jat_start = 1
        found_a_fragment = .false.
        ifrag = 0
@@ -866,6 +871,7 @@ program chess_toolbox
                    end if
                end do search_loop
                if (.not.found) then
+                   jat_start = smmd%nat + 1
                    exit fragment_loop
                end if
            end do fragment_loop
@@ -882,19 +888,43 @@ program chess_toolbox
                do iat=1,nat_frag
                    if (iiat==fragment_atom_id(iat)) then
                        nfvctr_frag = nfvctr_frag + 1
+                       exit
                    end if
                end do
+               fragment_supfun_id(i) = nfvctr_frag
            end do
 
 
 
-           kernel_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='kernel_fragment')
-           overlap_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='overlap_fragment')
+           kernel_fragment = f_malloc0((/nfvctr_frag,nfvctr_frag/),id='kernel_fragment')
+           overlap_fragment = f_malloc0((/nfvctr_frag,nfvctr_frag/),id='overlap_fragment')
            ksk_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='ksk_fragment')
            tmpmat = f_malloc((/nfvctr_frag,nfvctr_frag/),id='tmpmat')
 
-           call extract_fragment_submatrix(smmd, smat_s, ovrlp_mat, nat_frag, nfvctr_frag, fragment_atom_id, overlap_fragment)
-           call extract_fragment_submatrix(smmd, smat_l, kernel_mat, nat_frag, nfvctr_frag, fragment_atom_id, kernel_fragment)
+           call transform_sparse_matrix(iproc, smat_s, smat_l, SPARSE_FULL, 'small_to_large', &
+                                        smat_in=ovrlp_mat%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+
+
+           !call extract_fragment_submatrix(smmd, smat_s, ovrlp_mat, nat_frag, nfvctr_frag, fragment_atom_id, overlap_fragment)
+           call extract_fragment_submatrix(smmd, smat_l, ovrlp_large, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, overlap_fragment)
+           call extract_fragment_submatrix(smmd, smat_l, kernel_mat, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, kernel_fragment)
+           !!mat1dtmp = f_malloc(nfvctr_frag**2,id='mat1dtmp')
+           !!call transform_sparse_matrix(iproc, smat_s, smat_l, SPARSE_FULL, 'small_to_large', &
+           !!                             smat_in=ovrlp_mat%matrix_compr, lmat_out=mat1dtmp)
+           !!do i=1,nfvctr_frag**2
+           !!    write(100,*) i, mat1dtmp(i)
+           !!    irow = (i-1)/nfvctr_frag + 1
+           !!    icol = mod(i-1,nfvctr_frag)+1
+           !!    write(200,*) i, overlap_fragment(irow,icol)
+           !!end do
+           !!ovrlp_global = f_malloc((/smat_l%nfvctr,smat_l%nfvctr/),id='ovrlp_global')
+           !!kernel_global = f_malloc((/smat_l%nfvctr,smat_l%nfvctr/),id='kernel_global')
+
+           !!call uncompress_matrix(iproc, nproc, smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_global)
+           !!call uncompress_matrix(iproc, nproc, smat_l, inmat=kernel_mat%matrix_compr, outmat=kernel_global)
+
 
            if (smat_l%nspin==1) then
                factor = 0.5_mp
@@ -905,6 +935,10 @@ program chess_toolbox
                 overlap_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
            call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, 1.d0, tmpmat(1,1), nfvctr_frag, &
                 kernel_fragment(1,1), nfvctr_frag, 0.d0, ksk_fragment(1,1), nfvctr_frag)
+           !!call gemm('n', 'n', smat_l%nfvctr, smat_l%nfvctr, smat_l%nfvctr, factor, kernel_fragment(1,1), smat_l%nfvctr, &
+           !!     overlap_fragment(1,1), smat_l%nfvctr, 0.d0, tmpmat(1,1), smat_l%nfvctr)
+           !!call gemm('n', 'n', smat_l%nfvctr, smat_l%nfvctr, smat_l%nfvctr, 1.d0, tmpmat(1,1), smat_l%nfvctr, &
+           !!     kernel_fragment(1,1), smat_l%nfvctr, 0.d0, ksk_fragment(1,1), smat_l%nfvctr)
 
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
@@ -916,6 +950,14 @@ program chess_toolbox
                end do
            end do
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
+           !!do i=1,nfvctr_frag
+           !!    do j=1,nfvctr_frag
+           !!        tt = abs(kernel_fragment(j,i)-ksk_fragment(j,i))
+           !!        maxdiff = max(maxdiff,tt)
+           !!        meandiff = meandiff + tt
+           !!    end do
+           !!end do
+           !!meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
 
            call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
            call yaml_sequence(advance='no')
@@ -925,6 +967,8 @@ program chess_toolbox
            call yaml_map('max(KSK-K)',maxdiff,fmt='(es10.3)')
            call yaml_map('mean(KSK-K)',meandiff,fmt='(es10.3)')
            !call yaml_mapping_close()
+           !!write(*,*) 'maxloc(abs(kernel_fragment(:,:)-ksk_fragment(:,:)))', maxloc(abs(kernel_fragment(:,:)-ksk_fragment(:,:)))
+           !!write(*,*) 'kernel_fragment(65,65),ksk_fragment(65,65)', kernel_fragment(65,65),ksk_fragment(65,65)
 
 
            !!iicol = 0
@@ -981,6 +1025,8 @@ program chess_toolbox
            call f_free(ksk_fragment)
            call f_free(tmpmat)
 
+
+
        end do search_fragments
        call yaml_sequence_close()
        if (.not.found_a_fragment) then
@@ -992,8 +1038,10 @@ program chess_toolbox
        call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(kernel_mat)
+       call deallocate_matrices(ovrlp_large)
        call f_free_str(len(fragment_atomnames),fragment_atomnames)
        call f_free(fragment_atom_id)
+       call f_free(fragment_supfun_id)
        !call f_free(kernel_fragment)
        !call f_free(overlap_fragment)
        !call f_free(ksk_fragment)
@@ -1093,7 +1141,8 @@ end program chess_toolbox
 
 
 
-subroutine extract_fragment_submatrix(smmd, smat, mat, nat_frag, nfvctr_frag, fragment_atom_id, mat_frag)
+subroutine extract_fragment_submatrix(smmd, smat, mat, nat_frag, nfvctr_frag, &
+           fragment_atom_id, fragment_supfun_id, mat_frag)
   use sparsematrix_base
   implicit none
 
@@ -1103,13 +1152,15 @@ subroutine extract_fragment_submatrix(smmd, smat, mat, nat_frag, nfvctr_frag, fr
   type(matrices),intent(in) :: mat
   integer,intent(in) :: nat_frag, nfvctr_frag
   integer,dimension(nat_frag),intent(in) :: fragment_atom_id
+  integer,dimension(smat%nfvctr),intent(in) :: fragment_supfun_id
   real(mp),dimension(nfvctr_frag,nfvctr_frag),intent(out) :: mat_frag
 
   ! Local variables
-  integer :: iicol, icol, icol_atom, iat, iiat, ii, iirow, i, irow, irow_atom, iseg
+  integer :: iicol, icol, icol_atom, iat, iiat, ii, iirow, i, irow, irow_atom, iseg, icol_old
   logical :: found_icol, found_irow
 
   iicol = 0
+  icol_old = -1
   seg_loop: do iseg=1,smat%nseg
       icol = smat%keyg(1,2,iseg)
       icol_atom = smmd%on_which_atom(icol)
@@ -1122,7 +1173,10 @@ subroutine extract_fragment_submatrix(smmd, smat, mat, nat_frag, nfvctr_frag, fr
           end if
       end do
       if (found_icol) then
-          iicol = iicol + 1
+          if (icol/=icol_old) then
+              iicol = iicol + 1
+              icol_old = icol
+          end if
       else
           cycle seg_loop
       end if
@@ -1141,9 +1195,14 @@ subroutine extract_fragment_submatrix(smmd, smat, mat, nat_frag, nfvctr_frag, fr
           end do
           if (found_irow .and. found_icol) then
               iirow = iirow + 1
+              !mat_frag(iirow,iicol) = mat%matrix_compr(ii)
+              iirow = fragment_supfun_id(irow)
+              iicol = fragment_supfun_id(icol)
               mat_frag(iirow,iicol) = mat%matrix_compr(ii)
           end if
+          !write(*,*) 'iirow, iicol, ii, mat_frag, mat_compr', iirow, iicol, ii, mat_frag(iirow,iicol), mat%matrix_compr(ii)
           ii = ii + 1
       end do
   end do seg_loop
+
 end subroutine extract_fragment_submatrix
