@@ -32,7 +32,7 @@ program driver_single
   integer :: ierr, nthread, blocksize, iproc, nproc, i
   real(mp) :: exp_power, max_error, mean_error, eval_min, eval_max
   real(mp) :: max_error_rel, mean_error_rel, tt, tt_rel
-  character(len=200) :: filename_in, filename_out
+  character(len=200) :: filename_in, filename_out, filename_out_matmul
   type(dictionary), pointer :: dict_timing_info
   !$ integer :: omp_get_max_threads
 
@@ -78,11 +78,12 @@ program driver_single
   ! 3) exponent for the operation (mat**exponent)
   ! 4) the degree of the polynomial that shall be used
   if (iproc==0) then
-      read(*,*) filename_in, filename_out, exp_power
+      read(*,*) filename_in, filename_out, filename_out_matmul, exp_power
 
       call yaml_mapping_open('Input parameters')
       call yaml_map('File with input matrix',trim(filename_in))
       call yaml_map('File with output matrix descriptors',trim(filename_out))
+      call yaml_map('File with output matrix multiplication descriptors',trim(filename_out_matmul))
       call yaml_map('Exponent',exp_power)
       call yaml_mapping_close()
   end if
@@ -111,7 +112,8 @@ program driver_single
       !call yaml_mapping_open('Output matrix structure')
   end if
   call sparse_matrix_init_from_file_bigdft(filename_out, &
-       iproc, nproc, mpi_comm_world, smat_out)
+       iproc, nproc, mpi_comm_world, smat_out, &
+       init_matmul=.true., filename_mult=filename_out_matmul)
   if (iproc==0) then
       call write_sparsematrix_info(smat_out, 'Input matrix')
       call yaml_mapping_close()
@@ -122,8 +124,9 @@ program driver_single
 
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smat_in, mat_in, eval_min, eval_max)
+  call get_minmax_eigenvalues(iproc, smat_in, mat_in, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
+      call yaml_comment('Eigenvalue informations',hfill='-')
       call yaml_mapping_open('Eigenvalue properties')
       call yaml_map('Minimal',eval_min)
       call yaml_map('Maximal',eval_max)

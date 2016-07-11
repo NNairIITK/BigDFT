@@ -45,6 +45,7 @@ program utilities
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
+   character(len=128) :: kernel_file_matmul
    character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
    logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
@@ -159,9 +160,11 @@ program utilities
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_file)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = hamiltonian_file)
+            call get_command_argument(i_arg, value = kernel_file_matmul)
             do l=0,lmax
                 do m=-l,l
                     i_arg = i_arg + 1
@@ -264,7 +267,7 @@ program utilities
 
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
-            init_matmul=.true., filename_mult='density_kernel_sparse.bin_matmul')
+            init_matmul=.true., filename_mult=trim(kernel_file_matmul))
 
        if (bigdft_mpi%iproc==0) then
            call yaml_mapping_open('Matrix properties')
@@ -317,7 +320,6 @@ program utilities
        end select
 
        ! Determine whether the multipoles matrices to be used are calculated analytically or on the grid.
-       ! For the analytic case, only the overlap matrix is possible.
        select case(trim(matrix_basis))
        case ('wavelet','WAVELET')
            call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &

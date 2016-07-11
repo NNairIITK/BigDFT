@@ -2757,7 +2757,7 @@ module sparsematrix
 
 
     !> Get the minimal and maximal eigenvalue of a matrix
-    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
+    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
       implicit none
 
       ! Calling arguments
@@ -2765,13 +2765,18 @@ module sparsematrix
       type(sparse_matrix), intent(in) :: ovrlp_smat
       type(matrices), intent(in) :: ovrlp_mat
       real(mp),intent(out) :: eval_min, eval_max
+      logical,intent(in),optional :: quiet
 
       ! Local variables
       integer :: iseg, ii, i, lwork, info
       real(kind=mp),dimension(:,:),allocatable :: tempmat
       real(kind=mp),dimension(:),allocatable :: eval, work
+      logical :: quiet_
 
       call f_routine(id='get_minmax_eigenvalues')
+
+      quiet_ = .false.
+      if (present(quiet)) quiet_ = quiet
 
       tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
       do iseg=1,ovrlp_smat%nseg
@@ -2793,7 +2798,9 @@ module sparsematrix
       work = f_malloc(lwork,id='work')
       call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
       !if (iproc==0) write(*,*) 'eval',eval
-      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      if (iproc==0 .and. .not.quiet_) then
+          call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      end if
       eval_min = eval(1)
       eval_max = eval(ovrlp_smat%nfvctr)
 
