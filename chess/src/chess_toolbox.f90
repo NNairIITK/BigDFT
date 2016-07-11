@@ -854,8 +854,10 @@ program chess_toolbox
        jat_start = 1
        found_a_fragment = .false.
        ifrag = 0
-       call yaml_map('Fragment composition',fragment_atomnames)
-       call yaml_sequence_open('Purity analysis of fragment')
+       if (iproc==0) then
+           call yaml_map('Fragment composition',fragment_atomnames)
+           call yaml_sequence_open('Purity analysis of fragment')
+       end if
        search_fragments: do
            ifrag = ifrag + 1
            fragment_loop: do iat=1,nat_frag
@@ -959,14 +961,16 @@ program chess_toolbox
            !!end do
            !!meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
 
-           call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
-           call yaml_sequence(advance='no')
-           !call yaml_mapping_open(flow=.false.)
-           call yaml_map('Atoms ID',fragment_atom_id)
-           call yaml_map('Submatrix size',nfvctr_frag)
-           call yaml_map('max(KSK-K)',maxdiff,fmt='(es10.3)')
-           call yaml_map('mean(KSK-K)',meandiff,fmt='(es10.3)')
-           !call yaml_mapping_close()
+           if (iproc==0) then
+               call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
+               call yaml_sequence(advance='no')
+               !call yaml_mapping_open(flow=.false.)
+               call yaml_map('Atoms ID',fragment_atom_id)
+               call yaml_map('Submatrix size',nfvctr_frag)
+               call yaml_map('max(KSK-K)',maxdiff,fmt='(es10.3)')
+               call yaml_map('mean(KSK-K)',meandiff,fmt='(es10.3)')
+               !call yaml_mapping_close()
+           end if
            !!write(*,*) 'maxloc(abs(kernel_fragment(:,:)-ksk_fragment(:,:)))', maxloc(abs(kernel_fragment(:,:)-ksk_fragment(:,:)))
            !!write(*,*) 'kernel_fragment(65,65),ksk_fragment(65,65)', kernel_fragment(65,65),ksk_fragment(65,65)
 
@@ -1028,7 +1032,9 @@ program chess_toolbox
 
 
        end do search_fragments
-       call yaml_sequence_close()
+       if (iproc==0) then
+           call yaml_sequence_close()
+       end if
        if (.not.found_a_fragment) then
            call f_err_throw('The specified fragment is not present')
        end if
