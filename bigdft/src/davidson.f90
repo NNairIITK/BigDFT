@@ -99,8 +99,6 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    if(iproc==0) then
       call yaml_comment('Iterative subspace diagonalization of virtual orbitals (Direct Minimization)',hfill='-')
-      !write(*,'(1x,a)') "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-      !write(*,'(1x,a)') "Iterative subspace diagonalization of virtual orbitals (Direct Minimization)."
    end if
 
 
@@ -499,13 +497,8 @@ subroutine davidson(iproc,nproc,in,at,&
    msg=verbose > 2 .and. iproc ==0! no extended output
    !msg =(iproc==0)!extended output
 
-   if (iproc==0) then
-      call yaml_comment('Iterative subspace diagonalization of virtual orbitals',hfill='-')
-      !write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-      !write(*,'(1x,a)')"Iterative subspace diagonalization of virtual orbitals."
-   end if
-
-   !if(msg)write(*,*)'shape(v)',shape(v),'size(v)',size(v)
+   if (iproc==0) &
+        call yaml_comment('Iterative subspace diagonalization of virtual orbitals',hfill='-')
 
 
    !before transposition, create the array of the occupied
@@ -539,7 +532,15 @@ subroutine davidson(iproc,nproc,in,at,&
 
    orbsv%eval = f_malloc_ptr(orbsv%norb*orbsv%nkpts,id='orbsv%eval')
 
-   orbsv%eval(1:orbsv%norb*orbsv%nkpts)=-0.5d0
+   orbsv%eval=-0.5d0 !we should define f_memset
+
+   !not sure that this is a good idea to define that way
+   if (orbsv%norbd > 0) then
+      nspin=2
+   else
+      nspin=1
+   end if
+
 
    !prepare the v array starting from a set of gaussians
    call psivirt_from_gaussians(iproc,nproc,trim(in%dir_output) // "virtuals",&
@@ -574,6 +575,15 @@ subroutine davidson(iproc,nproc,in,at,&
 
    call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
 
+   if (in%itermax_virt <=0) then
+      call plot_and_finalize()
+      return
+   end if
+
+   !itermax=... use the input variable instead
+   iter=1
+
+
    ! 1st Hamilton application on psivirt
    !if(iproc==0) then
    !   call yaml_map('first','done')
@@ -585,15 +595,10 @@ subroutine davidson(iproc,nproc,in,at,&
 
    !allocate the potential in the full box
    call full_local_potential(iproc,nproc,orbsv,Lzd,0,dpcom,xc,rhopot,pot)
-   !(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,2),&
-   !     Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-   !     in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nscatterarr(iproc,1)*nrhodim,i3rho_add,&
-   !     orbsv,Lzd,0,ngatherarr,rhopot,pot)
 
    call local_potential_dimensions(iproc,Lzd,orbsv,xc,dpcom%ngatherarr(0,1))
    allocate(confdatarr(orbsv%norbp))
    call default_confinement_data(confdatarr,orbsv%norbp)
-
 
    !in the case of NK SIC, put the total density in the psirocc pointer, so that it could be reused for building the
    !Hamiltonian Application
@@ -692,12 +697,6 @@ subroutine davidson(iproc,nproc,in,at,&
    !write(*,*)"**********"
    !end if
 
-   !calculate the dimension of the overlap matrix for each k-point
-   if (orbsv%norbd > 0) then
-      nspin=2
-   else
-      nspin=1
-   end if
 
    !number of components for the overlap matrix in wp-kind real numbers
 
@@ -722,8 +721,6 @@ subroutine davidson(iproc,nproc,in,at,&
    ew = f_malloc(2*orbsv%norb,id='ew')
 
 
-   !itermax=... use the input variable instead
-   iter=1
    davidson_loop: do
 
       if(iproc==0) call yaml_comment(' iter= ' // trim(yaml_toa(iter)),hfill='-')
@@ -1211,63 +1208,65 @@ subroutine davidson(iproc,nproc,in,at,&
    call f_free(hamovr)
    call f_free(work)
    call f_free(ew)
-
-
-   !deallocate real array of wavefunctions
-   if(exctX .or. in%SIC%approach=='NK')then
-      call f_free_ptr(psirocc)
-   end if
-
+   call f_free(hv)
 
    if(iter <=in%itermax_virt) then
       if(iproc==0) call yaml_map('Iteration for Davidson convergence',iter-1)
-      !if(iproc==0) write(*,'(1x,a,i3,a)') "Davidson's method: Convergence after ",iter-1,' iterations.'
    end if
    !finalize: Retranspose, deallocate
 
+   deallocate(confdatarr)
    ! Send all eigenvalues to all procs.
    call broadcast_kpt_objects(nproc,orbsv%nkpts,orbsv%norb,e(1,1,1),orbsv%ikptproc)
-
-   call timing(iproc,'Davidson      ','OF')
-
-   !retranspose v and psi
-   call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
-
-   !resize work array before final transposition
-   if(nproc > 1)then
-      call f_free_ptr(psiw)
-      psiw = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psiw')
-   end if
-
-   call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),psiw(1))
-
-   call f_free_ptr(psiw)
-   call f_free(hv)
 
    !copy the values in the eval array of the davidson procedure
    do ikpt=1,orbsv%nkpts
       do iorb=1,orbsv%norb
-         !write(*,*) 'iorb,e(iorb,ikpt,1)',iorb,e(iorb,ikpt,1)
-         !orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=min(e(iorb,ikpt,1),-.5d0)
          orbsv%eval(iorb+(ikpt-1)*orbsv%norb)=e(iorb,ikpt,1)
       end do
    end do
 
    call f_free(e)
 
-   !calculate gap
-   call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+   call timing(iproc,'Davidson      ','OF')
 
-   !write the results on the screen
-   call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,&
-        Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz,Lzd%Glr,&
-        orbs,orbsv,psi,v)!,in%output_wf_format)
+   !retranspose v and psi
+   call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
 
-   deallocate(confdatarr)
+   call plot_and_finalize()
 
-   if (GPU%OCLconv) then
-      call free_gpu_OCL(GPU,orbsv,in%nspin)
-   end if
+ contains
+
+   !we may stop here in the case of a finalization
+   subroutine plot_and_finalize()
+     implicit none
+     !deallocate real array of wavefunctions
+     if(exctX .or. in%SIC%approach=='NK')then
+        call f_free_ptr(psirocc)
+     end if
+
+     !resize work array before final transposition
+     if(nproc > 1)then
+        call f_free_ptr(psiw)
+        psiw = f_malloc_ptr(max(orbs%npsidim_orbs, orbs%npsidim_comp),id='psiw')
+     end if
+
+     call untranspose_v(iproc,nproc,orbs,Lzd%Glr%wfd,comms,psi(1),psiw(1))
+
+     call f_free_ptr(psiw)
+     if (GPU%OCLconv) then
+        call free_gpu_OCL(GPU,orbsv,in%nspin)
+     end if
+     
+     !calculate gap
+     call calculate_HOMO_LUMO_gap(iproc,orbs,orbsv)
+     
+     !write the results on the screen
+     call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,&
+          Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz,Lzd%Glr,&
+          orbs,orbsv,psi,v)!,in%output_wf_format)
+   end subroutine plot_and_finalize
+
 
 END SUBROUTINE davidson
 
@@ -1456,7 +1455,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    character(len=*), intent(in) :: filerad
    integer, intent(in) :: iproc,nproc,nspin,npsidim
    type(atoms_data), intent(in) :: at
-   type(orbitals_data), intent(in) :: orbs
+   type(orbitals_data), intent(inout) :: orbs
    type(local_zone_descriptors), intent(in) :: Lzd
    type(comms_cubic), intent(in) :: comms
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
@@ -1466,7 +1465,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    logical ::  randinp
    integer :: iorb,icoeff,i_all,i_stat,nwork,info,jorb,ikpt,korb,ncplx,inds
    integer :: iseg,i0,i1,i2,i3,jj,ispinor,i,ind_c,ind_f,jcoeff,unitwf,iorb_out
-   real(wp) :: rfreq,gnrm_fake, psi_fake,eval,evalmax,eval_zero,totnorm,scpr
+   real(wp) :: rfreq,gnrm_fake, psi_fake,evalmax,eval_zero,totnorm,scpr
    logical, dimension(:), allocatable :: mask
    real(wp), dimension(:,:,:), allocatable :: gaucoeffs,psifscf
    real(gp), dimension(:), allocatable :: work,ev
@@ -1490,7 +1489,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    mask=f_malloc(ob%orbs%norbp,id='mask')
    chosen=.false.
    binary=.false.
-   it=orbital_basis_iterator(ob)
+   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0)
    read_loop: do while(ket_next(it))
       mask(it%iorbp)=.false.
       !first check if the file of the virtual wavefunction is present
@@ -1515,11 +1514,11 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
          unitwf=f_get_free_unit(99)
          call open_filename_of_iorb(unitwf,binary,trim(filerad), &
               it%ob%orbs,it%iorbp,ispinor,iorb_out)
-         call readonewave(unitwf,.not. binary,iorb_out,bigdft_mpi%iproc,&
+         call readonewave(unitwf,.not. binary,iorb_out,-1,&!bigdft_mpi%iproc,&
               it%lr%d%n1,it%lr%d%n2,it%lr%d%n3, &
               Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
               at,it%lr%wfd,rxyz_old,rxyz,&
-              psi_ptr,eval,psifscf)
+              psi_ptr,ob%orbs%eval(it%iorb),psifscf)
          call f_close(unitwf)
       end do
    end do read_loop
@@ -2191,14 +2190,14 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
   !local variables
   character(len=*), parameter :: fmt='(1pg18.12)'
   type(subspace) :: sso,ssp,ssv
-  real(wp), dimension(:), allocatable :: mat,psit
-  real(wp), dimension(:,:), allocatable :: svp
-  real(wp), dimension(:), pointer :: mat_ptr,hpsi_ptr
+  real(wp), dimension(:), allocatable :: mat,psit,svp
+  !real(wp), dimension(:,:), allocatable :: svp
+  real(wp), dimension(:), pointer :: mat_ptr,hpsi_ptr,svp_ptr
 
   call f_routine(id='evaluate_completeness_relation')
 
   !this is valid only for one kpoint and one spin
-  svp=f_malloc([ob_virt%orbs%norb,ob_prime%orbs%norb],id='svp')
+!  svp=f_malloc([ob_virt%orbs%norb,ob_prime%orbs%norb],id='svp')
   call ob_transpose(ob_prime)
   call ob_transpose(ob_occ)
   call ob_transpose(ob_virt)
@@ -2214,44 +2213,59 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
      call subspace_matrix(.false.,ssp%phi_wvl,sso%phi_wvl,&
           ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)
   end do
-  
   if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
   !substract the projector |psi'_j> -= sum_i |psi_i><psi_i|psi'_j>  
   call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
-     if (bigdft_mpi%iproc == 0) call yaml_map('Scalar product',&
+     if (bigdft_mpi%iproc == 0) call yaml_map('<psi_i| psi_j >'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
           reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt=fmt)
      
      call subspace_update(ssp%ncplx,ssp%nvctr,ssp%norb,&
           ssp%phi_wvl,mat_ptr,sso%phi_wvl)
 
-  end do
-
-  !verify now the overlap of the new objects
-  ssp=subspace_iterator(ob_prime)
-  do while(subspace_next(ssp))
-     mat_ptr=>ob_ss_matrix_map(mat,ssp)
+     !verify now the overlap of the new objects
      call subspace_matrix(.false.,ssp%phi_wvl,ssp%phi_wvl,&
           ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)
+
   end do
+
+!!$  !verify now the overlap of the new objects
+!!$  ssp=subspace_iterator(ob_prime)
+!!$  do while(subspace_next(ssp))
+!!$     mat_ptr=>ob_ss_matrix_map(mat,ssp)
+!!$     call subspace_matrix(.false.,ssp%phi_wvl,ssp%phi_wvl,&
+!!$          ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)
+!!$  end do
   if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
-  ssp=subspace_iterator(ob_prime)
-  ssv=subspace_iterator(ob_virt)
+
+  !now verify if the orbital differences can be expressed in the 
+  !basis of the virtual states of the unperturbed hamiltonian
+  call subspace_iterator_zip(ob_prime,ob_virt,ssp,ssv)
+  svp=f_malloc(ssp%matrix_zip_size) !to be used for the combined scalar product
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
-     if (bigdft_mpi%iproc == 0) call yaml_map('<D psi_i|D psi_j>',&
+     svp_ptr=>ob_ss_matrix_map(svp,ssp,ssv)
+     !inform on how much is left in the orbital differences
+     if (bigdft_mpi%iproc == 0) call yaml_map('<D psi_i|D psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
           reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt=fmt)
-     if (subspace_next(ssv)) then
-        call subspace_matrices(ssv%phi_wvl,ssp%phi_wvl,&
-             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp)
-     end if
+     call subspace_matrices(ssv%phi_wvl,ssp%phi_wvl,&
+          ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp_ptr)
   end do
 
-  if (bigdft_mpi%nproc >1) call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+!!$  ssp=subspace_iterator(ob_prime)
+!!$  ssv=subspace_iterator(ob_virt)
+!!$  do while(subspace_next(ssp))
+!!$     mat_ptr=>ob_ss_matrix_map(mat,ssp)
+!!$     if (bigdft_mpi%iproc == 0) call yaml_map('<D psi_i|D psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
+!!$          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt=fmt)
+!!$     if (subspace_next(ssv)) then
+!!$        call subspace_matrices(ssv%phi_wvl,ssp%phi_wvl,&
+!!$             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp)
+!!$     end if
+!!$  end do
 
-  if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|D psi_j>',&
-       svp,fmt=fmt)
+  if (bigdft_mpi%nproc >1) call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   !now calculate the same quantities for the hppsiprime objects
   call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
@@ -2263,22 +2277,24 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
   end do
   if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
-  ssp=subspace_iterator(ob_prime)
-  ssv=subspace_iterator(ob_virt)
+!!$  ssp=subspace_iterator(ob_prime)
+!!$  ssv=subspace_iterator(ob_virt)
+  call subspace_iterator_zip(ob_prime,ob_virt,ssp,ssv)
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
      hpsi_ptr=>ob_ss_psi_map(hpsiprime,ssp)
-     if (bigdft_mpi%iproc == 0) call yaml_map('<hpsi_i|psi_j>',&
+     svp_ptr=>ob_ss_matrix_map(svp,ssp,ssv)
+     if (bigdft_mpi%iproc == 0) call yaml_map('<hpsi_i|psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
           reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt=fmt)
-     if (subspace_next(ssv)) then
+     if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|D psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
+          reshape(svp_ptr,[ssv%norb,ssp%norb]),fmt=fmt)
+
+     !if (subspace_next(ssv)) then
         call subspace_matrices(ssv%phi_wvl,hpsi_ptr,&
-             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp)
-     end if
+             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp_ptr)
+     !end if
   end do
   if (bigdft_mpi%nproc >1) call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
-
-  if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|hpsi_i>',&
-       svp,fmt=fmt)
 
   !now calculate the same quantities for the hppsiprime objects
   call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
@@ -2290,27 +2306,53 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
   end do
   if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
-  ssp=subspace_iterator(ob_prime)
-  ssv=subspace_iterator(ob_virt)
+!!$  ssp=subspace_iterator(ob_prime)
+!!$  ssv=subspace_iterator(ob_virt)
+  call subspace_iterator_zip(ob_prime,ob_virt,ssp,ssv)
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
      hpsi_ptr=>ob_ss_psi_map(h2psiprime,ssp)
-     if (bigdft_mpi%iproc == 0) call yaml_map('<h2psi_i|psi_j>',&
+     svp_ptr=>ob_ss_matrix_map(svp,ssp,ssv)
+     if (bigdft_mpi%iproc == 0) call yaml_map('<h2psi_i|psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
           reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt=fmt)
-     if (subspace_next(ssv)) then
+     if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|hpsi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
+          reshape(svp_ptr,[ssv%norb,ssp%norb]),fmt=fmt)
+
+     !if (subspace_next(ssv)) then
         call subspace_matrices(ssv%phi_wvl,hpsi_ptr,&
-             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp)
-     end if
+             ssp%ncplx,ssp%nvctr,ssv%norb,ssp%norb,svp_ptr)
+     !end if
   end do
   if (bigdft_mpi%nproc >1) call mpiallred(svp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
-  if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|h2psi_i>',&
-       svp,fmt=fmt)
-
+  !to be printed out as it is the last one
+  call subspace_iterator_zip(ob_prime,ob_virt,ssp,ssv)
+  do while(subspace_next(ssp))
+     svp_ptr=>ob_ss_matrix_map(svp,ssp,ssv)
+     if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|h2psi_j>',&!+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
+          reshape(svp_ptr,[ssv%norb,ssp%norb]),fmt=fmt)
+  end do
 
   call f_free(svp)
 
   call f_free(mat)
   call f_release_routine()
+
+  contains
+
+    pure function spinstr(ispin,nspin)
+      implicit none
+      integer, intent(in) :: ispin,nspin
+      character(len=3) :: spinstr
+
+      if (nspin==1) then
+         spinstr=' '
+      else if (ispin==1) then
+         spinstr='-up'
+      else if (ispin==2) then
+         spinstr='-dw'
+      end if
+    end function spinstr
+      
 
 end subroutine evaluate_completeness_relation

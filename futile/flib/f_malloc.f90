@@ -977,8 +977,10 @@ contains
     include 'f_malloc-buf-inc.f90'
   end function f_malloc_buf
   !> Define the allocation information for  arrays of different rank
-  function f_malloc0_buf(sizes,id,routine_id,profile,shared) result(m)
+  function f_malloc0_buf(sizes,id,routine_id,profile,src,shared) result(m)
     implicit none
+    !the integer array src is here added to avoid problems in resolving the ambiguity
+    integer, dimension(:), intent(in), optional :: src
     include 'f_malloc-buf-base-inc.f90'
     include 'f_malloc-base-inc.f90'
     m%rank=1
