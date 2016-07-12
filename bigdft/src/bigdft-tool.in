@@ -1145,7 +1145,7 @@ options:
         command = "%s %s calculate-selected-eigenvalues %s %s %s %s %s %i %i %f" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.kernel_matmul_file, options.iev_min, options.iev_max, options.fscale)
         print command
     if options.action == "kernel-purity":
-        command = "%s %s kernel-purity %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.kernel_file, options.kernel_matmul_file, options.fragment_file)
+        command = "%s %s kernel-purity %s %s %s %s" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.kernel_file, options.fragment_file)
         print command
     if options.action == "fit-proj":
         if len(args) < 1:

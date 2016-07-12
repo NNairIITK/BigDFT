@@ -249,8 +249,6 @@ program chess_toolbox
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = kernel_matmul_file)
-            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = fragment_file)
             kernel_purity = .true.
          end if
@@ -829,7 +827,7 @@ program chess_toolbox
             init_matmul=.false.)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
-            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
+            init_matmul=.false.)
 
        if (iproc==0) then
            call yaml_mapping_open('Matrix properties')
