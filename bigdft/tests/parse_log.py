@@ -714,7 +714,7 @@ print "Number of valid documents:",len(extracted_result)
 for it in extracted_result:
   print it
 
-exit(0)
+#exit(0)
     
 iterations = range(len(extracted_result))
 energies = [en for [f, en] in extracted_result]

@@ -2475,9 +2475,9 @@ contains
     !set the cursor to zero as the char(13) is a newline character
     streams(strm)%icursor=0
     if (f_tty(streams(strm)%unit) .and. .not. last) then
-       call yaml_comment(char(13)//'#'//bar%message,advance='no',unit=unt)
+       call yaml_comment(char(13)//'#'//bar%message,advance='no',unit=unt,hfill=' ')
     else if (f_tty(streams(strm)%unit)) then
-       call yaml_comment(char(13)//'#'//bar%message,unit=unt)
+       call yaml_comment(char(13)//'#'//bar%message,unit=unt,hfill=' ')
     else
        call yaml_comment(bar%message,unit=unt)
     end if
