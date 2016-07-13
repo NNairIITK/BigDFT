@@ -4481,18 +4481,18 @@ module sparsematrix_init
     end subroutine init_transposed_lookup_local
 
 
-    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, nfvctr, nvctr, smat)
+    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, nfvctr, nvctr, nbuf, smat)
       use random, only: builtin_rand
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nbuf
       type(sparse_matrix),intent(out) :: smat
       ! Local variables
       integer :: itotal, idum, ivctr, ii, jj, it
       real(kind=mp) :: tt
       real(kind=4) :: tt_rand
-      integer :: nnonzero, inonzero
-      integer,dimension(:,:),allocatable :: nonzero, nonzero_check
+      integer :: nnonzero, inonzero, nnonzero_buf, i, j, imod, jmod
+      integer,dimension(:,:),allocatable :: nonzero, nonzero_check, nonzero_buf
       type(f_progress_bar) :: bar
 
       call f_routine(id='generate_random_symmetric_sparsity_pattern')
@@ -4507,27 +4507,157 @@ module sparsematrix_init
           call f_err_throw('nvctr>nfvctr**2', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
       end if
 
-      ! Determine the sparisty pattern only on root and then broadcast, just to be sure
+      ! Determine the sparsity pattern only on root and then broadcast, just to be sure
       ! that all process have the same pattern.
 
-      root_if1: if (iproc==0) then
+      !!!root_if1: if (iproc==0) then
 
-          ! First count how many non-zero entries there are for each line.
-          ! Since we want to have the diagonal elements within the sparsity pattern,
-          ! we start with nnonzero=nfvctr
-          call yaml_mapping_open('Count nonzero entries')
+      !!!    ! First count how many non-zero entries there are for each line.
+      !!!    ! Since we want to have the diagonal elements within the sparsity pattern,
+      !!!    ! we start with nnonzero=nfvctr
+      !!!    call yaml_mapping_open('Count nonzero entries')
+      !!!    bar=f_progress_bar_new(nstep=nvctr)
+      !!!    nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
+      !!!    nonzero_buf_check = f_malloc0((/2,(nvctr+1)*nbuf**2/),id='nonzero_buf+check')
+      !!!    nnonzero = nfvctr
+      !!!    ! First the diagonal elements
+      !!!    do ii=1,nfvctr
+      !!!        nonzero_check(1,ii) = ii
+      !!!        nonzero_check(2,ii) = ii
+      !!!    end do
+      !!!    idum = 0
+      !!!    tt_rand = builtin_rand(idum, reset=.true.)
+      !!!    it = 0
+      !!!    search_loop1: do
+      !!!        it = it + 1
+      !!!        if (it==100) then
+      !!!            call dump_progress_bar(bar,step=nnonzero)
+      !!!            it = 0
+      !!!        end if
+      !!!        if (nnonzero>=nvctr) then
+      !!!            call dump_progress_bar(bar,step=nnonzero)
+      !!!            exit search_loop1
+      !!!        end if
+      !!!        tt_rand = builtin_rand(idum)
+      !!!        tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+      !!!        ii = max(nint(tt),1)
+      !!!        tt_rand = builtin_rand(idum)
+      !!!        tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
+      !!!        jj = max(nint(tt),1)
+      !!!        do inonzero=1,nnonzero
+      !!!            if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+      !!!                cycle search_loop1
+      !!!            end if
+      !!!        end do
+      !!!        ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+      !!!        ! we thus have a non-zero entry in both the lines ii and jj
+      !!!        if (ii==jj) then
+      !!!            ! Diagonal element
+      !!!            nonzero_check(1,nnonzero+1) = ii
+      !!!            nonzero_check(2,nnonzero+1) = jj
+      !!!            nnonzero = nnonzero + 1
+      !!!        else
+      !!!            ! Offdiagonal element
+      !!!            nonzero_check(1,nnonzero+1) = ii
+      !!!            nonzero_check(2,nnonzero+1) = jj
+      !!!            nonzero_check(1,nnonzero+2) = jj
+      !!!            nonzero_check(2,nnonzero+2) = ii
+      !!!            nnonzero = nnonzero + 2
+      !!!        end if
+      !!!        ! Add also the buffer for the multiplications
+      !!!        do i=ii-nbuf,ii+nbuf
+      !!!            do j=jj-nbuf,jj+nbuf
+      !!!                do inonzero=1,nnonzero_buf
+      !!!                    if (nonzero_buf_check(1,inonzero)==i .and. nonzero_buf_check(2,inonzero)==j) then
+      !!!                        cycle search_loop1
+      !!!                    end if
+      !!!                end do
+      !!!                ! The entry (i,j) is thus non-zero. Since the pattern is symmetric, 
+      !!!                ! we thus have a non-zero entry in both the lines i and j
+      !!!                if (i==j) then
+      !!!                    ! Diagonal element
+      !!!                    nonzero_buf_check(1,nnonzero_buf+1) = i
+      !!!                    nonzero_buf_check(2,nnonzero_buf+1) = j
+      !!!                    nnonzero_buf = nnonzero_buf + 1
+      !!!                else
+      !!!                    ! Offdiagonal element
+      !!!                    nonzero_buf_check(1,nnonzero_buf+1) = i
+      !!!                    nonzero_buf_check(2,nnonzero_buf+1) = j
+      !!!                    nonzero_buf_check(1,nnonzero_buf+2) = j
+      !!!                    nonzero_buf_check(2,nnonzero_buf+2) = i
+      !!!                    nnonzero_buf = nnonzero_buf + 2
+      !!!                end if
+      !!!                    end do
+      !!!                end do
+      !!!            end do
+      !!!        end do
+      !!!    end do search_loop1
+
+      !!!    call yaml_newline()
+      !!!    call yaml_mapping_close()
+    
+      !!!end if root_if1
+
+      !!call mpibcast(nnonzero, 1, root=0, comm=comm)
+      nonzero = f_malloc0((/2,nvctr+1/),id='nonzero')
+      nonzero_buf = f_malloc0((/2,(nvctr+1)*(2*nbuf+1)**2/),id='nonzero_buf')
+
+      root_if2: if (iproc==0) then
+
+
+          call yaml_mapping_open('Determine nonzero entries')
           bar=f_progress_bar_new(nstep=nvctr)
-          nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
-          nnonzero = nfvctr
+
+          nnonzero = 0
+          nnonzero_buf = 0
+    
+          ! Now determine the coordinates of the non-zero entries
           ! First the diagonal elements
           do ii=1,nfvctr
-              nonzero_check(1,ii) = ii
-              nonzero_check(2,ii) = ii
+              jj = ii
+              nonzero(1,ii) = ii
+              nonzero(2,ii) = jj
+              nnonzero = nnonzero + 1
+              !!write(*,*) 'nnonzero, ii, jj', nnonzero, ii, jj
+              !!nonzero_check(1,ii) = ii
+              !!nonzero_check(2,ii) = ii
+              !!nonzero_buf(1,ii) = ii
+              !!nonzero_buf(2,ii) = ii
+              ! Add also the buffer for the multiplications
+              i_loop_diag: do i=ii-nbuf,ii+nbuf
+                  imod = modulo(i-1,nfvctr) + 1
+                  j_loop_diag: do j=jj-nbuf,jj+nbuf
+                      jmod = modulo(j-1,nfvctr) + 1
+                      !!write(*,*) 'i, j, imod, jmod', i, j, imod, jmod
+                      do inonzero=1,nnonzero_buf
+                          if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
+                              cycle j_loop_diag
+                          end if
+                      end do
+                      ! The entry (i,j) is thus non-zero. Since the pattern is symmetric, 
+                      ! we thus have a non-zero entry in both the lines i and j
+                      if (i==j) then
+                          ! Diagonal element
+                          nonzero_buf(1,nnonzero_buf+1) = imod
+                          nonzero_buf(2,nnonzero_buf+1) = jmod
+                          nnonzero_buf = nnonzero_buf + 1
+                      else
+                          ! Offdiagonal element
+                          nonzero_buf(1,nnonzero_buf+1) = imod
+                          nonzero_buf(2,nnonzero_buf+1) = jmod
+                          nonzero_buf(1,nnonzero_buf+2) = jmod
+                          nonzero_buf(2,nnonzero_buf+2) = imod
+                          nnonzero_buf = nnonzero_buf + 2
+                      end if
+                      !!write(*,*) 'nnonzero_buf, imod, jmod', nnonzero_buf, imod, jmod
+                  end do j_loop_diag
+              end do i_loop_diag
           end do
           idum = 0
           tt_rand = builtin_rand(idum, reset=.true.)
+          !ivctr = nfvctr
           it = 0
-          search_loop1: do
+          search_loop2: do
               it = it + 1
               if (it==100) then
                   call dump_progress_bar(bar,step=nnonzero)
@@ -4535,69 +4665,6 @@ module sparsematrix_init
               end if
               if (nnonzero>=nvctr) then
                   call dump_progress_bar(bar,step=nnonzero)
-                  exit search_loop1
-              end if
-              tt_rand = builtin_rand(idum)
-              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-              ii = max(nint(tt),1)
-              tt_rand = builtin_rand(idum)
-              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-              jj = max(nint(tt),1)
-              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
-              ! we thus have a non-zero entry in both the lines ii and jj
-              do inonzero=1,nnonzero
-                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
-                      cycle search_loop1
-                  end if
-              end do
-              if (ii==jj) then
-                  ! Diagonal element
-                  nonzero_check(1,nnonzero+1) = ii
-                  nonzero_check(2,nnonzero+1) = jj
-                  nnonzero = nnonzero + 1
-              else
-                  ! Offdiagonal element
-                  nonzero_check(1,nnonzero+1) = ii
-                  nonzero_check(2,nnonzero+1) = jj
-                  nonzero_check(1,nnonzero+2) = jj
-                  nonzero_check(2,nnonzero+2) = ii
-                  nnonzero = nnonzero + 2
-              end if
-          end do search_loop1
-
-          call yaml_newline()
-          call yaml_mapping_close()
-    
-      end if root_if1
-
-      call mpibcast(nnonzero, 1, root=0, comm=comm)
-      nonzero = f_malloc0((/2,nnonzero/),id='nonzero')
-
-      root_if2: if (iproc==0) then
-
-          call yaml_mapping_open('Determine nonzero entries')
-          bar=f_progress_bar_new(nstep=nvctr)
-    
-          ! Now determine the coordinates of the non-zero entries
-          ! First the diagonal elements
-          do ii=1,nfvctr
-              nonzero(1,ii) = ii
-              nonzero(2,ii) = ii
-              nonzero_check(1,ii) = ii
-              nonzero_check(2,ii) = ii
-          end do
-          idum = 0
-          tt_rand = builtin_rand(idum, reset=.true.)
-          ivctr = nfvctr
-          it = 0
-          search_loop2: do
-              it = it + 1
-              if (it==100) then
-                  call dump_progress_bar(bar,step=ivctr)
-                  it = 0
-              end if
-              if (ivctr>=nvctr) then
-                  call dump_progress_bar(bar,step=ivctr)
                   exit search_loop2
               end if
               tt_rand = builtin_rand(idum)
@@ -4606,54 +4673,96 @@ module sparsematrix_init
               tt_rand = builtin_rand(idum)
               tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
               jj = max(nint(tt),1)
-              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
-              ! we thus have a non-zero entry in both the lines ii and jj
-              do inonzero=1,ivctr
-                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+              do inonzero=1,nnonzero
+                  !if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                  if (nonzero(1,inonzero)==ii .and. nonzero(2,inonzero)==jj) then
                       cycle search_loop2
                   end if
               end do
+              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+              ! we thus have a non-zero entry in both the lines ii and jj
               if (ii==jj) then
                   ! Diagonal element
-                  nonzero_check(1,ivctr+1) = ii
-                  nonzero_check(2,ivctr+1) = jj
-                  nonzero(1,ivctr+1) = ii
-                  nonzero(2,ivctr+1) = jj
-                  ivctr = ivctr + 1
+                  !!nonzero_check(1,nnonzero+1) = ii
+                  !!nonzero_check(2,nnonzero+1) = jj
+                  nonzero(1,nnonzero+1) = ii
+                  nonzero(2,nnonzero+1) = jj
+                  nnonzero = nnonzero + 1
               else
                   ! Offdiagonal element
-                  nonzero_check(1,ivctr+1) = ii
-                  nonzero_check(2,ivctr+1) = jj
-                  nonzero_check(1,ivctr+2) = jj
-                  nonzero_check(2,ivctr+2) = ii
-                  nonzero(1,ivctr+1) = ii
-                  nonzero(2,ivctr+1) = jj
-                  nonzero(1,ivctr+2) = jj
-                  nonzero(2,ivctr+2) = ii
-                  ivctr = ivctr + 2
+                  !!nonzero_check(1,nnonzero+1) = ii
+                  !!nonzero_check(2,nnonzero+1) = jj
+                  !!nonzero_check(1,nnonzero+2) = jj
+                  !!nonzero_check(2,nnonzero+2) = ii
+                  nonzero(1,nnonzero+1) = ii
+                  nonzero(2,nnonzero+1) = jj
+                  nonzero(1,nnonzero+2) = jj
+                  nonzero(2,nnonzero+2) = ii
+                  nnonzero = nnonzero + 2
               end if
+              !!write(*,*) 'nnonzero, ii, jj', nnonzero, ii, jj
+              ! Add also the buffer for the multiplications
+              i_loop_offdiag: do i=ii-nbuf,ii+nbuf
+                  imod = modulo(i-1,nfvctr) + 1
+                  j_loop_offdiag: do j=jj-nbuf,jj+nbuf
+                      jmod = modulo(j-1,nfvctr) + 1
+                      do inonzero=1,nnonzero_buf
+                          if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
+                              cycle j_loop_offdiag
+                          end if
+                      end do
+                      ! The entry (i,j) is thus non-zero. Since the pattern is symmetric, 
+                      ! we thus have a non-zero entry in both the lines i and j
+                      if (i==j) then
+                          ! Diagonal element
+                          nonzero_buf(1,nnonzero_buf+1) = imod
+                          nonzero_buf(2,nnonzero_buf+1) = jmod
+                          nnonzero_buf = nnonzero_buf + 1
+                      else
+                          ! Offdiagonal element
+                          nonzero_buf(1,nnonzero_buf+1) = imod
+                          nonzero_buf(2,nnonzero_buf+1) = jmod
+                          nonzero_buf(1,nnonzero_buf+2) = jmod
+                          nonzero_buf(2,nnonzero_buf+2) = imod
+                          nnonzero_buf = nnonzero_buf + 2
+                      end if
+                      !!write(*,*) 'nnonzero_buf, imod, jmod', nnonzero_buf, imod, jmod
+                  end do j_loop_offdiag
+              end do i_loop_offdiag
           end do search_loop2
 
           call yaml_newline()
           call yaml_mapping_close()
     
-          if (ivctr/=nnonzero) then
-              call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
-                               &nnonzero='//trim(yaml_toa(nnonzero)), &
-                               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
-          end if
+          !!if (ivctr/=nnonzero) then
+          !!    call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
+          !!                     &nnonzero='//trim(yaml_toa(nnonzero)), &
+          !!                     err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          !!end if
 
-          call f_free(nonzero_check)
+          !call f_free(nonzero_check)
 
       end if root_if2
 
-      call mpibcast(nonzero(:,:), root=0, comm=comm)
+      call mpibcast(nnonzero, 1, root=0, comm=comm)
+      call mpibcast(nnonzero_buf, 1, root=0, comm=comm)
+      call mpibcast(nonzero(1:2,1:nnonzero), root=0, comm=comm)
+      call mpibcast(nonzero_buf(1:2,1:nnonzero_buf), root=0, comm=comm)
+
+      !do i=1,nnonzero
+      !   !!write(*,*) 'nonzero', i, nonzero(:,i)
+      !end do
+      !do i=1,nnonzero_buf
+      !   !!write(*,*) 'nonzero_buf', i, nonzero_buf(:,i)
+      !end do
 
       !!do ii=1,nfvctr
       !!    write(*,*) 'ii, nnonzero(ii)', ii, nnonzero(ii)
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero, nonzero, smat)
+      !!call generate_sparsity_buffer(nfvctr, nnonzero, nonzero, 1, nnonzero_buf, nonzero_buf)
+
+      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero_buf, nonzero_buf, smat)
       call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
 
       if (iproc==0) then
@@ -4663,10 +4772,85 @@ module sparsematrix_init
       end if
 
       call f_free(nonzero)
+      call f_free(nonzero_buf)
 
       call f_release_routine()
 
     end subroutine generate_random_symmetric_sparsity_pattern
+
+
+    !!!> Add a certain buffer around the sparsity pattern
+    !!subroutine generate_sparsity_buffer(nfvctr, nnonzero, nonzero, nbuf, nnonzero_buffer, nonzero_buffer)
+    !!  implicit none
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: nfvctr, nnonzero, nbuf
+    !!  integer,dimension(2,nnonzero),intent(in) :: nonzero
+    !!  integer,intent(out) :: nnonzero_buffer
+    !!  integer,dimension(:,:),pointer,intent(out) :: nonzero_buffer
+    !!  ! Local arguments
+    !!  integer :: ifvctr, jfvctr, jjfvctr, i, j, ii, jj
+    !!  logical,dimension(:,:,:),allocatable :: is_nonzero
+
+    !!  is_nonzero = f_malloc((/nfvctr,nfvctr,2/),id='is_nonzero')
+    !!  is_nonzero(:,:,:) = .false.
+    !!  do i=1,nnonzero
+    !!      ii = nonzero(1,i)
+    !!      jj = nonzero(2,i)
+    !!      is_nonzero(jj,ii,1) = .true.
+    !!  end do
+
+    !!  do ifvctr=1,nfvctr
+    !!      do jfvctr=1,nfvctr
+    !!          if(is_nonzero(jfvctr,ifvctr,1)) then
+    !!              do i=-nbuf,nbuf
+    !!                  do j=-nbuf,nbuf
+    !!                      is_nonzero(jfvctr+j,ifvctr+i,2) = .true.
+    !!                  end do
+    !!              end do
+    !!          end if
+    !!      end do
+    !!  end do
+
+    !!  ! Count how many elements there are
+    !!  nnonzero_buffer = 0
+    !!  do ifvctr=1,nfvctr
+    !!      do jfvctr=1,nfvctr
+    !!          if (is_nonzero(jfvctr,ifvctr,2)) then
+    !!              nnonzero_buffer = nnonzero_buffer + 1
+    !!          end if
+    !!      end do
+    !!  end do
+
+    !!  write(*,*) 'nnonzero, nnonzero_buffer', nnonzero, nnonzero_buffer
+
+
+    !!  !!is_nonzero = f_malloc(nfvctr,id='is_nonzero')
+    !!  !!nnonzero_buffer = 0
+    !!  !!do ifvctr=1,nfvctr
+    !!  !!    is_nonzero(1:nfvctr) = .false.
+    !!  !!    do jfvctr=ifvctr-nbuf,ifvctr+nbuf
+    !!  !!        jjfvctr = modulo(jfvctr-1,nfvctr) + 1
+    !!  !!        write(*,*) 'ifvctr, jfvctr, mod(jfvctr-1,nfvctr), jjfvctr', &
+    !!  !!            ifvctr, jfvctr, modulo(jfvctr-1,nfvctr), jjfvctr
+    !!  !!        do i=1,nnonzero
+    !!  !!            ii = nonzero(1,i)
+    !!  !!            jj = nonzero(2,i)
+    !!  !!            if (ii
+    !!  !!            if (abs(ii-ifvctr)<=nbuf .and. abs(jj-ifvctr)<=nbuf) then
+    !!  !!                is_nonzero(ifvctr) = .true.
+    !!  !!            end if
+    !!  !!        end do
+    !!  !!    end do
+    !!  !!    do jfvctr=1,nfvctr
+    !!  !!        if (is_nonzero(jfvctr)) then
+    !!  !!            nnonzero_buffer = nnonzero_buffer + 1
+    !!  !!        end if
+    !!  !!    end do
+    !!  !!end do
+
+    !!  call f_free(is_nonzero)
+
+    !!end subroutine generate_sparsity_buffer
 
 
     ! Parallelization a number n over nproc nasks

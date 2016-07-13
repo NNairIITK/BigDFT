@@ -14,7 +14,7 @@ program driver_random
   implicit none
 
   ! Variables
-  integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr
+  integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr, nbuf
   type(sparse_matrix) :: smat
   real(kind=4) :: tt_real
   real(mp) :: tt, tt_rel, eval_min, eval_max
@@ -62,10 +62,12 @@ program driver_random
 
   ! Read in the parameters for the run and print them.
   if (iproc==0) then
-      read(*,*) nfvctr, nvctr, condition_number, expo
+      call yaml_comment('Required input: nfvctr, nvctr, nbuf, condition_number, expo')
+      read(*,*) nfvctr, nvctr, nbuf, condition_number, expo
       call yaml_mapping_open('Input parameters')
       call yaml_map('Matrix dimension',nfvctr)
       call yaml_map('Number of non-zero entries',nvctr)
+      call yaml_map('Buffer for sparse multiplications',nbuf)
       call yaml_map('Condition number',condition_number)
       call yaml_map('Exponent for the matrix power calculation',expo)
       call yaml_mapping_close()
@@ -74,6 +76,7 @@ program driver_random
   ! Send the input parameters to all MPI tasks
   call mpibcast(nfvctr, root=0, comm=mpi_comm_world)
   call mpibcast(nvctr, root=0, comm=mpi_comm_world)
+  call mpibcast(nbuf, root=0, comm=mpi_comm_world)
   call mpibcast(condition_number, root=0, comm=mpi_comm_world)
   call mpibcast(expo, root=0, comm=mpi_comm_world)
 
@@ -81,7 +84,7 @@ program driver_random
 
   ! Generate a random sparsity pattern
   call generate_random_symmetric_sparsity_pattern(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, smat)
+       nfvctr, nvctr, nbuf, smat)
 
   ! Initialize an object which holds some parameters for the Chebyshev expansion.
   ! It would also work without (then always the default values are taken), but when this
