@@ -1795,7 +1795,7 @@ module io
       ! Local variables
       integer :: iunit, dummy_int, ispin, iat, iorb, jorb, ntmb_old, nat_old, nspin_old
       real(kind=8) :: dummy_double
-      character(len=20) :: dummy_char
+      character(len=3) :: dummy_char
       logical :: read_rxyz, read_on_which_atom
 
       call f_routine(id='read_dense_matrix')
@@ -1838,7 +1838,11 @@ module io
           end do  
       else
           do iat=1,nat
-              read(iunit,*) dummy_char, dummy_double, dummy_double, dummy_double
+              if (.not. binary) then
+                  read(iunit,*) dummy_char, dummy_double, dummy_double, dummy_double
+              else
+                  read(iunit) dummy_char, dummy_double, dummy_double, dummy_double
+              end if
           end do
       end if
 
