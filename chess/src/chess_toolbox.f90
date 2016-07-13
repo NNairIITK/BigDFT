@@ -115,6 +115,8 @@ program chess_toolbox
    iproc=mpirank()
    nproc=mpisize()
 
+   call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
+
    ! Initialize the sparse matrix errors and timings.
    call sparsematrix_init_errors
    call sparsematrix_initialize_timing_categories()

@@ -43,6 +43,8 @@ program driver_css
   iproc=mpirank()
   nproc=mpisize()
 
+  call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
+
   ! Initialize the sparsematrix error handling and timing.
   call sparsematrix_init_errors()
   call sparsematrix_initialize_timing_categories()
@@ -144,9 +146,7 @@ program driver_css
   call mpifinalize()
 
   ! Finalize flib
-  ! SM: I have the impression that every task should call this routine, but if I do so
-  ! some things are printed nproc times instead of once.
-  if (iproc==0) call f_lib_finalize()
+  call f_lib_finalize()
 
 
 end program driver_css
