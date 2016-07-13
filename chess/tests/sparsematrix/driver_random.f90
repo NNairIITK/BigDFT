@@ -2,7 +2,7 @@ program driver_random
   use sparsematrix_base
   use sparsematrix_types, only: sparse_matrix
   use sparsematrix_init, only: generate_random_symmetric_sparsity_pattern, &
-                               matrixindex_in_compressed
+                               matrixindex_in_compressed, write_sparsematrix_info
   use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
                           matrix_power_dense_lapack, get_minmax_eigenvalues
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
@@ -14,8 +14,9 @@ program driver_random
   implicit none
 
   ! Variables
-  integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr, nbuf
-  type(sparse_matrix) :: smat
+  integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr, nbuf_large, nbuf_mult
+  type(sparse_matrix) :: smats
+  type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
   real(mp) :: tt, tt_rel, eval_min, eval_max
   type(matrices) :: mat1, mat2
@@ -62,12 +63,13 @@ program driver_random
 
   ! Read in the parameters for the run and print them.
   if (iproc==0) then
-      call yaml_comment('Required input: nfvctr, nvctr, nbuf, condition_number, expo')
-      read(*,*) nfvctr, nvctr, nbuf, condition_number, expo
+      call yaml_comment('Required input: nfvctr, nvctr, nbuf_large, nbuf_mult, condition_number, expo')
+      read(*,*) nfvctr, nvctr, nbuf_large, nbuf_mult, condition_number, expo
       call yaml_mapping_open('Input parameters')
       call yaml_map('Matrix dimension',nfvctr)
       call yaml_map('Number of non-zero entries',nvctr)
-      call yaml_map('Buffer for sparse multiplications',nbuf)
+      call yaml_map('Buffer for large matrix',nbuf_large)
+      call yaml_map('Buffer for sparse multiplications',nbuf_mult)
       call yaml_map('Condition number',condition_number)
       call yaml_map('Exponent for the matrix power calculation',expo)
       call yaml_mapping_close()
@@ -76,7 +78,8 @@ program driver_random
   ! Send the input parameters to all MPI tasks
   call mpibcast(nfvctr, root=0, comm=mpi_comm_world)
   call mpibcast(nvctr, root=0, comm=mpi_comm_world)
-  call mpibcast(nbuf, root=0, comm=mpi_comm_world)
+  call mpibcast(nbuf_large, root=0, comm=mpi_comm_world)
+  call mpibcast(nbuf_mult, root=0, comm=mpi_comm_world)
   call mpibcast(condition_number, root=0, comm=mpi_comm_world)
   call mpibcast(expo, root=0, comm=mpi_comm_world)
 
@@ -84,7 +87,17 @@ program driver_random
 
   ! Generate a random sparsity pattern
   call generate_random_symmetric_sparsity_pattern(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, nbuf, smat)
+       nfvctr, nvctr, nbuf_mult, smats, &
+       1, (/nbuf_large/), smatl)
+
+  ! Write a summary of the sparse matrix layout 
+  if (iproc==0) then
+      call yaml_mapping_open('Matrix properties')
+      call write_sparsematrix_info(smats, 'Random matrix')
+      call write_sparsematrix_info(smatl(1), 'Large random matrix')
+      call yaml_mapping_close()
+  end if
+
 
   ! Initialize an object which holds some parameters for the Chebyshev expansion.
   ! It would also work without (then always the default values are taken), but when this
@@ -97,33 +110,33 @@ program driver_random
 
 
   ! Allocate the matrices
-  call matrices_init(smat, mat1)
-  call matrices_init(smat, mat2)
-  call matrices_init(smat, mat3(1))
-  call matrices_init(smat, mat3(2))
-  call matrices_init(smat, mat3(3))
+  call matrices_init(smats, mat1)
+  call matrices_init(smats, mat2)
+  call matrices_init(smats, mat3(1))
+  call matrices_init(smats, mat3(2))
+  call matrices_init(smats, mat3(3))
 
   ! Fill the matrix with random entries
   idum = 0
   tt_real = builtin_rand(idum, reset=.true.)
-  do i=1,smat%nvctr
+  do i=1,smats%nvctr
       tt_real = builtin_rand(idum)
       mat1%matrix_compr(i) = real(tt_real,kind=8)
   end do
 
   ! Symmetrize the matrix
-  call symmetrize_matrix(smat, 'plus', mat1%matrix_compr, mat2%matrix_compr)
+  call symmetrize_matrix(smats, 'plus', mat1%matrix_compr, mat2%matrix_compr)
 
   ! By construction, all elements lie between 0 and 1. If we thus scale the
   ! matrix by the inverse of nfvctr (i.e. its dimension), then the sum of each line
   ! is between 0 and 1.
-  call dscal(smat%nvctr, 1.0_mp/real(smat%nfvctr,kind=8), mat2%matrix_compr(1), 1)
+  call dscal(smats%nvctr, 1.0_mp/real(smats%nfvctr,kind=8), mat2%matrix_compr(1), 1)
 
   ! By construction, the sum of each line is between 0 and 1. If we thus set the diagonal
   ! to 1, we get a diagonally dominant matrix, which is positive definite.
   ! Additionally, we add to the diagonal elements a random number between 0 and the condition number.
-  do i=1,smat%nfvctr
-      ii = matrixindex_in_compressed(smat, i, i)
+  do i=1,smats%nfvctr
+      ii = matrixindex_in_compressed(smats, i, i)
       tt_real = builtin_rand(idum)
       tt = real(tt_real,kind=8)*condition_number
       mat2%matrix_compr(ii) = 1.0_mp + tt
@@ -131,7 +144,7 @@ program driver_random
 
   ! Scale the matrix by the condition number, which should move down the largest
   ! eigenvalue of the order of 1.
-  call dscal(smat%nvctr, 1.0_mp/condition_number, mat2%matrix_compr(1), 1)
+  call dscal(smats%nvctr, 1.0_mp/condition_number, mat2%matrix_compr(1), 1)
 
   ! Initialization part done
   !call timing(mpi_comm_world,'INIT','PR')
@@ -139,7 +152,7 @@ program driver_random
        gather_routine=gather_timings)
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smat, mat2, eval_min, eval_max)
+  call get_minmax_eigenvalues(iproc, smats, mat2, eval_min, eval_max)
   if (iproc==0) then
       call yaml_mapping_open('Eigenvalue properties')
       call yaml_map('Minimal',eval_min)
@@ -148,8 +161,8 @@ program driver_random
       call yaml_mapping_close()
   end if
 
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat2, 'randommatrix.dat', binary=.false.)
-  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smat, mat2, 'randommatrix_sparse.dat')
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
+  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
@@ -160,7 +173,7 @@ program driver_random
       call yaml_comment('Calculating mat^x',hfill='~')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/expo/), smat, smat, mat2, mat3(1), ice_obj=ice_obj)
+       1, (/expo/), smats, smats, mat2, mat3(1), ice_obj=ice_obj)
 
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
@@ -173,16 +186,16 @@ program driver_random
       call yamL_comment('Calculating mat^-x',hfill='~')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/-expo/), smat, smat, mat2, mat3(2), ice_obj=ice_obj)
+       1, (/-expo/), smats, smats, mat2, mat3(2), ice_obj=ice_obj)
 
   ! Multiply the two resulting matrices.
   if (iproc==0) then
       call yamL_comment('Calculating mat^x*mat^-x',hfill='~')
   end if
-  call matrix_matrix_multiplication(iproc, nproc, smat, mat3(1), mat3(2), mat3(3))
+  call matrix_matrix_multiplication(iproc, nproc, smats, mat3(1), mat3(2), mat3(3))
 
   ! Check the result
-  call check_deviation_from_unity_sparse(iproc, smat, mat3(3), max_error, mean_error)
+  call check_deviation_from_unity_sparse(iproc, smats, mat3(3), max_error, mean_error)
   if (iproc==0) then
       call yaml_mapping_open('Check the deviation from unity of the operation mat^x*mat^-x')
       call yaml_map('max_error',max_error,fmt='(es10.3)')
@@ -199,15 +212,15 @@ program driver_random
   if (iproc==0) then
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
   end if
-  !call operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, expo, smat, smat, mat2, mat3(3))
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat3(1), 'resultchebyshev.dat', binary=.false.)
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat3(3), 'resultlapack.dat', binary=.false.)
+  !call operation_using_dense_lapack(iproc, nproc, smats_in, mat_in)
+  call matrix_power_dense_lapack(iproc, nproc, expo, smats, smats, mat2, mat3(3))
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat3(1), 'resultchebyshev.dat', binary=.false.)
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat3(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp
   mean_error = 0.0_mp
   max_error_rel = 0.0_mp
   mean_error_rel = 0.0_mp
-  do i=1,smat%nvctr
+  do i=1,smats%nvctr
       tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
       tt_rel = tt/abs(mat3(3)%matrix_compr(i))
       mean_error = mean_error + tt
@@ -215,8 +228,8 @@ program driver_random
       mean_error_rel = mean_error_rel + tt_rel
       max_error_rel = max(max_error_rel,tt_rel)
   end do
-  mean_error = mean_error/real(smat%nvctr,kind=8)
-  mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+  mean_error = mean_error/real(smats%nvctr,kind=8)
+  mean_error_rel = mean_error_rel/real(smats%nvctr,kind=8)
   if (iproc==0) then
       call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
       call yaml_map('max error',max_error,fmt='(es10.3)')
@@ -232,7 +245,8 @@ program driver_random
 
 
   ! Deallocate the sparse matrix descriptors type
-  call deallocate_sparse_matrix(smat)
+  call deallocate_sparse_matrix(smats)
+  call deallocate_sparse_matrix(smatl(1))
 
   ! Deallocat the sparse matrices
   call deallocate_matrices(mat1)
