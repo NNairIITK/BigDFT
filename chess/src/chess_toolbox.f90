@@ -18,7 +18,7 @@ program chess_toolbox
    !!use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
-   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix
+   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
@@ -694,26 +694,38 @@ program chess_toolbox
            iconv = 1
        case ('ccs_to_bigdft')
            iconv = 2
+       case ('bigdft_to_dense')
+           iconv = 3
        case default
            call f_err_throw("wrong value for conversion; possible are 'bigdft_to_ccs' and 'ccs_to_bigdft'")
        end select
 
-       if (iconv==1) then
+       select case (iconv)
+       case (1,3)
            call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
+       case (2)
+           call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
+                mpiworld(), smat, mat, init_matmul=.false.)
+       end select
+       select case (iconv)
+       case (1)
            row_ind = f_malloc_ptr(smat%nvctr,id='row_ind')
            col_ptr = f_malloc_ptr(smat%nfvctr,id='col_ptr')
            call ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)
            if (iproc==0) call ccs_matrix_write(trim(outfile), smat, row_ind, col_ptr, mat)
            call f_free_ptr(row_ind)
            call f_free_ptr(col_ptr)
-       else if (iconv==2) then
+       case (2)
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
                 mpiworld(), smat, mat, init_matmul=.false.)
            call write_sparse_matrix(iproc, nproc, mpiworld(), &
                 smat, mat, trim(outfile))
-       end if
+       case (3)
+           call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
+
+       end select
 
        call deallocate_sparse_matrix(smat)
        call deallocate_matrices(mat)
@@ -787,7 +799,7 @@ program chess_toolbox
 
    end if
 
-   call build_dict_info(dict_timing_info)
+   call build_dict_info(iproc, nproc, dict_timing_info)
    call f_timing_stop(mpi_comm=mpiworld(),nproc=nproc,&
         gather_routine=gather_timings,dict_info=dict_timing_info)
    call dict_free(dict_timing_info)
@@ -803,50 +815,50 @@ program chess_toolbox
    call f_lib_finalize()
 
 
-  contains
-
-
-    !> construct the dictionary needed for the timing information
-    !! SM: This routine should go to a module
-    subroutine build_dict_info(dict_info)
-      use wrapper_MPI
-      use dynamic_memory
-      use dictionaries
-      implicit none
-
-      type(dictionary), pointer :: dict_info
-      !local variables
-      integer :: ierr,namelen,nthreads
-      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
-      type(dictionary), pointer :: dict_tmp
-      !$ integer :: omp_get_max_threads
-
-      call dict_init(dict_info)
-!  bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
-      !if (DoLastRunThings) then
-         call f_malloc_dump_status(dict_summary=dict_tmp)
-         call set(dict_info//'Routines timing and number of calls',dict_tmp)
-      !end if
-      nthreads = 0
-      !$  nthreads=omp_get_max_threads()
-      call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
-      if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
-           nthreads)
-
-      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
-      if (nproc>1) then
-         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-         !gather the result between all the process
-         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-              mpiworld(),ierr)
-         if (iproc==0) call set(dict_info//'Hostnames',&
-                 list_new(.item. nodename))
-      end if
-      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
-
-    end subroutine build_dict_info
+!!!  contains
+!!!
+!!!
+!!!    !> construct the dictionary needed for the timing information
+!!!    !! SM: This routine should go to a module
+!!!    subroutine build_dict_info(dict_info)
+!!!      use wrapper_MPI
+!!!      use dynamic_memory
+!!!      use dictionaries
+!!!      implicit none
+!!!
+!!!      type(dictionary), pointer :: dict_info
+!!!      !local variables
+!!!      integer :: ierr,namelen,nthreads
+!!!      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+!!!      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+!!!      type(dictionary), pointer :: dict_tmp
+!!!      !$ integer :: omp_get_max_threads
+!!!
+!!!      call dict_init(dict_info)
+!!!!  bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
+!!!      !if (DoLastRunThings) then
+!!!         call f_malloc_dump_status(dict_summary=dict_tmp)
+!!!         call set(dict_info//'Routines timing and number of calls',dict_tmp)
+!!!      !end if
+!!!      nthreads = 0
+!!!      !$  nthreads=omp_get_max_threads()
+!!!      call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
+!!!      if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+!!!           nthreads)
+!!!
+!!!      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
+!!!      if (nproc>1) then
+!!!         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+!!!         !gather the result between all the process
+!!!         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+!!!              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+!!!              mpiworld(),ierr)
+!!!         if (iproc==0) call set(dict_info//'Hostnames',&
+!!!                 list_new(.item. nodename))
+!!!      end if
+!!!      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+!!!
+!!!    end subroutine build_dict_info
 
 
 end program chess_toolbox

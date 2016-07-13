@@ -292,6 +292,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
              do iorb=1,orbs%norbp
                 !call f_zero(orbs_tmb%norb,f_coeff(1,iorb))
                 !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+                !write(*,*) 'iorb, occup', iorb, orbs%occup(orbs%isorb+iorb)
                 do itmb=1,denskern%nfvctr
                     fcoeff(itmb,iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
                 end do

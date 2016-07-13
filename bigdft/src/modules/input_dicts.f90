@@ -1927,8 +1927,10 @@ contains
        if (nspin == 4 .or. nspin == 1) then
           norbu = norbu + min(norbsempty, norb_max - norbu)
        else if (nspin == 2) then
+          !!write(*,*) 'BEFORE: norbu, norbd, norbsempty, norb_max', norbu, norbd, norbsempty, norb_max
           norbu = norbu + min(norbsempty, norb_max - norbu)
           norbd = norbd + min(norbsempty, norb_max - norbd)
+          !!write(*,*) 'AFTER: norbu, norbd, norbsempty, norb_max', norbu, norbd, norbsempty, norb_max
        end if
     end if
 
