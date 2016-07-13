@@ -707,9 +707,8 @@ contains
 
       !number of atoms with semicore channels
       atoms%natsc = 0
-!!!!!$omp parallel private(it)
       !iterate above atoms
-      it=atoms_iter(atoms%astruct) !,omp=.true.)
+      it=atoms_iter(atoms%astruct)
       !python method
       do while(atoms_iter_next(it))
 !!$      !fortran method

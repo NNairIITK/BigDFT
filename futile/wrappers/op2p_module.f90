@@ -760,27 +760,27 @@ module overlap_point_to_point
 
      !>return the send buffer associated to the chosen parallelisation
      !!scheme
-     function sendbuf(iproc,igroup,OP2P,phi,nelems)
+     function sendbuf(iproc,igroup,OP2P,phi,nelems,jshift)
        use dynamic_memory
        implicit none
        integer, intent(in) :: iproc,igroup
        type(OP2P_data), intent(in) :: OP2P
        type(local_data), intent(in) :: phi
-       integer, intent(out) :: nelems
+       integer, intent(out) :: nelems,jshift
        real(f_double), dimension(:), pointer :: sendbuf !this will become f_buffer
        !local variables
-       integer :: original_source,igr,iobj_local,jshift
+       integer :: original_source,igr,iobj_local
 
        igr=OP2P%group_id(igroup)
        original_source=get_sendbuf_provenance(iproc,igroup,OP2P)
        nelems=OP2P%nobj_par(original_source,igr)*OP2P%ndim
        iobj_local=OP2P%objects_id(LOCAL_,original_source,igr)
-     
+       jshift=phi%displ(iobj_local)
+ 
        nullify(sendbuf)
        !this is the alternative communication scheme
        if (OP2P%istep == 0 .or. .not. OP2P%nearest_neighbor) then
           !we send the local data
-          jshift=phi%displ(iobj_local)
           sendbuf => f_subptr(phi%data,from=1+jshift,size=nelems)
           !sendbuf => phi%data(1+jshift:nelems+jshift)
        else
@@ -824,7 +824,7 @@ module overlap_point_to_point
 !!$             iobj_local=OP2P%objects_id(LOCAL_,original_source,igr)
 !!$             jshift=phi%displ(iobj_local)
 
-             tmp => sendbuf(iproc,igroup,OP2P,phi,count)
+             tmp => sendbuf(iproc,igroup,OP2P,phi,count,jshift)
 
              OP2P%ndata_comms=OP2P%ndata_comms+1
              !send the fixed array to the processor which comes in the list
