@@ -1,4 +1,5 @@
 program driver_random
+  use futile
   use sparsematrix_base
   use sparsematrix_types, only: sparse_matrix
   use sparsematrix_init, only: generate_random_symmetric_sparsity_pattern, &
@@ -6,7 +7,8 @@ program driver_random
   use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
                           matrix_power_dense_lapack, get_minmax_eigenvalues
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
-                                    matrix_matrix_multiplication
+                                    matrix_matrix_multiplication, &
+                                    sparse_matrix_init_from_file_bigdft
   use sparsematrix_io, only: write_dense_matrix, write_sparse_matrix
   use random, only: builtin_rand
   use foe_base, only: foe_data, foe_data_deallocate
@@ -14,7 +16,7 @@ program driver_random
   implicit none
 
   ! Variables
-  integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr, nbuf_large, nbuf_mult
+  integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
@@ -24,7 +26,10 @@ program driver_random
   real(mp) :: condition_number, expo, max_error, mean_error, max_error_rel, mean_error_rel
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
-  type(dictionary), pointer :: dict_timing_info
+  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method
+  logical :: write_matrices
+  type(dictionary), pointer :: options, dict_timing_info
+  type(yaml_cl_parse) :: parser !< command line parser
   external :: gather_timings
   !$ integer :: omp_get_max_threads
 
@@ -41,7 +46,7 @@ program driver_random
   call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
 
   ! Initialize the sparse matrix errors and timings.
-  call sparsematrix_init_errors
+  call sparsematrix_init_errors()
   call sparsematrix_initialize_timing_categories()
 
   ! Timing initialization
@@ -63,20 +68,43 @@ program driver_random
 
   ! Read in the parameters for the run and print them.
   if (iproc==0) then
-      call yaml_comment('Required input: nfvctr, nvctr, nbuf_large, nbuf_mult, condition_number, expo')
-      read(*,*) nfvctr
-      read(*,*) nvctr
-      read(*,*) nbuf_large
-      read(*,*) nbuf_mult
-      read(*,*) condition_number
-      read(*,*) expo
+      !!call yaml_comment('Required input: nfvctr, nvctr, nbuf_large, nbuf_mult, condition_number, expo')
+
+      parser=yaml_cl_parse_null()
+      call commandline_options(parser)
+      call yaml_cl_parse_cmd_line(parser,args=options)
+      call yaml_cl_parse_free(parser)
+
+      nfvctr = options//'nfvctr'
+      nvctr = options//'nvctr'
+      nbuf_large = options//'nbuf_large'
+      nbuf_mult = options//'nbuf_mult'
+      condition_number = options//'condition_number'
+      expo = options//'expo'
+      infile = options//'infile'
+      outfile = options//'outfile'
+      outmatmulfile = options//'outmatmulfile'
+      sparsegen_method = options//'sparsegen_method'
+      write_matrices = options//'write_matrices'
+
+      call dict_free(options)
+
       call yaml_mapping_open('Input parameters')
-      call yaml_map('Matrix dimension',nfvctr)
-      call yaml_map('Number of non-zero entries',nvctr)
-      call yaml_map('Buffer for large matrix',nbuf_large)
-      call yaml_map('Buffer for sparse multiplications',nbuf_mult)
+      if (trim(sparsegen_method)=='random') then
+          call yaml_map('Matrix dimension',nfvctr)
+          call yaml_map('Number of non-zero entries',nvctr)
+          call yaml_map('Buffer for large matrix',nbuf_large)
+          call yaml_map('Buffer for sparse multiplications',nbuf_mult)
+      else if (trim(sparsegen_method)=='file') then
+          call yaml_map('File with input sparisty pattern',trim(infile))
+          call yaml_map('File with output sparsity pattern',trim(outfile))
+          call yaml_map('File with output matrix multiplication sparsity pattern',trim(outmatmulfile))
+      else
+          call f_err_throw("Wrong value for 'sparsegen_method'")
+      end if
       call yaml_map('Condition number',condition_number)
       call yaml_map('Exponent for the matrix power calculation',expo)
+      call yaml_map('Write the matrices',write_matrices)
       call yaml_mapping_close()
   end if
 
@@ -87,13 +115,41 @@ program driver_random
   call mpibcast(nbuf_mult, root=0, comm=mpi_comm_world)
   call mpibcast(condition_number, root=0, comm=mpi_comm_world)
   call mpibcast(expo, root=0, comm=mpi_comm_world)
+  call mpibcast(infile, root=0, comm=mpi_comm_world)
+  call mpibcast(outfile, root=0, comm=mpi_comm_world)
+  call mpibcast(outmatmulfile, root=0, comm=mpi_comm_world)
+  call mpibcast(sparsegen_method, root=0, comm=mpi_comm_world)
+
+  ! Since there is no wrapper for logicals...
+  if (iproc==0) then
+      if (write_matrices) then
+          iwrite = 1
+      else
+          iwrite = 0
+      end if
+  end if
+  call mpibcast(iwrite, root=0, comm=mpi_comm_world)
+  if (iwrite==1) then
+      write_matrices = .true.
+  else
+      write_matrices = .false.
+  end if
 
 
 
-  ! Generate a random sparsity pattern
-  call generate_random_symmetric_sparsity_pattern(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, nbuf_mult, .false., smats, &
-       1, (/nbuf_large/), (/.true./), smatl)
+  if (trim(sparsegen_method)=='random') then
+      ! Generate a random sparsity pattern
+      call generate_random_symmetric_sparsity_pattern(iproc, nproc, mpi_comm_world, &
+           nfvctr, nvctr, nbuf_mult, .false., smats, &
+           1, (/nbuf_large/), (/.true./), smatl)
+  else
+      call sparse_matrix_init_from_file_bigdft(trim(infile), &
+          iproc, nproc, mpi_comm_world, smats, &
+          init_matmul=.false.)
+      call sparse_matrix_init_from_file_bigdft(trim(outfile), &
+          iproc, nproc, mpi_comm_world, smatl(1), &
+          init_matmul=.true., filename_mult=trim(outmatmulfile))
+  end if
 
   ! Write a summary of the sparse matrix layout 
   if (iproc==0) then
@@ -167,7 +223,9 @@ program driver_random
   end if
 
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
-  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
+  if (write_matrices) then
+      call write_sparse_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
+  end if
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
@@ -179,7 +237,9 @@ program driver_random
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
-  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+  if (write_matrices) then
+      call write_sparse_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+  end if
 
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
@@ -326,3 +386,90 @@ program driver_random
   !!  end subroutine build_dict_info
 
 end program driver_random
+
+
+
+subroutine commandline_options(parser)
+  use yaml_parse
+  use dictionaries, only: dict_new,operator(.is.)
+  implicit none
+  type(yaml_cl_parse),intent(inout) :: parser
+
+  call yaml_cl_parse_option(parser,'nfvctr','0',&
+       'matrix size','f',&
+       dict_new('Usage' .is. &
+       'Size of the matrix (number of rows/columns)',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'nvctr','0',&
+       'nonzero entries','v',&
+       dict_new('Usage' .is. &
+       'Number of nonzero entries of the matrix',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'nbuf_large','0',&
+       'buffer for large matrix','l',&
+       dict_new('Usage' .is. &
+       'Number of buffer elements around the sparisity pattern to create the large sparsity pattern',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'nbuf_mult','0',&
+       'buffer for matrix multiplications','m',&
+       dict_new('Usage' .is. &
+       'Number of buffer elements around the sparisity pattern to create the matrix multiplication sparsity pattern',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'condition_number','1.0',&
+       'condition number','c',&
+       dict_new('Usage' .is. &
+       'Target condition number of the random matrix',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'expo','1.0',&
+       'exponent','e',&
+       dict_new('Usage' .is. &
+       'Exponent for the matrix function to be calculated (M^expo)',&
+       'Allowed values' .is. &
+       'Double'))
+   
+  call yaml_cl_parse_option(parser,'infile','infile.dat',&
+       'input file','i',&
+       dict_new('Usage' .is. &
+       'File containing the input matrix descriptors',&
+       'Allowed values' .is. &
+       'String'))
+
+  call yaml_cl_parse_option(parser,'outfile','outfile.dat',&
+       'output file','o',&
+       dict_new('Usage' .is. &
+       'File containing the output matrix descriptors',&
+       'Allowed values' .is. &
+       'String'))
+
+  call yaml_cl_parse_option(parser,'outmatmulfile','outmatmulfile.dat',&
+       'output matrix multiplication file','a',&
+       dict_new('Usage' .is. &
+       'File containing the output matrix multiplication descriptors',&
+       'Allowed values' .is. &
+       'String'))
+
+  call yaml_cl_parse_option(parser,'sparsegen_method','unknown',&
+       'sparsity pattern generation','s',&
+       dict_new('Usage' .is. &
+       'Indicate whether the sparsity patterns should be created randomly or read from files',&
+       'Allowed values' .is. &
+       'String'))
+
+  call yaml_cl_parse_option(parser,'write_matrices','.false.',&
+       'write the matrices to disk','w',&
+       dict_new('Usage' .is. &
+       'Indicate whether the sparse matrices shall be written to disk',&
+       'Allowed values' .is. &
+       'Logical'))
+
+end subroutine commandline_options
