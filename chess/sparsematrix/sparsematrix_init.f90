@@ -4564,8 +4564,10 @@ module sparsematrix_init
       !root_if2: if (iproc==0) then
 
 
-          call yaml_mapping_open('Determine nonzero entries')
-          bar=f_progress_bar_new(nstep=nvctr)
+          if (iproc==0) then
+              call yaml_mapping_open('Determine nonzero entries')
+              bar=f_progress_bar_new(nstep=nvctr)
+          end if
 
           nnonzero = 0
           nnonzero_buf_mult = 0
@@ -4594,11 +4596,15 @@ module sparsematrix_init
           search_loop2: do
               it = it + 1
               if (it==100) then
-                  call dump_progress_bar(bar,step=nnonzero)
+                  if (iproc==0) then
+                      call dump_progress_bar(bar,step=nnonzero)
+                  end if 
                   it = 0
               end if
               if (nnonzero>=nvctr) then
-                  call dump_progress_bar(bar,step=nnonzero)
+                  if (iproc==0) then
+                      call dump_progress_bar(bar,step=nnonzero)
+                  end if
                   exit search_loop2
               end if
               tt_rand = builtin_rand(idum)
@@ -4640,8 +4646,10 @@ module sparsematrix_init
               end if
           end do search_loop2
 
-          call yaml_newline()
-          call yaml_mapping_close()
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_mapping_close()
+          end if
     
 
           !call f_free(nonzero_check)
