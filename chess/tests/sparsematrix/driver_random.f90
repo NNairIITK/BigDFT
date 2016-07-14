@@ -64,7 +64,12 @@ program driver_random
   ! Read in the parameters for the run and print them.
   if (iproc==0) then
       call yaml_comment('Required input: nfvctr, nvctr, nbuf_large, nbuf_mult, condition_number, expo')
-      read(*,*) nfvctr, nvctr, nbuf_large, nbuf_mult, condition_number, expo
+      read(*,*) nfvctr
+      read(*,*) nvctr
+      read(*,*) nbuf_large
+      read(*,*) nbuf_mult
+      read(*,*) condition_number
+      read(*,*) expo
       call yaml_mapping_open('Input parameters')
       call yaml_map('Matrix dimension',nfvctr)
       call yaml_map('Number of non-zero entries',nvctr)
