@@ -4561,7 +4561,7 @@ module sparsematrix_init
       end if
 
 
-      root_if2: if (iproc==0) then
+      !root_if2: if (iproc==0) then
 
 
           call yaml_mapping_open('Determine nonzero entries')
@@ -4577,12 +4577,12 @@ module sparsematrix_init
               nonzero(1,ii) = ii
               nonzero(2,ii) = jj
               nnonzero = nnonzero + 1
-              call add_buffer_region(ii, jj, nbuf_mult, nfvctr, nvctr, &
+              call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_mult, nfvctr, nvctr, &
                    nnonzero_buf_mult, nonzero_buf_mult)
               ! Add also the buffers for the larger sparsity pattern
               if (calc_nextra) then
                   do iextra=1,nextra_
-                  call add_buffer_region(ii, jj, nbuf_extra(iextra), nfvctr, nvctr, &
+                  call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_extra(iextra), nfvctr, nvctr, &
                        nnonzero_extra(iextra), nonzero_extra(:,:,iextra))
                   end do
               end if
@@ -4629,12 +4629,12 @@ module sparsematrix_init
                   nnonzero = nnonzero + 2
               end if
               ! Add also the buffer for the multiplications
-              call add_buffer_region(ii, jj, nbuf_mult, nfvctr, nvctr, &
+              call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_mult, nfvctr, nvctr, &
                    nnonzero_buf_mult, nonzero_buf_mult)
               ! Add also the buffers for the larger sparsity pattern
               if (calc_nextra) then
                   do iextra=1,nextra_
-                  call add_buffer_region(ii, jj, nbuf_extra(iextra), nfvctr, nvctr, &
+                  call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_extra(iextra), nfvctr, nvctr, &
                        nnonzero_extra(iextra), nonzero_extra(:,:,iextra))
                   end do
               end if
@@ -4646,7 +4646,7 @@ module sparsematrix_init
 
           !call f_free(nonzero_check)
 
-      end if root_if2
+      !end if root_if2
 
       call mpibcast(nnonzero, 1, root=0, comm=comm)
       call mpibcast(nnonzero_buf_mult, 1, root=0, comm=comm)
@@ -4694,43 +4694,174 @@ module sparsematrix_init
     end subroutine generate_random_symmetric_sparsity_pattern
 
 
-    subroutine add_buffer_region(ii, jj, nbuf, nfvctr, nvctr, nnonzero_buf, nonzero_buf)
+    subroutine add_buffer_region(iproc, nproc, comm, ii, jj, nbuf, nfvctr, nvctr, nnonzero_buf, nonzero_buf)
       implicit none
       ! Calling arguments
-      integer,intent(in) :: ii, jj, nbuf, nfvctr, nvctr
+      integer,intent(in) :: iproc, nproc, comm, ii, jj, nbuf, nfvctr, nvctr
       integer,intent(inout) :: nnonzero_buf
       integer,dimension(2,(nvctr+1)*(2*nbuf+1)**2),intent(inout) :: nonzero_buf
       ! Local variables
-      integer :: i, imod, j, jmod, inonzero
+      integer :: i, imod, j, jmod, inonzero, iflag, nnonzero_new, icheck, ij, iji, ijj
+      integer :: ithread, nthread, is_thread, nit_thread, is_task, nit_task
+      integer,dimension(:),allocatable :: imodarr, jmodarr
+      integer,dimension(:,:),allocatable :: nonzero_new, ijarr
+      integer,dimension(:,:,:),allocatable :: ijflag, ijfound
+      logical :: exitflag
+      !$ integer :: omp_get_max_threads, omp_get_thread_num
 
-      i_loop: do i=ii-nbuf,ii+nbuf
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+
+      imodarr = f_malloc(ii-nbuf.to.ii+nbuf,id='imodarr')
+      jmodarr = f_malloc(jj-nbuf.to.jj+nbuf,id='jmodarr')
+      ijflag = f_malloc((/1.to.2,jj-nbuf.to.jj+nbuf,ii-nbuf.to.ii+nbuf/),id='ijflag')
+      nonzero_new = f_malloc((/2,2*(2*nbuf+1)**2/),id='nonzero_new')
+      ijfound = f_malloc((/jj-nbuf.to.jj+nbuf,ii-nbuf.to.ii+nbuf,0.to.nthread-1/),id='ijfound')
+      ijarr = f_malloc((/2,2*(2*nbuf+1)**2/),id='ijarr')
+
+      ij = 0
+      do i=ii-nbuf,ii+nbuf
           imod = modulo(i-1,nfvctr) + 1
-          j_loop: do j=jj-nbuf,jj+nbuf
+          imodarr(i) = imod
+          do j=jj-nbuf,jj+nbuf
               jmod = modulo(j-1,nfvctr) + 1
-              !!write(*,*) 'i, j, imod, jmod', i, j, imod, jmod
-              do inonzero=1,nnonzero_buf
-                  if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
-                      cycle j_loop
-                  end if
-              end do
-              ! The entry (i,j) is thus non-zero. Since the pattern is symmetric, 
-              ! we thus have a non-zero entry in both the lines i and j
-              if (i==j) then
-                  ! Diagonal element
-                  nonzero_buf(1,nnonzero_buf+1) = imod
-                  nonzero_buf(2,nnonzero_buf+1) = jmod
-                  nnonzero_buf = nnonzero_buf + 1
-              else
-                  ! Offdiagonal element
-                  nonzero_buf(1,nnonzero_buf+1) = imod
-                  nonzero_buf(2,nnonzero_buf+1) = jmod
-                  nonzero_buf(1,nnonzero_buf+2) = jmod
-                  nonzero_buf(2,nnonzero_buf+2) = imod
-                  nnonzero_buf = nnonzero_buf + 2
+              jmodarr(j) = jmod
+              ij = ij + 1
+              ijarr(1,ij) = i
+              ijarr(2,ij) = j
+          end do
+      end do
+
+
+      ijfound(:,:,:) = 0
+      ! The following is to collapse a doubel loop over ii-nbuf,ii+nbuf and jj-nbuf,jj+nbuf
+      call distribute_on_tasks((2*nbuf+1)**2, iproc, nproc, nit_task, is_task)
+      !$omp parallel default(none) &
+      !$omp shared(nnonzero_buf, nthread, nonzero_buf, ijfound, exitflag, is_task, nit_task) &
+      !$omp shared(ijarr, imodarr, jmodarr) &
+      !$omp private(ithread, inonzero, nit_thread, is_thread, ij, i, j, imod, jmod)
+      ithread = 0
+      !$ ithread = omp_get_thread_num()
+      call distribute_on_tasks(nnonzero_buf, ithread, nthread, nit_thread, is_thread)
+      ij_loop: do ij=is_task+1,is_task+nit_task
+          i = ijarr(1,ij)
+          j = ijarr(2,ij)
+          imod = imodarr(i)
+          jmod = jmodarr(j)
+          ! Determine the OpenMP parallelization
+          !$omp critical
+          exitflag = .false.
+          !$omp end critical
+          do inonzero=is_thread+1,is_thread+nit_thread
+              if (exitflag) exit
+              if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
+                  ijfound(j,i,ithread) = 1
+                  !$omp critical
+                  exitflag = .true.
+                  !$omp end critical
               end if
-              !!write(*,*) 'nnonzero_buf, imod, jmod', nnonzero_buf, imod, jmod
-          end do j_loop
-      end do i_loop
+          end do
+      end do ij_loop
+      !$omp end parallel
+      call mpiallred(ijfound, mpi_sum, comm)
+
+      ijflag(:,:,:) = 0
+      do i=ii-nbuf,ii+nbuf
+          imod = imodarr(i)
+          do j=jj-nbuf,jj+nbuf
+              jmod = jmodarr(j)
+              if (sum(ijfound(j,i,:))==0) then
+                  ijflag(1,j,i) = imod
+                  ijflag(2,j,i) = jmod
+              end if
+          end do
+      end do
+
+      nnonzero_new = 0
+      do i=ii-nbuf,ii+nbuf
+          j2_loop: do j=jj-nbuf,jj+nbuf
+              if (ijflag(1,j,i)>0 .and. ijflag(2,j,i)>0) then
+                  do icheck=1,nnonzero_new
+                      if (nonzero_new(1,icheck)==ijflag(1,j,i) .and. nonzero_new(2,icheck)==ijflag(2,j,i)) then
+                          cycle j2_loop
+                      end if
+                  end do
+                  !!nnonzero_new = nnonzero_new + 1
+                  !!nonzero_new(1,nnonzero_new) = ijflag(1,j,i)
+                  !!nonzero_new(2,nnonzero_new) = ijflag(2,j,i)
+                  if (ijflag(1,j,i)==ijflag(2,j,i)) then
+                      ! Diagonal element
+                      !nonzero_buf(1,nnonzero_buf+1) = imod
+                      !nonzero_buf(2,nnonzero_buf+1) = jmod
+                      nonzero_new(1,nnonzero_new+1) = ijflag(1,j,i)
+                      nonzero_new(2,nnonzero_new+1) = ijflag(2,j,i)
+                      nnonzero_new = nnonzero_new + 1
+                  else
+                      ! Offdiagonal element
+                      !!nonzero_buf(1,nnonzero_buf+1) = imod
+                      !!nonzero_buf(2,nnonzero_buf+1) = jmod
+                      !!nonzero_buf(1,nnonzero_buf+2) = jmod
+                      !!nonzero_buf(2,nnonzero_buf+2) = imod
+                      nonzero_new(1,nnonzero_new+1) = ijflag(1,j,i)
+                      nonzero_new(2,nnonzero_new+1) = ijflag(2,j,i)
+                      nonzero_new(1,nnonzero_new+2) = ijflag(2,j,i)
+                      nonzero_new(2,nnonzero_new+2) = ijflag(1,j,i)
+                      nnonzero_new = nnonzero_new + 2
+                end if
+              end if
+          end do j2_loop
+      end do
+
+      do i=1,nnonzero_new
+          nnonzero_buf = nnonzero_buf + 1
+          nonzero_buf(1,nnonzero_buf) = nonzero_new(1,i)
+          nonzero_buf(2,nnonzero_buf) = nonzero_new(2,i)
+      end do
+
+
+      call f_free(imodarr)
+      call f_free(jmodarr)
+      call f_free(ijflag)
+      call f_free(ijfound)
+      call f_free(nonzero_new)
+      call f_free(ijarr)
+
+      !!i_loop: do i=ii-nbuf,ii+nbuf
+      !!    imod = modulo(i-1,nfvctr) + 1
+      !!    j_loop: do j=jj-nbuf,jj+nbuf
+      !!        jmod = modulo(j-1,nfvctr) + 1
+      !!        iflag = 0
+      !!        !$omp parallel default(none) &
+      !!        !$omp shared(nnonzero_buf, nonzero_buf, imod, jmod, iflag) &
+      !!        !$omp private(inonzero) 
+      !!        !$omp do schedule(static) reduction(+:iflag)
+      !!        do inonzero=1,nnonzero_buf
+      !!            if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
+      !!                iflag = 1
+      !!            end if
+      !!        end do
+      !!        !$omp end do
+      !!        !$omp end parallel
+      !!        if (iflag>0) then
+      !!            cycle j_loop
+      !!        end if
+      !!        ! The entry (i,j) is thus non-zero. Since the pattern is symmetric, 
+      !!        ! we thus have a non-zero entry in both the lines i and j
+      !!        if (i==j) then
+      !!            ! Diagonal element
+      !!            nonzero_buf(1,nnonzero_buf+1) = imod
+      !!            nonzero_buf(2,nnonzero_buf+1) = jmod
+      !!            nnonzero_buf = nnonzero_buf + 1
+      !!        else
+      !!            ! Offdiagonal element
+      !!            nonzero_buf(1,nnonzero_buf+1) = imod
+      !!            nonzero_buf(2,nnonzero_buf+1) = jmod
+      !!            nonzero_buf(1,nnonzero_buf+2) = jmod
+      !!            nonzero_buf(2,nnonzero_buf+2) = imod
+      !!            nnonzero_buf = nnonzero_buf + 2
+      !!        end if
+      !!    end do j_loop
+      !!end do i_loop
 
     end subroutine add_buffer_region
 
