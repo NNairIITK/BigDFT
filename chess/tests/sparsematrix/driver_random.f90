@@ -95,11 +95,17 @@ program driver_random
       call yaml_map('Sparsity pattern generation',trim(sparsegen_method))
       call yaml_map('Matrix content generation',trim(matgen_method))
       if (trim(sparsegen_method)=='random') then
+          if (trim(matgen_method)=='file') then
+              call f_err_throw("Inconsistency between 'sparsegen_method' and 'matgen_method'")
+          end if
           call yaml_map('Matrix dimension',nfvctr)
           call yaml_map('Number of non-zero entries',nvctr)
           call yaml_map('Buffer for large matrix',nbuf_large)
           call yaml_map('Buffer for sparse multiplications',nbuf_mult)
       else if (trim(sparsegen_method)=='file') then
+          if (trim(matgen_method)=='random') then
+              call f_err_throw("Inconsistency between 'sparsegen_method' and 'matgen_method'")
+          end if
           call yaml_map('File with input sparsity pattern',trim(infile))
           call yaml_map('File with output sparsity pattern',trim(outfile))
           call yaml_map('File with output matrix multiplication sparsity pattern',trim(outmatmulfile))
@@ -260,14 +266,15 @@ program driver_random
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
-  if (write_matrices) then
-      call write_sparse_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
-  end if
-
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
+
+  if (write_matrices) then
+      call write_sparse_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+  end if
+
 
 
   ! Calculate the inverse of the desired matrix power

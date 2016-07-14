@@ -93,6 +93,7 @@ program driver_single
   ! Send the input parameters to all MPI tasks
   call mpibcast(filename_in, root=0, comm=mpi_comm_world)
   call mpibcast(filename_out, root=0, comm=mpi_comm_world)
+  call mpibcast(filename_out_matmul, root=0, comm=mpi_comm_world)
   call mpibcast(exp_power, root=0, comm=mpi_comm_world)
 
   ! Read the input matrix descriptors and the matrix itself, and create the correpsonding structures
@@ -100,7 +101,7 @@ program driver_single
       call yaml_comment('Input matrix',hfill='-')
       !call yaml_mapping_open('Input matrix structure')
   end if
-  call sparse_matrix_and_matrices_init_from_file_bigdft(filename_in, &
+  call sparse_matrix_and_matrices_init_from_file_bigdft(trim(filename_in), &
        iproc, nproc, mpi_comm_world, smat_in, mat_in)
   if (iproc==0) then
       call write_sparsematrix_info(smat_in, 'Input matrix')
@@ -113,9 +114,9 @@ program driver_single
       call yaml_comment('Output matrix',hfill='-')
       !call yaml_mapping_open('Output matrix structure')
   end if
-  call sparse_matrix_init_from_file_bigdft(filename_out, &
+  call sparse_matrix_init_from_file_bigdft(trim(filename_out), &
        iproc, nproc, mpi_comm_world, smat_out, &
-       init_matmul=.true., filename_mult=filename_out_matmul)
+       init_matmul=.true., filename_mult=trim(filename_out_matmul))
   if (iproc==0) then
       call write_sparsematrix_info(smat_out, 'Input matrix')
       call yaml_mapping_close()
