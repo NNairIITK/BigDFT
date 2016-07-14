@@ -4717,6 +4717,8 @@ module sparsematrix_init
       logical :: exitflag
       !$ integer :: omp_get_max_threads, omp_get_thread_num
 
+      call f_routine(id='add_buffer_region')
+
       nthread = 1
       !$ nthread = omp_get_max_threads()
 
@@ -4870,6 +4872,8 @@ module sparsematrix_init
       !!        end if
       !!    end do j_loop
       !!end do i_loop
+
+      call f_release_routine()
 
     end subroutine add_buffer_region
 

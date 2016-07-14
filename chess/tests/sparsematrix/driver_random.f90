@@ -166,7 +166,7 @@ program driver_random
       call yaml_mapping_close()
   end if
 
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
+  !call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
   call write_sparse_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
@@ -179,6 +179,7 @@ program driver_random
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
+  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
 
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
@@ -219,8 +220,8 @@ program driver_random
   end if
   !call operation_using_dense_lapack(iproc, nproc, smats_in, mat_in)
   call matrix_power_dense_lapack(iproc, nproc, expo, smats, smatl(1), mat2, mat3(3))
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
+  !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
+  !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp
   mean_error = 0.0_mp
   max_error_rel = 0.0_mp
