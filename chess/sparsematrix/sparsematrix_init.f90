@@ -4481,15 +4481,18 @@ module sparsematrix_init
     end subroutine init_transposed_lookup_local
 
 
-    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, nfvctr, nvctr, nbuf_mult, smat, &
-               nextra, nbuf_extra, smat_extra)
+    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, &
+               nfvctr, nvctr, nbuf_mult, init_matmul, smat, &
+               nextra, nbuf_extra, init_matmul_extra, smat_extra)
       use random, only: builtin_rand
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nbuf_mult
+      logical,intent(in) :: init_matmul
       type(sparse_matrix),intent(out) :: smat
       integer,intent(in),optional :: nextra
       integer,dimension(:),intent(in),optional :: nbuf_extra
+      logical,dimension(:),intent(in),optional :: init_matmul_extra
       type(sparse_matrix),dimension(:),intent(out),optional :: smat_extra
       ! Local variables
       integer :: itotal, idum, ivctr, ii, jj, it
@@ -4521,11 +4524,17 @@ module sparsematrix_init
           if (.not.present(nbuf_extra)) then
               call f_err_throw("'nbuf_extra' not present", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
           end if
+          if (.not.present(init_matmul_extra)) then
+              call f_err_throw("'init_matmul_extra' not present", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
           if (.not.present(smat_extra)) then
               call f_err_throw("'smat_extra' not present", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
           end if
           if (size(nbuf_extra)/=nextra_) then
               call f_err_throw("wrong size of 'nbuf_extra'", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(init_matmul_extra)/=nextra_) then
+              call f_err_throw("wrong size of 'init_matmul_extra'", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
           end if
           if (size(smat_extra)/=nextra_) then
               call f_err_throw("wrong size of 'smat_extra'", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
@@ -4651,13 +4660,16 @@ module sparsematrix_init
           end do
       end if
 
-      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero_buf_mult, nonzero_buf_mult, smat)
+      call init_sparse_matrix(iproc, nproc, comm, nfvctr, &
+           nnonzero, nonzero, nnonzero_buf_mult, nonzero_buf_mult, smat, init_matmul=init_matmul)
       call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
 
       if (calc_nextra) then
           do iextra=1,nextra_
-          call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero_extra(iextra), nonzero_extra(:,:,iextra), &
-               nnonzero_buf_mult, nonzero_buf_mult, smat_extra(iextra))
+          call init_sparse_matrix(iproc, nproc, comm, nfvctr, &
+               nnonzero_extra(iextra), nonzero_extra(:,:,iextra), &
+               nnonzero_buf_mult, nonzero_buf_mult, smat_extra(iextra), &
+               init_matmul=init_matmul_extra(iextra))
           call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat_extra(iextra))
           end do
       end if

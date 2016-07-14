@@ -87,8 +87,8 @@ program driver_random
 
   ! Generate a random sparsity pattern
   call generate_random_symmetric_sparsity_pattern(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, nbuf_mult, smats, &
-       1, (/nbuf_large/), smatl)
+       nfvctr, nvctr, nbuf_mult, .false., smats, &
+       1, (/nbuf_large/), (/.true./), smatl)
 
   ! Write a summary of the sparse matrix layout 
   if (iproc==0) then
@@ -112,9 +112,9 @@ program driver_random
   ! Allocate the matrices
   call matrices_init(smats, mat1)
   call matrices_init(smats, mat2)
-  call matrices_init(smats, mat3(1))
-  call matrices_init(smats, mat3(2))
-  call matrices_init(smats, mat3(3))
+  call matrices_init(smatl(1), mat3(1))
+  call matrices_init(smatl(1), mat3(2))
+  call matrices_init(smatl(1), mat3(3))
 
   ! Fill the matrix with random entries
   idum = 0
@@ -173,7 +173,7 @@ program driver_random
       call yaml_comment('Calculating mat^x',hfill='~')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/expo/), smats, smats, mat2, mat3(1), ice_obj=ice_obj)
+       1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
 
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
@@ -183,19 +183,19 @@ program driver_random
 
   ! Calculate the inverse of the desired matrix power
   if (iproc==0) then
-      call yamL_comment('Calculating mat^-x',hfill='~')
+      call yaml_comment('Calculating mat^-x',hfill='~')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/-expo/), smats, smats, mat2, mat3(2), ice_obj=ice_obj)
+       1, (/-expo/), smats, smatl(1), mat2, mat3(2), ice_obj=ice_obj)
 
   ! Multiply the two resulting matrices.
   if (iproc==0) then
       call yamL_comment('Calculating mat^x*mat^-x',hfill='~')
   end if
-  call matrix_matrix_multiplication(iproc, nproc, smats, mat3(1), mat3(2), mat3(3))
+  call matrix_matrix_multiplication(iproc, nproc, smatl(1), mat3(1), mat3(2), mat3(3))
 
   ! Check the result
-  call check_deviation_from_unity_sparse(iproc, smats, mat3(3), max_error, mean_error)
+  call check_deviation_from_unity_sparse(iproc, smatl(1), mat3(3), max_error, mean_error)
   if (iproc==0) then
       call yaml_mapping_open('Check the deviation from unity of the operation mat^x*mat^-x')
       call yaml_map('max_error',max_error,fmt='(es10.3)')
@@ -213,14 +213,14 @@ program driver_random
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
   end if
   !call operation_using_dense_lapack(iproc, nproc, smats_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, expo, smats, smats, mat2, mat3(3))
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat3(1), 'resultchebyshev.dat', binary=.false.)
-  call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat3(3), 'resultlapack.dat', binary=.false.)
+  call matrix_power_dense_lapack(iproc, nproc, expo, smats, smatl(1), mat2, mat3(3))
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp
   mean_error = 0.0_mp
   max_error_rel = 0.0_mp
   mean_error_rel = 0.0_mp
-  do i=1,smats%nvctr
+  do i=1,smatl(1)%nvctr
       tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
       tt_rel = tt/abs(mat3(3)%matrix_compr(i))
       mean_error = mean_error + tt
@@ -228,8 +228,8 @@ program driver_random
       mean_error_rel = mean_error_rel + tt_rel
       max_error_rel = max(max_error_rel,tt_rel)
   end do
-  mean_error = mean_error/real(smats%nvctr,kind=8)
-  mean_error_rel = mean_error_rel/real(smats%nvctr,kind=8)
+  mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
+  mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
   if (iproc==0) then
       call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
       call yaml_map('max error',max_error,fmt='(es10.3)')
