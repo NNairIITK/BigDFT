@@ -8,7 +8,8 @@ program driver_random
                           matrix_power_dense_lapack, get_minmax_eigenvalues
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication, &
-                                    sparse_matrix_init_from_file_bigdft
+                                    sparse_matrix_init_from_file_bigdft, &
+                                    sparse_matrix_and_matrices_init_from_file_bigdft
   use sparsematrix_io, only: write_dense_matrix, write_sparse_matrix
   use random, only: builtin_rand
   use foe_base, only: foe_data, foe_data_deallocate
@@ -26,7 +27,7 @@ program driver_random
   real(mp) :: condition_number, expo, max_error, mean_error, max_error_rel, mean_error_rel
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
-  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method
+  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method
   logical :: write_matrices
   type(dictionary), pointer :: options, dict_timing_info
   type(yaml_cl_parse) :: parser !< command line parser
@@ -85,24 +86,32 @@ program driver_random
       outfile = options//'outfile'
       outmatmulfile = options//'outmatmulfile'
       sparsegen_method = options//'sparsegen_method'
+      matgen_method = options//'matgen_method'
       write_matrices = options//'write_matrices'
 
       call dict_free(options)
 
       call yaml_mapping_open('Input parameters')
+      call yaml_map('Sparsity pattern generation',trim(sparsegen_method))
+      call yaml_map('Matrix content generation',trim(matgen_method))
       if (trim(sparsegen_method)=='random') then
           call yaml_map('Matrix dimension',nfvctr)
           call yaml_map('Number of non-zero entries',nvctr)
           call yaml_map('Buffer for large matrix',nbuf_large)
           call yaml_map('Buffer for sparse multiplications',nbuf_mult)
       else if (trim(sparsegen_method)=='file') then
-          call yaml_map('File with input sparisty pattern',trim(infile))
+          call yaml_map('File with input sparsity pattern',trim(infile))
           call yaml_map('File with output sparsity pattern',trim(outfile))
           call yaml_map('File with output matrix multiplication sparsity pattern',trim(outmatmulfile))
       else
           call f_err_throw("Wrong value for 'sparsegen_method'")
       end if
-      call yaml_map('Condition number',condition_number)
+      if (trim(matgen_method)=='random') then
+          call yaml_map('Condition number',condition_number)
+      else if (trim(matgen_method)=='file') then
+      else
+          call f_err_throw("Wrong value for 'matgen_method'")
+      end if
       call yaml_map('Exponent for the matrix power calculation',expo)
       call yaml_map('Write the matrices',write_matrices)
       call yaml_mapping_close()
@@ -119,6 +128,7 @@ program driver_random
   call mpibcast(outfile, root=0, comm=mpi_comm_world)
   call mpibcast(outmatmulfile, root=0, comm=mpi_comm_world)
   call mpibcast(sparsegen_method, root=0, comm=mpi_comm_world)
+  call mpibcast(matgen_method, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -143,9 +153,15 @@ program driver_random
            nfvctr, nvctr, nbuf_mult, .false., smats, &
            1, (/nbuf_large/), (/.true./), smatl)
   else
-      call sparse_matrix_init_from_file_bigdft(trim(infile), &
-          iproc, nproc, mpi_comm_world, smats, &
-          init_matmul=.false.)
+      if (trim(matgen_method)=='random') then
+          call sparse_matrix_init_from_file_bigdft(trim(infile), &
+              iproc, nproc, mpi_comm_world, smats, &
+              init_matmul=.false.)
+      else if (trim(matgen_method)=='file') then
+          call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
+              iproc, nproc, mpi_comm_world, smats, mat2,&
+              init_matmul=.false.)
+      end if
       call sparse_matrix_init_from_file_bigdft(trim(outfile), &
           iproc, nproc, mpi_comm_world, smatl(1), &
           init_matmul=.true., filename_mult=trim(outmatmulfile))
@@ -171,41 +187,48 @@ program driver_random
 
 
   ! Allocate the matrices
-  call matrices_init(smats, mat1)
-  call matrices_init(smats, mat2)
   call matrices_init(smatl(1), mat3(1))
   call matrices_init(smatl(1), mat3(2))
   call matrices_init(smatl(1), mat3(3))
 
-  ! Fill the matrix with random entries
-  idum = 0
-  tt_real = builtin_rand(idum, reset=.true.)
-  do i=1,smats%nvctr
-      tt_real = builtin_rand(idum)
-      mat1%matrix_compr(i) = real(tt_real,kind=8)
-  end do
+  if (trim(sparsegen_method)=='random') then
 
-  ! Symmetrize the matrix
-  call symmetrize_matrix(smats, 'plus', mat1%matrix_compr, mat2%matrix_compr)
+      call matrices_init(smats, mat1)
+      call matrices_init(smats, mat2)
+    
+      ! Fill the matrix with random entries
+      idum = 0
+      tt_real = builtin_rand(idum, reset=.true.)
+      do i=1,smats%nvctr
+          tt_real = builtin_rand(idum)
+          mat1%matrix_compr(i) = real(tt_real,kind=8)
+      end do
+    
+      ! Symmetrize the matrix
+      call symmetrize_matrix(smats, 'plus', mat1%matrix_compr, mat2%matrix_compr)
 
-  ! By construction, all elements lie between 0 and 1. If we thus scale the
-  ! matrix by the inverse of nfvctr (i.e. its dimension), then the sum of each line
-  ! is between 0 and 1.
-  call dscal(smats%nvctr, 1.0_mp/real(smats%nfvctr,kind=8), mat2%matrix_compr(1), 1)
+      call deallocate_matrices(mat1)
+    
+      ! By construction, all elements lie between 0 and 1. If we thus scale the
+      ! matrix by the inverse of nfvctr (i.e. its dimension), then the sum of each line
+      ! is between 0 and 1.
+      call dscal(smats%nvctr, 1.0_mp/real(smats%nfvctr,kind=8), mat2%matrix_compr(1), 1)
+    
+      ! By construction, the sum of each line is between 0 and 1. If we thus set the diagonal
+      ! to 1, we get a diagonally dominant matrix, which is positive definite.
+      ! Additionally, we add to the diagonal elements a random number between 0 and the condition number.
+      do i=1,smats%nfvctr
+          ii = matrixindex_in_compressed(smats, i, i)
+          tt_real = builtin_rand(idum)
+          tt = real(tt_real,kind=8)*condition_number
+          mat2%matrix_compr(ii) = 1.0_mp + tt
+      end do
+    
+      ! Scale the matrix by the condition number, which should move down the largest
+      ! eigenvalue of the order of 1.
+      call dscal(smats%nvctr, 1.0_mp/condition_number, mat2%matrix_compr(1), 1)
 
-  ! By construction, the sum of each line is between 0 and 1. If we thus set the diagonal
-  ! to 1, we get a diagonally dominant matrix, which is positive definite.
-  ! Additionally, we add to the diagonal elements a random number between 0 and the condition number.
-  do i=1,smats%nfvctr
-      ii = matrixindex_in_compressed(smats, i, i)
-      tt_real = builtin_rand(idum)
-      tt = real(tt_real,kind=8)*condition_number
-      mat2%matrix_compr(ii) = 1.0_mp + tt
-  end do
-
-  ! Scale the matrix by the condition number, which should move down the largest
-  ! eigenvalue of the order of 1.
-  call dscal(smats%nvctr, 1.0_mp/condition_number, mat2%matrix_compr(1), 1)
+  end if
 
   ! Initialization part done
   !call timing(mpi_comm_world,'INIT','PR')
@@ -315,7 +338,6 @@ program driver_random
   call deallocate_sparse_matrix(smatl(1))
 
   ! Deallocat the sparse matrices
-  call deallocate_matrices(mat1)
   call deallocate_matrices(mat2)
   call deallocate_matrices(mat3(1))
   call deallocate_matrices(mat3(2))
@@ -462,6 +484,13 @@ subroutine commandline_options(parser)
        'sparsity pattern generation','s',&
        dict_new('Usage' .is. &
        'Indicate whether the sparsity patterns should be created randomly or read from files',&
+       'Allowed values' .is. &
+       'String'))
+
+  call yaml_cl_parse_option(parser,'matgen_method','unknown',&
+       'matrix content generation','g',&
+       dict_new('Usage' .is. &
+       'Indicate whether the matrix contents should be created randomly or read from files',&
        'Allowed values' .is. &
        'String'))
 
