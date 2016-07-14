@@ -205,7 +205,7 @@ program driver_single
   max_error_rel = 0.0_mp
   mean_error_rel = 0.0_mp
   do i=1,smat_out%nvctr
-      tt = abs(mat_check_accur(1)%matrix_compr(i)-mat_check_accur(3)%matrix_compr(i))
+      tt = abs(mat_out(1)%matrix_compr(i)-mat_check_accur(3)%matrix_compr(i))
       tt_rel = tt/abs(mat_check_accur(3)%matrix_compr(i))
       mean_error = mean_error + tt
       max_error = max(max_error,tt)
