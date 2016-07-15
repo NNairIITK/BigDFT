@@ -1054,7 +1054,7 @@ module foe_common
       integer,intent(in),optional :: npl_min
       integer,intent(in),optional :: npl_max
       integer,intent(in),optional :: npl_stride
-      integer,intent(in),optional :: betax
+      real(kind=mp),intent(in),optional :: betax
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1093,7 +1093,7 @@ module foe_common
       npl_min_ = 10
       npl_max_ = 5000
       npl_stride_ = 10
-      betax_ = -500
+      betax_ = -1500
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1581,7 +1581,7 @@ module foe_common
                       !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                       !!     x_max_error, max_error, mean_error)
                       cc = 0.d0
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                            muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,2,1), &
@@ -1944,7 +1944,7 @@ module foe_common
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                            muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,2), &
@@ -2167,7 +2167,7 @@ module foe_common
 
     !> Determine the polynomial degree which yields the desired precision
     subroutine get_polynomial_degree(iproc, nproc, comm, ispin, ncalc, fun, foe_obj, &
-               npl_min, npl_max, npl_stride, max_polynomial_degree, betax, verbosity, npl, cc, &
+               npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
       use foe_base, only: foe_data, foe_data_get_real
@@ -2179,7 +2179,7 @@ module foe_common
       integer,intent(in) :: iproc, nproc, comm, ispin, ncalc, fun, verbosity
       integer,intent(in) :: npl_min, npl_max, npl_stride
       type(foe_data),intent(in) :: foe_obj
-      real(kind=mp),intent(in) :: max_polynomial_degree, betax
+      real(kind=mp),intent(in) :: max_polynomial_degree
       integer,intent(out) :: npl
       real(kind=mp),dimension(:,:,:),pointer,intent(inout) :: cc
       real(kind=mp),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
@@ -2275,7 +2275,7 @@ module foe_common
           end do
           if (error_ok) then
               do icalc=1,ncalc
-                  call func_set(FUNCTION_EXPONENTIAL, betax=betax, &
+                  call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
@@ -2447,7 +2447,7 @@ module foe_common
 
 
 
-    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, betax, ncalc, func_name, &
+    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, &
                do_scaling, bounds_factor_low, bounds_factor_up, foe_verbosity, &
                smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
@@ -2458,7 +2458,6 @@ module foe_common
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, foe_verbosity
-      real(mp),intent(in) :: betax
       type(sparse_matrix),intent(in) :: smatm, smatl
       type(matrices),intent(in) :: ham_
       logical,intent(in) :: do_scaling
@@ -2534,7 +2533,7 @@ module foe_common
     
     
       if (iproc==0 .and. foe_verbosity>0) then
-          call yaml_map('beta for penaltyfunction',betax,fmt='(f7.1)')
+          call yaml_map('beta for penaltyfunction',foe_data_get_real(foe_obj,"betax"),fmt='(f7.1)')
           call yaml_sequence_open('determine eigenvalue bounds')
       end if
       bounds_loop: do
@@ -2555,12 +2554,12 @@ module foe_common
     
                   if (func_name==FUNCTION_ERRORFUNCTION) then
                       call get_polynomial_degree(iproc, nproc, comm, 1, ncalc, FUNCTION_ERRORFUNCTION, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-5, betax, 0, npl, cc_, &
+                           npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc_, &
                            max_error, x_max_error, mean_error, anoise, &
                            ef=efarr, fscale=fscale_arr)
                   else if (func_name==FUNCTION_POLYNOMIAL) then
                       call get_polynomial_degree(iproc, nproc, comm, 1, ncalc, FUNCTION_POLYNOMIAL, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-8, betax, 0, npl, cc_, &
+                           npl_min, npl_max, npl_stride, 1.d-8, 0, npl, cc_, &
                            max_error, x_max_error, mean_error, anoise, &
                            ex=ex)
                   end if

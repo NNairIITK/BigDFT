@@ -38,7 +38,8 @@ program chess_toolbox
                                      ccs_data_from_sparse_matrix, &
                                      ccs_matrix_write, &
                                      matrices_init, &
-                                     get_selected_eigenvalues_from_FOE
+                                     get_selected_eigenvalues_from_FOE, &
+                                     matrix_matrix_multiplication
    !!use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN
    !!use multipole, only: multipole_analysis_driver_new
    !!use multipole_base, only: lmax
@@ -82,7 +83,7 @@ program chess_toolbox
    real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found, found_a_fragment, found_icol, found_irow
-   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large
+   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large, KS_large
    type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(matrices),dimension(:,:),allocatable :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
@@ -259,6 +260,8 @@ program chess_toolbox
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_matmul_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = fragment_file)
             kernel_purity = .true.
@@ -838,7 +841,7 @@ program chess_toolbox
             init_matmul=.false.)
        call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
-            init_matmul=.false.)
+            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 
        if (iproc==0) then
            call yaml_mapping_open('Matrix properties')
@@ -859,6 +862,8 @@ program chess_toolbox
 
        ovrlp_large = matrices_null()
        ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='ovrlp_large%matrix_compr')
+       KS_large = matrices_null()
+       KS_large%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='KS_large%matrix_compr')
        fragment_atom_id = f_malloc(nat_frag,id='fragment_atom_id')
        fragment_supfun_id = f_malloc(smat_l%nfvctr,id='fragment_supfun_id')
        jat_start = 1
@@ -866,6 +871,7 @@ program chess_toolbox
        ifrag = 0
        if (iproc==0) then
            call yaml_map('Fragment composition',fragment_atomnames)
+           call yaml_comment('Starting fragment purity analysis',hfill='~')
            call yaml_sequence_open('Purity analysis of fragment')
        end if
        search_fragments: do
@@ -913,25 +919,31 @@ program chess_toolbox
            ksk_fragment = f_malloc((/nfvctr_frag,nfvctr_frag/),id='ksk_fragment')
            tmpmat = f_malloc((/nfvctr_frag,nfvctr_frag/),id='tmpmat')
 
-           call transform_sparse_matrix(iproc, smat_s, smat_l, SPARSE_FULL, 'small_to_large', &
-                                        smat_in=ovrlp_mat%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
-
-           call extract_fragment_submatrix(smmd, smat_l, ovrlp_large, nat_frag, nfvctr_frag, &
-                fragment_atom_id, fragment_supfun_id, overlap_fragment)
-           call extract_fragment_submatrix(smmd, smat_l, kernel_mat, nat_frag, nfvctr_frag, &
-                fragment_atom_id, fragment_supfun_id, kernel_fragment)
-
-
            if (smat_l%nspin==1) then
                factor = 0.5_mp
            else if (smat_l%nspin==2) then
                factor = 1.0_mp
            end if
+
+           call transform_sparse_matrix(iproc, smat_s, smat_l, SPARSE_FULL, 'small_to_large', &
+                                        smat_in=ovrlp_mat%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+
+           if (iproc==0) then
+               call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
+               call yaml_sequence(advance='no')
+               call yaml_map('Atoms ID',fragment_atom_id)
+               call yaml_map('Submatrix size',nfvctr_frag)
+           end if
+
+           ! Calculate KSK-K for the submatrices
+           call extract_fragment_submatrix(smmd, smat_l, ovrlp_large, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, overlap_fragment)
+           call extract_fragment_submatrix(smmd, smat_l, kernel_mat, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, kernel_fragment)
            call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, factor, kernel_fragment(1,1), nfvctr_frag, &
                 overlap_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
            call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, 1.d0, tmpmat(1,1), nfvctr_frag, &
                 kernel_fragment(1,1), nfvctr_frag, 0.d0, ksk_fragment(1,1), nfvctr_frag)
-
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
            do i=1,nfvctr_frag
@@ -942,16 +954,36 @@ program chess_toolbox
                end do
            end do
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
+           if (iproc==0) then
+               call yaml_mapping_open('analyzing KSK-K')
+               call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_mapping_close()
+           end if
+
+           ! Calculate KS, extract the submatrices and calculate (KS)^2-(KS)
+           call matrix_matrix_multiplication(iproc, nproc, smat_l, kernel_mat, ovrlp_large, KS_large)
+           call extract_fragment_submatrix(smmd, smat_l, KS_large, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, kernel_fragment)
+           call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, factor, kernel_fragment(1,1), nfvctr_frag, &
+                kernel_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
+
+           maxdiff = 0.0_mp
+           meandiff = 0.0_mp
+           do i=1,nfvctr_frag
+               do j=1,nfvctr_frag
+                   tt = abs(kernel_fragment(j,i)-tmpmat(j,i))
+                   maxdiff = max(maxdiff,tt)
+                   meandiff = meandiff + tt
+               end do
+           end do
+           meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
 
            if (iproc==0) then
-               call yaml_comment('Fragment number'//trim(yaml_toa(ifrag)),hfill='-')
-               call yaml_sequence(advance='no')
-               !call yaml_mapping_open(flow=.false.)
-               call yaml_map('Atoms ID',fragment_atom_id)
-               call yaml_map('Submatrix size',nfvctr_frag)
-               call yaml_map('max(KSK-K)',maxdiff,fmt='(es10.3)')
-               call yaml_map('mean(KSK-K)',meandiff,fmt='(es10.3)')
-               !call yaml_mapping_close()
+               call yaml_mapping_open('analyzing (KS)^2-(KS)')
+               call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_mapping_close()
            end if
 
            call f_free(kernel_fragment)
@@ -959,11 +991,10 @@ program chess_toolbox
            call f_free(ksk_fragment)
            call f_free(tmpmat)
 
-
-
        end do search_fragments
        if (iproc==0) then
            call yaml_sequence_close()
+           call yaml_comment('Fragment purity analysis completed',hfill='~')
        end if
        if (.not.found_a_fragment) then
            call f_err_throw('The specified fragment is not present')
@@ -975,6 +1006,7 @@ program chess_toolbox
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(kernel_mat)
        call deallocate_matrices(ovrlp_large)
+       call deallocate_matrices(KS_large)
        call f_free_str(len(fragment_atomnames),fragment_atomnames)
        call f_free(fragment_atom_id)
        call f_free(fragment_supfun_id)

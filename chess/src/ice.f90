@@ -640,15 +640,17 @@ module ice
                verbosity, npl_auto, ice_objx)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
-                              transform_sparsity_pattern
+                              transform_sparsity_pattern, get_minmax_eigenvalues
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
-                          foe_data_set_logical, foe_data_get_logical
+                          foe_data_set_logical, foe_data_get_logical, &
+                          foe_data_deallocate
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: evnoise, get_chebyshev_expansion_coefficients, &
                             get_polynomial_degree, &
-                            get_bounds_and_polynomials
+                            get_bounds_and_polynomials, &
+                            init_foe
       use module_func
       implicit none
 
@@ -672,7 +674,7 @@ module ice
       real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=mp),dimension(:,:,:),pointer :: cc
       real(kind=mp) :: anoise, scale_factor, shift_value, betax
-      real(kind=mp) :: evlow_old, evhigh_old, tt
+      real(kind=mp) :: evlow_old, evhigh_old, tt, eval_min, eval_max
       real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
       real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
       logical :: restart, calculate_SHS
@@ -690,7 +692,7 @@ module ice
       integer, parameter :: imode=SPARSE
       type(foe_data),pointer :: ice_obj
       type(foe_data),target :: ice_obj_
-      real(kind=mp),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error
+      real(kind=mp),dimension(:),allocatable :: eval, work, x_max_error, max_error, mean_error, charge_fake
       real(kind=mp),dimension(:,:),allocatable :: tempmat
       integer :: lwork, info, j, icalc, iline, icolumn
       real(kind=mp),dimension(:,:),allocatable :: inv_ovrlp_matrixp_new
@@ -727,39 +729,42 @@ module ice
       if (present(ice_objx)) then
           ice_obj => ice_objx
       else
-          !@ JUST FOR THE MOMENT.... ########################
-               ice_obj_%ef = f_malloc0_ptr(ovrlp_smat%nspin,id='(ice_obj_%ef)')
-               ice_obj_%evlow = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%evlow')
-               ice_obj_%evhigh = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%evhigh')
-               ice_obj_%bisection_shift = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%bisection_shift')
-               ice_obj_%charge = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%charge')
-               ice_obj_%eval_multiplicator = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%eval_multiplicator')
-               do ispin=1,ovrlp_smat%nspin
-                   call foe_data_set_real(ice_obj_,"ef",0.d0,ispin)
-                   call foe_data_set_real(ice_obj_,"evlow",0.5d0,ispin)
-                   call foe_data_set_real(ice_obj_,"evhigh",1.5d0,ispin)
-                   call foe_data_set_real(ice_obj_,"bisection_shift",1.d-1,ispin)
-                   call foe_data_set_real(ice_obj_,"charge",0.d0,ispin)
-                   call foe_data_set_real(ice_obj_,"eval_multiplicator",1.d0,ispin)
-               end do
-          
-               call foe_data_set_real(ice_obj_,"fscale",1.d-1)
-               call foe_data_set_real(ice_obj_,"ef_interpol_det",0.d0)
-               call foe_data_set_real(ice_obj_,"ef_interpol_chargediff",0.d0)
-               call foe_data_set_int(ice_obj_,"evbounds_isatur",0)
-               call foe_data_set_int(ice_obj_,"evboundsshrink_isatur",0)
-               call foe_data_set_int(ice_obj_,"evbounds_nsatur",10)
-               call foe_data_set_int(ice_obj_,"evboundsshrink_nsatur",10)
-               call foe_data_set_real(ice_obj_,"fscale_lowerbound",1.d-2)
-               call foe_data_set_real(ice_obj_,"fscale_upperbound",0.d0)
-               call foe_data_set_real(ice_obj_,"evlow_min",0.d0)
-               call foe_data_set_real(ice_obj_,"evhigh_max",200.d0)
-               call foe_data_set_int(ice_obj_,"npl_min",10)
-               call foe_data_set_int(ice_obj_,"npl_max",5000)
-               call foe_data_set_int(ice_obj_,"npl_stride",10)
-               call foe_data_set_real(ice_obj_,"betax",-500.d0)
-          !@ ################################################
+          charge_fake = f_malloc0(ovrlp_smat%nspin,id='charge_fake')
+          call init_foe(iproc, nproc, ovrlp_smat%nspin, charge_fake, ice_obj_)
           ice_obj => ice_obj_
+          !!!@ JUST FOR THE MOMENT.... ########################
+          !!     ice_obj_%ef = f_malloc0_ptr(ovrlp_smat%nspin,id='(ice_obj_%ef)')
+          !!     ice_obj_%evlow = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%evlow')
+          !!     ice_obj_%evhigh = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%evhigh')
+          !!     ice_obj_%bisection_shift = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%bisection_shift')
+          !!     ice_obj_%charge = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%charge')
+          !!     ice_obj_%eval_multiplicator = f_malloc0_ptr(ovrlp_smat%nspin,id='ice_obj_%eval_multiplicator')
+          !!     do ispin=1,ovrlp_smat%nspin
+          !!         call foe_data_set_real(ice_obj_,"ef",0.d0,ispin)
+          !!         call foe_data_set_real(ice_obj_,"evlow",0.5d0,ispin)
+          !!         call foe_data_set_real(ice_obj_,"evhigh",1.5d0,ispin)
+          !!         call foe_data_set_real(ice_obj_,"bisection_shift",1.d-1,ispin)
+          !!         call foe_data_set_real(ice_obj_,"charge",0.d0,ispin)
+          !!         call foe_data_set_real(ice_obj_,"eval_multiplicator",1.d0,ispin)
+          !!     end do
+          !!
+          !!     call foe_data_set_real(ice_obj_,"fscale",1.d-1)
+          !!     call foe_data_set_real(ice_obj_,"ef_interpol_det",0.d0)
+          !!     call foe_data_set_real(ice_obj_,"ef_interpol_chargediff",0.d0)
+          !!     call foe_data_set_int(ice_obj_,"evbounds_isatur",0)
+          !!     call foe_data_set_int(ice_obj_,"evboundsshrink_isatur",0)
+          !!     call foe_data_set_int(ice_obj_,"evbounds_nsatur",10)
+          !!     call foe_data_set_int(ice_obj_,"evboundsshrink_nsatur",10)
+          !!     call foe_data_set_real(ice_obj_,"fscale_lowerbound",1.d-2)
+          !!     call foe_data_set_real(ice_obj_,"fscale_upperbound",0.d0)
+          !!     call foe_data_set_real(ice_obj_,"evlow_min",0.d0)
+          !!     call foe_data_set_real(ice_obj_,"evhigh_max",200.d0)
+          !!     call foe_data_set_int(ice_obj_,"npl_min",10)
+          !!     call foe_data_set_int(ice_obj_,"npl_max",5000)
+          !!     call foe_data_set_int(ice_obj_,"npl_stride",10)
+          !!     call foe_data_set_real(ice_obj_,"betax",-500.d0)
+          !!!@ ################################################
+          !!ice_obj => ice_obj_
       end if
 
       npl_min = foe_data_get_int(ice_obj,"npl_min")
@@ -768,7 +773,7 @@ module ice
       betax = foe_data_get_real(ice_obj,"betax")
 
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat)
+      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
 
 
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
@@ -805,7 +810,7 @@ module ice
       !!write(*,*) 'IN MAIN, sum(ovrlp_mat_matrix_compr(1:ovrlp_smat)), sum(ovrlp_mat_matrix_compr(ovrlp_smat+1:2*ovrlp_smat))',&
       !!            sum(ovrlp_mat%matrix_compr(1:ovrlp_smat%nvctr)), &
       !!            sum(ovrlp_mat%matrix_compr(ovrlp_smat%nvctr+1:2*ovrlp_smat%nvctr))
-      call get_bounds_and_polynomials(iproc, nproc, comm, 1, 1, NPL_MAX, NPL_STRIDE, betax, &
+      call get_bounds_and_polynomials(iproc, nproc, comm, 1, 1, NPL_MAX, NPL_STRIDE, &
            ncalc, FUNCTION_POLYNOMIAL, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, ice_obj, npl_min_fake, &
            inv_ovrlp(1)%matrix_compr, chebyshev_polynomials, &
@@ -820,7 +825,7 @@ module ice
           call yaml_mapping_open('summary',flow=.true.)
           call yaml_map('npl',npl)
           call yaml_map('bounds', &
-               (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f6.2)')
+               (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f7.3)')
           call yaml_map('exp accur',max_error,fmt='(es8.2)')
           call yaml_mapping_close()
       end if
@@ -867,12 +872,13 @@ module ice
       call f_free(mean_error)
 
       if (.not.present(ice_objx)) then
-          call f_free_ptr(ice_obj_%ef)
-          call f_free_ptr(ice_obj_%evlow)
-          call f_free_ptr(ice_obj_%evhigh)
-          call f_free_ptr(ice_obj_%bisection_shift)
-          call f_free_ptr(ice_obj_%charge)
-          call f_free_ptr(ice_obj_%eval_multiplicator)
+          !!call f_free_ptr(ice_obj_%ef)
+          !!call f_free_ptr(ice_obj_%evlow)
+          !!call f_free_ptr(ice_obj_%evhigh)
+          !!call f_free_ptr(ice_obj_%bisection_shift)
+          !!call f_free_ptr(ice_obj_%charge)
+          !!call f_free_ptr(ice_obj_%eval_multiplicator)
+          call foe_data_deallocate(ice_obj_)
       end if
 
       call f_timing(TCAT_CME_AUXILIARY,'OF')
