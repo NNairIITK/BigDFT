@@ -128,9 +128,9 @@ program driver_random
           call yaml_map('Buffer for large matrix',nbuf_large)
           call yaml_map('Buffer for sparse multiplications',nbuf_mult)
       else if (trim(sparsegen_method)=='file') then
-          if (trim(matgen_method)=='random') then
-              call f_err_throw("Inconsistency between 'sparsegen_method' and 'matgen_method'")
-          end if
+          !!if (trim(matgen_method)=='random') then
+          !!    call f_err_throw("Inconsistency between 'sparsegen_method' and 'matgen_method'")
+          !!end if
           call yaml_map('File with input sparsity pattern',trim(infile))
           call yaml_map('File with output sparsity pattern',trim(outfile))
           call yaml_map('File with output matrix multiplication sparsity pattern',trim(outmatmulfile))
