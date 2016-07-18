@@ -271,36 +271,36 @@ contains
        
        select case(n_args)
        case (0)
-          call call_external_c_fromadd(callback)
+          call callable_void(callback)
        case (1)
           select case(n_strs)
           case (0)
-             call call_external_c_fromadd_data(callback, args(1))
+             call callable_arg(callback, args(1))
           case (1)
-             call call_external_c_fromadd_data_str(callback, args(1), lens(1))
+             call callable_str(callback, args(1), lens(1))
           end select
        case (2)
           select case(n_strs)
           case (0)
-             call call_external_c_fromadd_data_data(callback, args(1), args(2))
+             call callable_arg_arg(callback, args(1), args(2))
           case (1)
-             call call_external_c_fromadd_data_data_str(callback, args(1), args(2), lens(1))
+             call callable_arg_str(callback, args(1), args(2), lens(1))
           case (2)
-             call call_external_c_fromadd_data_data_str_str(callback, args(1), args(2), lens(1), lens(2))
+             call callable_str_str(callback, args(1), args(2), lens(1), lens(2))
           end select
        case (3)
           select case(n_strs)
           case (0)
-             call call_external_c_fromadd_data_data_data(callback, &
+             call callable_arg_arg_arg(callback, &
                   & args(1), args(2), args(3))
           case (1)
-             call call_external_c_fromadd_data_data_data_str(callback, &
+             call callable_arg_arg_str(callback, &
                   & args(1), args(2), args(3), lens(1))
           case (2)
-             call call_external_c_fromadd_data_data_data_str_str(callback, &
+             call callable_arg_str_str(callback, &
                   & args(1), args(2), args(3), lens(1), lens(2))
           case (3)
-             call call_external_c_fromadd_data_data_data_str_str_str(callback, &
+             call callable_str_str_str(callback, &
                   & args(1), args(2), args(3), lens(1), lens(2), lens(3))
           end select
        end select
