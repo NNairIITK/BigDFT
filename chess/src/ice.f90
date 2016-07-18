@@ -730,7 +730,9 @@ module ice
           ice_obj => ice_objx
       else
           charge_fake = f_malloc0(ovrlp_smat%nspin,id='charge_fake')
-          call init_foe(iproc, nproc, ovrlp_smat%nspin, charge_fake, ice_obj_)
+          call init_foe(iproc, nproc, ovrlp_smat%nspin, charge=charge_fake, &
+               evlow=0.5_mp, evhigh=1.5_mp, foe_obj=ice_obj_)
+          call f_free(charge_fake)
           ice_obj => ice_obj_
           !!!@ JUST FOR THE MOMENT.... ########################
           !!     ice_obj_%ef = f_malloc0_ptr(ovrlp_smat%nspin,id='(ice_obj_%ef)')
