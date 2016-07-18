@@ -101,6 +101,73 @@ void FC_FUNC_(callable_str_str_str, CALLABLE_STR_STR_STR)(FFunc_str_str_str *fun
     (*func)(*a, *a2, *a3, *ln, *ln2, *ln3);
 }
 
+void FC_FUNC_(callable_arg_arg_arg_arg, CALLABLE_ARG_ARG_ARG_ARG)(FFunc_arg_arg_arg_arg *func, void **a, void **a2, void **a3, void **a4)
+{
+  if (func && a && a2 && a3 && a4)
+    (*func)(*a, *a2, *a3, *a4);
+}
+
+void FC_FUNC_(callable_arg_arg_arg_str, CALLABLE_ARG_ARG_ARG_STR)(FFunc_arg_arg_arg_str *func, void **a, void **a2, void **a3, void **a4, int *ln)
+{
+  if (func && a && a2 && a3 && a4)
+    (*func)(*a, *a2, *a3, *a4, *ln);
+}
+
+void FC_FUNC_(callable_arg_arg_str_str, CALLABLE_ARG_ARG_STR_STR)(FFunc_arg_arg_str_str *func, void **a, void **a2, void **a3, void **a4, int *ln, int *ln2)
+{
+  if (func && a && a2 && a3 && a4)
+    (*func)(*a, *a2, *a3, *a4, *ln, *ln2);
+}
+
+void FC_FUNC_(callable_arg_str_str_str, CALLABLE_ARG_STR_STR_STR)(FFunc_arg_str_str_str *func, void **a, void **a2, void **a3, void **a4, int *ln, int *ln2, int *ln3)
+{
+  if (func && a && a2 && a3 && a4)
+    (*func)(*a, *a2, *a3, *a4, *ln, *ln2, *ln3);
+}
+
+void FC_FUNC_(callable_str_str_str_str, CALLABLE_STR_STR_STR_STR)(FFunc_str_str_str_str *func, void **a, void **a2, void **a3, void **a4, int *ln, int *ln2, int *ln3, int *ln4)
+{
+  if (func && a && a2 && a3 && a4)
+    (*func)(*a, *a2, *a3, *a4, *ln, *ln2, *ln3, *ln4);
+}
+
+
+void FC_FUNC_(callable_arg_arg_arg_arg_arg, CALLABLE_ARG_ARG_ARG_ARG_ARG)(FFunc_arg_arg_arg_arg_arg *func, void **a, void **a2, void **a3, void **a4, void **a5)
+{
+  if (func && a && a2 && a3 && a4 && a5)
+    (*func)(*a, *a2, *a3, *a4, *a5);
+}
+
+void FC_FUNC_(callable_arg_arg_arg_arg_str, CALLABLE_ARG_ARG_ARG_ARG_STR)(FFunc_arg_arg_arg_arg_str *func, void **a, void **a2, void **a3, void **a4, void **a5, int *ln)
+{
+  if (func && a && a2 && a3 && a4 && a5)
+    (*func)(*a, *a2, *a3, *a4, *a5, *ln);
+}
+
+void FC_FUNC_(callable_arg_arg_arg_str_str, CALLABLE_ARG_ARG_ARG_STR_STR)(FFunc_arg_arg_arg_str_str *func, void **a, void **a2, void **a3, void **a4, void **a5, int *ln, int *ln2)
+{
+  if (func && a && a2 && a3 && a4 && a5)
+    (*func)(*a, *a2, *a3, *a4, *a5, *ln, *ln2);
+}
+
+void FC_FUNC_(callable_arg_arg_str_str_str, CALLABLE_ARG_ARG_STR_STR_STR)(FFunc_arg_arg_str_str_str *func, void **a, void **a2, void **a3, void **a4, void **a5, int *ln, int *ln2, int *ln3)
+{
+  if (func && a && a2 && a3 && a4 && a5)
+    (*func)(*a, *a2, *a3, *a4, *a5, *ln, *ln2, *ln3);
+}
+
+void FC_FUNC_(callable_arg_str_str_str_str, CALLABLE_ARG_STR_STR_STR_STR)(FFunc_arg_str_str_str_str *func, void **a, void **a2, void **a3, void **a4, void **a5, int *ln, int *ln2, int *ln3, int *ln4)
+{
+  if (func && a && a2 && a3 && a4 && a5)
+    (*func)(*a, *a2, *a3, *a4, *a5, *ln, *ln2, *ln3, *ln4);
+}
+
+void FC_FUNC_(callable_str_str_str_str_str, CALLABLE_STR_STR_STR_STR_STR)(FFunc_str_str_str_str_str *func, void **a, void **a2, void **a3, void **a4, void **a5, int *ln, int *ln2, int *ln3, int *ln4, int *ln5)
+{
+  if (func && a && a2 && a3 && a4 && a5)
+    (*func)(*a, *a2, *a3, *a4, *a5, *ln, *ln2, *ln3, *ln4, *ln5);
+}
+
 void f_func_call(void *func, unsigned int n_args, void* args[FFUNC_MAX_ARGS],
                  const unsigned int strs[FFUNC_MAX_ARGS])
 {
@@ -108,6 +175,8 @@ void f_func_call(void *func, unsigned int n_args, void* args[FFUNC_MAX_ARGS],
   FFunc_str func_1;
   FFunc_str_str func_2;
   FFunc_str_str_str func_3;
+  FFunc_str_str_str_str func_4;
+  FFunc_str_str_str_str_str func_5;
 
   switch (n_args)
     {
@@ -126,6 +195,15 @@ void f_func_call(void *func, unsigned int n_args, void* args[FFUNC_MAX_ARGS],
     case 3:
       *(&func_3) = func;
       func_3(args[0], args[1], args[2], strs[0], strs[1], strs[2]);
+      return;
+    case 4:
+      *(&func_4) = func;
+      func_4(args[0], args[1], args[2], args[3], strs[0], strs[1], strs[2], strs[3]);
+      return;
+    case 5:
+      *(&func_5) = func;
+      func_5(args[0], args[1], args[2], args[3], args[4],
+             strs[0], strs[1], strs[2], strs[3], strs[4]);
       return;
     default:
       return;

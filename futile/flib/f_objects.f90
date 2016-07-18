@@ -36,7 +36,7 @@ module module_f_objects
   integer, private, save :: ERROR_OBJECT
   type(dictionary), pointer :: class_library => null()
 
-  integer, parameter :: MAX_ARGS_IMPLEMENTED = 3
+  integer, parameter :: MAX_ARGS_IMPLEMENTED = 5
 
   type signal_ctx
      character(len = max_field_length) :: obj_id, id
@@ -303,6 +303,49 @@ contains
              call callable_str_str_str(callback, &
                   & args(1), args(2), args(3), lens(1), lens(2), lens(3))
           end select
+       case (4)
+          select case(n_strs)
+          case (0)
+             call callable_arg_arg_arg_arg(callback, &
+                  & args(1), args(2), args(3), args(4))
+          case (1)
+             call callable_arg_arg_arg_str(callback, &
+                  & args(1), args(2), args(3), args(4), lens(1))
+          case (2)
+             call callable_arg_arg_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), lens(1), lens(2))
+          case (3)
+             call callable_arg_str_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), lens(1), lens(2), lens(3))
+          case (4)
+             call callable_str_str_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), &
+                  & lens(1), lens(2), lens(3), lens(4))
+          end select
+       case (5)
+          select case(n_strs)
+          case (0)
+             call callable_arg_arg_arg_arg_arg(callback, &
+                  & args(1), args(2), args(3), args(4), args(5))
+          case (1)
+             call callable_arg_arg_arg_arg_str(callback, &
+                  & args(1), args(2), args(3), args(4), args(5), lens(1))
+          case (2)
+             call callable_arg_arg_arg_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), args(5), lens(1), lens(2))
+          case (3)
+             call callable_arg_arg_str_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), args(5), &
+                  & lens(1), lens(2), lens(3))
+          case (4)
+             call callable_arg_str_str_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), args(5), &
+                  & lens(1), lens(2), lens(3), lens(4))
+          case (5)
+             call callable_str_str_str_str_str(callback, &
+                  & args(1), args(2), args(3), args(4), args(5), &
+                  & lens(1), lens(2), lens(3), lens(4), lens(5))
+          end select
        end select
        iter => dict_next(iter)
     end do
@@ -367,6 +410,9 @@ contains
     integer(f_address), intent(in) :: callback_add
     integer, intent(in) :: n_args
     type(kernel_ctx) :: ctx
+
+    if (f_err_raise(n_args > MAX_ARGS_IMPLEMENTED, "Too many arguments for kernel", &
+         & err_id = ERROR_OBJECT)) return
 
     ctx%callback = callback_add
     ctx%callback_n_args = n_args
