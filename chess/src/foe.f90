@@ -220,6 +220,7 @@ module foe
           fscale_new = fscale_newx
           call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
+      ilshift = 0
       !!    isshift=(ispin-1)*smats%nvctrp_tg
       !!    imshift=(ispin-1)*smatm%nvctrp_tg
       !!    ilshift=(ispin-1)*smatl%nvctrp_tg
