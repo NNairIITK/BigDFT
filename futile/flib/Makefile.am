@@ -48,7 +48,7 @@ libflib_a_SOURCES = utils.c utilsadd.c f_plugin.c \
 	razero.f90 getadd.f90 time.f90 \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
-	f_ternary.f90 f_bind.f90 f_objects.f90 fpython.f90 \
+	f_ternary.f90 f_objects.f90 fpython.f90 \
 	$(flush_files) $(getarg_files) $(CUDA_PROF) $(CUDA_SOURCES)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -103,7 +103,6 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_JMP.@MODULE_EXT \
 	TIME_PROFILING.@MODULE_EXT@ \
 	F_TERNARY.@MODULE_EXT@ \
-	MODULE_F_BIND.@MODULE_EXT@ \
 	MODULE_F_OBJECTS.@MODULE_EXT@ \
 	F_PYTHON.@MODULE_EXT@ \
 	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
@@ -127,7 +126,6 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_refcnts.@MODULE_EXT@ \
 	f_trees.@MODULE_EXT@ \
 	f_ternary.@MODULE_EXT@ \
-	module_f_bind.@MODULE_EXT@ \
 	module_f_objects.@MODULE_EXT@ \
 	f_python.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
@@ -154,7 +152,6 @@ NVCC_FLAGS = @NVCC_FLAGS@
 $(modules): $(libflib_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
 f_enums.o: yaml_strings.o
-f_bind.o: f_precisions.o
 f_objects.o: f_precisions.o dictionaries.o yaml_output.o
 f_ternary.o: f_precisions.o yaml_strings.o
 dictionaries_base.o: yaml_strings.o
