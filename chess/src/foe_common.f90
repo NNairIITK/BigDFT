@@ -1093,7 +1093,7 @@ module foe_common
       npl_min_ = 10
       npl_max_ = 5000
       npl_stride_ = 10
-      betax_ = -500
+      betax_ = -1000.0_mp
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
