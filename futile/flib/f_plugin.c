@@ -58,11 +58,11 @@ void FC_FUNC_(plugin_load, PLUGIN_LOAD)(const char *name, int *ierr, unsigned in
   void *handle;
   void *func;
 
-  libname = malloc(sizeof(char) * (ln + 7));
+  libname = malloc(sizeof(char) * (ln + 9));
   memcpy(libname, "./lib", sizeof(char) * 5);
   memcpy(libname + 5, name, sizeof(char) * ln);
-  for (i = ln + 5; i > 4 && libname[i] == ' '; i--);
-  memcpy(libname + i, ".so", sizeof(char) * 3);
+  for (i = ln + 4; i > 4 && libname[i] == ' '; i--);
+  memcpy(libname + ++i, ".so", sizeof(char) * 3);
   libname[i + 3] = '\0';
 
   handle = dlopen(libname, RTLD_LAZY);
