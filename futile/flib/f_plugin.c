@@ -65,7 +65,7 @@ void FC_FUNC_(plugin_load, PLUGIN_LOAD)(const char *name, int *ierr, unsigned in
   memcpy(libname + ++i, ".so", sizeof(char) * 3);
   libname[i + 3] = '\0';
 
-  handle = dlopen(libname, RTLD_LAZY);
+  handle = dlopen(libname, RTLD_NOW);
   free(libname);
   if (!handle)
     {
