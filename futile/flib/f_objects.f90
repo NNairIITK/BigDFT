@@ -355,12 +355,12 @@ contains
     implicit none
     character(len = *), intent(in) :: obj_id, id
     type(kernel_ctx), intent(in) :: kernel
-    integer, intent(out) :: sid
+    integer, intent(out), optional :: sid
 
     type(dictionary), pointer :: sig, hook
-    integer :: n_args_signal, i
+    integer :: n_args_signal, i, sid_
 
-    sid = -1
+    if (present(sid)) sid = -1
 
     sig => ensure_signal(obj_id, id)
     if (.not. associated(sig)) return
@@ -374,14 +374,14 @@ contains
     hook => class_library // obj_id // "signals" // id // "hooks"
     if (dict_len(hook) > 0) then
        hook => hook // (dict_len(hook) - 1)
-       sid = hook // "id"
-       sid = sid + 1
+       sid_ = hook // "id"
+       sid_ = sid_ + 1
     else
-       sid = 0
+       sid_ = 0
     end if
 
     call dict_init(hook)
-    call set(hook // "id", sid)
+    call set(hook // "id", sid_)
     call set(hook // "address", kernel%callback)
     do i = 1, kernel%n_args
        call add(hook // "arguments", kernel%args(i))
@@ -391,6 +391,8 @@ contains
     end do
 
     call add(class_library // obj_id // "signals" // id // "hooks", hook)
+
+    if (present(sid)) sid = sid_
   end subroutine f_object_signal_connect
 
   function f_object_has_signal(obj_id, id)
