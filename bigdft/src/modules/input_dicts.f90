@@ -1353,7 +1353,12 @@ contains
        lval = options // LOGFILE
        call dict_set_run_properties(drun, log_to_disk = lval)
     end if
-    call set(drun // USE_FILES, .true.)
+    if (USE_FILES .in. options) then
+       lval = options // USE_FILES
+    else
+       lval = .true.
+    end if
+    call set(drun // USE_FILES, lval)
     call add(options//'BigDFT', drun)
   end subroutine set_dict_run_file
 
