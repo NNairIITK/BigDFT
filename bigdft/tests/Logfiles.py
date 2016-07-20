@@ -9,12 +9,14 @@ PRE_POST = [EVAL, SETUP, INITIALIZATION]
 ENERGY = "BigDFT.energy"
 FERMI_LEVEL= "__FERMI_LEVEL__"
 NUMBER_OF_ATOMS = 'BigDFT.nat'
+EIGENVALUES = 'BigDFT.evals'
 
 #Builtin pathes to define the search paths
 BUILTIN={ENERGY: [["Last Iteration", "FKS"],["Last Iteration", "EKS"], ["Energy (Hartree)"]],
          FERMI_LEVEL: [["Ground State Optimization", -1, "Fermi Energy"]],
-         NUMBER_OF_ATOMS: [ ['Atomic System Properties','Number of atoms']]}
-
+         NUMBER_OF_ATOMS: [ ['Atomic System Properties','Number of atoms']],
+         EIGENVALUES: [ ["Complete list of energy eigenvalues"], [ "Ground State Optimization", -1, "Orbitals"],
+                        ["Ground State Optimization",-1,"Hamiltonian Optimization",-1,"Subspace Optimization","Orbitals"] ]}
 
 def get_log(f):
     "Transform a logfile into a python dictionary"

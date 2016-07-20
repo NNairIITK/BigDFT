@@ -466,6 +466,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
+                     input%tel, input%occopt, &
                      input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
@@ -963,6 +964,7 @@ end if
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
+           input%tel, input%occopt, &
            input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
            input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
@@ -1310,7 +1312,7 @@ end if
   ! Write the sparse matrices
   if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
       call timing(iproc,'write_matrices','ON')
-      call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+      call write_linear_matrices(iproc,nproc,bigdft_mpi%mpi_comm,input%imethod_overlap,trim(input%dir_output),&
            input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
            input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
 
@@ -1505,8 +1507,9 @@ end if
                          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                          .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                         input%tel, input%occopt, &
+                         input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                     call get_lagrange_mult(cdft_it,vgrad)
                     ! CDFT: exit when W is converged wrt both V and rho
@@ -1523,6 +1526,7 @@ end if
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
+                      input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
@@ -1555,8 +1559,9 @@ end if
                          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                          .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                         input%tel, input%occopt, &
+                         input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
                     call get_lagrange_mult(cdft_it,vgrad)
                     ! CDFT: exit when W is converged wrt both V and rho
@@ -1573,6 +1578,7 @@ end if
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
+                      input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)

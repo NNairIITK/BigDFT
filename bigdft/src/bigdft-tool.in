@@ -1134,8 +1134,8 @@ options:
         command = "%s 1 %s dd dos %s %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.sigma, options.npts)
         #print command
     if options.action == "convert-matrix-format":
-        print command
         command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, chess_toolbox, options.conversion, options.infile, options.outfile)
+        print command
     if options.action == "calculate-selected-eigenvalues":
         command = "%s %s calculate-selected-eigenvalues %s %s %s %s %i %i %f" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max, options.fscale)
         print command

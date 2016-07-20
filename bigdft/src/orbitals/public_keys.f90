@@ -16,6 +16,7 @@ module public_keys
   character(len = *), parameter :: RUN_NAME_KEY = "name"
   
   character(len = *), parameter :: PY_HOOKS = "py_hooks"
+  character(len = *), parameter :: PLUGINS = "plugins"
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
@@ -266,6 +267,7 @@ module public_keys
   character(len=*), parameter :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter :: FIX_BASIS       ='fix_basis'
   character(len=*), parameter :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter :: ORTHOGONALIZE_AO = 'orthogonalize_ao'
   character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
   character(len=*), parameter :: EXTRA_STATES="extra_states"

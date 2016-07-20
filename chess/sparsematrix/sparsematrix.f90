@@ -32,7 +32,8 @@ module sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
   public :: matrix_matrix_mult_wrapper
-  public :: trace_sparse
+  public :: trace_sparse_matrix
+  public :: trace_sparse_matrix_product
   public :: delete_coupling_terms
   public :: synchronize_matrix_taskgroups
   public :: max_asymmetry_of_matrix
@@ -41,6 +42,7 @@ module sparsematrix
   public :: operation_using_dense_lapack
   public :: matrix_power_dense_lapack
   public :: diagonalizeHamiltonian2
+  public :: get_minmax_eigenvalues
 
 
   interface compress_matrix_distributed_wrapper
@@ -1887,10 +1889,49 @@ module sparsematrix
     end subroutine matrix_matrix_mult_wrapper
 
 
+
+
+    !< Calculates the trace of the sparse matrix mat
+    function trace_sparse_matrix(iproc, nproc, comm, smat, mat) result(tr)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc,  nproc, comm
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: mat
+    
+      ! Local variables
+      integer :: irow, ind
+      real(kind=mp) :: tr
+    
+      call f_routine(id='trace_sparse_matrix')
+
+      tr = 0.0_mp 
+      do irow=1,smat%nfvctr
+          ind = matrixindex_in_compressed(smat, irow, irow)
+          if (ind<smat%isvctr+1) cycle
+          if (ind>smat%isvctr+smat%nvctrp) then
+              exit
+          end if
+          tr = tr + mat(ind)
+      end do
+      if (nproc > 1) then
+          call mpiallred(tr, 1, mpi_sum, comm=comm)
+      end if
+    
+      call f_release_routine()
+    
+    end function trace_sparse_matrix
+
+
+
+
+
     !< Calculates the trace of the matrix product amat*bmat.
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
-    function trace_sparse(iproc, nproc, comm, asmat, bsmat, amat, bmat)
+    function trace_sparse_matrix_product(iproc, nproc, comm, asmat, bsmat, amat, bmat) result(sumn)
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
     
@@ -1903,7 +1944,7 @@ module sparsematrix
       ! Local variables
       integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
       integer :: ierr, iashift, ibshift, iel
-      real(kind=mp) :: sumn, trace_sparse
+      real(kind=mp) :: sumn
     
     
       call f_routine(id='trace_sparse')
@@ -1915,51 +1956,39 @@ module sparsematrix
       !    call f_err_throw('The sparse matrix multiplications must &
       !         &be initialized to use the routine trace_sparse')
       !end if
-    
+
       sumn=0.d0
-      !if (asmat%smmm%nfvctrp>0) then
-          !$omp parallel default(none) &
-          !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
-          !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
-          !$omp do reduction(+:sumn)
-          !do iseg=isegstart,isegend
-          !do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
-          !do iseg=1,asmat%nseg
-          do iseg=asmat%isseg,asmat%ieseg
-              iel = asmat%keyv(iseg) - 1
-              ii=iashift+asmat%keyv(iseg)-1
-              ! A segment is always on one line, therefore no double loop
-              do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
-                  iel = iel + 1
-                  !if (iel<asmat%smmm%isvctr_mm+1) cycle
-                  !if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
-                  if (iel<asmat%isvctr+1) cycle
-                  if (iel>asmat%isvctr+asmat%nvctrp) then
-                      !write(*,*) 'exit with iel',iel
-                      exit
-                  end if
-                  ii=ii+1
-                  iiorb = asmat%keyg(1,2,iseg)
-                  jjorb = jorb
-                  iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-                  !!write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
-                  !!    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
-                  sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
-              end do  
-          end do
-          !$omp end do
-          !$omp end parallel
-      !end if
-    
+      !$omp parallel default(none) &
+      !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
+      !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
+      !$omp do reduction(+:sumn)
+      do iseg=asmat%isseg,asmat%ieseg
+          iel = asmat%keyv(iseg) - 1
+          ii=iashift+asmat%keyv(iseg)-1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<asmat%isvctr+1) cycle
+              if (iel>asmat%isvctr+asmat%nvctrp) then
+                  exit
+              end if
+              ii=ii+1
+              iiorb = asmat%keyg(1,2,iseg)
+              jjorb = jorb
+              iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
+              sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
+          end do  
+      end do
+      !$omp end do
+      !$omp end parallel
+
       if (nproc > 1) then
           call mpiallred(sumn, 1, mpi_sum, comm=comm)
       end if
     
-      trace_sparse = sumn
-    
       call f_release_routine()
     
-    end function trace_sparse
+    end function trace_sparse_matrix_product
 
 
     !> Set to zero all term which couple different atoms
@@ -2448,13 +2477,13 @@ module sparsematrix
 
 
 
-    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat, mat_in, mat_out)
+    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat_in, smat_out, mat_in, mat_out)
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       real(mp),intent(in) :: exp_power
-      type(sparse_matrix),intent(in) :: smat
+      type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
       type(matrices),intent(out) :: mat_out
 
@@ -2466,14 +2495,14 @@ module sparsematrix
       call f_routine(id='operation_using_dense_lapack')
 
       blocksize = -100
-      mat_in_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_out_dense')
+      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
       !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
-           smat, mat_in%matrix_compr, mat_in_dense)
-      call matrix_power_dense(iproc, nproc, blocksize, smat%nfvctr, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
+      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)
-      call compress_matrix(iproc, nproc, smat, mat_out_dense, mat_out%matrix_compr)
+      call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
       call f_free(mat_in_dense)
       call f_free(mat_out_dense)
 
@@ -2725,5 +2754,55 @@ module sparsematrix
       call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
     
     end subroutine diagonalizeHamiltonian2
+
+
+    !> Get the minimal and maximal eigenvalue of a matrix
+    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
+      implicit none
+
+      ! Calling arguments
+      integer, intent(in) :: iproc
+      type(sparse_matrix), intent(in) :: ovrlp_smat
+      type(matrices), intent(in) :: ovrlp_mat
+      real(mp),intent(out) :: eval_min, eval_max
+
+      ! Local variables
+      integer :: iseg, ii, i, lwork, info
+      real(kind=mp),dimension(:,:),allocatable :: tempmat
+      real(kind=mp),dimension(:),allocatable :: eval, work
+
+      call f_routine(id='get_minmax_eigenvalues')
+
+      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+      do iseg=1,ovrlp_smat%nseg
+          ii=ovrlp_smat%keyv(iseg)
+          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+              tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
+              ii = ii + 1
+          end do
+      end do
+      !!if (iproc==0) then
+      !!    do i=1,ovrlp_smat%nfvctr
+      !!        do j=1,ovrlp_smat%nfvctr
+      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+      !!        end do
+      !!    end do
+      !!end if
+      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      lwork=100*ovrlp_smat%nfvctr
+      work = f_malloc(lwork,id='work')
+      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+      !if (iproc==0) write(*,*) 'eval',eval
+      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      eval_min = eval(1)
+      eval_max = eval(ovrlp_smat%nfvctr)
+
+      call f_free(tempmat)
+      call f_free(eval)
+      call f_free(work)
+
+      call f_release_routine()
+
+    end subroutine get_minmax_eigenvalues
 
 end module sparsematrix

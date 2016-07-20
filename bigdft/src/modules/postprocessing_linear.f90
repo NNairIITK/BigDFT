@@ -622,6 +622,7 @@ module postprocessing_linear
               energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
               order_taylor,input%lin%max_inversion_error,&
               input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
+              input%tel, input%occopt, &
               input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
               input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
@@ -780,6 +781,7 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, &
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
+           input%tel, input%occopt, &
            input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
            input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)

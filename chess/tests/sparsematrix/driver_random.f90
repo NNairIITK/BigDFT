@@ -4,9 +4,10 @@ program driver_random
   use sparsematrix_init, only: generate_random_symmetric_sparsity_pattern, &
                                matrixindex_in_compressed
   use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
-                          matrix_power_dense_lapack
+                          matrix_power_dense_lapack, get_minmax_eigenvalues
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication
+  use sparsematrix_io, only: write_dense_matrix, write_sparse_matrix
   use random, only: builtin_rand
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
@@ -16,10 +17,10 @@ program driver_random
   integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread, nfvctr, nvctr
   type(sparse_matrix) :: smat
   real(kind=4) :: tt_real
-  real(mp) :: tt
+  real(mp) :: tt, tt_rel, eval_min, eval_max
   type(matrices) :: mat1, mat2
   type(matrices),dimension(3) :: mat3
-  real(mp) :: condition_number, expo, max_error, mean_error
+  real(mp) :: condition_number, expo, max_error, mean_error, max_error_rel, mean_error_rel
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
   type(dictionary), pointer :: dict_timing_info
@@ -132,10 +133,26 @@ program driver_random
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
+  ! Calculate the minimal and maximal eigenvalue, to determine the condition number
+  call get_minmax_eigenvalues(iproc, smat, mat2, eval_min, eval_max)
+  if (iproc==0) then
+      call yaml_mapping_open('Eigenvalue properties')
+      call yaml_map('Minimal',eval_min)
+      call yaml_map('Maximal',eval_max)
+      call yaml_map('Condition number',eval_max/eval_min)
+      call yaml_mapping_close()
+  end if
+
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat2, 'randommatrix.dat', binary=.false.)
+  call write_sparse_matrix(iproc, nproc, mpi_comm_world, smat, mat2, 'randommatrix_sparse.dat')
+
+  call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
+       gather_routine=gather_timings)
+
 
   ! Calculate the desired matrix power
   if (iproc==0) then
-      call yamL_comment('Calculating mat^x',hfill='~')
+      call yaml_comment('Calculating mat^x',hfill='~')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/expo/), smat, smat, mat2, mat3(1), ice_obj=ice_obj)
@@ -178,19 +195,29 @@ program driver_random
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
   end if
   !call operation_using_dense_lapack(iproc, nproc, smat_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, expo, smat, mat2, mat3(3))
+  call matrix_power_dense_lapack(iproc, nproc, expo, smat, smat, mat2, mat3(3))
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat3(1), 'resultchebyshev.dat', binary=.false.)
+  call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat3(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp
   mean_error = 0.0_mp
+  max_error_rel = 0.0_mp
+  mean_error_rel = 0.0_mp
   do i=1,smat%nvctr
       tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
+      tt_rel = tt/abs(mat3(3)%matrix_compr(i))
       mean_error = mean_error + tt
       max_error = max(max_error,tt)
+      mean_error_rel = mean_error_rel + tt_rel
+      max_error_rel = max(max_error_rel,tt_rel)
   end do
   mean_error = mean_error/real(smat%nvctr,kind=8)
+  mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
   if (iproc==0) then
       call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
-      call yaml_map('max_error',max_error,fmt='(es10.3)')
-      call yaml_map('mean_error',mean_error,fmt='(es10.3)')
+      call yaml_map('max error',max_error,fmt='(es10.3)')
+      call yaml_map('mean error',mean_error,fmt='(es10.3)')
+      call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+      call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
       call yaml_mapping_close()
   end if
 
@@ -213,7 +240,7 @@ program driver_random
   call foe_data_deallocate(ice_obj)
 
   ! Gather the timings
-  call build_dict_info(dict_timing_info)
+  call build_dict_info(iproc, nproc, dict_timing_info)
   call f_timing_stop(mpi_comm=mpi_comm_world, nproc=nproc, &
        gather_routine=gather_timings, dict_info=dict_timing_info)
   call dict_free(dict_timing_info)
@@ -232,47 +259,47 @@ program driver_random
 
 
 
-  !SM: This routine should go to a module
-  contains
-   !> construct the dictionary needed for the timing information
-    subroutine build_dict_info(dict_info)
-      !use module_base
-      use dynamic_memory
-      use dictionaries
-      implicit none
-      include 'mpif.h'
-      type(dictionary), pointer :: dict_info
-      !local variables
-      integer :: ierr,namelen,nthreads
-      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
-      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
-      type(dictionary), pointer :: dict_tmp
-      !$ integer :: omp_get_max_threads
+  !!!SM: This routine should go to a module
+  !!contains
+  !! !> construct the dictionary needed for the timing information
+  !!  subroutine build_dict_info(dict_info)
+  !!    !use module_base
+  !!    use dynamic_memory
+  !!    use dictionaries
+  !!    implicit none
+  !!    include 'mpif.h'
+  !!    type(dictionary), pointer :: dict_info
+  !!    !local variables
+  !!    integer :: ierr,namelen,nthreads
+  !!    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+  !!    character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+  !!    type(dictionary), pointer :: dict_tmp
+  !!    !$ integer :: omp_get_max_threads
 
-      call dict_init(dict_info)
-!  bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
-      !if (DoLastRunThings) then
-         call f_malloc_dump_status(dict_summary=dict_tmp)
-         call set(dict_info//'Routines timing and number of calls',dict_tmp)
-      !end if
-      nthreads = 0
-      !$  nthreads=omp_get_max_threads()
-      call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
-      if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
-           nthreads)
+  !!    call dict_init(dict_info)
+! !! bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
+  !!    !if (DoLastRunThings) then
+  !!       call f_malloc_dump_status(dict_summary=dict_tmp)
+  !!       call set(dict_info//'Routines timing and number of calls',dict_tmp)
+  !!    !end if
+  !!    nthreads = 0
+  !!    !$  nthreads=omp_get_max_threads()
+  !!    call set(dict_info//'CPU parallelism'//'MPI tasks',nproc)
+  !!    if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+  !!         nthreads)
 
-      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
-      if (nproc>1) then
-         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-         !gather the result between all the process
-         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-              mpi_comm_world,ierr)
-         if (iproc==0) call set(dict_info//'Hostnames',&
-                 list_new(.item. nodename))
-      end if
-      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+  !!    nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.nproc-1,id='nodename')
+  !!    if (nproc>1) then
+  !!       call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+  !!       !gather the result between all the process
+  !!       call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+  !!            nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+  !!            mpi_comm_world,ierr)
+  !!       if (iproc==0) call set(dict_info//'Hostnames',&
+  !!               list_new(.item. nodename))
+  !!    end if
+  !!    call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
 
-    end subroutine build_dict_info
+  !!  end subroutine build_dict_info
 
 end program driver_random
