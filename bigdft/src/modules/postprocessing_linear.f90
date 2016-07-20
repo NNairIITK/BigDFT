@@ -579,7 +579,7 @@ module postprocessing_linear
       integer :: nstates_max, ndimcoeff
       logical :: overlap_calculated=.false. ! recalculate just to be safe
       real(kind=8), allocatable, dimension(:) :: coeff_tmp
-    
+
       nullify(mom_vec_fake)
     
       energs_work = work_mpiaccumulate_null()
@@ -680,8 +680,8 @@ module postprocessing_linear
     
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
-      call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
-                 tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
+      call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%linmat%m%nfvctr, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
+                 tmb%linmat%m%nfvctr, 0.d0, phiwork_global, nvctrp)
 
       if (frag_coeffs) then
            call vcopy(ndimcoeff,coeff_tmp(1),1,tmb%coeff(1,1),1)
