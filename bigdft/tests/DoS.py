@@ -1,14 +1,55 @@
 #definition of the density of state class
 class DoS():
-    def __init__(self,energies=None,units='eV',label='1',sigma=0.2,npts=2500,fermi_level=None,norm=1.0):
+    def __init__(self,energies=None,evals=None,units='eV',label='1',sigma=0.2,npts=2500,fermi_level=None,norm=1.0):
+        "Extract a quantity which is associated to the DoS, that can be plotted"
         import numpy as np
         self.ens=[]
         self.labels=[]
         self.norms=[]
+        if evals is not None: self.append_from_dict(evals,label)
         if energies is not None: self.append(energies,label=label,units=units,norm=norm)
         self.sigma=self.conversion_factor(units)*sigma
         self.npts=npts
         self.fermi_level(fermi_level,units=units)
+    def append_from_dict(self,evals,label):
+        import numpy as np
+        "Get the energies from the different flavours given by the dict"
+        evs=[[],[]]
+        ef=None
+        for ev in evals:
+            occ=self.get_ev(ev,['e_occ','e_occupied'])
+            if occ: ef=max(occ)
+            vrt=self.get_ev(ev,['e_vrt','e_virt'])
+            eigen=False
+            if occ: eigen=occ
+            if vrt: eigen=vrt
+            if not eigen: eigen=self.get_ev(ev)
+            if not occ and not vrt and eigen: ef=max(eigen)
+            if not eigen: continue
+            for i,e in enumerate(eigen):
+                if e: evs[i].append(e)
+        for i,energs in enumerate(evs):
+            if len(energs)==0: continue
+            self.append(np.array(energs),label=label,units='AU',norm=1.0-2.0*i)
+        if ef: self.fermi_level(ef,units='AU')
+    def get_ev(self,ev,keys=None):
+        "Get the correct list of the energies for this eigenvalue"
+        res=False
+        if keys is None:
+            ener=ev.get('e')
+            spin=ev.get('s')
+            if ener and spin==1:
+                res=[ener]
+            elif ener and spin==-1:
+                res=[None,ener]
+        else:
+            for k in keys:
+                if k in ev:
+                    res=ev[k]
+                    if type(res) != type([]): res=[res]
+                    break
+        return res
+
     def append(self,energies,label=None,units='eV',norm=1.0):
         self.ens.append(self.conversion_factor(units)*energies)
         if label is not None:
@@ -30,9 +71,11 @@ class DoS():
     def range(self,npts=None):
         import numpy as np
         if npts is None: npts=self.npts
+        e_min=1.e100
+        e_max=-1.e100
         for dos in self.ens:
-            e_min = np.min(dos) - 0.05*(np.max(dos) - np.min(dos))
-            e_max = np.max(dos) + 0.05*(np.max(dos) - np.min(dos))
+            e_min = min(e_min,np.min(dos) - 0.05*(np.max(dos) - np.min(dos)))
+            e_max = max(e_max,np.max(dos) + 0.05*(np.max(dos) - np.min(dos)))
         return np.arange( e_min, e_max, (e_max-e_min)/npts )
     def curve(self,dos,norm,sigma=None):
         import numpy as np
