@@ -167,8 +167,8 @@
          astruct%cell_dim(2)=alat2d0
          astruct%cell_dim(3)=alat3d0
       else
-         call f_err_throw('Length units in input file unrecognized.' // &
-              'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         call f_err_throw('Length units in input file unrecognized (found "'//astruct%units// &
+              '"). Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
          return
          !write(*,*) 'length units in input file unrecognized'
          !write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -549,12 +549,11 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            if (istart == 1) istart = index(line, "#") + 1
            do
               istop = index(line(istart:), ";") + istart - 2
-              if (istop == istart - 2) exit
+              if (istop == istart - 2 .or. count / 3 + 1 > astruct%nat) exit
               read(line(istart:istop), *) fxyz(modulo(count, 3) + 1, count / 3 + 1)
               count = count + 1
               istart = istop + 2
            end do
-           if (count > astruct%nat * 3) exit
         end if
      end do
   end if

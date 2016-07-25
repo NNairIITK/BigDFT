@@ -81,7 +81,14 @@
     PROFILE_FROM: cavity
   cavitation: 
     COMMENT: Triggers the evaluation of the extra cavitation terms
-    default: No
+    default: Yes
+  fact_rigid: 
+    COMMENT: Multiplying factor for the whole rigid cavity
+    default: 1.12
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN: [rigid]
+    PROFILE_FROM: cavity
   gammaS: 
     COMMENT: Cavitation term, surface tension of the solvent [dyn/cm]
     default: water
@@ -139,7 +146,7 @@
     default: 50
   minres: 
     COMMENT: Convergence threshold of the loop
-    default: 1.e-6
+    default: 1.e-8
   pb_method:
     COMMENT: Defines the method for the Poisson Boltzmann Equation
     default: none
@@ -200,6 +207,12 @@
     default: none
   keep_gpu_memory: 
     COMMENT: Do not deallocate GPU memory at each call of the (G)PS routine
+    default: Yes
+    CONDITION: 
+      MASTER_KEY: accel
+      WHEN: CUDA
+  use_gpu_direct: 
+    COMMENT: Force (or not) the usage of GPUdirect communication, if available
     default: Yes
     CONDITION: 
       MASTER_KEY: accel

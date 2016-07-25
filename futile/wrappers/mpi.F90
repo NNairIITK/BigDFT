@@ -31,7 +31,7 @@ module wrapper_MPI
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-  include 'mpif.h'      !< MPI definitions and datatypes for density and wavefunctions
+  include 'mpif.h'      !< MPI definitions and datatypes
 
   logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
@@ -57,6 +57,7 @@ module wrapper_MPI
   interface mpitype
      module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l,mpitype_c,mpitype_li
      module procedure mpitype_i1,mpitype_i2,mpitype_i3
+     module procedure mpitype_l3
      module procedure mpitype_r1,mpitype_r2,mpitype_r3,mpitype_r4
      module procedure mpitype_d1,mpitype_d2,mpitype_d3,mpitype_d4,mpitype_d5
      module procedure mpitype_c1
@@ -78,6 +79,7 @@ module wrapper_MPI
      module procedure mpiallred_r1,mpiallred_r2,mpiallred_r3,mpiallred_r4
      module procedure mpiallred_d1,mpiallred_d2,mpiallred_d3,mpiallred_d4,mpiallred_d5
      module procedure mpiallred_i1,mpiallred_i2,mpiallred_i3
+     module procedure mpiallred_l3
   end interface mpiallred
 
   interface mpigather
@@ -90,7 +92,7 @@ module wrapper_MPI
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0,mpibcast_c0
-     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1,mpibcast_i2
   end interface mpibcast
 
   interface mpiscatter
@@ -706,13 +708,27 @@ contains
     implicit none
     character(len=MPI_MAX_PROCESSOR_NAME) :: mpihostname
     !local variables
-    integer :: ierr,namelen
+    integer :: ierr,namelen,ipos,i
 
     call MPI_GET_PROCESSOR_NAME(mpihostname,namelen,ierr)
     if (ierr /= MPI_SUCCESS) then
        call f_err_throw('An error in calling to MPI_GET_PROCESSOR_NAME occured',&
             err_id=ERR_MPI_WRAPPERS)
     end if
+
+    !clean the hostname such as to include only the last word
+    !this solves a problem in ibm machines
+    ipos=index(mpihostname,' ',back=.true.)
+    if (ipos > 0) then
+       do i=1,len(mpihostname)
+          if (i+ipos+1 <= len(mpihostname)) then
+             mpihostname(i:i)=mpihostname(i+ipos+1:i+ipos+1)
+          else
+             mpihostname(i:i)=' '
+          end if
+       end do
+    end if
+
   end function mpihostname
 
   !>initialization of the mpi library
@@ -835,6 +851,12 @@ contains
     mt=MPI_INTEGER
   end function mpitype_i3
 
+  pure function mpitype_l3(data) result(mt)
+    implicit none
+    logical, dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_LOGICAL
+  end function mpitype_l3
 
   pure function mpitype_li(data) result(mt)
     implicit none
@@ -1011,10 +1033,10 @@ contains
   end function mpisize
 
   !> Give the number of MPI processes per node (nproc_node) and before iproc (iproc_node)
-  subroutine mpinoderanks(mpi_env,iproc_node,nproc_node)
+  subroutine mpinoderanks(iproc,nproc,mpi_comm,iproc_node,nproc_node)
     use dynamic_memory
     implicit none
-    type(mpi_environment), intent(in) :: mpi_env
+    integer, intent(in) :: iproc,nproc,mpi_comm
     integer, intent(out) :: iproc_node, nproc_node
     !local variables
     character(len=*), parameter :: subname='processor_id_per_node'
@@ -1024,23 +1046,18 @@ contains
 
     call f_routine(id=subname)
 
-    if (mpi_env%nproc == 1) then
+    if (nproc == 1) then
        iproc_node=0
        nproc_node=1
     else
-       nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. mpi_env%nproc-1,id='nodename')
-
-!!$       !initalise nodenames
-!!$       do jproc=0,nproc-1
-!!$          nodename(jproc)=repeat(' ',MPI_MAX_PROCESSOR_NAME)
-!!$       end do
+       nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. nproc-1,id='nodename')
 
        nodename_local=mpihostname()
 
        !gather the result between all the processes
        call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
             nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-            mpi_env%mpi_comm,ierr)
+            mpi_comm,ierr)
        if (ierr /=0) call f_err_throw('An error in calling to MPI_ALLGATHER occured',&
             err_id=ERR_MPI_WRAPPERS)
 
@@ -1048,14 +1065,14 @@ contains
        !found the processors which belong to the same node
        !before the processor iproc
        iproc_node=0
-       do jproc=0,mpi_env%iproc-1
-          if (trim(nodename(jproc)) == trim(nodename(mpi_env%iproc))) then
+       do jproc=0,iproc-1
+          if (trim(nodename(jproc)) == trim(nodename(iproc))) then
              iproc_node=iproc_node+1
           end if
        end do
        nproc_node=iproc_node
-       do jproc=mpi_env%iproc,mpi_env%nproc-1
-          if (trim(nodename(jproc)) == trim(nodename(mpi_env%iproc))) then
+       do jproc=iproc,nproc-1
+          if (trim(nodename(jproc)) == trim(nodename(iproc))) then
              nproc_node=nproc_node+1
           end if
        end do
@@ -1065,6 +1082,36 @@ contains
     call f_release_routine()
   END SUBROUTINE mpinoderanks
 
+
+  subroutine mpihostnames_list(comm,dict)
+    use dictionaries
+    use dynamic_memory
+    implicit none
+    integer, intent(in) :: comm
+    type(dictionary), pointer :: dict
+    !local variables
+    integer :: nproc,ierr
+    character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+    character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+
+    nproc=mpisize(comm)
+
+    nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0 .to. nproc-1,id='nodename')
+
+    nodename_local=mpihostname()
+
+    !gather the result between all the processes
+    call MPI_ALLGATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+         nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+         comm,ierr)
+    if (ierr /=0) call f_err_throw('An error in calling to MPI_ALLGATHER occured',&
+         err_id=ERR_MPI_WRAPPERS)
+    
+    dict=>list_new(.item. nodename)
+
+    call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+
+  end subroutine mpihostnames_list
 
   !> returns true if the mpi has been initialized
   function mpiinitialized()
@@ -1479,6 +1526,17 @@ contains
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_i3
 
+  subroutine mpiallred_l3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_strings, only: yaml_toa
+    implicit none
+    logical, dimension(:,:,:), intent(inout) :: sendbuf
+    logical, dimension(:,:,:), intent(inout), optional :: recvbuf
+    logical, dimension(:,:,:), allocatable :: copybuf
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_l3
+
 
   subroutine mpiallred_r1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
@@ -1674,6 +1732,19 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i1
+
+  subroutine mpibcast_i2(buffer,root,comm,check,maxdiff)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    use f_utils, only: f_zero
+    implicit none
+    integer, dimension(:,:), intent(inout) ::  buffer
+    integer, intent(out), optional :: maxdiff
+    integer, dimension(:), allocatable :: array_diff
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i2
 
   subroutine mpibcast_d1(buffer,root,comm,check,maxdiff)
     use dynamic_memory
@@ -2547,13 +2618,17 @@ contains
     tcat=TCAT_SEND
     ! Synchronize the communication
     call f_timer_interrupt(tcat)
-
-    if(present(offset) .and. offset/=0)then
-      tmpint = TRANSFER(buf, tmpint)
-      call mpi_type_size(type, tmpsize, ierr)
-      tmpint = tmpint + offset*tmpsize
-      tmpaddr= TRANSFER(tmpint, tmpaddr)
-      call c_f_pointer(tmpaddr, a)
+    
+    !LG: this cannot be written like that (segfault on some compilers, see fortran spec)
+    !if(present(offset) .and. offset/=0)then
+    if (present(offset)) then
+       if (offset /=0) then
+          tmpint = TRANSFER(buf, tmpint)
+          call mpi_type_size(type, tmpsize, ierr)
+          tmpint = tmpint + offset*tmpsize
+          tmpaddr= TRANSFER(tmpint, tmpaddr)
+          call c_f_pointer(tmpaddr, a)
+       end if
     else
       call c_f_pointer(buf, a)
     end if
@@ -2700,18 +2775,25 @@ contains
 
   end subroutine mpirecv_gpu
 
-  subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses)
+  subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses,simulate)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Local variables
     integer, intent(in) :: ncount
     integer, dimension(ncount),intent(in) :: array_of_requests
+    logical, intent(in), optional :: simulate
     integer, dimension(MPI_STATUS_SIZE,ncount), intent(out), optional :: array_of_statuses
     ! Local variables
+    logical :: sim
     integer :: ierr,tcat
 
     !no wait if no requests
     if (ncount==0) return
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
     tcat=TCAT_WAIT
     ! Synchronize the communication
     call f_timer_interrupt(tcat)

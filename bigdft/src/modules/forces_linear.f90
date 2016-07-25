@@ -56,7 +56,12 @@ module forces_linear
       tens(:)=0.0_dp ; p(:)=0.0_dp
 
       ! calculate total rho(G)
-      rhog=0.0_dp
+      !rhog=0.0_dp
+      call f_zero(rhog)
+      !$omp parallel default(none) &
+      !$omp shared(n1i, n2i, n3i, rhog, rhor) &
+      !$omp private(i1, i2, i3, ind)
+      !$omp do schedule(static)
       do i3=1,n3i
          do i2=1,n2i
             do i1=1,n1i
@@ -66,6 +71,8 @@ module forces_linear
             end do
          end do
       end do
+      !$omp end do
+      !$omp end parallel
 
       ! DO FFT OF DENSITY: Rho(r) -FFT-> Rho(G)
       inzee=1

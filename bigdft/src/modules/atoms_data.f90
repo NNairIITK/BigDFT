@@ -116,6 +116,7 @@ module module_atoms
      logical, dimension(3) :: frz                   !< Array of frozen coordinate of the atom
      real(gp), dimension(3) :: rxyz                 !< Atom positions
      type(atomic_structure), pointer :: astruct_ptr !< Private pointer to the atomic structure from which it derives
+     type(dictionary), pointer :: attrs
   end type atoms_iterator
 
 
@@ -151,6 +152,7 @@ contains
     it%frz=.false.
     it%rxyz=0.0_gp
     nullify(it%astruct_ptr)
+    nullify(it%attrs)
   end subroutine nullify_atoms_iterator
 
 
@@ -189,6 +191,7 @@ contains
     it%frz(2)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),2)
     it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)
     it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
+    it%attrs=>it%astruct_ptr%attributes(it%iat)%d
   end subroutine atoms_refresh_iterator
 
 
@@ -704,9 +707,8 @@ contains
 
       !number of atoms with semicore channels
       atoms%natsc = 0
-!!!!!$omp parallel private(it)
       !iterate above atoms
-      it=atoms_iter(atoms%astruct) !,omp=.true.)
+      it=atoms_iter(atoms%astruct)
       !python method
       do while(atoms_iter_next(it))
 !!$      !fortran method
@@ -1298,67 +1300,71 @@ contains
       atData => dict_iter(dict)
       do while(associated(atData))
          str = dict_key(atData)
-         if (trim(str) == ASTRUCT_ATT_FROZEN) then
+         select case(trim(str))
+         case(ASTRUCT_ATT_FROZEN)
+            !if (trim(str) == ASTRUCT_ATT_FROZEN) then
             str = dict_value(atData)
             if (present(ifrztyp)) call frozen_ftoi(str(1:4), ifrztyp, ierr)
-         else if (trim(str) == ASTRUCT_ATT_IGSPIN) then
+         case(ASTRUCT_ATT_IGSPIN)
             if (present(igspin)) igspin = atData
-         else if (trim(str) == ASTRUCT_ATT_IGCHRG) then
+         case(ASTRUCT_ATT_IGCHRG)
             if (present(igchrg)) igchrg = atData
-         else if (trim(str) == ASTRUCT_ATT_IXYZ_1) then
+         case(ASTRUCT_ATT_IXYZ_1)
             if (present(ixyz)) ixyz(1) = atData
             if (present(ixyz_add)) then
                call f_memcpy(icoord(1), ixyz_add, 3)
                icoord(1) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_IXYZ_2) then
+         case(ASTRUCT_ATT_IXYZ_2)
             if (present(ixyz)) ixyz(2) = atData
             if (present(ixyz_add)) then
                call f_memcpy(icoord(1), ixyz_add, 3)
                icoord(2) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_IXYZ_3) then
+         case(ASTRUCT_ATT_IXYZ_3)
             if (present(ixyz)) ixyz(3) = atData
             if (present(ixyz_add)) then
                call f_memcpy(icoord(1), ixyz_add, 3)
                icoord(3) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_MODE) then
+         case(ASTRUCT_ATT_MODE)
             if (present(mode)) then
                mode = dict_value(atData)
             end if
-         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_1) then
+         case(ASTRUCT_ATT_RXYZ_INT_1)
             if (present(rxyz_int)) rxyz_int(1) = atData
             if (present(rxyz_int_add)) then
                call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
                rcoord_int(1) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_2) then
+         case(ASTRUCT_ATT_RXYZ_INT_2)
             if (present(rxyz_int)) rxyz_int(2) = atData
             if (present(rxyz_int_add)) then
                call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
                rcoord_int(2) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_3) then
+         case(ASTRUCT_ATT_RXYZ_INT_3)
             if (present(rxyz_int)) rxyz_int(3) = atData
             if (present(rxyz_int_add)) then
                call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
                rcoord_int(3) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
-         else if (dict_len(atData) == 3) then
-            if (present(symbol)) symbol = str
-            if (present(rxyz)) rxyz = atData
-            if (present(rxyz_add)) then
-               rcoord = atData
-               call f_memcpy(rxyz_add, rcoord(1), 3)
+         case default
+            if (dict_len(atData) == 3) then
+               if (present(symbol)) symbol = str
+               if (present(rxyz)) rxyz = atData
+               if (present(rxyz_add)) then
+                  rcoord = atData
+                  call f_memcpy(rxyz_add, rcoord(1), 3)
+               end if
             end if
-         end if
+         end select
          atData => dict_next(atData)
       end do
     end subroutine astruct_at_from_dict

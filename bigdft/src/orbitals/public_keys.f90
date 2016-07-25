@@ -14,8 +14,9 @@ module public_keys
   character(len = *), parameter :: MODE_VARIABLES = "mode"
   character(len = *), parameter :: METHOD_KEY = "method"
   character(len = *), parameter :: RUN_NAME_KEY = "name"
-
+  
   character(len = *), parameter :: PY_HOOKS = "py_hooks"
+  character(len = *), parameter :: PLUGINS = "plugins"
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
@@ -134,12 +135,14 @@ module public_keys
   character(len = *), parameter :: RESTART_NOSE="restart_nose"
 
   !mode parameter keywords
+  character(len = *), parameter :: ADD_COULOMB_FORCE_KEY = "add_coulomb_force"
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
   character(len = *), parameter :: SW_EQFACTOR = "sw_eqfactor"
   character(len = *), parameter :: SECTIONS = "sections"
   character(len = *), parameter :: SECTION_BUFFER = "section_buffer"
   character(len = *), parameter :: SECTION_PASSIVATION = "section_passivation"
+  character(len = *), parameter :: NAB_OPTIONS = "nab_options"
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
   character(len = *), parameter :: ISCF = "iscf"
@@ -219,6 +222,8 @@ module public_keys
   character(len = *), parameter :: PLOT_MPPOT_AXES = "plot_mppot_axes"
   character(len = *), parameter :: PLOT_POT_AXES = "plot_pot_axes"
   character(len = *), parameter :: PLOT_LOCREG_GRIDS = "plot_locreg_grids"
+  character(len = *), parameter :: CALCULATE_FOE_EIGENVALUES = "calculate_FOE_eigenvalues"
+  character(len = *), parameter :: PRECISION_FOE_EIGENVALUES = "precision_FOE_eigenvalues"
 
   !keys for linear input variables
   !level keys
@@ -262,6 +267,7 @@ module public_keys
   character(len=*), parameter :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter :: FIX_BASIS       ='fix_basis'
   character(len=*), parameter :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter :: ORTHOGONALIZE_AO = 'orthogonalize_ao'
   character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
   character(len=*), parameter :: EXTRA_STATES="extra_states"
@@ -574,4 +580,7 @@ module public_enums
        & f_enumerator('MULTI_RUN_MODE',-989,null())
   type(f_enumerator), parameter, public :: SW_RUN_MODE                 = &
        & f_enumerator('SW_RUN_MODE',-988,null())
+  type(f_enumerator), parameter, public :: BAZANT_RUN_MODE             = &
+       & f_enumerator('BAZANT_RUN_MODE',-987,null()) 
+
 end module public_enums

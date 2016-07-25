@@ -1,112 +1,80 @@
-subroutine multi_mode_extract(asub, runObj, section, passivation, buf, last)
-  use module_atoms, only: atomic_structure, astruct_at_from_dict
-  use bigdft_run
-  use dictionaries
-  use dynamic_memory
-  implicit none
-  ! Parameters
-  type(atomic_structure), intent(out) :: asub
-  type(run_objects), intent(in) :: runObj
-  character(len = *), intent(in) :: section
-  logical, intent(in) :: passivation, last
-  integer, intent(in) :: buf
-  ! Local variables
-  integer :: iat
-  logical, dimension(:), allocatable :: mask
-  character(len = max_field_length) :: mode
-
-  ! Generate the mask from the MODE atomic attribute.
-  mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
-  do iat = 1, runObj%atoms%astruct%nat
-     call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
-     mask(iat) = (trim(mode) == section) .or. (last .and. len_trim(mode) == 0)
-  end do
-  call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, &
-       & mask, passivation, buf, "yes")
-  call f_free(mask)
-END SUBROUTINE multi_mode_extract
-
 subroutine multi_mode_state(runObj, outs, infocode)
   use module_atoms, only: atomic_structure, deallocate_atomic_structure, astruct_dump_to_file
   use bigdft_run
   use dynamic_memory
-  use public_keys, only: ASTRUCT_ATT_ORIG_ID
   use module_defs, only: gp
   use dictionaries
+  use module_f_objects
   implicit none
   ! Parameters
   type(run_objects), intent(inout) :: runObj
   type(state_properties), intent(inout) :: outs
   integer, intent(inout) :: infocode
   ! Local variables
-  type(state_properties) :: subouts
-  integer :: ln, i, iat, nat
-  integer, dimension(:), allocatable :: map
-  real(gp), dimension(:), allocatable :: coeffs
+  type(state_properties), dimension(:), allocatable :: subouts
+  integer :: ln, i
   type(atomic_structure) :: asub
+  type(signal_ctx) :: sig
 
   ln = size(runObj%sections)
+  allocate(subouts(ln))
   infocode = 0
-  outs%energy = 0.
 
-  ! Run subparts and accumulate forces.
+  ! Run subparts and store forces.
   do i = 1, ln
+     !> @todo Add a signal to enable relabeling here.
+
      ! Need to fully re-extract here.
-     call multi_mode_extract(asub, runObj, trim(runObj%sections(i)%label), &
+     call section_extract(asub, runObj%sections(i)%astruct_map, runObj, trim(runObj%sections(i)%label), &
           & runObj%inputs%multi_pass(i), runObj%inputs%multi_buf(i), (i == ln))
-     !@todo Handle the case where the number of atoms in the section
-     !      vary because of movements.
+     !> @todo Handle the case where the number of atoms in the section
+     !! vary because of movements.
      call bigdft_set_rxyz(runObj%sections(i), rxyz = asub%rxyz)
+
+     call init_state_properties(subouts(i), asub%nat)
      call deallocate_atomic_structure(asub)
-
-     nat = bigdft_nat(runObj%sections(i))
-     call init_state_properties(subouts, nat)
-     call process_run(trim(runObj%sections(i)%label), runObj%sections(i), subouts)
-
-     map = f_malloc0((/ nat /), id = "map")
-     coeffs = f_malloc0((/ nat /), id = "coeffs")
-     do iat = 1, nat
-        if (ASTRUCT_ATT_ORIG_ID .in. runObj%sections(i)%atoms%astruct%attributes(iat)%d) then
-           map(iat) = runObj%sections(i)%atoms%astruct%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID
-           !@todo Simple force mixing model, coefficients are unity.
-           coeffs(iat) = 1._gp
-        end if
-     end do
-
-     ! Mix the outs.
-     call multi_fxyz_axpy(coeffs, subouts, outs, map)
-
-     ! Update the positions that may have been altered by the run.
-     do iat = 1, nat
-        if (map(iat) > 0) then
-           runObj%atoms%astruct%rxyz(:, map(iat)) = runObj%sections(i)%atoms%astruct%rxyz(:, iat)
-        end if
-     end do
-
-     !@todo The global energy is currently the sum of all energy sections. To be improved.
-     outs%energy = outs%energy + subouts%energy
-
-     call f_free(coeffs)
-     call f_free(map)
-
-     call deallocate_state_properties(subouts)
+     call process_run(trim(runObj%sections(i)%label), runObj%sections(i), subouts(i))
   end do
+
+  ! Mix state_properties, either default or by signal.
+  if (f_object_signal_prepare("run_objects", "join", sig)) then
+     call f_object_signal_add_arg(sig, runObj)
+     call f_object_signal_add_arg(sig, outs)
+     call f_object_signal_add_arg(sig, subouts)
+     call f_object_signal_emit(sig)
+  else
+     call union_mix_subouts(runObj, outs, subouts)
+  end if
+
+  do i = 1, ln
+     call deallocate_state_properties(subouts(i))
+  end do
+  deallocate(subouts)
 END SUBROUTINE multi_mode_state
 
-subroutine multi_fxyz_axpy(alpha, outx, outy, map)
+subroutine union_mix_subouts(runObj, outs, subouts)
   use bigdft_run
-  use module_defs, only: gp
+  use f_utils
   implicit none
-  type(state_properties), intent(inout) :: outy
-  type(state_properties), intent(in) :: outx
-  real(gp), dimension(outx%fdim), intent(in) :: alpha
-  integer, dimension(outx%fdim), intent(in) :: map
+  type(run_objects), intent(in) :: runObj
+  type(state_properties), intent(inout) :: outs
+  type(state_properties), dimension(size(runObj%sections)), intent(in) :: subouts
 
-  integer :: idim
+  integer :: i, iat, jat
 
-  do idim = 1, outx%fdim
-     if (map(idim) > 0) then
-        outy%fxyz(:, map(idim)) = alpha(idim) * outx%fxyz(:, idim) + outy%fxyz(:, map(idim))
-     end if
+  outs%energy = 0.
+  call f_zero(outs%fxyz)
+
+  ! Update position, energy and forces.
+  do i = 1, size(runObj%sections)
+     ! Update positions and forces (positions may have been altered by the run).
+     do iat = 1, size(runObj%sections(i)%astruct_map)
+        jat = runObj%sections(i)%astruct_map(iat)
+        if (jat > 0) then
+           runObj%atoms%astruct%rxyz(:, jat) = runObj%sections(i)%atoms%astruct%rxyz(:, iat)
+           outs%fxyz(:, jat) = outs%fxyz(:, jat) + subouts(i)%fxyz(:, iat)
+        end if
+     end do
+     outs%energy = outs%energy + subouts(i)%energy
   end do
-END SUBROUTINE multi_fxyz_axpy
+end subroutine union_mix_subouts

@@ -27,8 +27,8 @@
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.5
- Timestamp of this run                 : 2016-04-05 16:38:08.684
+ Version Number                        : 1.8
+ Timestamp of this run                 : 2016-06-01 11:08:14.010
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -37,13 +37,23 @@
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fopenmp -m64' '--with-ext-linalg='"
+     " '--prefix' '/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install' 
+     'FC=/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort' 'CC=gcc' 'FCFLAGS=-O2 
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64' 
+     '--with-ext-linalg=' 
+     'LDFLAGS=-L/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib ' 
+     'C_INCLUDE_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/incl
+     ude' 
+     'PKG_CONFIG_PATH=/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/lib
+     /pkgconfig:/home/stephan/Documents/BigDFT/stablebranch/Build-gnu_debug/install/share/pkg
+     config:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig'"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4_gnu/bin/mpifort, 
                              g++]
    Compiler flags:
      CFLAGS                            : -g -O2
-     FCFLAGS                           : -O2 -Wno-error -fopenmp -m64
+     FCFLAGS:
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : read2
@@ -84,6 +94,9 @@
     #                                              point. Negative values mean no plot.
    plot_pot_axes: [-1, -1, -1] #                  Plot the potential along axes through this point. Negative values mean 
     #                                              no plot.
+   occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
+   itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
+    #                                              itermax
  perf:
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    mixing_after_inputguess             : 2 #      Mixing step after linear input guess
@@ -173,13 +186,17 @@
    calc_dipole                         : No #     calculate dipole
    calc_quadrupole                     : No #     calculate quadrupole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
    plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
+   precision_FOE_eigenvalues           : 5.e-3 #  decay length of the error function used to extract the eigenvalues (i.e. something like 
+    #                                              the resolution)
  lin_basis:
    nit: [2, 1] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
@@ -278,6 +295,7 @@
    forcemax                            : 0. #     Max forces criterion when stop
    randdis                             : 0. #     Random displacement amplitude
    betax                               : 4. #     Stepsize for the geometry optimization
+   beta_stretchx                       : 5e-1 #   Stepsize for steepest descent in stretching mode direction (only if in biomode)
  md:
    mdsteps                             : 0 #      Number of MD steps
    print_frequency                     : 1 #      Printing frequency for energy.dat and Trajectory.xyz files
@@ -286,6 +304,9 @@
    no_translation                      : No #     Logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
    wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
+   restart_nose                        : No #     Restart Nose Hoover Chain information from md.restart
+   restart_pos                         : No #     Restart nuclear position information from md.restart
+   restart_vel                         : No #     Restart nuclear velocities information from md.restart
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
@@ -300,6 +321,8 @@
    sic_alpha                           : 0. #     SIC downscaling parameter
  tddft:
    tddft_approach                      : none #   Time-Dependent DFT method
+   decompose_perturbation              : none #   Indicate the directory of the perturbation to be decomposed in the basis of empty 
+    #                                              states
  mode:
    method                              : dft #    Run method of BigDFT call
  psppar.Si:
@@ -518,30 +541,12 @@
    Minimum                             :  0
    Maximum                             :  1
    Average                             :  0.9
- Wavefunctions memory occupation for root MPI process:  0 MB 363 KB 288 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  5
    Total number of components          :  129990
    Percent of zero components          :  22
    Size of workspaces                  :  104072
-  #WARNING: Do not call check_communications in the linear scaling version!
-  #-------------------------------------------------------- Estimation of Memory Consumption
- Memory requirements for principal quantities (MiB.KiB):
-   Subspace Matrix                     : 0.1 #    (Number of Orbitals: 4)
-   Single orbital                      : 0.364 #  (Number of Components: 46500)
-   All (distributed) orbitals          : 1.66 #   (Number of Orbitals per MPI task: 1)
-   Wavefunction storage size           : 5.330 #  (DIIS/SD workspaces included)
-   Nonlocal Pseudopotential Arrays     : 0.1016
-   Full Uncompressed (ISF) grid        : 11.209
-   Workspaces storage size             : 0.940
- Accumulated memory requirements during principal run stages (MiB.KiB):
-   Kernel calculation                  : 33.981
-   Density Construction                : 41.979
-   Poisson Solver                      : 27.898
-   Hamiltonian application             : 42.810
-   Orbitals Orthonormalization         : 42.810
- Estimated Memory Peak (MB)            :  42
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
    Total number of projectors          :  5
@@ -550,68 +555,76 @@
    Size of workspaces                  :  104072
    Maximum size of masking arrays for a projector:  2868
    Cumulative size of masking arrays   :  2868
- total elements                        :  49
- non-zero elements                     :  49
-  #segments:  7
- sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
- total elements                        :  49
- non-zero elements                     :  49
-  #segments:  7
- sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
- check of kernel cutoff radius:
+  #------------------------------------------------------------ Sparse matrix initialization
+ Check of kernel cutoff radius:
  -  {atom type: H, adjustment required:  Yes, new value:  10.60}
  -  {atom type: Si, adjustment required:  Yes, new value:  10.60}
- total elements                        :  49
- non-zero elements                     :  49
-  #segments:  7
- sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
- Checking Compression/Uncompression of small sparse matrices:
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
- sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
- sparse matmul load balancing naive / optimized:  [  1.14,  1.14 ]
- Checking Compression/Uncompression of large sparse matrices:
-   Tolerances for this check           :  1.00000001335143196E-10
-   Maxdiff for compress                :  0.00000000000000000E+00
-   Maxdiff for uncompress              :  0.00000000000000000E+00
- Checking operations for potential communication:
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  0.000000000000000000E+00
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  0.000000000000000000E+00
- Checking operations for sumrho:
-   Tolerance for the following test    :  9.999999999999999988E-15
-   transposition check, mean error     :  0.000000000000000000E+00
-   transposition check, max error      :  0.000000000000000000E+00
- Checking Communications of Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  7994,  174 ]
-   Tolerances for this check: [ 2.55270003408220036E-06,  1.55431223447521916E-15]
-   Maxdiff for transpose (checksum)    :  8.73114913702011108E-11
-   Maxdiff for untranspose             :  0.00000000000000000E+00
- Checking Communications of Enlarged Minimal Basis:
-   Number of coarse and fine DoF (MasterMPI task):  [  4836,  174 ]
-   Tolerances for this check: [ 4.36760005831371423E-06,  1.55431223447521916E-15]
-   Maxdiff for transpose (checksum)    :  5.82076609134674072E-11
-   Maxdiff for untranspose             :  0.00000000000000000E+00
+ Matrices:
+   Overlap matrix:
+     total elements                    :  49
+     segments                          :  7
+     non-zero elements                 :  49
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  49 ], 
+      start / end disjoint:  [  1,  49 ]}
+   Hamiltonian matrix:
+     total elements                    :  49
+     segments                          :  7
+     non-zero elements                 :  49
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  49 ], 
+      start / end disjoint:  [  1,  49 ]}
+   Density kernel matrix:
+     total elements                    :  49
+     segments                          :  7
+     non-zero elements                 :  49
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  Yes
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  8, start / end:  [  1,  49 ], 
+      start / end disjoint:  [  1,  49 ]}
+  #--------------------------------------------------------------------------- Unitary tests
+ Results of unitary tests:
+   Checking Compression/Uncompression of small sparse matrices:
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+   Checking Compression/Uncompression of large sparse matrices:
+     Tolerances for this check         :  1.00000001335143196E-10
+     Maxdiff for compress              :  0.00000000000000000E+00
+     Maxdiff for uncompress            :  0.00000000000000000E+00
+   Checking operations for potential communication:
+     Tolerance for the following test  :  9.999999999999999799E-13
+     calculation check, error sum      :  0.000000000000000000E+00
+     Tolerance for the following test  :  1.000000000000000036E-10
+     calculation check, error max      :  0.000000000000000000E+00
+   Checking operations for sumrho:
+     Tolerance for the following test  :  9.999999999999999988E-15
+     transposition check, mean error   :  0.000000000000000000E+00
+     transposition check, max error    :  0.000000000000000000E+00
+   Checking Communications of Minimal Basis:
+     Number of coarse and fine DoF (MasterMPI task):  [  7994,  174 ]
+     Tolerances for this check: [ 2.55140003406484350E-06,  1.55431223447521916E-15]
+     Maxdiff for transpose (checksum)  :  7.27595761418342590E-11
+     Maxdiff for untranspose           :  0.00000000000000000E+00
+   Checking Communications of Enlarged Minimal Basis:
+     Number of coarse and fine DoF (MasterMPI task):  [  4836,  174 ]
+     Tolerances for this check: [ 4.36950005833908195E-06,  1.55431223447521916E-15]
+     Maxdiff for transpose (checksum)  :  5.82076609134674072E-11
+     Maxdiff for untranspose           :  0.00000000000000000E+00
  Ion-Ion interaction energy            :  4.93139716176247E+00
   #---------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -6.999998825439
@@ -634,7 +647,7 @@
      Molecule was rotated              :  7
      Wrapping/unwrapping               :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.776E+00,  1.784E+00 ]}
+   -  {Process:  0, Timing:  [  2.392E+00,  2.400E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  3.01E-05
    Mean deviation from unity in reorthonormalize_coeff:  1.20E-05
    calculate S^x:
@@ -648,7 +661,7 @@
    TMB eigenvalues: [
   {index:  1, value: -4.367943097453E-01}, 
   {index:  2, value: -2.666429374926E-01}, 
-  {index:  3, value: -2.664721933568E-01}, 
+  {index:  3, value: -2.664721933569E-01}, 
   {index:  4, value: -9.197391135904E-02},  #  <-- last occupied orbital
   {index:  5, value:  1.830584042083E-01},  #  <-- first virtual orbital
   {index:  6, value:  1.964943334661E-01}, 
@@ -658,10 +671,10 @@
    Orbitals: [
  {e: -4.367943097453E-01, f:  2.0000},  # 00001
  {e: -2.666429374926E-01, f:  2.0000},  # 00002
- {e: -2.664721933568E-01, f:  2.0000},  # 00003
+ {e: -2.664721933569E-01, f:  2.0000},  # 00003
  {e: -9.197391135904E-02, f:  1.0000}] # 00004
-   Max deviation from unity in reorthonormalize_coeff:  4.44E-16
-   Mean deviation from unity in reorthonormalize_coeff:  2.51E-16
+   Max deviation from unity in reorthonormalize_coeff:  8.88E-16
+   Mean deviation from unity in reorthonormalize_coeff:  3.37E-16
    calculate S^x:
      mode                              : dense
      powers:
@@ -699,35 +712,36 @@
    Kernel update:
      Hamiltonian application required  :  Yes
      calculate overlap matrix          :  Yes
-     max dev from unity                :  1.82E-05
-     mean dev from unity               :  8.64E-06
      method                            : directmin
      expansion coefficients optimization: &it_coeff001_000_000
      -  { #-------------------------------------------------------------------- it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  8.97E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.93E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  4.34E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.57E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
  iter:  1, fnrm:  2.25E-02, eBS:  0.00000000000000000E+00, D: -1.995E+00, 
           alpha:  1.000E-01}
+     Asymmetry of the matrices:
+       Overlap                         :  0.00E+00
+       Hamiltonian                     :  1.94E-13
+       Kernel (possibly symmetrized)   :  0.00E+00
      Kohn-Sham residue                 :  1.261E-01
      Coefficients available            :  Yes
     #========================================================= support function optimization
  - support function optimization: &it_supfun001
    -  { #-------------------------------------------------------------------------- iter: 1
- target function: ENERGY, Hamiltonian Applied:  Yes, 
- Energies: {Ekin:  5.03304302118E+00, Epot: -6.66812901490E+00, Enl:  1.19304380986E+00}, 
- Orthoconstraint:  Yes,    Preconditioning:  Yes, 
- iter:  1, fnrm:  1.63E-01, Omega: -5.488899543406823E+00, D: -5.49E+00, D best: -5.49E+00, 
- exit criterion: net number of iterations}
+ Hamiltonian Applied:  Yes, 
+ Components: {Ekin:  5.03304302118E+00, Epot: -6.66812901490E+00, Enl:  1.19304380986E+00}, 
+   Orthoconstraint:  Yes,    Preconditioning:  Yes, 
+ iter:  1, fnrm:  1.63E-01, Omega: {ENERGY: -5.488899543406786E+00}, D: -5.49E+00, 
+                                    D best: -5.49E+00, 
+                            exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
- target function: ENERGY, 
- Energies: {Ekin:  5.03304302118E+00, Epot: -6.66812901490E+00, Enl:  1.19304380986E+00}, 
- iter:  1, fnrm:  1.63E-01, Omega: -5.488899543406823E+00, D: -5.49E+00, D best: -5.49E+00}
-      #Support functions created
+ Components: {Ekin:  5.03304302118E+00, Epot: -6.66812901490E+00, Enl:  1.19304380986E+00}, 
+ nit:  1, fnrm:  1.63E-01, Omega: {ENERGY: -5.488899543406786E+00}, D total:  0.00E+00}
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.89E-04,  1.44E-03 ], warnings:  0}
      -  {type: Si, mean / max value:  [  2.91E-04,  4.98E-04 ], warnings:  0}
@@ -738,43 +752,45 @@
      Kernel update:
        Hamiltonian application required:  No
        calculate overlap matrix        :  Yes
-       max dev from unity              :  1.82E-05
-       mean dev from unity             :  8.64E-06
        method                          : directmin
        expansion coefficients optimization: &it_coeff001_000_001
        -  { #------------------------------------------------------------------ it coeff: 1
  communication strategy kernel: ALLREDUCE, 
  calculate S^x: {mode: dense, powers: {x: -1}, order:  0, 
- max / mean error:  [  4.44E-16,  8.97E-17 ]}, 
+ max / mean error:  [  4.44E-16,  7.93E-17 ]}, 
  Max deviation from unity in reorthonormalize_coeff:  1.42E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  5.13E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  0}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.03E-02, eBS: -1.99530921374890413E+00, D: -2.978E-04, 
+ iter:  1, fnrm:  2.03E-02, eBS: -1.99530921374856929E+00, D: -2.978E-04, 
           alpha:  2.000E-01}
+       Asymmetry of the matrices:
+         Overlap                       :  0.00E+00
+         Hamiltonian                   :  1.94E-13
+         Kernel (possibly symmetrized) :  0.00E+00
        Coefficients available          :  Yes
-     Hamiltonian update: {
+     SCF status: {
  Energies: {Ekin:  5.03304302118E+00, Epot: -6.66812901490E+00, Enl:  1.19304380986E+00, 
               EH:  9.09373446802E+00,  EXC: -2.19176623163E+00, EvXC: -2.86051320823E+00}, 
     Total charge:  6.999999955780E+00, 
  Poisson Solver: {BC: Free, Box:  [  115,  113,  113 ], MPI tasks:  8}}
-     summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.63E-11, 
- iter:  1, delta:  3.20E-08, energy: -5.48919732537341876E+00, D: -5.489E+00}]
+     summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.63E-11, 
+ iter:  1, delta:  3.20E-08, energy: -5.48919732537339300E+00, D: -5.489E+00}
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
- summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.63E-11, 
- iter:  2, delta:  3.20E-08, energy: -5.48919732537341876E+00, D: -5.489E+00}]}
+ summary: {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.63E-11, 
+ iter:  2, delta:  3.20E-08, energy: -5.48919732537339300E+00, D: -5.489E+00}}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.204E-08, energy: -5.48919732537341876E+00, D: -5.489E+00}
+ iter high:  1, delta out:  3.204E-08, energy: -5.48919732537339300E+00, D: -5.489E+00}
     #========================================================================= final results
    self consistency summary:
    -  {iter:  1, 
  Energies: {Ekin:  5.03304302118E+00, Epot: -6.66812901490E+00, Enl:  1.19304380986E+00, 
               EH:  9.08287504618E+00,  EXC: -2.19201313758E+00, EvXC: -2.86084686312E+00}, 
        iter high:  1,            delta out:  3.204E-08, 
-          energy: -5.48919732537341876E+00,                       D:  0.000E+00,  #FINAL
+          energy: -5.48919732537339300E+00,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  6.999999955780E+00
  Max deviation from unity in reorthonormalize_coeff:  3.01E-05
@@ -789,12 +805,12 @@
              frag eval: -2.66472193E-01, overlap:  1.000030E+00, occ:  2.00, 
  state: HOMO, energy: -7.32774751E-02, orthog energy: -7.32770768E-02, 
            frag eval: -9.19739114E-02, overlap:  1.000005E+00, occ:  1.00, 
- 2*frag sum: -1.99513316927664, 2*frag sum orthog: -1.995116618135633, 
- 2*eval sum: -2.031792792548356}, 
+ 2*frag sum: -1.995133169277606, 2*frag sum orthog: -1.99511661813529, 
+ 2*eval sum: -2.031792792548394}, 
  ]
- 2.0_gp*frag_sum_tot                   : -1.99513316927664
- 2.0_gp*frag_sum_tot_orthog            : -1.995116618135633
- 2.0_gp*eval_sum_tot                   : -2.031792792548356
+ 2.0_gp*frag_sum_tot                   : -1.995133169277606
+ 2.0_gp*frag_sum_tot_orthog            : -1.99511661813529
+ 2.0_gp*eval_sum_tot                   : -2.031792792548394
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -805,35 +821,34 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Odd number of electrons, no closed shell system
- - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  3.30
-   Elapsed time (s)                    :  3.31
+   CPU time (s)                        :  4.37
+   Elapsed time (s)                    :  4.38
  BigDFT infocode                       :  0
  Average noise forces: {x:  4.62273901E-03, y: -3.28217368E-03, z:  4.53898836E-03, 
                     total:  7.26256122E-03}
- Clean forces norm (Ha/Bohr): {maxval:  3.943075312888E-02, fnrm2:  4.758989407805E-03}
- Raw forces norm (Ha/Bohr): {maxval:  3.973912423588E-02, fnrm2:  4.812250253402E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  3.943075312881E-02, fnrm2:  4.758989407793E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  3.973912423585E-02, fnrm2:  4.812250253388E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-8.537581003203E-03,  5.184823806021E-03, -1.006877459290E-02]} # 0001
- -  {H: [-3.766242478544E-03,  2.911417453290E-02,  2.632421985875E-02]} # 0002
- -  {H: [-1.971664421064E-02, -3.261063025100E-02,  5.846758639643E-03]} # 0003
- -  {H: [ 3.202046769239E-02, -1.688368087925E-03, -2.210220390549E-02]} # 0004
- Energy (Hartree)                      : -5.48919732537341876E+00
- Force Norm (Hartree/Bohr)             :  6.89854289528261250E-02
+ -  {Si: [-8.537581003217E-03,  5.184823806000E-03, -1.006877459294E-02]} # 0001
+ -  {H: [-3.766242478527E-03,  2.911417453283E-02,  2.632421985872E-02]} # 0002
+ -  {H: [-1.971664421063E-02, -3.261063025093E-02,  5.846758639671E-03]} # 0003
+ -  {H: [ 3.202046769237E-02, -1.688368087897E-03, -2.210220390545E-02]} # 0004
+ Energy (Hartree)                      : -5.48919732537339300E+00
+ Force Norm (Hartree/Bohr)             :  6.89854289527330328E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  2595
-   Tot. No. of Deallocations           :  2595
+   Tot. No. of Allocations             :  2568
+   Tot. No. of Deallocations           :  2568
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  102.875
+     Peak Value (MB)                   :  98.145
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 133.292 MB
- Walltime since initialization         : 00:00:03.681494262
- Max No. of dictionaries used          :  4993 #( 1002 still in use)
+     Memory Peak of process            : 131.672 MB
+ Walltime since initialization         : 00:00:04.761511074
+ Max No. of dictionaries used          :  5450 #( 1015 still in use)
  Number of dictionary folders allocated:  1

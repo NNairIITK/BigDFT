@@ -1,1 +1,0 @@
-SUBDIRS = add_array

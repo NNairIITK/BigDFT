@@ -400,7 +400,9 @@ gboolean test_dict_by_hand()
 
 int main(int argc, char **argv)
 {
+#ifdef GLIB_MAJOR_VERSION
   g_type_init();
+#endif
   
   RUN(test_dict_new());
   RUN(test_dict_add());

@@ -29,6 +29,7 @@ module PStypes
   character(len=*), parameter :: EPSILON_KEY             = 'epsilon' 
   character(len=*), parameter :: EDENSMAXMIN             = 'edensmaxmin' 
   character(len=*), parameter :: DELTA_KEY               = 'delta' 
+  character(len=*), parameter :: FACT_RIGID              = 'fact_rigid' 
   character(len=*), parameter :: CAVITATION              = 'cavitation' 
   character(len=*), parameter :: GAMMAS_KEY              = 'gammaS' 
   character(len=*), parameter :: ALPHAS_KEY              = 'alphaS' 
@@ -47,6 +48,7 @@ module PStypes
   character(len=*), parameter, public :: SETUP_VARIABLES = 'setup'
   character(len=*), parameter :: ACCEL                   = 'accel' 
   character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
+  character(len=*), parameter :: USE_GPU_DIRECT          = 'use_gpu_direct' 
   character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
   character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
   character(len=*), parameter, public :: VERBOSITY               = 'verbose' 
@@ -194,6 +196,7 @@ module PStypes
      type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
      type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
      type(FFT_metadata) :: grid !<dimensions of the FFT grid associated to this kernel
+     logical :: use_gpu_direct 
      integer :: igpu !< control the usage of the GPU
      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
      integer :: initCufftPlan
@@ -358,6 +361,7 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    k%use_gpu_direct=.false.
     k%keepzf=1
     k%nord=0
     k%max_iter=0
@@ -734,6 +738,8 @@ contains
           dummy_d=val
           ! Divided by 4 because both rigid cavities are 4*delta spread 
           k%cavity%delta=0.25_gp*dummy_d
+       case (FACT_RIGID)
+          k%cavity%fact_rigid=val
        case (CAVITATION)
           dummy_l=val
           opt%only_electrostatic=.not. dummy_l
@@ -805,6 +811,8 @@ contains
           else
              k%keepGPUmemory=0
           end if
+       case (USE_GPU_DIRECT)
+          k%use_gpu_direct=val
        case (TASKGROUP_SIZE_KEY)
 
        case (GLOBAL_DATA)

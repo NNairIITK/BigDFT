@@ -75,7 +75,8 @@ module orthonormalization
 
     !> Orthonormalized the localized orbitals
     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
-               orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
+               orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, &
+               ice_obj)
       use module_base
       use module_types
       use communications_base, only: TRANSPOSE_FULL
@@ -87,6 +88,7 @@ module orthonormalization
                                        normalize_transposed
       use matrix_operations, only: overlapPowerGeneral, overlap_power_minus_one_half_parallel, check_taylor_order, &
                                    calculate_S_minus_one_half_onsite
+      use foe_base, only: foe_data
       use yaml_output
       implicit none
     
@@ -103,6 +105,7 @@ module orthonormalization
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
       real(kind=8),dimension(:),pointer :: psit_c, psit_f
       logical,intent(inout) :: can_use_transposed
+      type(foe_data),intent(inout),optional :: ice_obj
     
       ! Local variables
       integer :: it, istat, iall
@@ -159,13 +162,24 @@ module orthonormalization
           call overlap_power_minus_one_half_parallel(iproc, nproc, 0, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
       else
           power(1)=-2
-          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
-               methTransformOverlap, 1, power, &
-               orthpar%blocksize_pdgemm, &
-               imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
-               ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
-               verbosity=0, &
-               check_accur=methTransformOverlap<1000, mean_error=mean_error, max_error=max_error)!!, &
+          if (present(ice_obj)) then
+              call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   methTransformOverlap, 1, power, &
+                   orthpar%blocksize_pdgemm, &
+                   imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+                   verbosity=0, &
+                   check_accur=methTransformOverlap<1000, mean_error=mean_error, max_error=max_error, &
+                   ice_obj=ice_obj)!!, &
+          else
+              call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   methTransformOverlap, 1, power, &
+                   orthpar%blocksize_pdgemm, &
+                   imode=1, ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
+                   verbosity=0, &
+                   check_accur=methTransformOverlap<1000, mean_error=mean_error, max_error=max_error)!!, &
+          end if
           !if (iproc==0) call yaml_map('max error',max_error)
           !if (iproc==0) call yaml_map('mean error',mean_error)
           call check_taylor_order(iproc, mean_error, max_inversion_error, methTransformOverlap)
@@ -542,11 +556,11 @@ module orthonormalization
 
     !> Can still tidy this up more when tmblarge is removed
     !! use sparsity of density kernel for all inverse quantities
-    subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
+    subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, ice_obj, &
                correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
                hpsit_c, hpsit_f, &
                can_use_transposed, overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
-               npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi, wt_hpsinoprecond)
+               npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi)
       use module_base
       use module_types
       use yaml_output
@@ -563,6 +577,7 @@ module orthonormalization
                               matrix_matrix_mult_wrapper, symmetrize_matrix
       use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
       use matrix_operations, only: overlapPowerGeneral, check_taylor_order
+      use foe_base, only: foe_data
       implicit none
     
       ! Calling arguments
@@ -572,6 +587,7 @@ module orthonormalization
       type(orbitals_Data),intent(inout) :: orbs !temporary inout
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
+      type(foe_data),intent(inout) :: ice_obj
       integer,intent(in) :: correction_orthoconstraint
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
@@ -587,7 +603,7 @@ module orthonormalization
       real(kind=8),intent(in) :: max_inversion_error
       real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
       type(work_transpose),intent(inout) :: wt_philarge
-      type(work_transpose),intent(out) :: wt_hphi, wt_hpsinoprecond
+      type(work_transpose),intent(out) :: wt_hphi
     
       ! Local variables
       real(kind=8) :: max_error, mean_error
@@ -627,7 +643,8 @@ module orthonormalization
                imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
                ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
                verbosity=0, &
-               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error, &
+               ice_obj=ice_obj)
           !!call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
           !!call f_free(tmparr)
           call check_taylor_order(iproc, mean_error, max_inversion_error, norder_taylor)
@@ -715,8 +732,11 @@ module orthonormalization
       ! Start the untranspose process (will be gathered together in
       ! getLocalizedBasis)
       ! Pass hphi_nococontra even if it is not used
+      !!call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
+      !!     TRANSPOSE_POST, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd, wt_hpsinoprecond)
+      ! Use wt_philarge as workarrays
       call untranspose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
-           TRANSPOSE_POST, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd, wt_hpsinoprecond)
+           TRANSPOSE_POST, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra, lzd, wt_philarge)
       !!call large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs, lzd_small, lzd, &
       !!     orbs, hphi_nococontra, hpsi_noprecond)
       ! END @NEW

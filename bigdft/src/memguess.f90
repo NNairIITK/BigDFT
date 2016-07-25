@@ -26,10 +26,10 @@ program memguess
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
    use psp_projectors_base, only: free_DFT_PSP_projectors
-   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, &
-                 read_linear_coefficients
+   use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients
    use sparsematrix_base!, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
                         !        sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL, &
+                        !        sparsematrix_init_errors
                         !        sparsematrix_init_errors
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
@@ -578,16 +578,17 @@ program memguess
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%ndims,nspin)
-      rhocoeff=f_malloc_ptr([dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),nspin],id='rhocoeff')
-      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%ndims, &
-           dpbox%hgrids,nspin2,product(dpbox%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%mesh%ndims,nspin)
+      rhocoeff=f_malloc_ptr([dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),nspin],id='rhocoeff')
+      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%mesh%ndims, &
+           dpbox%mesh%hgrids,nspin2,product(dpbox%mesh%ndims),&
+           nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
       !call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
-      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%ndims,dpbox%hgrids,nspin,rhocoeff,&
+      call dump_field(trim(fileTo),at%astruct%geocode,dpbox%mesh%ndims,dpbox%mesh%hgrids,nspin,rhocoeff,&
                       at%astruct%rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
 
       call f_free_ptr(rhocoeff)
@@ -967,7 +968,7 @@ program memguess
    end if
 
    if (calculate_dos) then
-!!!
+      call f_err_throw('This functionality is now handled by utilities')
 !!!       iproc=mpirank()
 !!!       nproc=mpisize()
 !!!
@@ -1132,35 +1133,36 @@ program memguess
        stop
    end if
 
-   if (solve_eigensystem) then
-!!$       call mpi_initialized(mpi_initd, ierror)
-!!$       if (mpi_initd) then
-!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-!!$       else
-!!$           iproc = 0
-!!$           nproc = 1
-!!$       end if
-      iproc=mpirank()
-      nproc=mpisize()
-
-       ham = f_malloc((/ntmb,ntmb/),id='ham')
-       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
-       eval = f_malloc(ntmb,id='eval')
-       rxyz = f_malloc((/3,nat/),id='rxyz')
-       call f_open_file(iunit01, file=trim(ham_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, rxyz=rxyz)
-       call f_close(iunit01)
-       call f_open_file(iunit01, file=trim(overlap_file), binary=.false.)
-       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
-       call f_close(iunit01)
-       call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
-       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
-       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
-       call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
-            ntmb, ntmb, ntmb, ham, eval)
-       stop
-   end if
+!!   if (solve_eigensystem) then
+!!         call f_err_throw('solve-eigensystem is now handled by utilities')
+!!!!$       call mpi_initialized(mpi_initd, ierror)
+!!!!$       if (mpi_initd) then
+!!!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!!!$       else
+!!!!$           iproc = 0
+!!!!$           nproc = 1
+!!!!$       end if
+!!      iproc=mpirank()
+!!      nproc=mpisize()
+!!
+!!       ham = f_malloc((/ntmb,ntmb/),id='ham')
+!!       overlap = f_malloc((/ntmb,ntmb/),id='overlap')
+!!       eval = f_malloc(ntmb,id='eval')
+!!       rxyz = f_malloc((/3,nat/),id='rxyz')
+!!       call f_open_file(iunit01, file=trim(ham_file), binary=.false.)
+!!       call read_linear_matrix_dense(iunit01, ntmb, nat, ham, rxyz=rxyz)
+!!       call f_close(iunit01)
+!!       call f_open_file(iunit01, file=trim(overlap_file), binary=.false.)
+!!       call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+!!       call f_close(iunit01)
+!!       call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+!!       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
+!!       call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
+!!       call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
+!!            ntmb, ntmb, ntmb, ham, eval)
+!!       stop
+!!   end if
 
    if (analyze_coeffs) then
 !!$       call mpi_initialized(mpi_initd, ierror)

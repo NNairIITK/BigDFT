@@ -438,11 +438,11 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.3772E-01,  3.3855E-01,  3.4970E-01 ]
-   norm(P)                             :  7.252972E-01
+   P vector                            :  [ -5.3774E-01,  3.3854E-01,  3.4969E-01 ]
+   norm(P)                             :  7.252964E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3668E+00,  8.6051E-01,  8.8885E-01 ]
-   norm(P)                             :  1.843521E+00
+   P vector                            :  [ -1.3668E+00,  8.6049E-01,  8.8883E-01 ]
+   norm(P)                             :  1.843519E+00
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.23449123E-03, y:  2.14734654E-03, z:  3.29081909E-03, 
@@ -750,11 +750,11 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.4203E-01,  3.3572E-01,  3.4509E-01 ]
-   norm(P)                             :  7.249755E-01
+   P vector                            :  [ -5.4204E-01,  3.3571E-01,  3.4508E-01 ]
+   norm(P)                             :  7.249749E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3777E+00,  8.5330E-01,  8.7712E-01 ]
-   norm(P)                             :  1.842704E+00
+   P vector                            :  [ -1.3777E+00,  8.5328E-01,  8.7710E-01 ]
+   norm(P)                             :  1.842702E+00
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.47231327E-03, y:  1.59708337E-03, z:  2.86187012E-03, 
@@ -1062,11 +1062,11 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.4638E-01,  3.3286E-01,  3.4042E-01 ]
-   norm(P)                             :  7.247133E-01
+   P vector                            :  [ -5.4639E-01,  3.3285E-01,  3.4041E-01 ]
+   norm(P)                             :  7.247128E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3888E+00,  8.4604E-01,  8.6526E-01 ]
-   norm(P)                             :  1.842037E+00
+   P vector                            :  [ -1.3888E+00,  8.4602E-01,  8.6524E-01 ]
+   norm(P)                             :  1.842036E+00
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.63303390E-03, y:  9.30866617E-04, z:  2.13775372E-03, 
@@ -1374,11 +1374,11 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.5076E-01,  3.2999E-01,  3.3570E-01 ]
-   norm(P)                             :  7.245137E-01
+   P vector                            :  [ -5.5077E-01,  3.2998E-01,  3.3569E-01 ]
+   norm(P)                             :  7.245133E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.3999E+00,  8.3874E-01,  8.5327E-01 ]
-   norm(P)                             :  1.841530E+00
+   P vector                            :  [ -1.3999E+00,  8.3872E-01,  8.5325E-01 ]
+   norm(P)                             :  1.841529E+00
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.68908036E-03, y:  1.73089294E-04, z:  1.17407212E-03, 
@@ -1686,10 +1686,10 @@
    Box                                 :  [  113,  111,  111 ]
    MPI tasks                           :  1
  Electric Dipole Moment (AU):
-   P vector                            :  [ -5.5520E-01,  3.2710E-01,  3.3096E-01 ]
-   norm(P)                             :  7.244190E-01
+   P vector                            :  [ -5.5522E-01,  3.2709E-01,  3.3095E-01 ]
+   norm(P)                             :  7.244188E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [ -1.4112E+00,  8.3141E-01,  8.4122E-01 ]
+   P vector                            :  [ -1.4112E+00,  8.3139E-01,  8.4120E-01 ]
    norm(P)                             :  1.841289E+00
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes

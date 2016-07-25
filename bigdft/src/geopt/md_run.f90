@@ -113,7 +113,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   !Allocate initial velocities 
 
-  CALL init_velocities(natoms,3,ndof,amass,T0ions,vxyz,eke)
+  CALL init_velocities(natoms,3,ndof,amass,T0ions,rxyz,vxyz,eke)
 
   Tions=T0ions
 
@@ -158,6 +158,9 @@ subroutine bomd(run_md,outs,nproc,iproc)
   END IF
   
   maxsteps= run_md%inputs%mdsteps+istep 
+
+  !setting inputpsiid=1 (after the first SCF)
+  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, run_md)
 
   !----------------------------------------------------------------------!
   MD_loop: DO !MD loop starts here
@@ -224,17 +227,17 @@ subroutine bomd(run_md,outs,nproc,iproc)
 end subroutine bomd
 
 !>Initialize velocities for MD using Box-Muller Sampling
-SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
+SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,rxyz,vxyz,eke)
   use numerics, only: pi,au_to_k => Ha_K
   use dynamic_memory, only: f_release_routine,f_routine
+  use random, only: builtin_rand
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
-  REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms)
+  REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms), rxyz(ndim,natoms)
   REAL(KIND=8), INTENT(OUT)::  vxyz(ndim,natoms),eke  
   !
   REAL(KIND=8) :: sigma, dum(2)
   INTEGER      :: iat, k
-  REAL(KIND=4) :: builtin_rand
   INTEGER      :: idum=0
   
   call f_routine(id='init_velocities')
@@ -253,7 +256,8 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
      END DO
   END DO
 
-  CALL remove_lin_momentum(natoms,vxyz)
+  CALL remove_lin_momentum(natoms,amass,vxyz)
+  CALL remove_ang_momentum(natoms,amass,rxyz,vxyz)
 
   CALL rescale_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
@@ -384,21 +388,24 @@ SUBROUTINE write_md_energy(istep,Tions,eke,epe,ete,tcpu)
   call f_close(unt)
 END SUBROUTINE write_md_energy
 
-SUBROUTINE remove_lin_momentum(natoms,vxyz)
+SUBROUTINE remove_lin_momentum(natoms,amass,vxyz)
   IMPLICIT NONE
   INTEGER :: natoms
-  REAL(KIND=8) :: vxyz(3,natoms)
+  REAL(KIND=8) :: amass(natoms), vxyz(3,natoms)
   !
   REAL(KIND=8) :: rlm(natoms)
   INTEGER :: iat
+  REAL(KIND=8) :: totmass
 
   rlm(1:3)=0.d0
+  totmass=0.d0
   DO iat=1,natoms
-     rlm(1)=rlm(1) + vxyz(1,iat)
-     rlm(2)=rlm(2) + vxyz(2,iat)
-     rlm(3)=rlm(3) + vxyz(3,iat)
+     rlm(1)=rlm(1) + vxyz(1,iat)*amass(iat)
+     rlm(2)=rlm(2) + vxyz(2,iat)*amass(iat)
+     rlm(3)=rlm(3) + vxyz(3,iat)*amass(iat)
+     totmass=totmass+amass(iat) 
   END DO
-  rlm(1:3)=rlm(1:3)/real(natoms,kind=8)
+  rlm(1:3)=rlm(1:3)/totmass
   DO iat=1,natoms
      vxyz(1,iat)=vxyz(1,iat) - rlm(1)
      vxyz(2,iat)=vxyz(2,iat) - rlm(2)
@@ -544,4 +551,122 @@ SUBROUTINE restart_md(control,iproc,restart_pos,restart_vel,restart_nose,natoms,
     call f_close(unt)
   end select
 END SUBROUTINE restart_md
+subroutine moment_of_inertia2(nat,amass,rat,teneria,evaleria)
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), dimension(nat), intent(in) :: amass
+  real(gp), dimension(3,nat), intent(in) :: rat
+  real(gp), dimension(3), intent(out) :: evaleria
+  real(gp), dimension(3,3), intent(out) :: teneria
+  !local variables
+  character(len=*), parameter :: subname='moment_of_inertia'
+  integer, parameter::lwork=100
+  integer :: iat,info
+  real(gp) :: tt
+  real(gp), dimension(lwork) :: work
+!  real(gp), dimension(:), allocatable :: amass
+
+  !calculate inertia tensor
+  teneria(1:3,1:3)=0.0_gp
+  do iat=1,nat
+     tt=amass(iat)
+     teneria(1,1)=teneria(1,1)+tt*(rat(2,iat)*rat(2,iat)+rat(3,iat)*rat(3,iat))
+     teneria(2,2)=teneria(2,2)+tt*(rat(1,iat)*rat(1,iat)+rat(3,iat)*rat(3,iat))
+     teneria(3,3)=teneria(3,3)+tt*(rat(1,iat)*rat(1,iat)+rat(2,iat)*rat(2,iat))
+     teneria(1,2)=teneria(1,2)-tt*(rat(1,iat)*rat(2,iat))
+     teneria(1,3)=teneria(1,3)-tt*(rat(1,iat)*rat(3,iat))
+     teneria(2,3)=teneria(2,3)-tt*(rat(2,iat)*rat(3,iat))
+     teneria(2,1)=teneria(1,2)
+     teneria(3,1)=teneria(1,3)
+     teneria(3,2)=teneria(2,3)
+  enddo
+  !diagonalize inertia tensor
+  call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
+
+END SUBROUTINE moment_of_inertia2
+
+
+subroutine remove_ang_momentum(nat,amass,rat0,vel)
+!modified elim_torque_reza subroutine for MD
+  use module_base
+  implicit none
+  integer, intent(in) :: nat
+  real(gp), dimension(nat), intent(in) :: amass
+  real(gp), dimension(3*nat), intent(in) :: rat0
+  real(gp), dimension(3*nat), intent(inout) :: vel
+  !local variables
+  character(len=*), parameter :: subname='remove_ang_momentum'
+  integer :: i,iat
+  real(gp) :: vrotnrm,cmx,cmy,cmz,alpha,totmass
+  !this is an automatic array but it should be allocatable
+  real(gp), dimension(3) :: evaleria
+  real(gp), dimension(3,3) :: teneria
+  real(gp), dimension(3*nat) :: rat
+  real(gp), dimension(3*nat,3) :: vrot
+!  real(gp), dimension(:), allocatable :: amass
+
+!  print *, 'inside remove_ang momentum'
+  !backup the coordinates, as they are shifted to COM
+  rat=rat0
+
+  !compute COM
+  totmass=0.0_gp
+  cmx=0.0_gp
+  cmy=0.0_gp
+  cmz=0.0_gp
+  do i=1,3*nat-2,3
+     iat=(i+2)/3
+     cmx=cmx+amass(iat)*rat(i+0)
+     cmy=cmy+amass(iat)*rat(i+1)
+     cmz=cmz+amass(iat)*rat(i+2)
+     totmass=totmass+amass(iat)
+  enddo
+  cmx=cmx/totmass
+  cmy=cmy/totmass
+  cmz=cmz/totmass
+  do i=1,3*nat-2,3
+     rat(i+0)=rat(i+0)-cmx
+     rat(i+1)=rat(i+1)-cmy
+     rat(i+2)=rat(i+2)-cmz
+  enddo
+
+  !compute moment of intertia tensor and diagonalize it: eigven vectores in
+  !teneria and eigenvalues in evaleria
+  call moment_of_inertia2(nat,amass,rat,teneria,evaleria)
+
+  !compute I_1 x R_I => Vrot_I. Why only first vector considered?
+  do iat=1,nat
+     i=iat*3-2
+     call cross(teneria(1,1),rat(i),vrot(i,1))
+     call cross(teneria(1,2),rat(i),vrot(i,2))
+     call cross(teneria(1,3),rat(i),vrot(i,3))
+  enddo
+  call normalizevector(3*nat,vrot(1,1))
+  call normalizevector(3*nat,vrot(1,2))
+  call normalizevector(3*nat,vrot(1,3))
+
+!  do i=1,3*nat-2,3
+!     rat(i+0)=rat(i+0)+cmx
+!     rat(i+1)=rat(i+1)+cmy
+!     rat(i+2)=rat(i+2)+cmz
+!  enddo
+
+  !GS orthogonallization to find velocity vectors perpendicular to Vrot
+  vrotnrm=nrm2(3*nat,vrot(1,1),1)
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,1)=vrot(1:3*nat,1)/vrotnrm
+  vrotnrm=nrm2(3*nat,vrot(1,2),1)
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
+  vrotnrm=nrm2(3*nat,vrot(1,3),1)
+  if (vrotnrm /= 0.0_gp) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
+
+  do i=1,3
+     alpha=0.0_gp
+     if(abs(evaleria(i)).gt.1.e-10_gp) then
+        alpha=dot_product(vrot(:,i),vel(:))
+        vel(:)=vel(:)-alpha*vrot(:,i)
+     endif
+  enddo
+
+END SUBROUTINE remove_ang_momentum
 

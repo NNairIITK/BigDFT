@@ -554,6 +554,7 @@ END SUBROUTINE input_wf_empty
 subroutine input_wf_random(psi, orbs)
   use module_base, only: wp,f_zero
   use module_types
+  use random, only: builtin_rand
   implicit none
 
   type(orbitals_data), intent(inout) :: orbs
@@ -561,7 +562,7 @@ subroutine input_wf_random(psi, orbs)
 
   integer :: icoeff,jorb,iorb,nvctr
   integer :: idum=0
-  real(kind=4) :: tt,builtin_rand
+  real(kind=4) :: tt
 
   !if (max(orbs%npsidim_comp,orbs%npsidim_orbs)>1) &
   !     call to_zero(max(orbs%npsidim_comp,orbs%npsidim_orbs),psi(1))
@@ -1026,11 +1027,11 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(DFT_local_fields), intent(inout) :: denspot
   type(input_variables),intent(in):: input
   real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
-  real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+  real(8),dimension(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
   type(energy_terms),intent(inout):: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+  type(system_fragment), dimension(:), pointer :: ref_frags
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
@@ -1536,12 +1537,12 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
      call timing(iproc,'constraineddft','OF')
 
-      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
+      call vcopy(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)*input%nspin, &
            denspot%rhov(1), 1, denspot0(1), 1)
       if (input%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
          ! set the initial charge density
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
@@ -1549,7 +1550,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
          ! set the initial potential
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-              denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+              denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
@@ -1716,9 +1717,10 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
   use module_atoms
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
   use dynamic_memory
-  use module_interfaces, only: communicate_density, read_pw_waves, sumrho, write_energies
+  use module_interfaces, only: communicate_density, read_pw_waves, sumrho
   use rhopotential, only: updatePotential
   use f_utils, only: f_zero
+  use io, only: write_energies
   
   implicit none
 
@@ -1800,7 +1802,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use module_base
   use module_interfaces, only: FullHamiltonianApplication, LDiagHam, &
        & communicate_density, free_full_potential, inputguess_gaussian_orbitals, &
-       & sumrho, write_energies
+       & sumrho
+  use io, only: write_energies
   use module_types
   use module_xc, only: XC_NO_HARTREE
   use Poisson_Solver, except_dp => dp, except_gp => gp
@@ -2447,11 +2450,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        type(DFT_local_fields), intent(inout) :: denspot
        type(input_variables),intent(in):: input
        real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
-       real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+       real(8),dimension(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
        type(energy_terms),intent(inout):: energs
        type(DFT_PSP_projectors), intent(inout) :: nlpsp
        type(GPU_pointers), intent(inout) :: GPU
-       type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
+       type(system_fragment), dimension(:), pointer :: ref_frags
        type(cdft_data), intent(inout) :: cdft
      end subroutine input_memory_linear
   end interface
@@ -2705,7 +2708,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
         atoms%npspcode(1) = PSPCODE_HGH
-        call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd)
+        call orbital_basis_associate(ob,orbs=KSwfn%orbs,Lzd=KSwfn%Lzd,id='input_wf')
         call createProjectorsArrays(KSwfn%Lzd%Glr,rxyz,atoms,ob,&
              in%frmult,in%frmult,KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),&
              KSwfn%Lzd%hgrids(3),.false.,nl,.true.)
@@ -2746,7 +2749,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
       KSwfn%lzd%hgrids)
       displ=0.0_gp
       do iat=1,atoms%astruct%nat
-         displ=displ+minimum_distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
+         displ=displ+distance(mesh,rxyz(:,iat),rxyz_old(:,iat))**2
       enddo
       displ=sqrt(displ)
 
@@ -3014,7 +3017,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !! debug
         !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
         !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
-        !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+        !call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
         !if (iproc==0) then
         !   open(30)
         !   do itmb=1,tmb%orbs%norb
@@ -3211,12 +3214,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !*     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
-     call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
+     call vcopy(max(denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
           denspot%rhov(1), 1, denspot0(1), 1)
      if (in%lin%scf_mode/=LINEAR_MIXPOT_SIMPLE) then
         ! set the initial charge density
         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
              pnrm,denspot%dpbox%nscatterarr)
      end if
@@ -3226,7 +3229,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
         ! set the initial potential
         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
-             denspot%rhov,1,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%rhov,1,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
              pnrm,denspot%dpbox%nscatterarr)
      end if
@@ -3271,7 +3274,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%calculate_KS_residue,in%calculate_gap, &
-             energs_work,.false.,in%lin%coeff_factor,&
+             energs_work,.false.,in%lin%coeff_factor,in%tel,in%occopt,&
              in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
              in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 

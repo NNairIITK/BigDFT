@@ -1812,11 +1812,17 @@
    MPI tasks                           :  2
  Electric Dipole Moment (AU):
    P vector                            :  [ -3.5315E+00, -3.5315E+00, -3.5315E+00 ]
-   norm(P)                             :  6.116737E+00
+   norm(P)                             :  6.116754E+00
  Electric Dipole Moment (Debye):
    P vector                            :  [ -8.9762E+00, -8.9762E+00, -8.9762E+00 ]
-   norm(P)                             :  1.554719E+01
-  #-------------------------------------------------------- Mulliken Charge Population Analysis
+   norm(P)                             :  1.554724E+01
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [ 5.8016E-12,  4.0953E+01,  4.0953E+01]
+   -  [ 4.0953E+01,  2.4074E-12,  4.0953E+01]
+   -  [ 4.0953E+01,  4.0953E+01, -9.2164E-12]
+   trace                               : -1.01E-12
+   #-------------------------------------------------------- Mulliken Charge Population Analysis
  Mulliken Charge Population Analysis:
     #Atom No.0001
  - s:

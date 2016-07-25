@@ -34,21 +34,18 @@ libpyimp_a_SOURCES = pyobjs.c
 f_lib_highlev.o: f_lib_highlev.f90 configure.inc
 
 if CAPITALIZE
-modules = F_LIB_PACKAGE.@MODULE_EXT@
+modules = F_LIB_PACKAGE.@MODULE_EXT@ FUTILE.@MODULE_EXT@
 else
-modules = f_lib_package.@MODULE_EXT@
+modules = f_lib_package.@MODULE_EXT@ futile.@MODULE_EXT@
 endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/flib @MPI_INCLUDE@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings @GLIB_CFLAGS@ @PYTHON_INCLUDES@ -D'PYTHON_EXECDIR="$(pyexecdir)"'
 
-AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
 else
-flib_libraries = libfutile-1.a
-LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
+flib_libraries = libfutile-1.a @LIBS_EXT_DEPS@
 endif
 
 tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a
@@ -66,7 +63,7 @@ libfutile-1.a: $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp
 
 # Dynamic library building
 $(futile_dynamic_library): $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(futile_library_soname) -o $@ $(libfutile_1_a_OBJECTS) tmp-libfutile/*.o @LIBS_EXT_DEPS@ $(LIBS)
+	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -Wl,-soname=$(futile_library_soname) -o $@ $(libfutile_1_a_OBJECTS) tmp-libfutile/*.o @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(futile_library_soname): $(futile_dynamic_library)
@@ -74,7 +71,7 @@ $(futile_library_soname): $(futile_dynamic_library)
 	ln -fs $@ libfutile-1.so
 
 futile.so: $(libpyimp_a_OBJECTS) libfutile-1.a $(futile_library_soname)
-	$(CC) $(CFLAGS) $(CPPFLAGS) -shared $(LDFLAGS) $(AM_LDFLAGS) -Wl,-soname=$@ -o $@ $(libpyimp_a_OBJECTS) $(flib_libraries) $(LIBS) @PYTHON_LIBS@
+	$(CC) $(CFLAGS) $(CPPFLAGS) @CC_BUILD_SHARED@ -L$(builddir) $(LDFLAGS) $(AM_LDFLAGS) @CC_RPATH@$(DESTDIR)$(dynlibdir) -Wl,-soname=$@ -o $@ $(libpyimp_a_OBJECTS) $(flib_libraries) $(LIBS) @PYTHON_LIBS@
 	@chmod a+x $@
 
 install-data-hook: 
@@ -94,3 +91,13 @@ clean-local:
 	rm -rf tmp-libfutile
 
 $(modules): $(libfutile_1_a_OBJECTS)
+
+# Copy modules in a common include directory.
+all: all-am insmod
+install: install-am insmod
+check: check-am insmod
+insmod: $(modules)
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
+	for mod in "$(modules)" ; do \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
+	done

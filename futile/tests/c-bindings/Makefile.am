@@ -8,14 +8,13 @@ check_PROGRAMS = dict $(pyscript)
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+AM_LDFLAGS += @FC_RPATH@$(abs_top_builddir)/src
 else
-flib_libraries = $(top_builddir)/src/libfutile-1.a
-LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
+flib_libraries = $(top_builddir)/src/libfutile-1.a @LIBS_EXT_DEPS@
 endif
 
 dict_SOURCES = dict.c
-dict_LDADD = $(flib_libraries) @GLIB_LIBS@
+dict_LDADD = $(flib_libraries) @GLIB_LIBS@ $(FCLIBS)
 
 pyscript_SOURCES = objs.f90
 pyscript_LDADD = $(flib_libraries)

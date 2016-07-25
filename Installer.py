@@ -15,15 +15,17 @@ UNINSTALL=' uninstall '
 LIST=' list '
 BUILD=' build '
 BUILDONE=' buildone '
-TINDERBOX=' tinderbox -o build '
+TINDERBOX=' tinderbox -o buildlogs '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
 DIST='  dist --dist-only bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
+GREP_M4_COMMENTS=" | grep -v dnl | grep -v '#' "
 
-CHECKMODULES= ['futile','psolver','bigdft','spred']
-MAKEMODULES= ['futile','psolver','libABINIT','bigdft','spred']
+
+CHECKMODULES= ['futile','chess','psolver','bigdft','spred']
+MAKEMODULES= ['futile','chess','psolver','libABINIT','bigdft','spred']
 
 #allowed actions and corresponding description
 ACTIONS={'build':
@@ -36,35 +38,49 @@ ACTIONS={'build':
          'Wipe out all the build directories and recompile the important parts',
          'autogen':
          'Perform the autogen in the modules which need that. For developers only.',
+         'update':
+         'Useful to update a pre-compiled branch after a merge',
          'dist':
-         'Creates a tarfile for the bigdft-suite tailored to reproduce the compilation options specified.',
+         'Creates a tarfile for the suite tailored to reproduce the compilation options specified.',
          'check':
          'Perform check in the bigdft branches, skip external libraries.',
          'dry_run':
-         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file."}
+         "Visualize the list of modules that will be compiled with the provided configuration in the 'buildprocedure.png' file.",
+         'link':
+         'Show the linking line that have to be used to connect an external executable to the package (when applicable)' }
 
 #actions which need rcfile to be executed
 NEEDRC=['build','dist','dry_run','startover']
 
+TARGETS={
+    'bigdft': ['bin','bigdft'],
+    'spred': ['bin','mhgps'],
+    'chess': ['lib','libCheSS-1.a'],
+    'futile': ['lib','libfutile-1.a'],
+    'psolver': ['lib','libPSolver-1.a'],
+    }
+
 class BigDFTInstaller():
-    def __init__(self,action,package,rcfile,verbose,quiet):
+    m4_re=['^AX_','CHECK_PYTHON','PKG_CHECK_MODULES'] #regular expressions to identify proprietary macros
+    def __init__(self,action,package,rcfile,verbose,quiet,yes):
         import os
         self.action=action    #Action to be performed
         self.package=package  #Package
-        self.verbose=verbose  #verbose option
-        self.quiet=quiet      #Ask a question
+        self.yes=yes      #Ask a question
         #look where we are
         self.srcdir = os.path.dirname(__file__)
-        #look the builddir
+        if self.srcdir == '': self.srcdir='.'
+	#look the builddir
         self.builddir=os.getcwd()
         #look if we are building from a branch
         bigdftdir=os.path.join(self.srcdir,'bigdft')
         self.branch=os.path.isfile(os.path.join(bigdftdir,'branchfile'))
-
+        self.verbose=verbose or action=='check'  #verbose option
+        if not self.verbose and not quiet: self.verbose=self.branch
         #To be done BEFORE any exit instruction in __init__ (get_rcfile)
         self.time0 = None
 
-        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action != ['autogen','dry_run']:
+        if os.path.abspath(self.srcdir) == os.path.abspath(self.builddir) and self.action not in ['autogen','dry_run']:
             print 50*'-'
             print "ERROR: BigDFT Installer works better with a build directory different from the source directory, install from another directory"
             print "SOLUTION: Create a separate directory and invoke this script from it"
@@ -80,7 +96,7 @@ class BigDFTInstaller():
         if self.rcfile != '': self.jhb += '-f '+self.rcfile
 
         #date of bigdft executable if present
-        self.time0=self.bigdft_time()
+        self.time0=self.target_time()
 
         self.print_present_configuration()
 
@@ -92,9 +108,12 @@ class BigDFTInstaller():
         #then choose the actions to be taken
         getattr(self,action)()
 
-    def bigdft_time(self):
+    def target_time(self):
         import os
-        return self.filename_time(os.path.join(self.builddir,'install','bin','bigdft'))
+        dt=TARGETS['bigdft']
+        dt=TARGETS.get(self.package)
+        tgt=os.path.join(dt[0],dt[1])
+        return self.filename_time(os.path.join(self.builddir,'install',tgt))
 
     def filename_time(self,filename):
         import os
@@ -125,11 +144,11 @@ class BigDFTInstaller():
         for file in os.listdir(rcdir):
             testname=os.path.basename(file)
             base=os.path.splitext(testname)[0]
-            if base in self.hostname or self.hostname in base: rcs.append(file)
+            if base in self.hostname or self.hostname in base or base.split('-')[0] in self.hostname: rcs.append(file)
         print "Search in the configuration directory '%s'" % rcdir
         if len(rcs)==1:
             self.rcfile=os.path.join(rcdir,rcs[0])
-        elif len(rcs) > 0:
+        elif len(rcs) > 0 and (self.action in NEEDRC or not self.yes):
             print "No valid configuration file specified, found various that matches the hostname '%s'" % self.hostname
             print 'In the directory "'+rcdir+'"'
             print 'Choose among the following options'
@@ -173,7 +192,7 @@ class BigDFTInstaller():
         elif self.rcfile!='':
             print indent + 'Configuration options:'
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
-        while not self.quiet:
+        while not self.yes:
             ok = raw_input('Do you want to continue (Y/n)? ')
             if ok == 'n' or ok=='N':
                 exit(0)
@@ -217,19 +236,102 @@ class BigDFTInstaller():
         return out.rstrip('\n')
 
     def removefile(self,pattern,dirname,names):
-        "Return the files given by the pattern"
+        "Delete the files matching the pattern"
         import os,fnmatch
         for name in names:
             if fnmatch.fnmatch(name,pattern):
                 self.__dump('removing',os.path.join(dirname,name))
                 os.remove(os.path.join(dirname,name))
 
+    def get_ac_argument(self,tgt,acmacro):
+        "Retrieve the list of ac arguments for the macro acmacro from file tgt"
+        import os
+        m4args=set()
+        if os.path.isfile(tgt):
+            for dd in self.get_output('grep '+acmacro+' '+tgt+GREP_M4_COMMENTS).split('\n'):
+                if len(dd) == 0: continue
+                m4=dd.split('[')[1]
+                m4args.add(m4.split(']')[0])
+        return list(m4args)
+                
+    def get_m4_macros(self,tgt,previous_macros=[]):
+        "Identify the name of the proprietary m4 macros used in configure.ac"
+        import os
+        macros=set()
+        if os.path.isfile(tgt):
+            for regexp in self.m4_re:
+                for m4 in self.get_output('grep '+regexp+' '+tgt+GREP_M4_COMMENTS).split('\n'):
+                    if len(m4)>0:
+                        m4t=m4.split('(')[0]
+                        if m4t not in previous_macros: macros.add(m4t)
+            required=self.get_ac_argument(tgt,'AC_REQUIRE')
+            for m in required:
+                found=m in previous_macros
+                if found: continue
+                for regexp in self.m4_re:
+                    found=regexp.lstrip('^') in m
+                    if found: break
+                if found: macros.add(m)
+        return list(macros)
+
+    def get_m4_files(self,macros):
+        "Find the files needed for the definition of the proprietary macros"
+        import os
+        files=set()
+        #localize then the associated file in the m4 repository
+        tgt=os.path.join(self.srcdir,'m4')+os.sep
+        for m in macros:
+            ffs=self.get_output('grep -R '+m+' '+tgt+'| grep AC_DEFUN'+GREP_M4_COMMENTS).split(':')[0]
+            if ffs!='': files.add(ffs)
+        #now for each of the files get all the macros which are required but not explicitly called
+        files=list(files)
+        newm4=set()
+        for f in files:
+            tgt=os.path.join(self.srcdir,f)
+            newm=self.get_m4_macros(tgt,previous_macros=macros)
+            #print 'new macros',newm
+            for m4 in newm:
+                newm4.add(m4)
+        newm4 = list(newm4)
+        #print "new macros which have to be added",newm4
+        if len(newm4) > 0: files=self.get_m4_files(macros+newm4)
+        return list(files)
+
+    def get_m4_dir(self,mod):
+        "Return the configure macro dir(s)"
+        import os
+        tgt=os.path.join(self.srcdir,mod,'configure.ac')
+        return self.get_ac_argument(tgt,'AC_CONFIG_MACRO_DIR')
+    
+    def copyfiles(self,filelist,dest):
+        import os,shutil
+        if not os.path.isdir(dest): return
+        for f in filelist:
+            test=os.path.join(dest,os.path.basename(f))
+            if os.path.isfile(test):
+                if len(self.get_output('diff -q '+f+' '+test)) == 0: continue
+            try:
+                shutil.copy(f,dest)
+            except:
+                os.chmod(dest, 777) #?? still can raise exception
+                shutil.copy(f,dest)
+            print 'Copied file '+f+' in directory '+dest
+
     def autogen(self):
         "Perform the autogen action"
         import os
+        #first copy the macros in the config.m4 directories of proprietary packages
+        for mod in self.selected(MAKEMODULES):
+            macros=self.get_m4_macros(os.path.join(self.srcdir,mod,'configure.ac'))
+            #print 'initial macros',mod,macros
+            files=self.get_m4_files(macros)
+            #print 'related files',files
+            #now copy the files, overwriting the previously existing ones
+            for d in self.get_m4_dir(mod):
+                self.copyfiles(files,os.path.join(self.srcdir,mod,d))
         os.system(self.jhb+SETUP+self.package)
-        #self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')
-
+        #self.shellaction(self.srcdir,self.modulelist,'autoreconf -fi')    
+        
     def check(self):
         "Perform the check action"
         self.shellaction('.',CHECKMODULES,'make check',hidden=not self.verbose)
@@ -266,15 +368,17 @@ class BigDFTInstaller():
 
     def clean(self):
         "Clean files in the build directory"
-        import os
-        for mod in self.selected(MAKEMODULES):
+        import os,shutil
+        for mod in self.selected(MAKEMODULES[::-1]): #invert cleaning order for elegance
             self.get_output(self.jhb+UNINSTALL+mod)
             self.get_output(self.jhb+CLEANONE+mod)
             #here we should eliminate residual .mod files
             os.path.walk(mod,self.removefile,"*.mod")
             os.path.walk(mod,self.removefile,"*.MOD")
-        #self.get_output(self.jhb+CLEAN)
-
+            if not self.branch: #this is necessary as we come from a tarfile
+                print 'Wipe directory: ',mod
+                shutil.rmtree(mod, ignore_errors=True)
+        
     def startover(self):
         "Wipe files in the makemodules directory"
         if not self.branch:
@@ -299,6 +403,23 @@ class BigDFTInstaller():
         "Do dry build"
         self.get_output(self.jhb+DOT+self.package+DOTCMD)
 
+    def link(self):
+        "Show the linking line, when applicable"
+        import os
+        PPATH="PKG_CONFIG_PATH"
+        addpath=os.path.join(self.builddir,'install','lib','pkgconfig')
+        if PPATH in os.environ:
+            if addpath not in os.environ[PPATH].split(':'):
+                os.environ[PPATH]+=':'+addpath
+        else:
+            os.environ[PPATH]=addpath
+        includes=self.get_output('pkg-config --cflags '+self.package)
+        libs=self.get_output('pkg-config --libs '+self.package)
+        #add the external linalg at the end to avod linking problems
+        linalg=self.get_output('pkg-config --variable linalglibs '+self.package)
+        print '--------- Linking line to build with package "'+self.package+'":'
+        print "  "+includes+libs
+
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
         import os
@@ -317,12 +438,17 @@ class BigDFTInstaller():
         rclist.append("""conditions.add("testing")""")
         rclist.append("""#List the module the this rcfile will build""")
         rclist.append("modules = ['"+self.package+"',]")
-        sep='"""'
+        sep=' """ '
         confline=sep+os.environ[BIGDFT_CFG]+sep
         rclist.append("#example of the potentialities of the python syntax in this file")
         rclist.append("def env_configuration():")
         rclist.append("    return "+confline)
-        rclist.append("""#here follow the configuration instructions for the modules built""")
+        rclist.append("#the following command sets the environment variable to give these settings")
+        rclist.append("#to all the modules")
+        rclist.append("import os")
+        rclist.append("os.environ['"+BIGDFT_CFG+"']=env_configuration()")
+        rclist.append("#here follow the configuration instructions for the modules built")
+        rclist.append("#we specify the configurations for the modules to customize the options if needed")
         rclist.append("module_autogenargs.update({")
         rclist.append("   ")
         for mod in self.modulelist:
@@ -346,19 +472,19 @@ class BigDFTInstaller():
         print 'The action considered was:',self.action
         try:
            if self.time0 is not None:
-               if not (self.time0==self.bigdft_time()):
-                   print 'SUCCESS: The Installer seems to have built correctly bigdft bundle'
+               if not (self.time0==self.target_time()) and self.target_time()!=0:
+                   print 'SUCCESS: The Installer seems to have built correctly',self.package,' bundle'
                    print 'All the available executables and scripts can be found in the directory'
                    print '"'+os.path.join(os.path.abspath(self.builddir),'install','bin')+'"'
                    if self.action in NEEDRC: self.rcfile_from_env()
                elif (self.action == 'build' or self.action == 'make'):
-                   print 'WARNING: The Installer seems NOT have created or updated bigdft executable'
+                   print 'WARNING: The Installer seems NOT have created or updated',self.package,' binaries'
                    print '        (maybe everything was already compiled?)'
                    print 'ACTION: check the compiling procedure.'
                    if self.branch:
                        print 'HINT: It appears you are compiling from a branch source tree. Did you perform the action "autogen"?'
                    if not self.verbose and self.action == 'build':
-                      print '  HINT: Have a look at the file index.html of the build/ directory to find the reason'
+                      print '  HINT: Have a look at the file index.html of the buildlogs/ directory to find the reason'
         except:
             print 'Goodbye...'
 
@@ -389,10 +515,15 @@ parser.add_argument('package',nargs='?',default='spred',
 parser.add_argument('-f','--file',
                    help='Use an alternative configuration file instead of the default configuration '
                     + 'given by the environment variable %s' % BIGDFT_CFG)
-parser.add_argument('-d','--verbose',action='store_true',
-                   help='Verbose output')
-parser.add_argument('-q','--quiet',action='store_true',
-                   help='Skip dialog after setup')
+
+group = parser.add_mutually_exclusive_group()
+group.add_argument("-v", "--verbose", action="store_true",help='Verbose output, default from a development branch')
+group.add_argument("-q", "--quiet", action="store_true",help='Verbosity disabled output, default from a development branch')
+
+parser.add_argument('-d','--debug',action='store_true',
+                   help='Verbose output, default from a development branch')
+parser.add_argument('-y','--yes',action='store_true',
+                   help='Answer yes to dialog questions')
 parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
                    help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
 
@@ -432,5 +563,10 @@ if args.action=='help':
     print 'Developer: From a development branch, start by "startover", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
+elif args.action=='update':
+    yes=args.yes
+    for action in ['clean','autogen','build']:
+        BigDFTInstaller(action,args.package,args.file,args.verbose,args.quiet,yes)
+        yes=True
 else:
-    BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet)
+    BigDFTInstaller(args.action,args.package,args.file,args.verbose,args.quiet,args.yes)

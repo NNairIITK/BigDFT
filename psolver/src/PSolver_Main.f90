@@ -40,7 +40,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),*), intent(inout) :: rhov
   !> Datatype containing the energies and th stress tensor.
   !! the components are filled accordin to the coulomb operator set ans the options given to the solver.
-  type(PSolver_energies), intent(out) :: energies
+  type(PSolver_energies), intent(out), optional :: energies
   !> Additional external potential that is added to the output, if present.
   !! Usually represents the potential of the ions that is needed to define the full electrostatic potential of a Vacuum Poisson Equation
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: pot_ion
@@ -53,6 +53,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann,calc_nabla2pot
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
   real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC,res_PB
+  type(PSolver_energies) :: energs
   real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
   real(dp), dimension(:,:,:), allocatable :: rhopot_full,nabla2_rhopot,delta_rho,cc_rho
   real(dp), dimension(:,:,:,:), allocatable :: nabla_rho
@@ -61,7 +62,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 
   call f_routine(id='Electrostatic_Solver')
 
-   energies=PSolver_energies_null()
+   energs=PSolver_energies_null()
 
    select case(kernel%opt%datacode)
    case('G')
@@ -212,6 +213,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   i3s_pot_pb=0  !in the PCG case
   if (kernel%method == PS_PI_ENUM) i3s_pot_pb=i23sd2-1
 
+
   !switch between neutral and ionic solution (GPe or PBe)
   if (poisson_boltzmann) then
      if (kernel%opt%use_pb_input_guess) then
@@ -227,7 +229,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
            call yaml_sequence(advance='no')
            call yaml_mapping_open()
         end if
-        call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+        call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energs%strten,&
              wrtmsg,kernel%w%rho_pb,kernel%opt%use_input_guess)
         
         call PB_iteration(n1,n23,i3s_pot_pb,kernel%PB_eta,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
@@ -244,7 +246,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
 
   else
      !call the Generalized Poisson Solver
-     call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+     call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energs%strten,&
           wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
   end if
 
@@ -378,23 +380,25 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
-  if (build_c) then
+  if (build_c .or. .not. kernel%opt%only_electrostatic ) then
    kernel%IntSur=IntSur
    kernel%IntVol=IntVol
   end if
-  if (kernel%opt%only_electrostatic) then
+  if (kernel%opt%only_electrostatic .or. kernel%method == PS_VAC_ENUM) then
    kernel%IntSur=0.0_gp
    kernel%IntVol=0.0_gp
   end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
-
-  energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
-  energies%eVextra=e_static*product(kernel%hgrids)
-  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
+  energs%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
+  energs%eVextra=e_static*product(kernel%hgrids)
+  energs%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
        kernel%cavity%betaV*kernel%IntVol
 
-   call PS_reduce(energies,kernel)
+  if (present(energies)) then
+     call PS_reduce(energs,kernel)
+     energies=energs
+  end if
 
   if (wrtmsg) call yaml_mapping_close()
 
@@ -697,7 +701,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
         potential_integral=offset,&
         final_call=(kernel%method .hasattr. 'rigid') .and.&
         present(stress_tensor))
-   
+
    if (sumpion .and. present(rho_ion) .and. kernel%method /= PS_VAC_ENUM) then
       call Electrostatic_Solver(kernel,rhopot,energies,pot_ion,rho_ion)
    else if (sumpion) then

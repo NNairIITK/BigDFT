@@ -3,9 +3,9 @@
 # Main targets.
 # ------------
 dynlibdir           = $(libdir)
-bin_PROGRAMS        = splsad NEB global globaltool mhgps mhgpstool
+bin_PROGRAMS        = splsad NEB global globaltool mhgps mhgpstool coulomb_global
 EXTRA_PROGRAMS      = bart #NEB_images
-bin_SCRIPTS         = NEB_driver.sh
+dist_bin_SCRIPTS         = NEB_driver.sh
 lib_LIBRARIES       = libspred-1.a
 dynlib_DATA         = $(spred_dynamic_library)
 include_HEADERS     = bigdft_spred.h
@@ -35,7 +35,7 @@ spred_dynamic_library =
 spred_soname_library =
 spred_library = libspred-1.a @LIB_SPRED_DEPS@
 endif
-binaries_sources = splsad NEB global globaltool mhgps mhgpstool lowest_pathway
+binaries_sources = splsad NEB global globaltool mhgps mhgpstool lowest_pathway coulomb_global
 
 
 AM_FCFLAGS = -I. @MPI_INCLUDE@ @LIB_BIGDFT_CFLAGS@
@@ -105,6 +105,11 @@ global_SOURCES = global.f90
 global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@
 ###global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
 global_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+
+coulomb_global_SOURCES = coulomb_global.f90
+coulomb_global_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@
+###global_LDADD = spred_baselib/libspredbasef.a $(spred_library) @LINALG_LIBS@
+coulomb_global_LDADD = $(spred_library) @LIB_BIGDFT_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
 globaltool_FCFLAGS = -I. -Ispred_baselib -Iglobal_files @LIB_BIGDFT_CFLAGS@

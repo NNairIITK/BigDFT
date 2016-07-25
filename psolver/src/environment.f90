@@ -2,7 +2,7 @@
 !!    Modulefile for environment computation
 !!
 !! @author
-!!    G. Fisicaro, L. Genovese (September 2015) <br>
+!!    G. Fisicaro, L. Genovese (September 2015)
 !!    Copyright (C) 2002-2016 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
@@ -60,6 +60,7 @@ module psolver_environment
      real(gp) :: edensmax !<maximum value of the density for the cavity
      real(gp) :: edensmin !<minimum  value of the density for the cavity
      real(gp) :: delta !<parameter for the PCM cavity in the case of rigid
+     real(gp) :: fact_rigid !<multiplying factor for the whole PCM cavity in the case of rigid
      real(dp) :: gammaS !< surface tension of the solvent [dyn/cm]
      real(dp) :: alphaS !< proportionality factor for the repulsion free energy in term of the surface integral [dyn/cm]
      real(dp) :: betaV !<proportionality factor for the dispersion free energy in term of the volume integral [GPa]
@@ -78,15 +79,16 @@ contains
     c%edensmax = 0.005_gp !0.0050d0
     c%edensmin = 0.0001_gp
     c%delta = 2.0_gp
+    c%fact_rigid = 1.12_gp
     c%gammaS = 72._gp*SurfAU ![dyn/cm]
     c%alphaS = -22.0_gp*SurfAU ![dyn/cm]   end function cavity_default
     c%betaV = -0.35_gp/AU_GPa ![GPa]
   end function cavity_default
 
   !>initialize the cavity parameters
-  function cavity_init(epsilon0,edensmax,edensmin,delta,gammaS,alphaS,betaV) result(c)
+  function cavity_init(epsilon0,edensmax,edensmin,delta,fact_rigid,gammaS,alphaS,betaV) result(c)
     implicit none
-    real(gp), intent(in), optional :: epsilon0,edensmax,edensmin,gammaS,alphaS,betaV,delta
+    real(gp), intent(in), optional :: epsilon0,edensmax,edensmin,gammaS,alphaS,betaV,delta,fact_rigid
     type(cavity_data) :: c
     c=cavity_default()
     if (present(delta) .and. (present(edensmax) .or. present(edensmin)))&
@@ -95,6 +97,7 @@ contains
     if (present(edensmax)) c%edensmax=edensmax
     if (present(edensmin)) c%edensmax=edensmin
     if (present(delta)) c%delta=delta
+    if (present(fact_rigid)) c%fact_rigid=fact_rigid
     if (present(gammaS)) c%gammaS=gammaS*SurfAU
     if (present(alphaS)) c%alphaS=alphaS*SurfAU
     if (present(betaV )) c%betaV =betaV/AU_GPa
@@ -374,7 +377,7 @@ contains
     ff(:,:)=0.0_dp
     loop_at: do iat=1,nat
        rad=radii(iat)
-       d=minimum_distance(mesh,v,rxyz(1,iat))
+       d=distance(mesh,v,rxyz(1,iat))
        if (d.eq.0.d0) then
         d=1.0d-30
         eh=epsl(d,rad,cavity%delta)
@@ -468,7 +471,7 @@ contains
     eps0m1=cavity%epsilon0-vacuum_eps
     hh=mesh%volume_element
     do iat=1,nat
-       d=minimum_distance(mesh,v,rxyz(1,iat))
+       d=distance(mesh,v,rxyz(1,iat))
        rad=radii(iat)
        if (d.eq.0.d0) then
         d=1.0d-30

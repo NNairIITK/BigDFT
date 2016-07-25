@@ -167,6 +167,42 @@ multipoles_waterQMQM.out.out: multipoles_waterQM.out.out
 multipoles_waterQM.out.post-out:
 	python prepare_QMQM.py
 
+multipoles_periodic.out.post-out:
+	$(abs_top_builddir)/src/bigdft-tool \
+	  --action=multipole-analysis \
+	  --method=mulliken \
+	  --matrix_basis=realspace \
+	  --mpirun='/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpirun -np 2' \
+	  --metadata_file=data-periodic/sparsematrix_metadata.bin \
+	  --kernel_file=data-periodic/density_kernel_sparse.bin \
+	  --hamiltonian_file=data-periodic/hamiltonian_sparse.bin \
+	  --overlap_file=data-periodic/overlap_sparse.bin \
+	  --multipole_matrix_0_0=data-periodic/mpmat_0_0.bin \
+	  --multipole_matrix_1_0=data-periodic/mpmat_1_-1.bin \
+	  --multipole_matrix_1_1=data-periodic/mpmat_1_0.bin \
+	  --multipole_matrix_1_2=data-periodic/mpmat_1_1.bin \
+	  --multipole_matrix_2_0=data-periodic/mpmat_2_-2.bin \
+	  --multipole_matrix_2_1=data-periodic/mpmat_2_-1.bin \
+	  --multipole_matrix_2_2=data-periodic/mpmat_2_0.bin \
+	  --multipole_matrix_2_3=data-periodic/mpmat_2_1.bin \
+	  --multipole_matrix_2_4=data-periodic/mpmat_2_2.bin \
+	  > test-multipoles_periodic.out.yaml
+
+#matrixtaskgroups_yes.out.post-out: 
+#	$(abs_top_builddir)/src/bigdft-tool --action=calculate-selected-eigenvalues \
+#		                                --mpirun='$(run_parallel)' \
+#										--metadata_file=data-yes/sparsematrix_metadata.bin \
+#										--overlap_file=data-yes/overlap_sparse.bin \
+#										--hamiltonian_file=data-yes/hamiltonian_sparse.bin \
+#										--kernel_file=data-yes/density_kernel_sparse.bin \
+#										--iev_min=1 \
+#										--iev_max=100 \
+#										> test-evals.out.yaml
+#	@export PYTHONPATH=${PYTHONPATH} ; \
+#	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
+#	python $(abs_top_srcdir)/tests/fldiff_yaml.py \
+#	-r $< -d test-evals.out.yaml -t $(abs_top_srcdir)/tests/tols-BigDFT.yaml --label=test-evals -o $@ 
+
 
 # Define the precision for specific directories.
 %.report: %.ref

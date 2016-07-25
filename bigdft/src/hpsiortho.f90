@@ -157,7 +157,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_DENSITY) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
-                denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                denspot%rhov,itrp,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&
                 rpnrm,denspot%dpbox%nscatterarr)
 
@@ -183,22 +183,22 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      !copy the density contiguously since the GGA is calculated inside the NK routines
      !with the savefield scheme, this can be avoided in the future
      if (wfn%SIC%approach=='NK') then !here the density should be copied somewhere else
-        irhotot_add=denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%i3xcsh+1
-        irho_add=denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d*wfn%orbs%nspin+1
+        irhotot_add=denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%i3xcsh+1
+        irho_add=denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3d*wfn%orbs%nspin+1
         do ispin=1,wfn%orbs%nspin
            call vcopy(denspot%dpbox%ndimpot,&
                 denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
-           irhotot_add=irhotot_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
-           irho_add=irho_add+denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
+           irhotot_add=irhotot_add+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3d
+           irho_add=irho_add+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%n3p
         end do
      end if
 
      if(wfn%orbs%nspinor==4) then
         !this wrapper can be inserted inside the XC_potential routine
         call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
              denspot%dpbox%n3d,denspot%xc,&
-             denspot%dpbox%hgrids,&
+             denspot%dpbox%mesh%hgrids,&
              denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
              energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
      else
@@ -206,8 +206,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         !!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
         call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
              denspot%pkernel%mpi_env%mpi_comm,&
-             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-             denspot%dpbox%hgrids,&
+             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
+             denspot%dpbox%mesh%hgrids,&
              denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,&
              denspot%rhohat,denspot%V_XC,xcstr)
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
@@ -249,7 +249,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      if (scf_mode .hasattr. 'MIXING') then
         if (denspot%mix%kind == AB7_MIXING_POTENTIAL) then
            call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,alphamix,denspot%mix,&
-                denspot%rhov,itrp,denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
+                denspot%rhov,itrp,denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
                 atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3),&!volume should be used
                 rpnrm,denspot%dpbox%nscatterarr)
            if (iproc == 0 .and. itrp > 1) then
@@ -548,7 +548,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   character(len=*), parameter :: subname='HamiltonianApplication'
   logical :: exctX,op2p_flag, symmetric
   integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
-  integer :: igpu,i_stat
+  integer :: igpu,i_stat,nsize,nspinor
   real(gp) :: evsic_tmp, ekin, epot,sfac
   real(f_double) :: tel,trm
   type(coulomb_operator) :: pkernelSIC
@@ -639,7 +639,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            !the psi should be transformed in real space, do it within the orbital basis iterators
            psir = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='psir')
            !initialize the orbital basis object, for psi and hpsi
-           call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+           call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd,id='LocalHamiltonianApplication')
            !iterate over the orbital_basis
            psi_it=orbital_basis_iterator(psi_ob)
            do while(ket_next_locreg(psi_it))
@@ -791,11 +791,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !call timing(iproc,'ApplyLocPotKin','OF')
   else
 
-!!!here we can branch into the new ket-based application of the hamiltonian
-     !initialize the orbital basis object, for psi and hpsi
-     call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
-          phis_wvl=psi,Lzd=Lzd)
-
 
 !!$      !temporary allocation
 !!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
@@ -807,6 +802,11 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !print *,'here',ipotmethod,associated(pkernelSIC)
      if (PotOrKin==1) then ! both
         call timing(iproc,'ApplyLocPotKin','ON')
+!!!here we can branch into the new ket-based application of the hamiltonian
+        !initialize the orbital basis object, for psi and hpsi
+        call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
+             phis_wvl=psi,Lzd=Lzd,id='LochamPotKin')
+
         energs%ekin=0.0_gp
         energs%epot=0.0_gp
 
@@ -816,10 +816,20 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
         !iterate over the orbital_basis
         psi_it=orbital_basis_iterator(psi_ob)
+        ! Get the maximal size of the work array psir
+        nsize = 0
+        nspinor = 0
+        loop_lr_size: do while(ket_next_locreg(psi_it))
+           nsize = max(nsize,psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i)
+           nspinor = max(nspinor,psi_it%nspinor)
+        end do loop_lr_size
+        psir = f_malloc([nsize,nspinor],id='psir')
+        psi_it=orbital_basis_iterator(psi_ob)
         ! print *,'orbs0',psi_it%iorb,psi_it%ilr
         loop_lr: do while(ket_next_locreg(psi_it))
            ! print *,'orbs1',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
-           psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
+           !psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
+           call f_zero(psir)
            call initialize_work_arrays_locham(psi_it%lr,psi_it%nspinor,.true.,wrk_lh)
            ! wavefunction after application of the self-interaction potential
            if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -838,12 +848,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               !  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
            end do loop_psi_lr
            !deallocations of work arrays
-           call f_free(psir)
+           !call f_free(psir)
            if (ipotmethod == 2 .or. ipotmethod ==3) then
               call f_free(vsicpsir)
            end if
            call deallocate_work_arrays_locham(wrk_lh)
         end do loop_lr
+        call f_free(psir)
         !call mpibarrier()
         !stop
         call orbital_basis_release(psi_ob)
@@ -938,7 +949,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   call timing(iproc,'ApplyProj     ','ON')
 
   !initialize the orbital basis object, for psi and hpsi
-  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+  call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd,id='nonlocalham')
   !should we calculate the density matrix we have to zero it
   if (associated(nl%iagamma)) call f_zero(nl%gamma_mmp)
   !here we might rework the value of gamma in case we would like to apply some extra
@@ -1815,7 +1826,8 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
      energs,wfn,gnrm,gnrm_zero)
   use module_base
   use module_types
-  use module_interfaces, only: orthoconstraint, preconditionall2, write_energies
+  use module_interfaces, only: orthoconstraint, preconditionall2
+  use io, only: write_energies
   use yaml_output
   use communications, only: transpose_v, untranspose_v
   use communications, only: toglobal_and_transpose
@@ -2695,8 +2707,10 @@ subroutine eFermi_nosmearing(iproc,orbs)
    real(gp) :: charge
    real(wp) :: eF
 
-   iu=0
-   id=0
+   !SM: I think iu and id should be initialized to these values, in case the
+   ! large if will not be executed.
+   iu=orbs%norbu
+   id=orbs%norbd
    eF = 0._wp
    do ikpt=1,orbs%nkpts
       !number of zero orbitals for the given k-point
@@ -3672,8 +3686,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   xred = f_malloc((/ 3, at%astruct%nat /), id = "xred")
 
   nfft = denspot%dpbox%ndimpot
-  nfftot = product(denspot%dpbox%ndims)
-  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  nfftot = product(denspot%dpbox%mesh%ndims)
+  ucvol = product(denspot%dpbox%mesh%ndims) *denspot%dpbox%mesh%volume_element
   xclevel = 1
   if (xc_isgga(denspot%xc)) xclevel = 2
 
@@ -3882,16 +3896,16 @@ subroutine paw_update_rho(paw, denspot, atoms)
 
   call f_timing(TCAT_PAW_RHOIJ, "ON")
 
-  nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
-  ngfft(1:3) = denspot%dpbox%ndims
-  ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  nfft = denspot%dpbox%mesh%ndims(1) * denspot%dpbox%mesh%ndims(2) * denspot%dpbox%n3p
+  ngfft(1:3) = denspot%dpbox%mesh%ndims
+  ucvol = product(denspot%dpbox%mesh%ndims) *denspot%dpbox%mesh%volume_element
 
   !if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
   if (bigdft_mpi%iproc == 0) then
      call yaml_newline()
   end if
   if (.not. associated(denspot%rhohat)) then
-     denspot%rhohat = f_malloc_ptr((/ denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+     denspot%rhohat = f_malloc_ptr((/ denspot%dpbox%mesh%ndims(1), denspot%dpbox%mesh%ndims(2), &
           & denspot%dpbox%n3p , denspot%dpbox%nrhodim /), id='denspot%rhohat')
   end if
 
@@ -3912,7 +3926,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
   end if
 
   if (denspot%dpbox%ndimpot > 0) then
-     offset = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%i3xcsh
+     offset = denspot%dpbox%mesh%ndims(1) * denspot%dpbox%mesh%ndims(2) * denspot%dpbox%i3xcsh
      call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,1), 1, &
           & denspot%rhov(offset + 1), 1)
      if (denspot%dpbox%nrhodim == 2) then

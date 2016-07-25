@@ -53,6 +53,8 @@ module communications
       integer :: i_tot, i_c, i_f, iorb, iiorb, ilr, i, ind, m, ind7, i7
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_switch_psi'
+
+      call f_routine(id='transpose_switch_psi')
     
       psi_c = f_malloc(collcom%ndimpsi_c,id='psi_c')
       psi_f = f_malloc(7*collcom%ndimpsi_f,id='psi_f')
@@ -133,6 +135,8 @@ module communications
     
       call f_free(psi_c)
       call f_free(psi_f)
+
+      call f_release_routine()
       
     end subroutine transpose_switch_psi
 
@@ -163,6 +167,8 @@ module communications
     
       !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
       !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
+
+      call f_routine(id='transpose_communicate_psi')
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
@@ -251,12 +257,14 @@ module communications
           !!call f_free_ptr(wt%nrecvdspls)
       end if
     
+      call f_release_routine()
     
     end subroutine transpose_communicate_psi
 
 
 
     subroutine transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+      use module_base
       implicit none
       
       ! Calling arguments
@@ -268,6 +276,8 @@ module communications
       
       ! Local variables
       integer :: i,ind,sum_c,sum_f,m,i7,ind7
+
+      call f_routine(id='transpose_unswitch_psit')
     
       sum_c = sum(collcom%nrecvcounts_c)
       sum_f = sum(collcom%nrecvcounts_f)
@@ -317,12 +327,15 @@ module communications
       !$omp end do
       
       !$omp end parallel
+
+      call f_release_routine()
     
     end subroutine transpose_unswitch_psit
 
 
 
     subroutine transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+      use module_base
       implicit none
     
       ! Calling arguments
@@ -334,6 +347,8 @@ module communications
       
       ! Local variables
       integer :: i, ind, sum_c,sum_f,m, i7, ind7
+
+      call f_routine(id='transpose_switch_psit')
     
       sum_c = sum(collcom%nrecvcounts_c)
       sum_f = sum(collcom%nrecvcounts_f)
@@ -381,6 +396,8 @@ module communications
       end do
       !$omp end do
       !$omp end parallel
+
+      call f_release_routine()
     
     end subroutine transpose_switch_psit
 
@@ -411,6 +428,8 @@ module communications
     
       !call mpi_comm_size(bigdft_mpi%mpi_comm, nproc, ierr)
       !call mpi_comm_rank(bigdft_mpi%mpi_comm, iproc, ierr)
+
+      call f_routine(id='transpose_communicate_psit')
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
@@ -491,6 +510,8 @@ module communications
           !!call f_free_ptr(wt%nrecvcounts)
           !!call f_free_ptr(wt%nrecvdspls)
       end if
+
+      call f_release_routine()
     
     end subroutine transpose_communicate_psit
 
@@ -516,6 +537,7 @@ module communications
       real(kind=8),dimension(:),allocatable :: psi_c, psi_f
       character(len=*),parameter :: subname='transpose_unswitch_psi'
       
+      call f_routine(id='transpose_unswitch_psi')
       
       psi_c = f_malloc(collcom%ndimpsi_c,id='psi_c')
       psi_f = f_malloc(7*collcom%ndimpsi_f,id='psi_f')
@@ -595,6 +617,8 @@ module communications
       
       call f_free(psi_c)
       call f_free(psi_f)
+
+      call f_release_routine()
     
     end subroutine transpose_unswitch_psi
 
@@ -899,6 +923,7 @@ module communications
 
 
     subroutine transpose_switch_psir(collcom_sr, psir, psirwork)
+      use module_base
       implicit none
     
       ! Calling arguments
@@ -908,6 +933,8 @@ module communications
     
       ! Local variables
       integer :: i, m, ind
+
+      call f_routine(id='transpose_switch_psir')
     
       !$omp parallel default(private) &
       !$omp shared(collcom_sr, psir, psirwork, m)
@@ -932,12 +959,13 @@ module communications
       !$omp end do
       !$omp end parallel
     
-    
+      call f_release_routine()
+
     end subroutine transpose_switch_psir
 
     
     subroutine transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
-      use module_base, only: bigdft_mpi, mpi_double_precision,f_memcpy
+      use module_base
       use wrapper_linalg, only: vcopy
       implicit none
     
@@ -950,6 +978,7 @@ module communications
       ! Local variables
       integer :: ierr
     
+      call f_routine(id='transpose_communicate_psir')
     
       if (nproc>1) then
           call mpi_alltoallv(psirwork, collcom_sr%nsendcounts_c, collcom_sr%nsenddspls_c, mpi_double_precision, psirtwork, &
@@ -959,10 +988,12 @@ module communications
          call f_memcpy(src=psirwork,dest=psirtwork)
       end if
     
+      call f_release_routine()
     
     end subroutine transpose_communicate_psir
     
     subroutine transpose_unswitch_psirt(collcom_sr, psirtwork, psirt)
+      use module_base
       implicit none
     
       ! Calling arguments
@@ -972,6 +1003,8 @@ module communications
     
       ! Local variables
       integer :: i, ind, sum_c, m
+
+      call f_routine(id='transpose_unswitch_psirt')
     
       sum_c = sum(collcom_sr%nrecvcounts_c)
     
@@ -999,6 +1032,8 @@ module communications
       end do
       !$omp end do
       !$omp end parallel
+
+      call f_release_routine()
     
     end subroutine transpose_unswitch_psirt
     
@@ -1539,6 +1574,7 @@ module communications
        call f_routine(id=subname)
 
        ithread = 0
+       nthread = 1
        !$ nthread = omp_get_max_threads()
 
        !@ NEW VESRION #############################################
