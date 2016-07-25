@@ -1,38 +1,37 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
 #Add the condition testing to run tests and includes PyYaml
-
 conditions.add("testing")
-
-modules = ['bigdft',]
-
-module_autogenargs['libyaml']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['futile']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['libxc']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['psolver']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['libABINIT']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['GaIn']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['bigdft']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-module_autogenargs['spred']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -Wl,--end-group -lpthread -lm'"""
-
-##module_autogenargs['libyaml']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['futile']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['libxc']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['psolver']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['libABINIT']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['GaIn']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['bigdft']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-##
-##module_autogenargs['spred']="""'FC=mpif90' 'CC=icc' 'FCFLAGS=-O2 -openmp -I/opt/intel/composer_xe_2013_sp1.6.214/mkl/include' '--with-ext-linalg= -Wl,--start-group /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_core.a /opt/intel/composer_xe_2013_sp1.6.214/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm'"""
-
+#List the module the this rcfile will build
+modules = ['spred',]
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    return  """ "FC=mpif90" "CC=icc" "FCFLAGS=-O2 -openmp -I/opt/softs/mkl/15/mkl/include" "--with-ext-linalg= -Wl,--start-group /opt/softs/mkl/15/mkl/lib/intel64/libmkl_intel_lp64.a /opt/softs/mkl/15/mkl/lib/intel64/libmkl_core.a /opt/softs/mkl/15/mkl/lib/intel64/libmkl_intel_thread.a -Wl,--end-group -lpthread -lm"  --without-gobject""" 
+#the following command sets the environment variable to give these settings
+#to all the modules
+import os
+os.environ['BIGDFT_CONFIGURE_FLAGS']=env_configuration()
+#here follow the configuration instructions for the modules built
+#we specify the configurations for the modules to customize the options if needed
+module_autogenargs.update({
+   
+'libyaml': env_configuration(),
+   
+'futile': env_configuration(),
+   
+'psolver': env_configuration(),
+   
+'chess': env_configuration(),
+   
+'libxc': env_configuration(),
+   
+'libABINIT': env_configuration(),
+   
+'GaIn': env_configuration(),
+   
+'bigdft': env_configuration(),
+   
+'spred': env_configuration(),
+   
+})

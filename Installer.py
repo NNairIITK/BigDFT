@@ -86,6 +86,7 @@ class BigDFTInstaller():
 
         #now get the list of modules that has to be treated with the given command
         self.modulelist=self.get_output(self.jhb + LIST+self.package).split('\n')
+        self.modulelist=['libyaml', 'PyYAML', 'futile', 'psolver', 'libABINIT', 'GaIn', 'bigdft']
         print " List of modules to be treated:",self.modulelist
 
         #then choose the actions to be taken

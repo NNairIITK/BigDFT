@@ -85,6 +85,10 @@ class cmd_tinderbox(BuildCommand):
         full_module_list = module_set.get_full_module_list \
                                (args or config.modules, config.skip)
         module_list = module_set.remove_system_modules(full_module_list)
+        ##print module_list
+        #module_list.pop(3)
+        #module_list.pop(3)
+        ##print module_list
 
         # remove modules up to startat
         if options.startat:
