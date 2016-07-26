@@ -1540,7 +1540,7 @@ contains
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
          & GEOPT_VARIABLES, MD_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-         & MODE_VARIABLES, SECTIONS
+         & MODE_VARIABLES, SECTIONS, PLUGINS
     implicit none
     type(dictionary), pointer :: dict
     !local variables
@@ -1578,7 +1578,8 @@ contains
          .item. FRAG_VARIABLES,&
          .item. MINIMAL_FILE_KEY,&
          .item. F_IMPORT_KEY,&
-         .item. PY_HOOKS])
+         .item. PY_HOOKS,&
+         .item. PLUGINS])
     ! If we have mode // sections, then, we need to exclude all
     ! section keys, they will be checked later.
     nullify(mode)

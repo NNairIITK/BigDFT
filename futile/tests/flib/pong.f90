@@ -1,7 +1,11 @@
+!!! [init]
 subroutine init()
+!!! [init]
+  use module_f_objects
   use yaml_output
 
   integer :: sid
+  type(kernel_ctx) :: kernel
 
   interface
      subroutine pong(p)
@@ -12,7 +16,8 @@ subroutine init()
 
   call yaml_map("plugin", "initialised")
 
-  call f_object_signal_connect("class", "ping", pong, 1, sid)
+  call f_object_kernel_new(kernel, pong, 1)
+  call f_object_signal_connect("class", "ping", kernel, sid)
 end subroutine init
 
 subroutine pong(p)
