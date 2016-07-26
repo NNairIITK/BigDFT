@@ -2330,6 +2330,29 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
           reshape(svp_ptr,[ssv%norb,ssp%norb]),fmt=fmt)
   end do
 
+  if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|hpsi_i>',&
+       svp,fmt='(1pg15.11)')
+
+  !now calcualte the same quantities for the hp hp psiprime objects (double hamiltonian application)
+  !Build the matrix elements <psi' H | H psi'> from hpsiprime, and store it in mat
+  ssp=subspace_iterator(ob_prime)                      !initialise the iterator over spin and k-points
+  do while(subspace_next(ssp))                         !loop over spin and k-points
+     mat_ptr=>ob_ss_matrix_map(mat,ssp)                !mat has the same shape as ssp
+     hpsi_ptr=>ob_ss_psi_map(hpsiprime,ssp)            !hpsiprime has the same shape as ssp
+     call subspace_matrix(.false.,hpsi_ptr,hpsi_ptr,&
+          ssp%ncplx,ssp%nvctr,ssp%norb,mat_ptr)        !compute the matrix <psi' H | H psi'>
+  end do
+  !If parallel, mpi all reduce of the matrix mat
+  if (bigdft_mpi%nproc >1) call mpiallred(mat,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  !Write the matrix <psi' H | H psi'>, stored in mat
+  ssp=subspace_iterator(ob_prime)                      !initialise the iterator over spin and k-points
+  do while(subspace_next(ssp))                         !loop over spin and k-points
+     !mat_ptr=>ob_ss_matrix_map(mat,ssp)
+     if (bigdft_mpi%iproc == 0) call yaml_map('<hpsip_i|hpsip_j>',&
+          reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt='(1pg15.11)') !write the matrix elements
+  end do
+
   call f_free(svp)
 
   call f_free(mat)

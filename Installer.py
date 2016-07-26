@@ -102,6 +102,7 @@ class BigDFTInstaller():
 
         #now get the list of modules that has to be treated with the given command
         self.modulelist=self.get_output(self.jhb + LIST+self.package).split('\n')
+        self.modulelist=['libyaml', 'PyYAML', 'futile', 'psolver', 'libABINIT', 'GaIn', 'bigdft']
         print " List of modules to be treated:",self.modulelist
 
         #then choose the actions to be taken
@@ -559,7 +560,7 @@ if args.action=='help':
     print 50*'-'
     print 10*"QIFI-"+' (Quick Instructions For the Impatient)'
     print 'Ideally, there are two different policies:'
-    print 'Developer: From a development branch, start by "autogen", then "build"'
+    print 'Developer: From a development branch, start by "startover", then "build"'
     print '     User: From a tarball, start by "build"'
     print 'Perform the "dry_run" command to have a graphical overview of the building procedure'
 elif args.action=='update':
