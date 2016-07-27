@@ -2396,8 +2396,10 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    case  (SMEARING_DIST_METPX) !Methfessel and Paxton (same as COLD with a=0)
       a=0.d0
    case default
-      if(iproc==0) print *, 'unrecognized occopt=', occopt
-      stop
+      call f_err_throw('Unrecognized smearing scheme',err_name=BIGDFT_RUNTIME_ERROR)
+      !if(iproc==0) print *, 'unrecognized occopt=', occopt
+      !stop
+      return
    end select
 
    if (orbs%norbd==0) then

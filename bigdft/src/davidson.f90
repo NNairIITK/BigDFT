@@ -141,6 +141,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
         at,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,rxyz,in%nspin,&
         VTwfn%psi, max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp))
 
+   if (bigdft_mpi%nproc > 1) call mpiallred(Vtwfn%orbs%eval,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
    !if(iproc==0) call yaml_map('Orthogonality to occupied psi',.true.)
    !if(iproc==0) write(*,'(1x,a)',advance="no") "Orthogonality to occupied psi..."
 

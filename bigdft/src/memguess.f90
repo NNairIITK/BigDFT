@@ -30,6 +30,7 @@ program memguess
    use sparsematrix_base!, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
                         !        sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL, &
                         !        sparsematrix_init_errors
+                        !        sparsematrix_init_errors
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
    use sparsematrix_io, only: read_sparse_matrix
