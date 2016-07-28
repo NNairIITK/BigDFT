@@ -751,7 +751,6 @@ program chess_toolbox
            call sparse_matrix_and_matrices_init_from_file_bigdft('parallel', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
-           write(*,*) 'after sparse_matrix_and_matrices_init_from_file_bigdft'
        end select
        select case (iconv)
        case (1)

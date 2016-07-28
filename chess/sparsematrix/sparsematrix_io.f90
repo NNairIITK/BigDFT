@@ -149,7 +149,7 @@ module sparsematrix_io
       integer,dimension(4) :: workarr_header
       integer,dimension(:,:),allocatable :: workarr_keys
 
-      call f_routine(id='write_sparse_matrix_parallel')
+      call f_routine(id='read_sparse_matrix_parallel')
 
       call mpi_file_open(comm, trim(filename), & 
            mpi_mode_rdonly, & 
@@ -160,18 +160,17 @@ module sparsematrix_io
       ! Read the header
       disp = int(0,kind=mpi_offset_kind)
       call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
-      if (iproc==0) then
+      !if (iproc==0) then
           call mpi_file_read(thefile, workarr_header, 4, mpi_integer, mpi_status_ignore, ierr)
           nspin = workarr_header(1)
           nfvctr = workarr_header(2)
           nseg =  workarr_header(3)
           nvctr =  workarr_header(4)
-      end if
-      write(*,*) 'nspin, nfvctr, nseg, nvctr', nspin, nfvctr, nseg, nvctr
+      !end if
 
       ! Read the matrix keys
-      keyv = f_malloc_ptr(nseg,id='keyv')
-      keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+      keyv = f_malloc0_ptr(nseg,id='keyv')
+      keyg = f_malloc0_ptr((/2,2,nseg/),id='keyg')
       call distribute_on_tasks(nseg, iproc, nproc, np, is)
       workarr_keys = f_malloc((/5,np/),id='workarr_keys')
       disp = int((4+5*is)*size_of_integer,kind=mpi_offset_kind)
@@ -185,17 +184,19 @@ module sparsematrix_io
           keyg(1,2,ii) = workarr_keys(4,i)
           keyg(2,2,ii) = workarr_keys(5,i)
       end do
-      write(*,*) 'keyv',keyv
       call f_free(workarr_keys)
+      call mpiallred(keyv, mpi_sum, comm=comm)
+      call mpiallred(keyg, mpi_sum, comm=comm)
 
       ! Write the matrices
-      mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
+      mat_compr = f_malloc0_ptr(nvctr*nspin,id='mat_compr')
       call distribute_on_tasks(nvctr, iproc, nproc, np, is)
       disp = int((4+5*nseg)*size_of_integer+is*size_of_double,kind=mpi_offset_kind)
-      write(*,*) 'mat: disp, is, np',disp, is, np
       call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr) 
-      call mpi_file_read(thefile, mat_compr, np, mpi_double_precision, mpi_status_ignore, ierr)
-      write(*,*) 'mat_compr(1:10)',mat_compr(1:10)
+      if (np>1) then
+          call mpi_file_read(thefile, mat_compr(is+1), np, mpi_double_precision, mpi_status_ignore, ierr)
+      end if
+      call mpiallred(mat_compr, mpi_sum, comm=comm)
 
       call mpi_file_close(thefile, ierr)      
 
@@ -429,7 +430,6 @@ module sparsematrix_io
           workarr_keys(5,i) = smat%keyg(2,2,ii)
       end do
       disp = int((4+5*is)*size_of_integer,kind=mpi_offset_kind)
-      write(*,*) 'keys: disp, is, np',disp, is, np
       call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
       call mpi_file_write(thefile, workarr_keys, 5*np, mpi_integer, mpi_status_ignore, ierr)
       call f_free(workarr_keys)
@@ -437,9 +437,10 @@ module sparsematrix_io
       ! Write the matrices
       call distribute_on_tasks(smat%nvctr, iproc, nproc, np, is)
       disp = int((4+5*smat%nseg)*size_of_integer+is*size_of_double,kind=mpi_offset_kind)
-      write(*,*) 'mat: disp, is, np',disp, is, np
       call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr)
-      call mpi_file_write(thefile, matrix_compr, np, mpi_double_precision, mpi_status_ignore, ierr)
+      if (np>1) then
+          call mpi_file_write(thefile, matrix_compr(is+1), np, mpi_double_precision, mpi_status_ignore, ierr)
+      end if
 
       call mpi_file_close(thefile, ierr)      
 
