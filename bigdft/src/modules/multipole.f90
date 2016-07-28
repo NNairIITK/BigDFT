@@ -2330,7 +2330,7 @@ module multipole
                       write(lname,'(i0)') l
                       write(mname,'(i0)') m
                       matname = 'mpmat_'//trim(lname)//'_'//trim(mname)//'.bin'
-                      call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+                      call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
                            smats, multipole_matrix, &
                            filename=trim(filename//matname))
                   end if

@@ -121,7 +121,7 @@ program smatmul
   !!matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
   !!matA%matrix_compr = mat_compr
 
-  call sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc,comm, smat, matA, &
+  call sparse_matrix_and_matrices_init_from_file_bigdft('serial', 'serial', filename, iproc, nproc,comm, smat, matA, &
        init_matmul=.true.)!, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 

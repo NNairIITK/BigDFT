@@ -280,7 +280,7 @@ program driver_random
 
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
   if (write_matrices) then
-      call write_sparse_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
+      call write_sparse_matrix('serial', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
   end if
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
@@ -299,7 +299,7 @@ program driver_random
        gather_routine=gather_timings)
 
   if (write_matrices) then
-      call write_sparse_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+      call write_sparse_matrix('serial', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
   end if
 
 

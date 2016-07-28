@@ -1950,7 +1950,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
@@ -1961,7 +1961,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
@@ -1972,7 +1972,7 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+          call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
                tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
       end if
     
@@ -2062,7 +2062,7 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+              call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
                    tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
           end if
           call deallocate_matrices(SminusonehalfH(1))

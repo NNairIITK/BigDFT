@@ -257,15 +257,15 @@ program utilities
            call yaml_mapping_close()
        end if
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
             init_matmul=.false.)
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_file_matmul))
 
@@ -298,7 +298,7 @@ program utilities
        allocate(multipoles_matrices(-ll:ll,0:ll))
        do l=0,ll
            do m=-l,l
-               call matrices_init_from_file_bigdft(trim(multipoles_files(m,l)), &
+               call matrices_init_from_file_bigdft('serial', trim(multipoles_files(m,l)), &
                     bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, multipoles_matrices(m,l))
            end do
        end do

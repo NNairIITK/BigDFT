@@ -295,15 +295,15 @@ program chess_toolbox
    !!        call yaml_mapping_close()
    !!    end if
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
    !!         iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
    !!         init_matmul=.true.)
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
    !!         iproc, nproc, mpiworld(), smat_l, kernel_mat, &
    !!         init_matmul=.true.)
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
    !!         iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
    !!         init_matmul=.true.)
 
@@ -397,12 +397,12 @@ program chess_toolbox
 
    if (solve_eigensystem) then
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
             !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
@@ -454,7 +454,7 @@ program chess_toolbox
        call f_close(iunit)
 
        if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
             !on_which_atom=on_which_atom)
@@ -466,7 +466,7 @@ program chess_toolbox
             ovrlp_mat%matrix_compr, ovrlp_mat%matrix(1:,1:,1))
 
        if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='hamiltonian_mat%matrix')
@@ -729,18 +729,29 @@ program chess_toolbox
            iconv = 2
        case ('bigdft_to_dense')
            iconv = 3
+       case ('binary_to_bigdft')
+           iconv = 4
        case default
-           call f_err_throw("wrong value for conversion; possible are 'bigdft_to_ccs' and 'ccs_to_bigdft'")
+           call f_err_throw("wrong value for conversion; possible are &
+               &'bigdft_to_ccs',&
+               &'ccs_to_bigdft',&
+               &'bigdft_to_dense',&
+               &'binary_to_bigdft'")
        end select
 
        select case (iconv)
        case (1,3)
-           call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
+           call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
        case (2)
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
                 mpiworld(), smat, mat, init_matmul=.false.)
+       case(4)
+           call sparse_matrix_and_matrices_init_from_file_bigdft('parallel', trim(infile), &
+                iproc, nproc, mpiworld(), &
+                smat, mat, init_matmul=.false.)
+           write(*,*) 'after sparse_matrix_and_matrices_init_from_file_bigdft'
        end select
        select case (iconv)
        case (1)
@@ -750,10 +761,10 @@ program chess_toolbox
            if (iproc==0) call ccs_matrix_write(trim(outfile), smat, row_ind, col_ptr, mat)
            call f_free_ptr(row_ind)
            call f_free_ptr(col_ptr)
-       case (2)
-           call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
-                mpiworld(), smat, mat, init_matmul=.false.)
-           call write_sparse_matrix(iproc, nproc, mpiworld(), &
+       case (2,4)
+           !!call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
+           !!     mpiworld(), smat, mat, init_matmul=.false.)
+           call write_sparse_matrix('serial', iproc, nproc, mpiworld(), &
                 smat, mat, trim(outfile))
        case (3)
            call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
@@ -767,13 +778,13 @@ program chess_toolbox
 
    if (calculate_selected_eigenvalues) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
        call matrices_init(smat_l, ovrlp_minus_one_half(1))
@@ -836,10 +847,10 @@ program chess_toolbox
 
    if (kernel_purity) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 
