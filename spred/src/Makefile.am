@@ -3,7 +3,7 @@
 # Main targets.
 # ------------
 dynlibdir           = $(libdir)
-bin_PROGRAMS        = splsad NEB global globaltool mhgps mhgpstool coulomb_global
+bin_PROGRAMS        = splsad NEB global globaltool mhgps mhgpstool lowest_pathway coulomb_global
 EXTRA_PROGRAMS      = bart #NEB_images
 dist_bin_SCRIPTS         = NEB_driver.sh
 lib_LIBRARIES       = libspred-1.a

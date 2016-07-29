@@ -580,5 +580,7 @@ module public_enums
        & f_enumerator('SW_RUN_MODE',-988,null())
   type(f_enumerator), parameter, public :: BAZANT_RUN_MODE             = &
        & f_enumerator('BAZANT_RUN_MODE',-987,null()) 
+  type(f_enumerator), parameter, public :: ALBORZ_RUN_MODE             = &
+       & f_enumerator('BAZANT_RUN_MODE',-986,null()) 
 
 end module public_enums

@@ -1,0 +1,39 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+#List the module the this rcfile will build
+modules = ['spred',]
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    return """"FC=mpif90" "CFLAGS=-lstdc++" "FCFLAGS=-O2 -openmp -I${MKLROOT}/include" "--with-ext-linalg=-L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" "CC=icc" "CXX=icpc" "F77=ifort" """
+def shrt_configuration():
+    return """"FC=ifort" "CFLAGS=-lstdc++" "FCFLAGS=-O2" "CC=icc" "CXX=icpc" "F77=ifort" """
+
+import os
+os.environ['ALBORZHOME']='/kernph/schaba00/Alborz'
+os.environ['PATH']+=':'+os.environ['ALBORZHOME']+'bin'
+
+#here follow the configuration instructions for the modules built
+module_autogenargs.update({
+   
+'libyaml': shrt_configuration(),
+   
+'futile': env_configuration(),
+   
+'psolver': env_configuration(),
+
+'chess': env_configuration(),
+   
+'libxc': shrt_configuration(),
+   
+'libABINIT': env_configuration(),
+   
+'GaIn': shrt_configuration(),
+
+'bigdft': env_configuration() +""" -with-alborz="-L/kernph/schaba00/Alborz/ -lall" """,
+   
+'spred': env_configuration(),
+   
+})

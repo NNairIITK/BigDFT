@@ -107,6 +107,7 @@ if test "$ax_have_FUTILE" != "yes" ; then
   AC_MSG_ERROR(["Cannot find Futile library."])
 fi
 
+
 dnl to be removed when MPI goes to flib.
 AX_PSOLVER() 
 if test "$ax_have_PSOLVER" != "yes" ; then

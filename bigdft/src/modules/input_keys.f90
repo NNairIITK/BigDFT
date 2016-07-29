@@ -1563,6 +1563,8 @@ contains
              in%run_mode=MORSE_SLAB_RUN_MODE
           case('tersoff')
              in%run_mode=TERSOFF_RUN_MODE
+          case('alborz')
+             in%run_mode=ALBORZ_RUN_MODE
           case('bmhtf')
              in%run_mode=BMHTF_RUN_MODE
           case('cp2k')

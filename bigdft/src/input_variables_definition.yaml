@@ -1157,6 +1157,7 @@
        morse_bulk: Morse bulk
        morse_slab: Morse slab
        tersoff: Tersoff potential for C and Si
+       alborz: Alireza Ghasemis ALBORZ package
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
        cp2k: CP2K
        dftbp: DFTP+
