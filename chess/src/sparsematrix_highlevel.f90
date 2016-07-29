@@ -240,11 +240,13 @@ module sparsematrix_highlevel
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
 
-      if (trim(mode)/='serial' .and. trim(mode)/='parallel') then
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
           call f_err_throw("wrong value of 'mode'")
       end if
 
       ! Read in the matrix
+      ! This is necessary to get the values in val, even though the matrix 
+      ! is then read once again in sparse_matrix_init_from_file_bigdft
       call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
       if (present(init_matmul)) then
@@ -318,7 +320,7 @@ module sparsematrix_highlevel
           init_matmul_ = .false.
       end if
 
-      if (trim(mode)/='serial' .and. trim(mode)/='parallel') then
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
           call f_err_throw("wrong value of 'mode'")
       end if
 
@@ -372,7 +374,7 @@ module sparsematrix_highlevel
     
       call f_routine(id='matrices_init_from_file_bigdft')
 
-      if (trim(mode)/='serial' .and. trim(mode)/='parallel') then
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
           call f_err_throw("wrong value of 'mode'")
       end if
     

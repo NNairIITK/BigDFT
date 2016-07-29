@@ -90,7 +90,7 @@ program chess_toolbox
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
-   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot
    character(len=20),dimension(:),pointer :: atomnames
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
@@ -98,6 +98,7 @@ program chess_toolbox
    real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
+   character(len=1024) :: outfile_base, outfile_extension
    ! Presumably well suited colorschemes from colorbrewer2.org
    character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
                                                               '#1f78b4', &
@@ -295,15 +296,15 @@ program chess_toolbox
    !!        call yaml_mapping_close()
    !!    end if
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
    !!         iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
    !!         init_matmul=.true.)
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
    !!         iproc, nproc, mpiworld(), smat_l, kernel_mat, &
    !!         init_matmul=.true.)
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
    !!         iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
    !!         init_matmul=.true.)
 
@@ -397,12 +398,12 @@ program chess_toolbox
 
    if (solve_eigensystem) then
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
             !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
@@ -454,7 +455,7 @@ program chess_toolbox
        call f_close(iunit)
 
        if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
             !on_which_atom=on_which_atom)
@@ -466,7 +467,7 @@ program chess_toolbox
             ovrlp_mat%matrix_compr, ovrlp_mat%matrix(1:,1:,1))
 
        if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='hamiltonian_mat%matrix')
@@ -741,14 +742,14 @@ program chess_toolbox
 
        select case (iconv)
        case (1,3)
-           call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(infile), &
+           call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
        case (2)
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
                 mpiworld(), smat, mat, init_matmul=.false.)
        case(4)
-           call sparse_matrix_and_matrices_init_from_file_bigdft('parallel', trim(infile), &
+           call sparse_matrix_and_matrices_init_from_file_bigdft('parallel_mpi-native', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
        end select
@@ -763,8 +764,18 @@ program chess_toolbox
        case (2,4)
            !!call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
            !!     mpiworld(), smat, mat, init_matmul=.false.)
-           call write_sparse_matrix('serial', iproc, nproc, mpiworld(), &
-                smat, mat, trim(outfile))
+           if (len(outfile)>1024) then
+               call f_err_throw('filename is too long')
+           end if
+
+           index_dot = index(outfile,'.',back=.true.)
+           outfile_base = outfile(1:index_dot-1)
+           outfile_extension = outfile(index_dot:)
+           if (trim(outfile_extension)/='.dat') then
+               call f_err_throw('Wrong file extension; must be .dat, but found '//trim(outfile_extension))
+           end if
+           call write_sparse_matrix('serial_text', iproc, nproc, mpiworld(), &
+                smat, mat, trim(outfile_base))
        case (3)
            call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
 
@@ -777,13 +788,13 @@ program chess_toolbox
 
    if (calculate_selected_eigenvalues) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
        call matrices_init(smat_l, ovrlp_minus_one_half(1))
@@ -846,10 +857,10 @@ program chess_toolbox
 
    if (kernel_purity) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 

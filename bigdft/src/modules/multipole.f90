@@ -1,6 +1,7 @@
 module multipole
   use module_base
   use multipole_base, only: external_potential_descriptors, lmax
+  use public_enums
   implicit none
 
   private
@@ -2016,7 +2017,7 @@ module multipole
      
     subroutine multipole_analysis_driver_new(iproc, nproc, lmax, ixc, smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
-               calculate_multipole_matrices, do_check, write_multipole_matrices, &
+               calculate_multipole_matrices, do_check, write_multipole_matrices_mode, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
                lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj, filename)
       use module_base
@@ -2039,6 +2040,7 @@ module multipole
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use foe_base, only: foe_data
       use box
+      use io, only: get_sparse_matrix_format
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, lmax, ixc
@@ -2053,7 +2055,8 @@ module multipole
       character(len=*),intent(in) :: method
       character(len=*),intent(in) :: do_ortho
       character(len=*),intent(in) :: projectormode
-      logical,intent(in) :: calculate_multipole_matrices, do_check, write_multipole_matrices
+      logical,intent(in) :: calculate_multipole_matrices, do_check
+      integer,intent(in) :: write_multipole_matrices_mode
       integer,intent(in),optional :: nphi, nphir
       real(kind=8),dimension(:),intent(in),optional :: lphi
       real(kind=8),dimension(3),intent(in),optional :: hgrids
@@ -2089,7 +2092,7 @@ module multipole
       type(matrices) :: newovrlp, ovrlp_large, multipole_matrix_large
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
       type(matrices),dimension(1) :: inv_ovrlp
-      logical :: perx, pery, perz
+      logical :: perx, pery, perz, write_matrices
       logical,dimension(:,:),allocatable :: neighborx
       integer,dimension(:),allocatable :: nx
       character(len=20),dimension(:),allocatable :: names
@@ -2116,6 +2119,7 @@ module multipole
       type(cell) :: mesh
       character(len=2) :: lname, mname
       character(len=14) :: matname
+      character(len=128) :: sparse_format
 
 
       call f_routine(id='multipole_analysis_driver')
@@ -2215,10 +2219,13 @@ module multipole
           call f_err_throw('wrong projectormode',err_name='BIGDFT_RUNTIME_ERROR')
       end select
 
-      if (write_multipole_matrices) then
+      if (mod(write_multipole_matrices_mode,10)/=MATRIX_FORMAT_NONE) then
           if (.not.present(filename)) then
               call f_err_throw('filename not present',err_name='BIGDFT_RUNTIME_ERROR')
           end if
+          write_matrices = .true.
+      else
+          write_matrices = .false.
       end if
 
 
@@ -2326,11 +2333,12 @@ module multipole
               if (calculate_multipole_matrices) then
                   call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
                        orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
-                  if (write_multipole_matrices) then
+                  if (write_matrices) then
+                      call get_sparse_matrix_format(write_multipole_matrices_mode, sparse_format)
                       write(lname,'(i0)') l
                       write(mname,'(i0)') m
-                      matname = 'mpmat_'//trim(lname)//'_'//trim(mname)//'.bin'
-                      call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
+                      matname = 'mpmat_'//trim(lname)//'_'//trim(mname)
+                      call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
                            smats, multipole_matrix, &
                            filename=trim(filename//matname))
                   end if

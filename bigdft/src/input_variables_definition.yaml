@@ -1579,6 +1579,7 @@
           *  2 => Fortran binary in sparse format
           * 12 => Fortran binary in dense format
           * 22 => Fortran binary in both formats
+          *  4 => MPI native binary in sparse format
        default: 0
        EXCLUSIVE:
          0:  None

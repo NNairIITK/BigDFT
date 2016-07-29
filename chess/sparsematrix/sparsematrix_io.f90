@@ -91,9 +91,9 @@ module sparsematrix_io
 
       call f_routine(id='read_sparse_matrix')
 
-      if (trim(mode)=='parallel') then
+      if (trim(mode)=='parallel_mpi-native') then
           call read_sparse_matrix_parallel(filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr)
-      else if (trim(mode)=='serial') then
+      else if (trim(mode)=='serial_text') then
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
@@ -293,15 +293,32 @@ module sparsematrix_io
       call gather_matrix_from_taskgroups(iproc, nproc, comm, &
            smat, mat%matrix_compr, matrix_compr)
 
-      call write_sparse_matrix_parallel(iproc, nproc, comm, smat, matrix_compr, trim(filename)//'.mpi')
-      if (trim(mode)=='parallel') then
-          call write_sparse_matrix_parallel(iproc, nproc, comm, smat, matrix_compr, trim(filename)//'.mpi')
-      else if (trim(mode)=='serial') then
+      !!call write_sparse_matrix_parallel(iproc, nproc, comm, smat, matrix_compr, trim(filename)//'.mpi')
+      if (trim(mode)=='parallel_mpi-native') then
+          call write_sparse_matrix_parallel(iproc, nproc, comm, &
+               smat%nspin, smat%nfvctr, smat%nseg, smat%nvctr, smat%keyv, smat%keyg, &
+               matrix_compr, trim(filename)//'.mpi')
+          call f_free(matrix_compr)
+          if (smat%smatmul_initialized) then
+              !index_dot = index(filename,'.',back=.true.)
+              !filename_base = filename(1:index_dot-1)
+              !filename_extension = filename(index_dot:)
+              !filename_matmul = trim(filename_base)//'_matmul'//trim(filename_extension)
+              filename_matmul = trim(filename)//'_matmul'
+              ! Fill the array with zero, as the entries have no meaning
+              matrix_compr = f_malloc0(sum(smat%smmm%nvctr_par),id='matrix_compr')
+              call write_sparse_matrix_parallel(iproc, nproc, comm, &
+                   smat%nspin, smat%nfvctr, smat%smmm%nseg, sum(smat%smmm%nvctr_par), &
+                   smat%smmm%keyv, smat%smmm%keyg, &
+                   matrix_compr, trim(filename_matmul)//'.mpi')
+              call f_free(matrix_compr)
+          end if
+      else if (trim(mode)=='serial_text') then
 
           if (iproc==0) then
 
               iunit = 99
-              call f_open_file(iunit, file=trim(filename), binary=.false.)
+              call f_open_file(iunit, file=trim(filename)//'.dat', binary=.false.)
 
               !!write(iunit,'(i10,2i6,3x,a,3es24.16,a)') nat, ntypes, smat%nspin, smat%geocode, smat%cell_dim, &
               !!    '   # number of atoms, number of atom types, nspin, geocode, cell_dim'
@@ -333,17 +350,18 @@ module sparsematrix_io
               end do
 
               call f_close(iunit)
-
               call f_free(matrix_compr)
+
 
               if (smat%smatmul_initialized) then
                   iunit = 99
-                  index_dot = index(filename,'.',back=.true.)
-                  filename_base = filename(1:index_dot-1)
-                  filename_extension = filename(index_dot:)
-                  filename_matmul = trim(filename_base)//'_matmul'//trim(filename_extension)
+                  !index_dot = index(filename,'.',back=.true.)
+                  !filename_base = filename(1:index_dot-1)
+                  !filename_extension = filename(index_dot:)
+                  !filename_matmul = trim(filename_base)//'_matmul'//trim(filename_extension)
+                  filename_matmul = trim(filename)//'_matmul'
                   !call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
-                  call f_open_file(iunit, file=trim(filename_matmul), binary=.false.)
+                  call f_open_file(iunit, file=trim(filename_matmul)//'.dat', binary=.false.)
 
                   write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%smmm%nseg, sum(smat%smmm%nvctr_par), &
                       '   # nspin, nfvctr, nseg, nvctr'
@@ -362,7 +380,7 @@ module sparsematrix_io
                               !jat = smat%on_which_atom(irow)
                               ind = ind + 1
                               !write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
-                              write(iunit,'(es24.16,a,i0,a)') 0123456789._mp,'   # matrix_compr(',ind,')'
+                              write(iunit,'(es24.16,a,i0,a)') 0.0_mp,'   # matrix_compr(',ind,')'
                           end do
                       end do
                   end do
@@ -376,20 +394,24 @@ module sparsematrix_io
           call f_err_throw("wrong value for 'mode'")
       end if
 
+
       call f_release_routine()
 
     end subroutine write_sparse_matrix
 
 
 
-    subroutine write_sparse_matrix_parallel(iproc, nproc, comm, smat, matrix_compr, filename)
+    subroutine write_sparse_matrix_parallel(iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, &
+               keyv, keyg, matrix_compr, filename)
       use sparsematrix_init, only: distribute_on_tasks
       implicit none
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
-      type(sparse_matrix),intent(in) :: smat
-      real(kind=mp),dimension(smat%nvctr),intent(in) :: matrix_compr
+      integer,intent(in) :: nspin, nfvctr, nseg, nvctr
+      integer,dimension(nseg),intent(in) :: keyv
+      integer,dimension(2,2,nseg),intent(in) :: keyg
+      real(kind=mp),dimension(nvctr),intent(in) :: matrix_compr
       character(len=*),intent(in) :: filename
 
       ! Local variables
@@ -411,23 +433,23 @@ module sparsematrix_io
       disp = int(0,kind=mpi_offset_kind)
       call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
       if (iproc==0) then
-          workarr_header(1) = smat%nspin
-          workarr_header(2) = smat%nfvctr
-          workarr_header(3) = smat%nseg
-          workarr_header(4) = smat%nvctr
+          workarr_header(1) = nspin
+          workarr_header(2) = nfvctr
+          workarr_header(3) = nseg
+          workarr_header(4) = nvctr
           call mpi_file_write(thefile, workarr_header, 4, mpi_integer, mpi_status_ignore, ierr)
       end if
 
       ! Write the matrix keys
-      call distribute_on_tasks(smat%nseg, iproc, nproc, np, is)
+      call distribute_on_tasks(nseg, iproc, nproc, np, is)
       workarr_keys = f_malloc((/5,np/),id='workarr_keys')
       do i=1,np
           ii = is + i
-          workarr_keys(1,i) = smat%keyv(ii)
-          workarr_keys(2,i) = smat%keyg(1,1,ii)
-          workarr_keys(3,i) = smat%keyg(2,1,ii)
-          workarr_keys(4,i) = smat%keyg(1,2,ii)
-          workarr_keys(5,i) = smat%keyg(2,2,ii)
+          workarr_keys(1,i) = keyv(ii)
+          workarr_keys(2,i) = keyg(1,1,ii)
+          workarr_keys(3,i) = keyg(2,1,ii)
+          workarr_keys(4,i) = keyg(1,2,ii)
+          workarr_keys(5,i) = keyg(2,2,ii)
       end do
       disp = int((4+5*is)*size_of_integer,kind=mpi_offset_kind)
       call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
@@ -435,8 +457,8 @@ module sparsematrix_io
       call f_free(workarr_keys)
 
       ! Write the matrices
-      call distribute_on_tasks(smat%nvctr, iproc, nproc, np, is)
-      disp = int((4+5*smat%nseg)*size_of_integer+is*size_of_double,kind=mpi_offset_kind)
+      call distribute_on_tasks(nvctr, iproc, nproc, np, is)
+      disp = int((4+5*nseg)*size_of_integer+is*size_of_double,kind=mpi_offset_kind)
       call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr)
       if (np>1) then
           call mpi_file_write(thefile, matrix_compr(is+1), np, mpi_double_precision, mpi_status_ignore, ierr)

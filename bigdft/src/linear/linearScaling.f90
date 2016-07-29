@@ -1221,7 +1221,7 @@ end if
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
                rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices=.true., do_check=.true., &
-               write_multipole_matrices=mod(input%lin%output_mat_format,10)/=WF_FORMAT_NONE, &
+               write_multipole_matrices_mode=input%lin%output_mat_format, &
                nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
                hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
                lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift, &
@@ -1310,7 +1310,7 @@ end if
      end if
   end if
   ! Write the sparse matrices
-  if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
+  if (mod(input%lin%output_mat_format,10) /= MATRIX_FORMAT_NONE) then
       call timing(iproc,'write_matrices','ON')
       call write_linear_matrices(iproc,nproc,bigdft_mpi%mpi_comm,input%imethod_overlap,trim(input%dir_output),&
            input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &

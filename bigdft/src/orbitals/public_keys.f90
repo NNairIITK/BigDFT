@@ -372,13 +372,21 @@ module public_enums
   integer, parameter :: BINARY=2
   integer, parameter :: ETSF=3
   integer, parameter :: CUBE=22
+  integer, parameter :: MPI_NATIVE=4 !<native (i.e. non-portable) MPI format
 
 
   !> Output wf parameters.
-  integer, parameter, public :: WF_FORMAT_NONE   = NONE
-  integer, parameter, public :: WF_FORMAT_PLAIN  = TEXT
-  integer, parameter, public :: WF_FORMAT_BINARY = BINARY
-  integer, parameter, public :: WF_FORMAT_ETSF   = ETSF
+  integer, parameter, public :: WF_FORMAT_NONE       = NONE
+  integer, parameter, public :: WF_FORMAT_PLAIN      = TEXT
+  integer, parameter, public :: WF_FORMAT_BINARY     = BINARY
+  integer, parameter, public :: WF_FORMAT_ETSF       = ETSF
+
+  !> Output matrix parameters.
+  integer, parameter, public :: MATRIX_FORMAT_NONE       = NONE
+  integer, parameter, public :: MATRIX_FORMAT_PLAIN      = TEXT
+  integer, parameter, public :: MATRIX_FORMAT_BINARY     = BINARY
+  integer, parameter, public :: MATRIX_FORMAT_ETSF       = ETSF
+  integer, parameter, public :: MATRIX_FORMAT_MPI_NATIVE = MPI_NATIVE
 
   !> Output grid parameters.
   ! with these options we would have

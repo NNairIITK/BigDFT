@@ -27,8 +27,8 @@ module io
   public :: plot_density
   public :: plot_locreg_grids
   public :: write_energies
-
   public :: io_files_exists
+  public :: get_sparse_matrix_format
 
   contains
 
@@ -1927,6 +1927,7 @@ module io
       real(kind=8),dimension(:),pointer :: ham_large, tmp_large
       real(kind=8) :: max_error, mean_error
       integer, dimension(1) :: power
+      character(len=128) :: sparse_format
     
       call f_routine(id='write_linear_matrices')
 
@@ -1936,11 +1937,13 @@ module io
       unitm=99
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
 
+      call get_sparse_matrix_format(iformat, sparse_format)
+
       if (write_sparse) then
           call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
                at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
+               tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.dat'))
 
       end if
     
@@ -1950,8 +1953,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse'))
       end if
     
     
@@ -1961,8 +1964,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse')
       end if
     
     
@@ -1972,8 +1975,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse')
       end if
     
     
@@ -2062,8 +2065,8 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix('serial', iproc, nproc, bigdft_mpi%mpi_comm, &
-                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if
@@ -2657,6 +2660,22 @@ module io
     
         end subroutine write_iter
     end subroutine write_energies
+
+
+   subroutine get_sparse_matrix_format(iformat, sparse_format)
+     use module_base
+     implicit none
+     integer,intent(in) :: iformat
+     character(len=*),intent(out) :: sparse_format
+
+     if (mod(iformat,10) == MATRIX_FORMAT_PLAIN) then
+         sparse_format = 'serial_text'
+     else if (mod(iformat,10) == MATRIX_FORMAT_MPI_NATIVE) then
+         sparse_format = 'parallel_mpi-native'
+     else
+         call f_err_throw("unsupported value for 'iformat'")
+     end if
+   end subroutine get_sparse_matrix_format
 
 
 end module io

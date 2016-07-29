@@ -187,7 +187,7 @@ program driver_random
            1, (/nbuf_large/), (/.true./), smatl)
   else
       if (trim(matgen_method)=='random') then
-          call sparse_matrix_init_from_file_bigdft(trim(infile), &
+          call sparse_matrix_init_from_file_bigdft('serial_text', trim(infile), &
               iproc, nproc, mpi_comm_world, smats, &
               init_matmul=.false.)
       else if (trim(matgen_method)=='file') then
@@ -195,7 +195,7 @@ program driver_random
               iproc, nproc, mpi_comm_world, smats, mat2,&
               init_matmul=.false.)
       end if
-      call sparse_matrix_init_from_file_bigdft(trim(outfile), &
+      call sparse_matrix_init_from_file_bigdft('serial_text', trim(outfile), &
           iproc, nproc, mpi_comm_world, smatl(1), &
           init_matmul=.true., filename_mult=trim(outmatmulfile))
   end if
@@ -280,7 +280,7 @@ program driver_random
 
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
   if (write_matrices) then
-      call write_sparse_matrix('serial', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
+      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
   end if
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
@@ -299,7 +299,7 @@ program driver_random
        gather_routine=gather_timings)
 
   if (write_matrices) then
-      call write_sparse_matrix('serial', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
   end if
 
 

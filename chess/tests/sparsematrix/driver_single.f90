@@ -135,7 +135,7 @@ program driver_single
       call yaml_comment('Output matrix',hfill='-')
       !call yaml_mapping_open('Output matrix structure')
   end if
-  call sparse_matrix_init_from_file_bigdft('serial', trim(filename_out), &
+  call sparse_matrix_init_from_file_bigdft('serial_text', trim(filename_out), &
        iproc, nproc, mpi_comm_world, smat_out, &
        init_matmul=.true., filename_mult=trim(filename_out_matmul))
   if (iproc==0) then

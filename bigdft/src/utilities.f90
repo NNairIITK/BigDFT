@@ -257,15 +257,15 @@ program utilities
            call yaml_mapping_close()
        end if
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, ovrlp_mat, &
             init_matmul=.false.)
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
             bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_file_matmul))
 
@@ -327,7 +327,7 @@ program utilities
                 ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
                 methodc, do_ortho=trim(do_ortho), projectormode='simple', &
                 calculate_multipole_matrices=.false., do_check=.false., &
-                write_multipole_matrices=.false., &
+                write_multipole_matrices_mode=0, &
                 multipole_matrix_in=(/(/ovrlp_mat/)/))
        case ('realspace','REALSPACE')
            call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, ll, 11, &
@@ -335,7 +335,7 @@ program utilities
                 ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
                 methodc, do_ortho=trim(do_ortho), projectormode='simple', &
                 calculate_multipole_matrices=.false., do_check=.false., &
-                write_multipole_matrices=.false., &
+                write_multipole_matrices_mode=0, &
                 multipole_matrix_in=multipoles_matrices)
        case default
            call f_err_throw('wrong value for matrix_basis',err_name='BIGDFT_RUNTIME_ERROR')
