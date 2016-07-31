@@ -98,7 +98,7 @@ program chess_toolbox
    real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
-   character(len=1024) :: outfile_base, outfile_extension
+   character(len=1024) :: outfile_base, outfile_extension, matrix_format
    ! Presumably well suited colorschemes from colorbrewer2.org
    character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
                                                               '#1f78b4', &
@@ -202,6 +202,8 @@ program chess_toolbox
          !!   exit loop_getargs
          else if (trim(tatonam)=='solve-eigensystem') then
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_file)
@@ -214,6 +216,8 @@ program chess_toolbox
             solve_eigensystem = .true.
             exit loop_getargs
          else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
@@ -235,6 +239,8 @@ program chess_toolbox
             convert_matrix_format = .true.
         else if (trim(tatonam)=='calculate-selected-eigenvalues') then
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
@@ -255,6 +261,8 @@ program chess_toolbox
             read(fscale_,fmt=*,iostat=ierr) fscale
             calculate_selected_eigenvalues = .true.
         else if (trim(tatonam)=='kernel-purity') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
@@ -398,12 +406,14 @@ program chess_toolbox
 
    if (solve_eigensystem) then
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
             !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
@@ -448,14 +458,14 @@ program chess_toolbox
 
    if (calculate_pdos) then
        iunit = 99
-       if (iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
             eval=eval_ptr)
        call f_close(iunit)
 
-       if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
             !on_which_atom=on_which_atom)
@@ -466,8 +476,8 @@ program chess_toolbox
        call uncompress_matrix_distributed2(iproc, smat_s, DENSE_PARALLEL, &
             ovrlp_mat%matrix_compr, ovrlp_mat%matrix(1:,1:,1))
 
-       if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='hamiltonian_mat%matrix')
@@ -742,13 +752,16 @@ program chess_toolbox
 
        select case (iconv)
        case (1,3)
+           !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
            call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
        case (2)
+           !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
                 mpiworld(), smat, mat, init_matmul=.false.)
        case(4)
+           !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
            call sparse_matrix_and_matrices_init_from_file_bigdft('parallel_mpi-native', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
@@ -788,13 +801,13 @@ program chess_toolbox
 
    if (calculate_selected_eigenvalues) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
        call matrices_init(smat_l, ovrlp_minus_one_half(1))
@@ -857,10 +870,10 @@ program chess_toolbox
 
    if (kernel_purity) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 

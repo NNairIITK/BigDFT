@@ -84,16 +84,37 @@ module sparsematrix_io
       real(kind=mp),dimension(:),pointer,intent(out) :: mat_compr
 
       ! Local variables
-      integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype
+      integer :: iunit, dummy_int, iseg, icol, irow, jorb, ind, ispin, iat, ntypes_, nat_, itype, index_dot
       real(kind=mp) :: dummy_double
       character(len=20) :: dummy_char
-      logical :: read_rxyz, read_on_which_atom
+      character(len=128) :: filename_extension
+      logical :: read_rxyz, read_on_which_atom, file_present
 
       call f_routine(id='read_sparse_matrix')
 
+      if (iproc==0) call yaml_comment('Reading from file '//trim(filename),hfill='~')
+      inquire(file=trim(filename),exist=file_present)
+      if (.not.file_present) then
+          call f_err_throw("File '"//trim(filename)//"' is not present", &
+               err_name='SPARSEMATRIX_IO_ERROR')
+      end if
+
+      index_dot = index(filename,'.',back=.true.)
+      filename_extension = filename(index_dot:)
+
       if (trim(mode)=='parallel_mpi-native') then
+          if (trim(filename_extension)/='.mpi') then
+              call f_err_throw("Wrong file extension; '.mpi' is required, but found "//trim(filename_extension)&
+                   &//" ("//trim(filename)//")", &
+                   err_name='SPARSEMATRIX_IO_ERROR')
+          end if
           call read_sparse_matrix_parallel(filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr)
       else if (trim(mode)=='serial_text') then
+          if (trim(filename_extension)/='.txt') then
+              call f_err_throw("Wrong file extension; '.txt' is required, but found "//trim(filename_extension)&
+                   &//" ("//trim(filename)//")", &
+                   err_name='SPARSEMATRIX_IO_ERROR')
+          end if
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
@@ -318,7 +339,7 @@ module sparsematrix_io
           if (iproc==0) then
 
               iunit = 99
-              call f_open_file(iunit, file=trim(filename)//'.dat', binary=.false.)
+              call f_open_file(iunit, file=trim(filename)//'.txt', binary=.false.)
 
               !!write(iunit,'(i10,2i6,3x,a,3es24.16,a)') nat, ntypes, smat%nspin, smat%geocode, smat%cell_dim, &
               !!    '   # number of atoms, number of atom types, nspin, geocode, cell_dim'

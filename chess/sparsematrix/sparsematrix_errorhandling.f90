@@ -29,6 +29,7 @@ module sparsematrix_errorhandling
   integer,save,public :: SPARSEMATRIX_MANIPULATION_ERROR
   integer,save,public :: SPARSEMATRIX_RUNTIME_ERROR
   integer,save,public :: SPARSEMATRIX_INITIALIZATION_ERROR
+  integer,save,public :: SPARSEMATRIX_IO_ERROR
 
   !> Public routine
   public :: sparsematrix_init_errors
@@ -57,6 +58,11 @@ module sparsematrix_errorhandling
 
       call f_err_define('SPARSEMATRIX_INITIALIZATION_ERROR',&
            'a problem related to the initialization of a sparse matrix occured',&
+           SPARSEMATRIX_MANIPULATION_ERROR,&
+           err_action='Check the calling arguments and the dedicated error message')
+
+      call f_err_define('SPARSEMATRIX_IO_ERROR',&
+           'a problem related to the IO of a sparse matrix occured',&
            SPARSEMATRIX_MANIPULATION_ERROR,&
            err_action='Check the calling arguments and the dedicated error message')
   
