@@ -809,7 +809,7 @@ module sparsematrix_init
       integer,dimension(:,:,:),allocatable :: keyg_mult
       integer,dimension(:),allocatable :: keyv_mult
       logical :: allocate_full_, print_info_, store_index_ !LG: internal variables have the underscore, not the opposite
-      integer(kind=8) :: ntot
+      integer(kind=mp) :: ntot
 
       real(kind=4) :: tr0, tr1, trt0, trt1
       real(kind=mp) :: time0, time1, time2, time3, time4, time5, ttime
