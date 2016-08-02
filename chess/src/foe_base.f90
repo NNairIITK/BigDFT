@@ -1,3 +1,24 @@
+!> @file
+!!   File containing basic routines for FOE
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module foe_base
   use sparsematrix_base
   implicit none
@@ -105,7 +126,7 @@ module foe_base
       case ("npl_stride")
           foe_obj%npl_stride = val
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end subroutine foe_data_set_int
@@ -134,7 +155,7 @@ module foe_base
       case ("npl_stride")
           val = foe_obj%npl_stride
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end function foe_data_get_int
@@ -214,7 +235,7 @@ module foe_base
       case ("betax")
           foe_obj%betax = val
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end subroutine foe_data_set_real
@@ -293,7 +314,7 @@ module foe_base
       case ("betax")
           val = foe_obj%betax
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end function foe_data_get_real
@@ -306,7 +327,7 @@ module foe_base
 
       select case (fieldname)
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end subroutine foe_data_set_logical
@@ -318,7 +339,7 @@ module foe_base
 
       select case (fieldname)
       case default
-          stop 'wrong arguments'
+          call f_err_throw("wrong argument for "//trim(fieldname))
       end select
 
     end function foe_data_get_logical

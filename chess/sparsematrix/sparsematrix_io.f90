@@ -1,3 +1,24 @@
+!> @file
+!!   Sparse matrix I/O routines
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module sparsematrix_io
   use sparsematrix_base
   implicit none
@@ -173,10 +194,15 @@ module sparsematrix_io
       character(len=*),intent(in) :: filename
 
       ! Local variables
-      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype
+      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype, index_dot
       real(kind=mp),dimension(:),allocatable :: matrix_compr
+      character(len=1024) :: filename_base, filename_extension, filename_matmul
 
       call f_routine(id='write_sparse_matrix')
+      
+      if (len(filename)>1024) then
+          call f_err_throw('filename is too long')
+      end if
 
       matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
       call gather_matrix_from_taskgroups(iproc, nproc, comm, &
@@ -222,7 +248,12 @@ module sparsematrix_io
 
           if (smat%smatmul_initialized) then
               iunit = 99
-              call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
+              index_dot = index(filename,'.',back=.true.)
+              filename_base = filename(1:index_dot-1)
+              filename_extension = filename(index_dot:)
+              filename_matmul = trim(filename_base)//'_matmul'//trim(filename_extension)
+              !call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
+              call f_open_file(iunit, file=trim(filename_matmul), binary=.false.)
 
               write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%smmm%nseg, sum(smat%smmm%nvctr_par), &
                   '   # nspin, nfvctr, nseg, nvctr'

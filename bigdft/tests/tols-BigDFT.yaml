@@ -612,7 +612,7 @@ rotate_read1:
  energydiff: 8.3e-11
  Omega: 8.1e-11
  D: 1.1e-10
- Energy (Hartree): 2.6e-11
+ Energy (Hartree): 4.9e-11
  Maxdiff for transpose (checksum): 9.4e-10
 
 rotate_read2:
@@ -687,6 +687,7 @@ molecule_dmix:
  e: 1.4e-10
  Total charge: 1.1e-08
  Energy (Hartree): 8.4e-11
+ Maxdiff for transpose (checksum): 1.9e-09
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -705,6 +706,7 @@ molecule_pmix:
  Raw forces norm (Ha/Bohr): 6.2e-11
  Energy (Hartree): 8.6e-11
  Average noise forces: 1.1e-10
+ Maxdiff for transpose (checksum): 1.9e-09
 
 molecule_dmin:
  Enl: 6.6e-9
@@ -721,6 +723,7 @@ molecule_dmin:
  e: 1.4e-10
  Average noise forces: 4.1e-11
  Energy (Hartree): 6.9e-11
+ Maxdiff for transpose (checksum): 1.9e-09
 
 molecule_foe:
  Enl: 6.6e-9
@@ -917,13 +920,14 @@ water_dirmin:
  EH: 1.1e-9
  Epot: 1.1e-9
  Enl: 1.1e-10
+ Ekin: 1.0e-9
  eBS: 2.99e-11
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
  energydiff: 2.6e-11
  D: 1.1e-09
- Energy (Hartree): 4.6e-11
+ Energy (Hartree): 8.2e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -931,7 +935,7 @@ water_dirmin:
 water_mixdens:
  EvXC: 1.1e-10
  EXC: 1.1e-10
- EH: 1.0e-9
+ EH: 1.1e-9
  Epot: 1.1e-9
  Enl: 1.1e-10
  Ekin: 1.0e-9
@@ -942,7 +946,7 @@ water_mixdens:
  energydiff: 2.5e-11
  etot: 1.7e-10
  Omega: 1.7e-10
- Energy (Hartree): 4.8e-11
+ Energy (Hartree): 7.9e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -958,7 +962,7 @@ water_mixpot:
  energy: 1.8e-10
  Omega: 1.8e-10
  etot: 1.8e-10
- Energy (Hartree): 5.2e-11
+ Energy (Hartree): 9.3e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -979,9 +983,10 @@ deltascf_read_charge:
  Omega: 3.2e-10
  Raw forces norm (Ha/Bohr): 2.1e-10
  EH: 1.1e-9
- Energy (Hartree): 1.3e-10
+ Energy (Hartree): 1.4e-10
  D: 1.01e-9
  Maxdiff for transpose (checksum): 9.4e-10
+ Total charge: 2.0e-11
 
 deltascf_write_neut:
  eBS: 6.1e-9
@@ -996,8 +1001,8 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.4e-10
  D: 6.1e-9
- Energy (Hartree): 9.4e-11
- Maxdiff for transpose (checksum): 9.4e-10
+ Energy (Hartree): 1.1e-10
+ Maxdiff for transpose (checksum): 2.8e-9
 
 foe:
  Epot: 1.1e-10
@@ -1229,6 +1234,9 @@ reformatcomplete_read36:
  eBS: 3.6e-7
  EXC: 6.4e-8
  EH: 3.8e-7
+ Ekin: 1.0e-10
+ Maxdiff for transpose (checksum): 4.7e-10
+
 
 reformatcomplete_read45:
  energy: 8.8e-10

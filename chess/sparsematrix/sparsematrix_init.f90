@@ -1,11 +1,22 @@
 !> @file
-!!  File defining the structures to deal with the sparse matrices
+!!   Sparse matrix initialization routines
 !! @author
-!!    Copyright (C) 2014-2015 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
 
 
 !> Module defining the basic operations with sparse matrices (initialization)
@@ -2174,7 +2185,7 @@ module sparsematrix_init
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
-          init_matmul_ = .true.
+          init_matmul_ = .false.
       end if
 
       if (init_matmul_) then
@@ -4481,18 +4492,28 @@ module sparsematrix_init
     end subroutine init_transposed_lookup_local
 
 
-    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, nfvctr, nvctr, smat)
+    subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, &
+               nfvctr, nvctr, nbuf_mult, init_matmul, smat, &
+               nextra, nbuf_extra, init_matmul_extra, smat_extra)
       use random, only: builtin_rand
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr
+      integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nbuf_mult
+      logical,intent(in) :: init_matmul
       type(sparse_matrix),intent(out) :: smat
+      integer,intent(in),optional :: nextra
+      integer,dimension(:),intent(in),optional :: nbuf_extra
+      logical,dimension(:),intent(in),optional :: init_matmul_extra
+      type(sparse_matrix),dimension(:),intent(out),optional :: smat_extra
       ! Local variables
       integer :: itotal, idum, ivctr, ii, jj, it
       real(kind=mp) :: tt
       real(kind=4) :: tt_rand
-      integer :: nnonzero, inonzero
-      integer,dimension(:,:),allocatable :: nonzero, nonzero_check
+      integer :: nnonzero, inonzero, nnonzero_buf_mult, i, j, imod, jmod, iextra, nextra_
+      integer,dimension(:,:),allocatable :: nonzero, nonzero_check, nonzero_buf_mult
+      integer,dimension(:),allocatable :: nnonzero_extra
+      integer,dimension(:,:,:),allocatable :: nonzero_extra
+      logical :: calc_nextra
       type(f_progress_bar) :: bar
 
       call f_routine(id='generate_random_symmetric_sparsity_pattern')
@@ -4507,97 +4528,94 @@ module sparsematrix_init
           call f_err_throw('nvctr>nfvctr**2', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
       end if
 
-      ! Determine the sparisty pattern only on root and then broadcast, just to be sure
+      nextra_ = 0
+      if (present(nextra)) nextra_ = nextra
+
+      if (nextra_>0) then
+          if (.not.present(nbuf_extra)) then
+              call f_err_throw("'nbuf_extra' not present", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (.not.present(init_matmul_extra)) then
+              call f_err_throw("'init_matmul_extra' not present", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (.not.present(smat_extra)) then
+              call f_err_throw("'smat_extra' not present", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(nbuf_extra)/=nextra_) then
+              call f_err_throw("wrong size of 'nbuf_extra'", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(init_matmul_extra)/=nextra_) then
+              call f_err_throw("wrong size of 'init_matmul_extra'", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (size(smat_extra)/=nextra_) then
+              call f_err_throw("wrong size of 'smat_extra'", err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          do iextra=1,nextra_
+              if (nbuf_extra(iextra)>nbuf_mult) then
+                  call f_err_throw('nbuf_extra(iextra)>nbuf_mult', err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+              end if
+          end do
+          calc_nextra = .true.
+      else
+          calc_nextra = .false.
+      end if
+
+      ! Determine the sparsity pattern only on root and then broadcast, just to be sure
       ! that all process have the same pattern.
 
-      root_if1: if (iproc==0) then
+      nonzero = f_malloc0((/2,nvctr+1/),id='nonzero')
+      nonzero_buf_mult = f_malloc0((/2,(nvctr+1)*(2*nbuf_mult+1)**2/),id='nonzero_buf_mult')
 
-          ! First count how many non-zero entries there are for each line.
-          ! Since we want to have the diagonal elements within the sparsity pattern,
-          ! we start with nnonzero=nfvctr
-          call yaml_mapping_open('Count nonzero entries')
-          bar=f_progress_bar_new(nstep=nvctr)
-          nonzero_check = f_malloc0((/2,nvctr+1/),id='nonzero_check')
-          nnonzero = nfvctr
-          ! First the diagonal elements
-          do ii=1,nfvctr
-              nonzero_check(1,ii) = ii
-              nonzero_check(2,ii) = ii
-          end do
-          idum = 0
-          tt_rand = builtin_rand(idum, reset=.true.)
-          it = 0
-          search_loop1: do
-              it = it + 1
-              if (it==100) then
-                  call dump_progress_bar(bar,step=nnonzero)
-                  it = 0
-              end if
-              if (nnonzero>=nvctr) then
-                  call dump_progress_bar(bar,step=nnonzero)
-                  exit search_loop1
-              end if
-              tt_rand = builtin_rand(idum)
-              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-              ii = max(nint(tt),1)
-              tt_rand = builtin_rand(idum)
-              tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
-              jj = max(nint(tt),1)
-              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
-              ! we thus have a non-zero entry in both the lines ii and jj
-              do inonzero=1,nnonzero
-                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
-                      cycle search_loop1
-                  end if
-              end do
-              if (ii==jj) then
-                  ! Diagonal element
-                  nonzero_check(1,nnonzero+1) = ii
-                  nonzero_check(2,nnonzero+1) = jj
-                  nnonzero = nnonzero + 1
-              else
-                  ! Offdiagonal element
-                  nonzero_check(1,nnonzero+1) = ii
-                  nonzero_check(2,nnonzero+1) = jj
-                  nonzero_check(1,nnonzero+2) = jj
-                  nonzero_check(2,nnonzero+2) = ii
-                  nnonzero = nnonzero + 2
-              end if
-          end do search_loop1
+      if (calc_nextra) then
+          nonzero_extra = f_malloc0((/2,(nvctr+1)*(2*maxval(nbuf_extra)+1)**2,nextra_/),id='nonzero_extra')
+          nnonzero_extra = f_malloc0(nextra_,id='nnonzero_extra')
+      end if
 
-          call yaml_newline()
-          call yaml_mapping_close()
-    
-      end if root_if1
 
-      call mpibcast(nnonzero, 1, root=0, comm=comm)
-      nonzero = f_malloc0((/2,nnonzero/),id='nonzero')
+      !root_if2: if (iproc==0) then
 
-      root_if2: if (iproc==0) then
 
-          call yaml_mapping_open('Determine nonzero entries')
-          bar=f_progress_bar_new(nstep=nvctr)
+          if (iproc==0) then
+              call yaml_mapping_open('Determine nonzero entries')
+              bar=f_progress_bar_new(nstep=nvctr)
+          end if
+
+          nnonzero = 0
+          nnonzero_buf_mult = 0
     
           ! Now determine the coordinates of the non-zero entries
           ! First the diagonal elements
           do ii=1,nfvctr
+              jj = ii
               nonzero(1,ii) = ii
-              nonzero(2,ii) = ii
-              nonzero_check(1,ii) = ii
-              nonzero_check(2,ii) = ii
+              nonzero(2,ii) = jj
+              nnonzero = nnonzero + 1
+              call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_mult, nfvctr, nvctr, &
+                   nnonzero_buf_mult, nonzero_buf_mult)
+              ! Add also the buffers for the larger sparsity pattern
+              if (calc_nextra) then
+                  do iextra=1,nextra_
+                  call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_extra(iextra), nfvctr, nvctr, &
+                       nnonzero_extra(iextra), nonzero_extra(:,:,iextra))
+                  end do
+              end if
           end do
           idum = 0
           tt_rand = builtin_rand(idum, reset=.true.)
-          ivctr = nfvctr
+          !ivctr = nfvctr
           it = 0
           search_loop2: do
               it = it + 1
               if (it==100) then
-                  call dump_progress_bar(bar,step=ivctr)
+                  if (iproc==0) then
+                      call dump_progress_bar(bar,step=nnonzero)
+                  end if 
                   it = 0
               end if
-              if (ivctr>=nvctr) then
-                  call dump_progress_bar(bar,step=ivctr)
+              if (nnonzero>=nvctr) then
+                  if (iproc==0) then
+                      call dump_progress_bar(bar,step=nnonzero)
+                  end if
                   exit search_loop2
               end if
               tt_rand = builtin_rand(idum)
@@ -4606,67 +4624,342 @@ module sparsematrix_init
               tt_rand = builtin_rand(idum)
               tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
               jj = max(nint(tt),1)
-              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
-              ! we thus have a non-zero entry in both the lines ii and jj
-              do inonzero=1,ivctr
-                  if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+              do inonzero=1,nnonzero
+                  !if (nonzero_check(1,inonzero)==ii .and. nonzero_check(2,inonzero)==jj) then
+                  if (nonzero(1,inonzero)==ii .and. nonzero(2,inonzero)==jj) then
                       cycle search_loop2
                   end if
               end do
+              ! The entry (ii,jj) is thus non-zero. Since the pattern is symmetric, 
+              ! we thus have a non-zero entry in both the lines ii and jj
               if (ii==jj) then
                   ! Diagonal element
-                  nonzero_check(1,ivctr+1) = ii
-                  nonzero_check(2,ivctr+1) = jj
-                  nonzero(1,ivctr+1) = ii
-                  nonzero(2,ivctr+1) = jj
-                  ivctr = ivctr + 1
+                  nonzero(1,nnonzero+1) = ii
+                  nonzero(2,nnonzero+1) = jj
+                  nnonzero = nnonzero + 1
               else
                   ! Offdiagonal element
-                  nonzero_check(1,ivctr+1) = ii
-                  nonzero_check(2,ivctr+1) = jj
-                  nonzero_check(1,ivctr+2) = jj
-                  nonzero_check(2,ivctr+2) = ii
-                  nonzero(1,ivctr+1) = ii
-                  nonzero(2,ivctr+1) = jj
-                  nonzero(1,ivctr+2) = jj
-                  nonzero(2,ivctr+2) = ii
-                  ivctr = ivctr + 2
+                  nonzero(1,nnonzero+1) = ii
+                  nonzero(2,nnonzero+1) = jj
+                  nonzero(1,nnonzero+2) = jj
+                  nonzero(2,nnonzero+2) = ii
+                  nnonzero = nnonzero + 2
+              end if
+              ! Add also the buffer for the multiplications
+              call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_mult, nfvctr, nvctr, &
+                   nnonzero_buf_mult, nonzero_buf_mult)
+              ! Add also the buffers for the larger sparsity pattern
+              if (calc_nextra) then
+                  do iextra=1,nextra_
+                  call add_buffer_region(iproc, nproc, comm, ii, jj, nbuf_extra(iextra), nfvctr, nvctr, &
+                       nnonzero_extra(iextra), nonzero_extra(:,:,iextra))
+                  end do
               end if
           end do search_loop2
 
-          call yaml_newline()
-          call yaml_mapping_close()
-    
-          if (ivctr/=nnonzero) then
-              call f_err_throw(trim(yaml_toa(ivctr))//'=ivctr /= &
-                               &nnonzero='//trim(yaml_toa(nnonzero)), &
-                               err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          if (iproc==0) then
+              call yaml_newline()
+              call yaml_mapping_close()
           end if
+    
 
-          call f_free(nonzero_check)
+          !call f_free(nonzero_check)
 
-      end if root_if2
+      !end if root_if2
 
-      call mpibcast(nonzero(:,:), root=0, comm=comm)
+      call mpibcast(nnonzero, 1, root=0, comm=comm)
+      call mpibcast(nnonzero_buf_mult, 1, root=0, comm=comm)
+      call mpibcast(nonzero(1:2,1:nnonzero), root=0, comm=comm)
+      call mpibcast(nonzero_buf_mult(1:2,1:nnonzero_buf_mult), root=0, comm=comm)
 
-      !!do ii=1,nfvctr
-      !!    write(*,*) 'ii, nnonzero(ii)', ii, nnonzero(ii)
-      !!end do
-
-      call init_sparse_matrix(iproc, nproc, comm, nfvctr, nnonzero, nonzero, nnonzero, nonzero, smat)
-      call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
-
-      if (iproc==0) then
-          call yaml_mapping_open('Matrix properties')
-          call write_sparsematrix_info(smat, 'Random matrix')
-          call yaml_mapping_close()
+      if (calc_nextra) then
+          do iextra=1,nextra_
+              call mpibcast(nnonzero_extra(iextra), 1, root=0, comm=comm)
+              call mpibcast(nonzero_extra(1:2,1:nnonzero_extra(iextra),iextra), root=0, comm=comm)
+          end do
       end if
 
+      call init_sparse_matrix(iproc, nproc, comm, nfvctr, &
+           nnonzero, nonzero, nnonzero_buf_mult, nonzero_buf_mult, smat, init_matmul=init_matmul)
+      call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
+
+      if (calc_nextra) then
+          do iextra=1,nextra_
+          call init_sparse_matrix(iproc, nproc, comm, nfvctr, &
+               nnonzero_extra(iextra), nonzero_extra(:,:,iextra), &
+               nnonzero_buf_mult, nonzero_buf_mult, smat_extra(iextra), &
+               init_matmul=init_matmul_extra(iextra))
+          call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat_extra(iextra))
+          end do
+      end if
+
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('Matrix properties')
+      !!    call write_sparsematrix_info(smat, 'Random matrix')
+      !!    call yaml_mapping_close()
+      !!end if
+
       call f_free(nonzero)
+      call f_free(nonzero_buf_mult)
+      if (calc_nextra) then
+          do iextra=1,nextra_
+              call f_free(nnonzero_extra)
+              call f_free(nonzero_extra)
+          end do
+      end if
 
       call f_release_routine()
 
     end subroutine generate_random_symmetric_sparsity_pattern
+
+
+    subroutine add_buffer_region(iproc, nproc, comm, ii, jj, nbuf, nfvctr, nvctr, nnonzero_buf, nonzero_buf)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, ii, jj, nbuf, nfvctr, nvctr
+      integer,intent(inout) :: nnonzero_buf
+      integer,dimension(2,(nvctr+1)*(2*nbuf+1)**2),intent(inout) :: nonzero_buf
+      ! Local variables
+      integer :: i, imod, j, jmod, inonzero, iflag, nnonzero_new, icheck, ij, iji, ijj
+      integer :: ithread, nthread, is_thread, nit_thread, is_task, nit_task
+      integer,dimension(:),allocatable :: imodarr, jmodarr
+      integer,dimension(:,:),allocatable :: nonzero_new, ijarr
+      integer,dimension(:,:,:),allocatable :: ijflag, ijfound
+      logical :: exitflag
+      !$ integer :: omp_get_max_threads, omp_get_thread_num
+
+      call f_routine(id='add_buffer_region')
+
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+
+      imodarr = f_malloc(ii-nbuf.to.ii+nbuf,id='imodarr')
+      jmodarr = f_malloc(jj-nbuf.to.jj+nbuf,id='jmodarr')
+      ijflag = f_malloc((/1.to.2,jj-nbuf.to.jj+nbuf,ii-nbuf.to.ii+nbuf/),id='ijflag')
+      nonzero_new = f_malloc((/2,2*(2*nbuf+1)**2/),id='nonzero_new')
+      ijfound = f_malloc((/jj-nbuf.to.jj+nbuf,ii-nbuf.to.ii+nbuf,0.to.nthread-1/),id='ijfound')
+      ijarr = f_malloc((/2,2*(2*nbuf+1)**2/),id='ijarr')
+
+      ij = 0
+      do i=ii-nbuf,ii+nbuf
+          imod = modulo(i-1,nfvctr) + 1
+          imodarr(i) = imod
+          do j=jj-nbuf,jj+nbuf
+              jmod = modulo(j-1,nfvctr) + 1
+              jmodarr(j) = jmod
+              ij = ij + 1
+              ijarr(1,ij) = i
+              ijarr(2,ij) = j
+          end do
+      end do
+
+
+      ijfound(:,:,:) = 0
+      ! The following is to collapse a doubel loop over ii-nbuf,ii+nbuf and jj-nbuf,jj+nbuf
+      call distribute_on_tasks((2*nbuf+1)**2, iproc, nproc, nit_task, is_task)
+      !$omp parallel default(none) &
+      !$omp shared(nnonzero_buf, nthread, nonzero_buf, ijfound, exitflag, is_task, nit_task) &
+      !$omp shared(ijarr, imodarr, jmodarr) &
+      !$omp private(ithread, inonzero, nit_thread, is_thread, ij, i, j, imod, jmod)
+      ithread = 0
+      !$ ithread = omp_get_thread_num()
+      call distribute_on_tasks(nnonzero_buf, ithread, nthread, nit_thread, is_thread)
+      ij_loop: do ij=is_task+1,is_task+nit_task
+          i = ijarr(1,ij)
+          j = ijarr(2,ij)
+          imod = imodarr(i)
+          jmod = jmodarr(j)
+          ! Determine the OpenMP parallelization
+          !$omp critical
+          exitflag = .false.
+          !$omp end critical
+          do inonzero=is_thread+1,is_thread+nit_thread
+              if (exitflag) exit
+              if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
+                  ijfound(j,i,ithread) = 1
+                  !$omp critical
+                  exitflag = .true.
+                  !$omp end critical
+              end if
+          end do
+      end do ij_loop
+      !$omp end parallel
+      call mpiallred(ijfound, mpi_sum, comm)
+
+      ijflag(:,:,:) = 0
+      do i=ii-nbuf,ii+nbuf
+          imod = imodarr(i)
+          do j=jj-nbuf,jj+nbuf
+              jmod = jmodarr(j)
+              if (sum(ijfound(j,i,:))==0) then
+                  ijflag(1,j,i) = imod
+                  ijflag(2,j,i) = jmod
+              end if
+          end do
+      end do
+
+      nnonzero_new = 0
+      do i=ii-nbuf,ii+nbuf
+          j2_loop: do j=jj-nbuf,jj+nbuf
+              if (ijflag(1,j,i)>0 .and. ijflag(2,j,i)>0) then
+                  do icheck=1,nnonzero_new
+                      if (nonzero_new(1,icheck)==ijflag(1,j,i) .and. nonzero_new(2,icheck)==ijflag(2,j,i)) then
+                          cycle j2_loop
+                      end if
+                  end do
+                  !!nnonzero_new = nnonzero_new + 1
+                  !!nonzero_new(1,nnonzero_new) = ijflag(1,j,i)
+                  !!nonzero_new(2,nnonzero_new) = ijflag(2,j,i)
+                  if (ijflag(1,j,i)==ijflag(2,j,i)) then
+                      ! Diagonal element
+                      !nonzero_buf(1,nnonzero_buf+1) = imod
+                      !nonzero_buf(2,nnonzero_buf+1) = jmod
+                      nonzero_new(1,nnonzero_new+1) = ijflag(1,j,i)
+                      nonzero_new(2,nnonzero_new+1) = ijflag(2,j,i)
+                      nnonzero_new = nnonzero_new + 1
+                  else
+                      ! Offdiagonal element
+                      !!nonzero_buf(1,nnonzero_buf+1) = imod
+                      !!nonzero_buf(2,nnonzero_buf+1) = jmod
+                      !!nonzero_buf(1,nnonzero_buf+2) = jmod
+                      !!nonzero_buf(2,nnonzero_buf+2) = imod
+                      nonzero_new(1,nnonzero_new+1) = ijflag(1,j,i)
+                      nonzero_new(2,nnonzero_new+1) = ijflag(2,j,i)
+                      nonzero_new(1,nnonzero_new+2) = ijflag(2,j,i)
+                      nonzero_new(2,nnonzero_new+2) = ijflag(1,j,i)
+                      nnonzero_new = nnonzero_new + 2
+                end if
+              end if
+          end do j2_loop
+      end do
+
+      do i=1,nnonzero_new
+          nnonzero_buf = nnonzero_buf + 1
+          nonzero_buf(1,nnonzero_buf) = nonzero_new(1,i)
+          nonzero_buf(2,nnonzero_buf) = nonzero_new(2,i)
+      end do
+
+
+      call f_free(imodarr)
+      call f_free(jmodarr)
+      call f_free(ijflag)
+      call f_free(ijfound)
+      call f_free(nonzero_new)
+      call f_free(ijarr)
+
+      !!i_loop: do i=ii-nbuf,ii+nbuf
+      !!    imod = modulo(i-1,nfvctr) + 1
+      !!    j_loop: do j=jj-nbuf,jj+nbuf
+      !!        jmod = modulo(j-1,nfvctr) + 1
+      !!        iflag = 0
+      !!        !$omp parallel default(none) &
+      !!        !$omp shared(nnonzero_buf, nonzero_buf, imod, jmod, iflag) &
+      !!        !$omp private(inonzero) 
+      !!        !$omp do schedule(static) reduction(+:iflag)
+      !!        do inonzero=1,nnonzero_buf
+      !!            if (nonzero_buf(1,inonzero)==imod .and. nonzero_buf(2,inonzero)==jmod) then
+      !!                iflag = 1
+      !!            end if
+      !!        end do
+      !!        !$omp end do
+      !!        !$omp end parallel
+      !!        if (iflag>0) then
+      !!            cycle j_loop
+      !!        end if
+      !!        ! The entry (i,j) is thus non-zero. Since the pattern is symmetric, 
+      !!        ! we thus have a non-zero entry in both the lines i and j
+      !!        if (i==j) then
+      !!            ! Diagonal element
+      !!            nonzero_buf(1,nnonzero_buf+1) = imod
+      !!            nonzero_buf(2,nnonzero_buf+1) = jmod
+      !!            nnonzero_buf = nnonzero_buf + 1
+      !!        else
+      !!            ! Offdiagonal element
+      !!            nonzero_buf(1,nnonzero_buf+1) = imod
+      !!            nonzero_buf(2,nnonzero_buf+1) = jmod
+      !!            nonzero_buf(1,nnonzero_buf+2) = jmod
+      !!            nonzero_buf(2,nnonzero_buf+2) = imod
+      !!            nnonzero_buf = nnonzero_buf + 2
+      !!        end if
+      !!    end do j_loop
+      !!end do i_loop
+
+      call f_release_routine()
+
+    end subroutine add_buffer_region
+
+    !!!> Add a certain buffer around the sparsity pattern
+    !!subroutine generate_sparsity_buffer(nfvctr, nnonzero, nonzero, nbuf, nnonzero_buffer, nonzero_buffer)
+    !!  implicit none
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: nfvctr, nnonzero, nbuf
+    !!  integer,dimension(2,nnonzero),intent(in) :: nonzero
+    !!  integer,intent(out) :: nnonzero_buffer
+    !!  integer,dimension(:,:),pointer,intent(out) :: nonzero_buffer
+    !!  ! Local arguments
+    !!  integer :: ifvctr, jfvctr, jjfvctr, i, j, ii, jj
+    !!  logical,dimension(:,:,:),allocatable :: is_nonzero
+
+    !!  is_nonzero = f_malloc((/nfvctr,nfvctr,2/),id='is_nonzero')
+    !!  is_nonzero(:,:,:) = .false.
+    !!  do i=1,nnonzero
+    !!      ii = nonzero(1,i)
+    !!      jj = nonzero(2,i)
+    !!      is_nonzero(jj,ii,1) = .true.
+    !!  end do
+
+    !!  do ifvctr=1,nfvctr
+    !!      do jfvctr=1,nfvctr
+    !!          if(is_nonzero(jfvctr,ifvctr,1)) then
+    !!              do i=-nbuf,nbuf
+    !!                  do j=-nbuf,nbuf
+    !!                      is_nonzero(jfvctr+j,ifvctr+i,2) = .true.
+    !!                  end do
+    !!              end do
+    !!          end if
+    !!      end do
+    !!  end do
+
+    !!  ! Count how many elements there are
+    !!  nnonzero_buffer = 0
+    !!  do ifvctr=1,nfvctr
+    !!      do jfvctr=1,nfvctr
+    !!          if (is_nonzero(jfvctr,ifvctr,2)) then
+    !!              nnonzero_buffer = nnonzero_buffer + 1
+    !!          end if
+    !!      end do
+    !!  end do
+
+    !!  write(*,*) 'nnonzero, nnonzero_buffer', nnonzero, nnonzero_buffer
+
+
+    !!  !!is_nonzero = f_malloc(nfvctr,id='is_nonzero')
+    !!  !!nnonzero_buffer = 0
+    !!  !!do ifvctr=1,nfvctr
+    !!  !!    is_nonzero(1:nfvctr) = .false.
+    !!  !!    do jfvctr=ifvctr-nbuf,ifvctr+nbuf
+    !!  !!        jjfvctr = modulo(jfvctr-1,nfvctr) + 1
+    !!  !!        write(*,*) 'ifvctr, jfvctr, mod(jfvctr-1,nfvctr), jjfvctr', &
+    !!  !!            ifvctr, jfvctr, modulo(jfvctr-1,nfvctr), jjfvctr
+    !!  !!        do i=1,nnonzero
+    !!  !!            ii = nonzero(1,i)
+    !!  !!            jj = nonzero(2,i)
+    !!  !!            if (ii
+    !!  !!            if (abs(ii-ifvctr)<=nbuf .and. abs(jj-ifvctr)<=nbuf) then
+    !!  !!                is_nonzero(ifvctr) = .true.
+    !!  !!            end if
+    !!  !!        end do
+    !!  !!    end do
+    !!  !!    do jfvctr=1,nfvctr
+    !!  !!        if (is_nonzero(jfvctr)) then
+    !!  !!            nnonzero_buffer = nnonzero_buffer + 1
+    !!  !!        end if
+    !!  !!    end do
+    !!  !!end do
+
+    !!  call f_free(is_nonzero)
+
+    !!end subroutine generate_sparsity_buffer
 
 
     ! Parallelization a number n over nproc nasks

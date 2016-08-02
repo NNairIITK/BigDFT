@@ -1,11 +1,22 @@
 !> @file
-!!  File defining the structures to deal with the sparse matrices
+!!   Basic routines dealing with the sparse matrices
 !! @author
-!!    Copyright (C) 2014-2015 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
 
 
 !> Module to deal with the sparse matrices
@@ -2757,7 +2768,7 @@ module sparsematrix
 
 
     !> Get the minimal and maximal eigenvalue of a matrix
-    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
+    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
       implicit none
 
       ! Calling arguments
@@ -2765,13 +2776,18 @@ module sparsematrix
       type(sparse_matrix), intent(in) :: ovrlp_smat
       type(matrices), intent(in) :: ovrlp_mat
       real(mp),intent(out) :: eval_min, eval_max
+      logical,intent(in),optional :: quiet
 
       ! Local variables
       integer :: iseg, ii, i, lwork, info
       real(kind=mp),dimension(:,:),allocatable :: tempmat
       real(kind=mp),dimension(:),allocatable :: eval, work
+      logical :: quiet_
 
       call f_routine(id='get_minmax_eigenvalues')
+
+      quiet_ = .false.
+      if (present(quiet)) quiet_ = quiet
 
       tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
       do iseg=1,ovrlp_smat%nseg
@@ -2793,7 +2809,9 @@ module sparsematrix
       work = f_malloc(lwork,id='work')
       call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
       !if (iproc==0) write(*,*) 'eval',eval
-      if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      if (iproc==0 .and. .not.quiet_) then
+          call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+      end if
       eval_min = eval(1)
       eval_max = eval(ovrlp_smat%nfvctr)
 
