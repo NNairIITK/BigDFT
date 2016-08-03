@@ -1090,7 +1090,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
            & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
            & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-      if (auxiliary_arguments_present .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+      if (auxiliary_arguments_present .and. &
+          (target_function==TARGET_FUNCTION_IS_ENERGY .or. target_function==TARGET_FUNCTION_IS_HYBRID)) then
           if (tmb%ham_descr%npsidim_orbs > 0) then
               call f_memcpy(src=tmb%hpsi, dest=hphi_pspandkin)
               eproj = energs%eproj
