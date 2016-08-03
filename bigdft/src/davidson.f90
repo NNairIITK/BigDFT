@@ -1492,7 +1492,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    mask=f_malloc(ob%orbs%norbp,id='mask')
    chosen=.false.
    binary=.false.
-   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0)
+   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0,&
+        id='Orbital restart')
    read_loop: do while(ket_next(it))
       mask(it%iorbp)=.false.
       !first check if the file of the virtual wavefunction is present
