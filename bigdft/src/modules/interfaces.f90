@@ -811,7 +811,7 @@ module module_interfaces
           correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
           wt_philarge, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
-          cdft, input_frag, ref_frags)
+          cdft, input_frag, ref_frags, hphi_pspandkin, eproj, ekin)
         use module_defs, only: gp,dp,wp
         use module_types
         use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
@@ -859,6 +859,8 @@ module module_interfaces
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag
         type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+        real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
+        real(kind=8),intent(inout),optional :: eproj, ekin
         END SUBROUTINE getLocalizedBasis
       end interface
 
@@ -868,7 +870,7 @@ module module_interfaces
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
         calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
         pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
-        convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
+        convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel,hphi_pspandkin,eproj,ekin)
       use module_defs, only: gp,dp,wp
       use module_types
       !use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -906,6 +908,8 @@ module module_interfaces
       integer, intent(in) :: extra_states
       logical, optional, intent(in) :: reorder
       logical, optional, intent(in) :: updatekernel
+      real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
+      real(kind=8),intent(inout),optional :: eproj, ekin
       END SUBROUTINE get_coeff
     end interface
 

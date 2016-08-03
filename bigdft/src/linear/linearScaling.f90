@@ -114,6 +114,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8), dimension(:), pointer :: hpsit_c, hpsit_f
 
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
+  real(kind=gp) :: eproj, ekin
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
   integer :: dmin_diag_it, dmin_diag_freq, ioffset, nl1, nl2, nl3
@@ -133,7 +134,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8), dimension(:,:), allocatable :: ham_small, coeffs
   real(kind=8), dimension(:,:), pointer :: com
   real(kind=8), dimension(:,:), allocatable :: coeff
-  real(kind=8),dimension(:),allocatable :: projector_compr, evals
+  real(kind=8),dimension(:),allocatable :: projector_compr, evals, hphi_pspandkin
   real(kind=8), dimension(:,:,:), allocatable :: matrixElements, coeff_all,multipoles_out
   real(kind=8), dimension(:,:,:), pointer :: multipoles
 !!$  real(kind=8), dimension(:), allocatable :: projector_compr
@@ -381,6 +382,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
               call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
               call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
               call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+              hphi_pspandkin = f_malloc(tmb%ham_descr%npsidim_orbs,id='hphi_pspandkin')
           end if
           !!if (iproc==0) write(*,*) 'AFTER: lowaccur_converged,associated(precond_workarrays)',lowaccur_converged,associated(precond_workarrays)
           if (keep_value) then
@@ -399,6 +401,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
           call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+          hphi_pspandkin = f_malloc(tmb%ham_descr%npsidim_orbs,id='hphi_pspandkin')
       end if
       call timing(iproc,'linscalinit','OF')
 
@@ -431,6 +434,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
           call deallocate_work_transpose(wt_philarge)
           call deallocate_work_transpose(wt_hphi)
           call deallocate_work_transpose(wt_phi)
+          call f_free(hphi_pspandkin)
 
           call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
           wt_philarge = work_transpose_null()
@@ -439,6 +443,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
           call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
           call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+          hphi_pspandkin = f_malloc(tmb%ham_descr%npsidim_orbs,id='hphi_pspandkin')
 
           ! is this really necessary if the locrads haven't changed?  we should check this!
           ! for now for CDFT don't do the extra get_coeffs, as don't want to add extra CDFT loop here
@@ -469,7 +474,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                      input%tel, input%occopt, &
                      input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
-                     convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff, &
+                     hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
           end if
@@ -610,7 +616,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   input%correction_co_contra, &
                   precond_convol_workarrays, precond_workarrays, &
                   wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
-                  cdft, input%frag, ref_frags)
+                  cdft, input%frag, ref_frags, &
+                  hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                   info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs,&
@@ -621,7 +628,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   input%lin%early_stop, input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
-                  wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
+                  wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
+                  hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               !if (iproc==0) call yaml_scalar('call boundary analysis')
               call get_boundary_weight(iproc, nproc, tmb%orbs, tmb%lzd, at, &
                    input%crmult, tmb%npsidim_orbs, tmb%psi, 1.d-2)
@@ -778,6 +786,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
       call deallocate_work_transpose(wt_philarge)
       call deallocate_work_transpose(wt_hphi)
       call deallocate_work_transpose(wt_phi)
+      call f_free(hphi_pspandkin)
   end if
 
 
@@ -1510,7 +1519,8 @@ end if
                          input%tel, input%occopt, &
                          input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                          input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
-                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
+                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
+                         hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                     call get_lagrange_mult(cdft_it,vgrad)
                     ! CDFT: exit when W is converged wrt both V and rho
                     if (abs(vgrad) < cdft_charge_thresh .or. target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -1529,7 +1539,8 @@ end if
                       input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
-                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
+                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
+                      hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               end if
            else
               if (input%lin%constrained_dft) then
@@ -1562,7 +1573,8 @@ end if
                          input%tel, input%occopt, &
                          input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                          input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
-                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
+                         convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
+                         hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                     call get_lagrange_mult(cdft_it,vgrad)
                     ! CDFT: exit when W is converged wrt both V and rho
                     if (abs(vgrad) < cdft_charge_thresh .or. target_function==TARGET_FUNCTION_IS_TRACE) then
@@ -1581,7 +1593,8 @@ end if
                       input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
-                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
+                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
+                      hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               end if
            end if
            !do i=1,tmb%linmat%l%nvctr

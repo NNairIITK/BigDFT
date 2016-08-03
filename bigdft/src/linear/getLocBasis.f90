@@ -13,7 +13,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
     calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
     pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
-    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
+    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel,hphi_pspandkin,eproj,ekin)
   use module_base
   use module_types
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, optimize_coeffs
@@ -75,6 +75,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer, intent(in) :: extra_states
   logical, optional, intent(in) :: reorder
   logical, optional, intent(in) :: updatekernel
+  ! The foloowing array contains the psp and kinetic part of the Hamiltonian appllication.. Can be used to spped up the code in case phi does not change between calls, but only the potential
+  real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
+  real(kind=8),intent(inout),optional :: eproj, ekin
 
   ! Local variables 
   integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc, j
@@ -82,7 +85,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  logical :: update_kernel
+  logical :: update_kernel, auxiliary_arguments_present
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff, tt
@@ -141,23 +144,52 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
            tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-      if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      ! Check the optional arguments
+      if (any((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+          if (all((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+              auxiliary_arguments_present = .true.
+          else
+              call f_err_throw('The arguments hphi_pspandkin, eproj and ekin miust be present at the same time',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+      else
+          auxiliary_arguments_present = .false.
+      end if
 
-      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
-      ! only kinetic as waiting for communications
-      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
-           & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
-           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
-           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+
+      if(calculate_overlap_matrix .or. .not.auxiliary_arguments_present) then
+
+          if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+
+          call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
+          ! only kinetic as waiting for communications
+          call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
+               & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+          if (auxiliary_arguments_present) then
+              if (tmb%ham_descr%npsidim_orbs > 0) then
+                  call f_memcpy(src=tmb%hpsi, dest=hphi_pspandkin)
+                  eproj = energs%eproj
+                  ekin = energs%ekin
+              end if
+          end if
+      else
+          if (tmb%ham_descr%npsidim_orbs > 0) then
+              call f_memcpy(src=hphi_pspandkin, dest=tmb%hpsi)
+              energs%eproj = eproj
+              energs%ekin = ekin
+          end if
+      end if
       !!do i=1,tmb%ham_descr%comgp%nrecvbuf
       !!    write(8000+iproc,'(a,i8,es16.6)') 'i, recvbuf(i)', i, tmb%ham_descr%comgp%recvbuf(i)
       !!end do
       !call wait_p2p_communication(iproc, nproc, tmb%ham_descr%comgp)
       ! only potential
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
+           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
            & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
@@ -730,7 +762,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
     wt_philarge,  wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
-    cdft, input_frag, ref_frags)
+    cdft, input_frag, ref_frags, hphi_pspandkin, eproj, ekin)
   !
   ! Purpose:
   ! ========
@@ -800,6 +832,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
   type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+  real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
+  real(kind=8),intent(inout),optional :: eproj, ekin
  
   ! Local variables
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin, jproc
@@ -818,6 +852,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: energy_first, trH_ref, charge, fnrm_old
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
+  logical :: auxiliary_arguments_present
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
   type(matrices) :: ovrlp_old
@@ -994,6 +1029,18 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       has_already_converged=.false.
   end if
 
+  ! Check the optional arguments
+  if (any((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+      if (all((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+          auxiliary_arguments_present = .true.
+      else
+          call f_err_throw('The arguments hphi_pspandkin, eproj and ekin miust be present at the same time',&
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+  else
+      auxiliary_arguments_present = .false.
+  end if
+
   iterLoop: do
 
 
@@ -1043,6 +1090,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
            & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
            & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      if (auxiliary_arguments_present .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+          if (tmb%ham_descr%npsidim_orbs > 0) then
+              call f_memcpy(src=tmb%hpsi, dest=hphi_pspandkin)
+              eproj = energs%eproj
+              ekin = energs%ekin
+          end if
+      end if
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
            & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       ! only potential
