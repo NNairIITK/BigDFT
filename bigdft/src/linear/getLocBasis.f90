@@ -2897,6 +2897,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
   integer,dimension(3) :: power
+  integer :: ispin, ilshift
   !!real(8) :: tr
   !!integer :: ind, iorb
 
@@ -2911,6 +2912,9 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
 
 
+  !!write(*,*) 'start, K1, K2', &
+  !!           sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
+  !!           sum(tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg)) 
 
 
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
@@ -2919,9 +2923,15 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!call retransform_local(tmb%linmat%ovrlppowers_(1))
   !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
   !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(1)%matrix_compr)
-  call retransform_ext(iproc, nproc, tmb%linmat%l, &
-       tmb%linmat%ovrlppowers_(1)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
+  do ispin=1,tmb%linmat%l%nspin
+      ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
+      call retransform_ext(iproc, nproc, tmb%linmat%l, &
+           tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+  end do
 
+  !!write(*,*) 'start, Si1, Si2', &
+  !!           sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
+  !!           sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg)) 
 
   ! Calculate S^1/2 for the overlap matrix
   power=(/2,-2,1/)
@@ -2933,6 +2943,10 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error, &
        ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
+
+  !!write(*,*) 'end, Si1, Si2', &
+  !!           sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
+  !!           sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg)) 
 
 
   !!tr=0.d0
@@ -2953,9 +2967,15 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!call retransform_local(tmb%linmat%ovrlppowers_(2))
   !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
   !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(2)%matrix_compr)
-  call retransform_ext(iproc, nproc, tmb%linmat%l, &
-       tmb%linmat%ovrlppowers_(2)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
+  do ispin=1,tmb%linmat%l%nspin
+      ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
+      call retransform_ext(iproc, nproc, tmb%linmat%l, &
+           tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+  end do
 
+  !! write(*,*) 'end, K1, K2', &
+  !!           sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
+  !!           sum(tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg)) 
 
   !!call f_free_ptr(inv_ovrlpp)
   !!call f_free_ptr(tempp)
