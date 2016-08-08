@@ -59,6 +59,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use orbitalbasis
   use sparsematrix_highlevel, only: get_selected_eigenvalues_from_FOE
   use sparsematrix_io, only: write_linear_coefficients
+  use sparsematrix_highlevel, only: trace_AB, trace_A
   implicit none
 
   ! Calling arguments
@@ -114,7 +115,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8), dimension(:), pointer :: hpsit_c, hpsit_f
 
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
-  real(kind=gp) :: eproj, ekin
+  real(kind=gp) :: eproj, ekin, tt1, tt2, tt3, tt4
   real(kind=gp), allocatable, dimension(:,:) :: coeff_tmp
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
   integer :: dmin_diag_it, dmin_diag_freq, ioffset, nl1, nl2, nl3
@@ -619,6 +620,36 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   cdft, input%frag, ref_frags, &
                   hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
            else
+
+tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
+tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('before getLoc tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
+end if
+tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 1)
+tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 2)
+tt3 = sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg))
+tt4 = sum(tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg))
+call mpiallred(tt3, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+call mpiallred(tt4, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('before getLoc tr(K)',(/tt1,tt2/),fmt='(es18.9)')
+    call yaml_map('before getLoc sum(K)',(/tt3,tt4/),fmt='(es18.9)')
+end if
+tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 1)
+tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 2)
+tt3 = sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctrp_tg))
+tt4 = sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctrp_tg+1:2*tmb%linmat%s%nvctrp_tg))
+call mpiallred(tt3, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+call mpiallred(tt4, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('before getLoc tr(S)',(/tt1,tt2/),fmt='(es18.9)')
+    call yaml_map('before getLoc sum(S)',(/tt3,tt4/),fmt='(es18.9)')
+end if
+
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
                   info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs,&
                   input%lin%iterative_orthogonalization,input%lin%norbsPerType,&
@@ -1541,7 +1572,27 @@ end if
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
-              end if
+
+tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
+tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('after get_coeff tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
+end if
+tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 1)
+tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('after get_coeff tr(K)',(/tt1,tt2/),fmt='(es18.9)')
+end if
+tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 1)
+tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('after get_coeff tr(S)',(/tt1,tt2/),fmt='(es18.9)')
+end if
+
+                          end if
            else
               if (input%lin%constrained_dft) then
                  !Allocate weight matrix which is used in the CDFT loop
@@ -1595,6 +1646,24 @@ end if
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
+tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
+tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('after get_coeff tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
+end if
+tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 1)
+tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('after get_coeff tr(K)',(/tt1,tt2/),fmt='(es18.9)')
+end if
+tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 1)
+tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 2)
+if (iproc==0) then
+    call yaml_newline()
+    call yaml_map('after get_coeff tr(S)',(/tt1,tt2/),fmt='(es18.9)')
+end if
               end if
            end if
            !do i=1,tmb%linmat%l%nvctr

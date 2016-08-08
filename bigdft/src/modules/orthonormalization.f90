@@ -606,7 +606,7 @@ module orthonormalization
       type(work_transpose),intent(out) :: wt_hphi
     
       ! Local variables
-      real(kind=8) :: max_error, mean_error
+      real(kind=8) :: max_error, mean_error, tt
       real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
       integer,dimension(:),allocatable :: ipiv
       type(matrices),dimension(1) :: inv_ovrlp_
@@ -672,6 +672,19 @@ module orthonormalization
       call symmetrize_matrix(linmat%l, 'minus', tmp_mat_compr, lagmat_large)
       call f_free(tmp_mat_compr)
     
+      tt = sum(lagmat_large)
+      call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('sum(lagmat)',tt,fmt='(es18.9)')
+      end if
+
+      tt = sum(linmat%ovrlppowers_(3)%matrix_compr)
+      call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('sum(linmat%ovrlppowers_(3))',tt,fmt='(es18.9)')
+      end if
     
       ! Apply S^-1
       !!call sequential_acces_matrix_fast2(linmat%l, linmat%ovrlppowers_(3)%matrix_compr, inv_ovrlp_seq)

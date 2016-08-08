@@ -21,6 +21,7 @@
 
 module foe
   use sparsematrix_base
+  use sparsematrix_highlevel, only: trace_AB, trace_A
   implicit none
 
   private
@@ -87,7 +88,7 @@ module foe
       real(kind=mp),dimension(4) :: interpol_vector
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
       logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-      real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
+      real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp, tt1, tt2, tt3, tt4
       integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j, itg, ncount, istl, ists
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
       real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
@@ -591,6 +592,37 @@ module foe
 
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
+
+      tt1 = trace_AB(iproc, nproc, comm, smatl, smats, kernel_, ovrlp_, 1)
+      tt2 = trace_AB(iproc, nproc, comm, smatl, smats, kernel_, ovrlp_, 2)
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('end FOE tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
+      end if
+
+      tt1 = trace_A(iproc, nproc, comm, smatl, kernel_, 1)
+      tt2 = trace_A(iproc, nproc, comm, smatl, kernel_, 2)
+      tt3 = sum(kernel_%matrix_compr(1:smatl%nvctrp_tg))
+      tt4 = sum(kernel_%matrix_compr(smatl%nvctrp_tg+1:2*smatl%nvctrp_tg))
+      call mpiallred(tt3, 1, mpi_sum, comm=comm)
+      call mpiallred(tt4, 1, mpi_sum, comm=comm)
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('end FOE tr(K)',(/tt1,tt2/),fmt='(es18.9)')
+          call yaml_map('end FOE sum(K)',(/tt3,tt3/),fmt='(es18.9)')
+      end if
+
+      tt1 = trace_A(iproc, nproc, comm, smats, ovrlp_, 1)
+      tt2 = trace_A(iproc, nproc, comm, smats, ovrlp_, 2)
+      tt3 = sum(ovrlp_%matrix_compr(1:smats%nvctrp_tg))
+      tt4 = sum(ovrlp_%matrix_compr(smats%nvctrp_tg+1:2*smats%nvctrp_tg))
+      call mpiallred(tt3, 1, mpi_sum, comm=comm)
+      call mpiallred(tt4, 1, mpi_sum, comm=comm)
+      if (iproc==0) then
+          call yaml_newline()
+          call yaml_map('end FOE tr(S)',(/tt1,tt2/),fmt='(es18.9)')
+          call yaml_map('end FOE sum(S)',(/tt3,tt3/),fmt='(es18.9)')
+      end if
 
 
       call f_free(sumn_allspins)
