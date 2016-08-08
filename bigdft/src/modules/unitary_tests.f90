@@ -31,7 +31,7 @@ module unitary_tests
       use yaml_output
       use dictionaries, only: f_err_throw
       use communications, only: start_onesided_communication
-      use rhopotential, only: full_local_potential
+      use rhopotential, only: full_local_potential, extract_potential
       implicit none
       integer,intent(in) :: iproc,nproc
       type(DFT_wavefunction), intent(inout) :: tmb
@@ -39,7 +39,7 @@ module unitary_tests
       !local variables
       logical :: dosome, abort, wrong
       integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,numtot,ishift,ispin
-      integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3, ierr, jproc
+      integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3, ierr, jproc, size_lpot
       !integer :: ierr
       real(dp) :: maxdiff,sumdiff,testval
       real(dp),parameter :: tol_calculation_mean=1.d-12
@@ -118,8 +118,15 @@ module unitary_tests
             end if
             ilr_orb=tmb%orbs%inwhichlocreg(iorb+tmb%orbs%isorb)
             if (ilr_orb /= ilr) cycle loop_orbs
+
+            size_Lpot = tmb%ham_descr%lzd%Llr(ilr_orb)%d%n1i*&
+                        tmb%ham_descr%lzd%Llr(ilr_orb)%d%n2i*&
+                        tmb%ham_descr%lzd%Llr(ilr_orb)%d%n3i
+            call extract_potential(ispin, ilr_orb, size_lpot, tmb%ham_descr%lzd, denspot%pot_work, tmb%ham_descr%comgp)
+
     
-            ind=tmb%orbs%ispot(iorb)-1
+            !ind=tmb%orbs%ispot(iorb)-1
+            ind=0
             i3s=tmb%ham_descr%Lzd%Llr(ilr)%nsi3+1
             i3e=i3s+tmb%ham_descr%Lzd%Llr(ilr)%d%n3i-1
             i2s=tmb%ham_descr%Lzd%Llr(ilr)%nsi2+1

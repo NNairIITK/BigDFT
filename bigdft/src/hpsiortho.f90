@@ -583,6 +583,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
   exctX = xc_exctXfac(xc) /= 0.0_gp
 
+
   ispot=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin+1
 
   !potential method
@@ -873,17 +874,20 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 
      else if (PotOrKin==2) then !only pot
         call timing(iproc,'ApplyLocPot','ON')
+        if (.not.present(comgp)) then
+            call f_err_throw('comgp not present')
+        end if
         if (present(hpsi_noconf)) then
            if (.not.present(econf)) then
-              stop 'ERROR: econf must be present when hpsi_noconf is present'
+              call f_err_throw('econf must be present when hpsi_noconf is present')
            end if
            call psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-                xc,SIC%alpha,energs%epot,energs%evsic,hpsi_noconf,econf)
+                xc,SIC%alpha,energs%epot,energs%evsic,comgp,hpsi_noconf,econf)
         else
            call psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-                xc,SIC%alpha,energs%epot,energs%evsic)
+                xc,SIC%alpha,energs%epot,energs%evsic,comgp)
         end if
         call timing(iproc,'ApplyLocPot','OF')
      else if (PotOrKin==3) then !only kin

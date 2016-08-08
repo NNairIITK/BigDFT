@@ -1589,6 +1589,7 @@
          2:  Fortran binary sparse
          12: Fortran binary dense
          22: Fortran binary sparse and dense
+         4:  MPI native binary sparse
      output_coeff:
        COMMENT: output KS coefficients; 0 no output, 1 formatted output
        DESCRIPTION: |

@@ -1142,7 +1142,7 @@ module module_interfaces
 
        interface
          subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
-            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
+            ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,comgp,vpsi_noconf,econf_sum)
          use module_defs, only: gp,dp,wp
          use module_types
          use module_xc
@@ -1159,6 +1159,7 @@ module module_interfaces
          real(gp), intent(out) :: epot_sum,evSIC
          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: vpsi
          type(coulomb_operator), intent(inout) ::  pkernel !< the PSolver kernel which should be associated for the SIC schemes
+         type(p2pcomms),intent(in) :: comgp
          real(wp), dimension(orbs%npsidim_orbs), intent(inout),optional :: vpsi_noconf
          real(gp),intent(out),optional :: econf_sum
          END SUBROUTINE psi_to_vlocpsi
