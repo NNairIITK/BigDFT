@@ -512,7 +512,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      call mpiallred(alpha_max, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
   end if
   alpha_mean=tt/dble(tmb%orbs%norb)
-  if (iproc==0) call yaml_map('alpha_mean',alpha_mean,fmt='(es15.7)')
 
   ! Copy the gradient (will be used in the next iteration to adapt the step size).
   call vcopy(tmb%npsidim_orbs, tmb%hpsi(1), 1, lhphiold(1), 1)

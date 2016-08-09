@@ -940,38 +940,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
   call f_routine(id='getLocalizedBasis')
 
-if (target_function/=TARGET_FUNCTION_IS_TRACE) then
-  tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 1)
-  tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 2)
-  tt3 = sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg))
-  tt4 = sum(tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg))
-  call mpiallred(tt3, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  call mpiallred(tt4, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('start getLoc tr(K)',(/tt1,tt2/),fmt='(es18.9)')
-      call yaml_newline()
-      call yaml_map('start getLoc sum(K)',(/tt3,tt4/),fmt='(es18.9)')
-  end if
-  tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 1)
-  tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 2)
-  tt3 = sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctrp_tg))
-  tt4 = sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctrp_tg+1:2*tmb%linmat%s%nvctrp_tg))
-  call mpiallred(tt3, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  call mpiallred(tt4, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('start getLoc tr(S)',(/tt1,tt2/),fmt='(es18.9)')
-      call yaml_newline()
-      call yaml_map('start getLoc sum(S)',(/tt3,tt4/),fmt='(es18.9)')
-  end if
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('start getLoc tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
-end if
 
 
 
@@ -1004,6 +972,10 @@ end if
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
   allow_increase=.false.
+
+  ! Reset the DIIS history
+  ldiis%is = 0
+  if (iproc==0) call yam_warning('Reset the DIIS history')
  
   call timing(iproc,'getlocbasinit','OF')
 
@@ -1217,96 +1189,14 @@ end if
       !if (target_function==TARGET_FUNCTION_IS_HYBRID .and. .not.energy_increased) then
       if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           tmb%ham_descr%can_use_transposed=.false.
-          do ispin=1,tmb%linmat%s%nspin
-              call vcopy(tmb%linmat%s%nvctrp_tg, &
-                   tmb%linmat%ovrlp_%matrix_compr((ispin-1)*tmb%linmat%s%nvctrp_tg+1), 1, &
-                   ovrlp_old%matrix_compr((ispin-1)*tmb%linmat%s%nvctrp_tg+1), 1)
-          end do
-          tt1 = dnrm2(size(ovrlp_old%matrix_compr), abs(ovrlp_old%matrix_compr-tmb%linmat%ovrlp_%matrix_compr), 1)
-          call mpiallred(tt1, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('tmb%linmat%s%nvctrp_tg',tmb%linmat%s%nvctrp_tg)
-              call yaml_map('size(ovrlp_old%matrix_compr)',size(ovrlp_old%matrix_compr))
-              call yaml_map('size(tmb%linmat%ovrlp_%matrix_compr)',size(tmb%linmat%ovrlp_%matrix_compr))
-              call yaml_map('copy1',tt1)
-          end if
           call f_memcpy(src=tmb%linmat%ovrlp_%matrix_compr, dest=ovrlp_old%matrix_compr)
-          tt2 = dnrm2(size(ovrlp_old%matrix_compr), abs(ovrlp_old%matrix_compr-tmb%linmat%ovrlp_%matrix_compr), 1)
-          call mpiallred(tt2, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('copy2',tt2)
-          end if
-          tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 1)
-          tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 2)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('before recalc tr(S)',(/tt1,tt2/),fmt='(es18.9)')
-          end if
           
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, ovrlp_old, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, ovrlp_old, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('before recalc tr(KSold)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
-
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('before recalc tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
 
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, ovrlp_old, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, ovrlp_old, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('before renorm tr(KSold)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
-
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('before renorm tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
 
 
-          tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 1)
-          tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_, 2)
-          tt3 = sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg))
-          tt4 = sum(tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg))
-          call mpiallred(tt3, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(tt4, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('before renorm tr(K)',(/tt1,tt2/),fmt='(es18.9)')
-              call yaml_newline()
-              call yaml_map('before renorm sum(K)',(/tt3,tt4/),fmt='(es18.9)')
-          end if
-          tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 1)
-          tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, tmb%linmat%ovrlp_, 2)
-          tt3 = sum(tmb%linmat%ovrlp_%matrix_compr(1:tmb%linmat%s%nvctrp_tg))
-          tt4 = sum(tmb%linmat%ovrlp_%matrix_compr(tmb%linmat%s%nvctrp_tg+1:2*tmb%linmat%s%nvctrp_tg))
-          call mpiallred(tt3, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(tt4, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('before renorm tr(S)',(/tt1,tt2/),fmt='(es18.9)')
-              call yaml_newline()
-              call yaml_map('before renorm sum(S)',(/tt3,tt4/),fmt='(es18.9)')
-          end if
-          tt1 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, ovrlp_old, 1)
-          tt2 = trace_A(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%s, ovrlp_old, 2)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_map('before renorm tr(Sold)',(/tt1,tt2/),fmt='(es18.9)')
-          end if
 
           !if (iproc==0) call yaml_newline()
           !if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
@@ -1326,35 +1216,9 @@ end if
           if (.not.energy_increased) then
               if (iproc==0) call yaml_map('renormalize kernel',.true.)
 
-              tt = sum(tmb%linmat%kernel_%matrix_compr)
-              call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-              if (iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('sum(kernel)',tt,fmt='(es18.9)')
-              end if
-
-              tt = sum(ovrlp_old%matrix_compr)
-              call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-              if (iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('sum(ovrlp_old)',tt,fmt='(es18.9)')
-              end if
-
-              tt = sum(tmb%linmat%ovrlp_%matrix_compr)
-              call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-              if (iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('sum(ovrlp)',tt,fmt='(es18.9)')
-              end if
 
               call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
 
-              tt = sum(tmb%linmat%kernel_%matrix_compr)
-              call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-              if (iproc==0) then
-                  call yaml_newline()
-                  call yaml_map('sum(kernel)',tt,fmt='(es18.9)')
-              end if
 
           end if
           !if (iproc==0) call yaml_sequence_close()
@@ -1400,26 +1264,8 @@ end if
       calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID) .or. energy_increased
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
 
-      tt = sum(tmb%linmat%kernel_%matrix_compr)
-      call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      if (iproc==0) then
-          call yaml_newline()
-          call yaml_map('sum(kernel)',tt,fmt='(es18.9)')
-      end if
 
-      tt = sum(tmb%psi)
-      call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      if (iproc==0) then
-          call yaml_newline()
-          call yaml_map('sum(psi)',tt,fmt='(es18.9)')
-      end if
 
-      tt = sum(tmb%hpsi)
-      call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      if (iproc==0) then
-          call yaml_newline()
-          call yaml_map('sum(hpsi)',tt,fmt='(es18.9)')
-      end if
 
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
            fnrm_old, alpha, trH, trH_old, fnrm, &
@@ -3117,12 +2963,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !!           sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
   !!           sum(tmb%linmat%kernel_%matrix_compr(tmb%linmat%l%nvctrp_tg+1:2*tmb%linmat%l%nvctrp_tg)) 
 
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, ovrlp_old, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, ovrlp_old, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('before tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
 
 
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
@@ -3137,12 +2977,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
            tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
   end do
 
-  tt = sum(tmb%linmat%kernel_%matrix_compr)
-  call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('after 1st ret: sum(kernel)',tt,fmt='(es18.9)')
-  end if
 
   !!write(*,*) 'start, Si1, Si2', &
   !!           sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
@@ -3159,26 +2993,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
-  tt = sum(tmb%linmat%ovrlppowers_(1)%matrix_compr)
-  call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('sum(tmb%linmat%ovrlppowers_(1))',tt,fmt='(es18.9)')
-  end if
-
-  tt = sum(tmb%linmat%ovrlppowers_(2)%matrix_compr)
-  call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('sum(tmb%linmat%ovrlppowers_(2))',tt,fmt='(es18.9)')
-  end if
-
-  tt = sum(tmb%linmat%ovrlppowers_(3)%matrix_compr)
-  call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('sum(tmb%linmat%ovrlppowers_(3))',tt,fmt='(es18.9)')
-  end if
 
   !!write(*,*) 'end, Si1, Si2', &
   !!           sum(tmb%linmat%ovrlppowers_(2)%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
@@ -3209,19 +3023,6 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
   end do
 
-  tt = sum(tmb%linmat%kernel_%matrix_compr)
-  call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('after 2nd ret: sum(kernel)',tt,fmt='(es18.9)')
-  end if
-
-  tt1 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 1)
-  tt2 = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%s, tmb%linmat%kernel_, tmb%linmat%ovrlp_, 2)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('after tr(KS)',(/tt1,tt2/),fmt='(es18.9)')
-  end if
 
   !! write(*,*) 'end, K1, K2', &
   !!           sum(tmb%linmat%kernel_%matrix_compr(1:tmb%linmat%l%nvctrp_tg)), &
