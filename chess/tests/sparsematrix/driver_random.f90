@@ -43,7 +43,8 @@ program driver_random
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
-  real(mp) :: tt, tt_rel, eval_min, eval_max
+  real(mp) :: tt, tt_rel
+  real(mp),dimension(1) :: eval_min, eval_max
   type(matrices) :: mat1, mat2
   type(matrices),dimension(3) :: mat3
   real(mp) :: condition_number, expo, max_error, mean_error, betax
@@ -191,7 +192,7 @@ program driver_random
               iproc, nproc, mpi_comm_world, smats, &
               init_matmul=.false.)
       else if (trim(matgen_method)=='file') then
-          call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
+          call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(infile), &
               iproc, nproc, mpi_comm_world, smats, mat2,&
               init_matmul=.false.)
       end if

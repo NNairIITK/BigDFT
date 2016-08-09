@@ -2775,11 +2775,11 @@ module sparsematrix
       integer, intent(in) :: iproc
       type(sparse_matrix), intent(in) :: ovrlp_smat
       type(matrices), intent(in) :: ovrlp_mat
-      real(mp),intent(out) :: eval_min, eval_max
+      real(mp),dimension(ovrlp_smat%nspin),intent(out) :: eval_min, eval_max
       logical,intent(in),optional :: quiet
 
       ! Local variables
-      integer :: iseg, ii, i, lwork, info
+      integer :: iseg, ii, i, lwork, info, ispin, ishift
       real(kind=mp),dimension(:,:),allocatable :: tempmat
       real(kind=mp),dimension(:),allocatable :: eval, work
       logical :: quiet_
@@ -2790,30 +2790,38 @@ module sparsematrix
       if (present(quiet)) quiet_ = quiet
 
       tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-      do iseg=1,ovrlp_smat%nseg
-          ii=ovrlp_smat%keyv(iseg)
-          do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
-              tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ii)
-              ii = ii + 1
-          end do
-      end do
-      !!if (iproc==0) then
-      !!    do i=1,ovrlp_smat%nfvctr
-      !!        do j=1,ovrlp_smat%nfvctr
-      !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
-      !!        end do
-      !!    end do
-      !!end if
+
       eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
       lwork=100*ovrlp_smat%nfvctr
       work = f_malloc(lwork,id='work')
-      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-      !if (iproc==0) write(*,*) 'eval',eval
-      if (iproc==0 .and. .not.quiet_) then
-          call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
-      end if
-      eval_min = eval(1)
-      eval_max = eval(ovrlp_smat%nfvctr)
+
+      do ispin=1,ovrlp_smat%nspin
+
+          ishift = (ispin-1)*ovrlp_smat%nvctr
+
+          do iseg=1,ovrlp_smat%nseg
+              ii=ovrlp_smat%keyv(iseg)
+              do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
+                  tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ishift+ii)
+                  ii = ii + 1
+              end do
+          end do
+          !!if (iproc==0) then
+          !!    do i=1,ovrlp_smat%nfvctr
+          !!        do j=1,ovrlp_smat%nfvctr
+          !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
+          !!        end do
+          !!    end do
+          !!end if
+          call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+          !if (iproc==0) write(*,*) 'eval',eval
+          if (iproc==0 .and. .not.quiet_) then
+              call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+          end if
+          eval_min(ispin) = eval(1)
+          eval_max(ispin) = eval(ovrlp_smat%nfvctr)
+
+      end do
 
       call f_free(tempmat)
       call f_free(eval)

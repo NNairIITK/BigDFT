@@ -2124,6 +2124,10 @@ module multipole
 
       call f_routine(id='multipole_analysis_driver')
 
+      if (smatl%nspin/=1) then
+          call f_err_throw('Atomic multipole analysis not yet ready for nspin>1')
+      end if
+
       perx=(smmd%geocode /= 'F')
       pery=(smmd%geocode == 'P')
       perz=(smmd%geocode /= 'F')
@@ -2544,9 +2548,6 @@ module multipole
               dipole_check=dipole_check/Debye_AU  ! au2debye              
 
               !# NEW: compare the density and potential ##########################
-              if (smatl%nspin/=1) then
-                  call f_err_throw('Multipole analysis check not yet ready for nspin>1')
-              end if
               ! Get the exact charge density
               ioffset = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
                         denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,4)
@@ -3505,6 +3506,10 @@ module multipole
    real(wp), dimension(:,:,:), allocatable :: Qlm
 
    call f_routine(id='support_function_gross_multipoles')
+
+   if (tmb%linmat%l%nspin/=1) then
+       call f_err_throw('Support function multipole analysis not yet ready for nspin>1')
+   end if
 
    phi_ortho = f_malloc(size(tmb%psi),id='phi_ortho')
    call f_memcpy(src=tmb%psi, dest=phi_ortho)

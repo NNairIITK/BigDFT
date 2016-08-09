@@ -2598,7 +2598,7 @@ module matrix_operations
 
 
     !< Calculate "local versions" of S^{-1/2}, i.e. take only the small subblocks of all support functions
-    !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
+    !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of the matrix are empty.
     subroutine calculate_S_minus_one_half_onsite(iproc, nproc, comm, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: extract_taskgroup
@@ -2611,7 +2611,7 @@ module matrix_operations
       type(matrices),intent(inout) :: ovrlp_, inv_ovrlp_
 
       ! Local variables
-      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
+      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb, isshift, ilshift, ispin
       real(kind=mp),dimension(:,:),allocatable :: matrix
       real(kind=mp),dimension(:),allocatable :: matrix_compr_notaskgroup
 
@@ -2637,37 +2637,44 @@ module matrix_operations
       call f_zero(inv_ovrlp_%matrix_compr)
       matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
 
-      iorb = 1
-      do
-          iiat = onwhichatom(iorb)
-          n = 0
-          !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
-          if (iiat>=isat+1 .and. iiat<=isat+natp) then
-              do jorb=iorb,norb
-                  jjat = onwhichatom(jorb)
-                  if (jjat/=iiat) exit
-                  n = n + 1
-              end do
-              matrix = f_malloc((/n,n/),id='matrix')
-              do jorb=iorb,iorb+n-1
-                  do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg
-                      matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+      do ispin=1,smats%nspin
+
+          isshift = (ispin-1)*smats%nvctrp_tg
+          ilshift = (ispin-1)*smatl%nvctrp_tg
+
+          iorb = 1
+          do
+              iiat = onwhichatom(iorb)
+              n = 0
+              !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
+              if (iiat>=isat+1 .and. iiat<=isat+natp) then
+                  do jorb=iorb,norb
+                      jjat = onwhichatom(jorb)
+                      if (jjat/=iiat) exit
+                      n = n + 1
                   end do
-              end do
-              ! Passing 0 as comm... not best practice
-              call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
-              do jorb=iorb,iorb+n-1
-                  do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smatl, korb, jorb)! - smatl%isvctrp_tg
-                      !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
-                      matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                  matrix = f_malloc((/n,n/),id='matrix')
+                  do jorb=iorb,iorb+n-1
+                      do korb=iorb,iorb+n-1
+                          ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg + isshift
+                          matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+                      end do
                   end do
-              end do
-              call f_free(matrix)
-          end if
-          iorb = iorb + max(n,1)
-          if (iorb>norb) exit
+                  ! Passing 0 as comm... not best practice
+                  call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
+                  do jorb=iorb,iorb+n-1
+                      do korb=iorb,iorb+n-1
+                          ind = matrixindex_in_compressed(smatl, korb, jorb) - smatl%isvctrp_tg + ilshift
+                          !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                          matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      end do
+                  end do
+                  call f_free(matrix)
+              end if
+              iorb = iorb + max(n,1)
+              if (iorb>norb) exit
+          end do
+
       end do
 
       !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)

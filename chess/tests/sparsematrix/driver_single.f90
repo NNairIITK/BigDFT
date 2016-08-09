@@ -51,7 +51,8 @@ program driver_single
   type(matrices),dimension(1) :: mat_out
   type(matrices),dimension(3) :: mat_check_accur
   integer :: ierr, nthread, blocksize, iproc, nproc, i
-  real(mp) :: exp_power, max_error, mean_error, eval_min, eval_max
+  real(mp) :: exp_power, max_error, mean_error
+  real(mp),dimension(1) :: eval_min, eval_max
   real(mp) :: max_error_rel, mean_error_rel, tt, tt_rel
   character(len=200) :: filename_in, filename_out, filename_out_matmul
   type(dictionary), pointer :: dict_timing_info

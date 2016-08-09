@@ -155,7 +155,7 @@ module orthonormalization
     
       if (methTransformOverlap==-2) then
           call calculate_S_minus_one_half_onsite(iproc, nproc, bigdft_mpi%mpi_comm, &
-               orbs%norb, orbs%onwhichatom, &
+               ovrlp%nfvctr, orbs%onwhichatom, &
                ovrlp, inv_ovrlp_half, ovrlp_, inv_ovrlp_half_(1))
       else if (methTransformOverlap==-1) then
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)

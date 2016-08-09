@@ -674,7 +674,8 @@ module ice
       real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=mp),dimension(:,:,:),pointer :: cc
       real(kind=mp) :: anoise, scale_factor, shift_value, betax
-      real(kind=mp) :: evlow_old, evhigh_old, tt, eval_min, eval_max
+      real(kind=mp) :: evlow_old, evhigh_old, tt
+      real(kind=mp),dimension(ovrlp_smat%nspin) :: eval_min, eval_max
       real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
       real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
       logical :: restart, calculate_SHS
@@ -775,7 +776,7 @@ module ice
       betax = foe_data_get_real(ice_obj,"betax")
 
       !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
+      call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
 
 
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)

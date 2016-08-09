@@ -1691,6 +1691,7 @@
        COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
        DESCRIPTION: |
          Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
+         Currently only implemented and tested for nspin=1
          Possible values are:
          * 0 => no calculation
                     * 1 => Loewdin approach, however without explicit orthogonalization

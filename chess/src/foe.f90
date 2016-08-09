@@ -87,7 +87,7 @@ module foe
       real(kind=mp),dimension(4) :: interpol_vector
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
       logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
-      real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
+      real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp, tt1, tt2, tt3, tt4
       integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j, itg, ncount, istl, ists
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
       real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
@@ -591,6 +591,7 @@ module foe
 
     
       if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
+
 
 
       call f_free(sumn_allspins)

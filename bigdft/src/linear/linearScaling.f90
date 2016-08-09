@@ -1541,7 +1541,7 @@ end if
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
-              end if
+               end if
            else
               if (input%lin%constrained_dft) then
                  !Allocate weight matrix which is used in the CDFT loop
