@@ -256,13 +256,19 @@ module communications_init
       do ipt=2,collcom%nptsp_c
             collcom%isptsp_c(ipt) = collcom%isptsp_c(ipt-1) + collcom%norb_per_gridpoint_c(ipt-1)
       end do
-      if (maxval(collcom%isptsp_c)>collcom%ndimind_c) stop 'maxval(collcom%isptsp_c)>collcom%ndimind_c'
+      if (maxval(collcom%isptsp_c)>collcom%ndimind_c) then
+          call f_err_throw(yaml_toa(maxval(collcom%isptsp_c))+'=maxval(collcom%isptsp_c) >&
+               & collcom%ndimind_c='+yaml_toa(collcom%ndimind_c))
+      end if
     
       collcom%isptsp_f(1) = 0
       do ipt=2,collcom%nptsp_f
             collcom%isptsp_f(ipt) = collcom%isptsp_f(ipt-1) + collcom%norb_per_gridpoint_f(ipt-1)
       end do
-      if (maxval(collcom%isptsp_f)>collcom%ndimind_f) stop 'maxval(collcom%isptsp_f)>collcom%ndimind_f'
+      if (maxval(collcom%isptsp_f)>collcom%ndimind_f) then
+          call f_err_throw(yaml_toa(maxval(collcom%isptsp_f))+'=maxval(collcom%isptsp_f) >&
+               & collcom%ndimind_f='+yaml_toa(collcom%ndimind_f))
+      end if
     
       ! Not used any more, so deallocate...
       call f_free(istartend_c)
@@ -415,11 +421,11 @@ module communications_init
                   jj3=modulo(ii3-i3start,(lzd%glr%d%n3+1))+1
                   if (jj3>j3end) then
                       write(*,'(a,5i8)') 'ii3, i3start, lzd%glr%d%n3, jj3, j3end', ii3, i3start, lzd%glr%d%n3, jj3, j3end
-                      stop 'strange 2.1'
+                      call f_err_throw('strange 2.1')
                   end if
                   if (jj3<j3start) then
                       write(*,'(a,5i8)') 'ii3, i3start, lzd%glr%d%n3, jj3, j3start', ii3, i3start, lzd%glr%d%n3, jj3, j3start
-                      stop 'strange 2.2'
+                      call f_err_throw('strange 2.2')
                   end if
                   !if (ii3+1<i3s) cycle
                   !if (ii3+1>i3e) exit
@@ -685,11 +691,11 @@ module communications_init
                   !!if (jj3<i3start) stop 'strange 2'
                   if (jj3>j3end) then
                       write(*,'(a,5i8)') 'ii3, i3start, lzd%glr%d%n3, jj3, j3end', ii3, i3start, lzd%glr%d%n3, jj3, j3end
-                      stop 'strange 1.1'
+                      call f_err_throw('strange 1.1')
                   end if
                   if (jj3<j3start) then
                       write(*,'(a,5i8)') 'ii3, i3start, lzd%glr%d%n3, jj3, j3start', ii3, i3start, lzd%glr%d%n3, jj3, j3start
-                      stop 'strange 1.2'
+                      call f_err_throw('strange 1.2')
                   end if
                   ii=ii-i3*np
                   i2=ii/n1p1
@@ -715,8 +721,8 @@ module communications_init
       ! First a local check, then reduction for later
       weight_f_tot_check = sum(weightloc_f)
       if (nint(weight_f_tot_check)/=isize) then
-          write(*,'(a,2i12)') 'weight_f_tot_check, isize', nint(weight_f_tot_check), isize
-          stop 'weight_f_tot_check/=isize'
+          !write(*,'(a,2i12)') 'weight_f_tot_check, isize', nint(weight_f_tot_check), isize
+          call f_err_throw(yaml_toa(nint(weight_f_tot_check))+'weight_f_tot_check /= isize='+yaml_toa(isize))
       end if
 
       if (nproc>1) then
@@ -934,8 +940,8 @@ module communications_init
           call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       if (tt/=weight_c_tot_check) then
-          write(*,'(a,2es20.10)') 'tt, weight_c_tot_check', tt, weight_c_tot_check
-          stop 'tt/=weight_c_tot_check'
+          !write(*,'(a,2es20.10)') 'tt, weight_c_tot_check', tt, weight_c_tot_check
+          call f_err_throw(yaml_toa(tt)+'tt /= weight_c_tot_check='+yaml_toa(weight_c_tot_check))
       end if
 
       !write(*,*) 'sum(weightppp_c)', sum(weightppp_c)
@@ -997,7 +1003,8 @@ module communications_init
           end if
           if (sum(weight_per_process_c)/=weight_tot_c) then
               write(*,'(a,2f16.2)') 'sum(weight_per_process_c), weight_tot_c', sum(weight_per_process_c), weight_tot_c
-              stop 'sum(weight_per_process_c)/=weight_tot_c'
+              call f_err_throw(yaml_toa(sum(weight_per_process_c))+'sum(weight_per_process_c) /=&
+                   &  weight_tot_c='+yaml_toa(weight_tot_c))
           end if
           if (iproc==0) then
               weight_prev = 0.d0
@@ -3741,8 +3748,13 @@ module communications_init
     
       call f_free(indexrecvorbital2)
     
-      if(minval(indexrecvorbital)<1) stop 'minval(indexrecvorbital)<1'
-      if(maxval(indexrecvorbital)>orbs%norb) stop 'maxval(indexrecvorbital)>orbs%norb'
+      if(minval(indexrecvorbital)<1) then
+          call f_err_throw(trim(yaml_toa(minval(indexrecvorbital)))//'=minval(indexrecvorbital) < 1')
+      end if
+      if(maxval(indexrecvorbital)>orbs%norb) then
+          call f_err_throw(trim(yaml_toa(maxval(indexrecvorbital)))//'=maxval(indexrecvorbital) >&
+              & orbs%norb='//trim(yaml_toa(orbs%norb)))
+      end if
     
     
       call f_free(gridpoint_start)
