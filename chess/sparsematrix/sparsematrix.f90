@@ -2789,13 +2789,15 @@ module sparsematrix
       quiet_ = .false.
       if (present(quiet)) quiet_ = quiet
 
-      tempmat = f_malloc0((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
+      tempmat = f_malloc((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
 
       eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
       lwork=100*ovrlp_smat%nfvctr
       work = f_malloc(lwork,id='work')
 
       do ispin=1,ovrlp_smat%nspin
+
+          call f_zero(tempmat)
 
           ishift = (ispin-1)*ovrlp_smat%nvctr
 

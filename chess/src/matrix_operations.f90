@@ -861,7 +861,6 @@ module matrix_operations
                                 !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'FIRST ovrlpminonep_new(1), invovrlpp_arr_new(1,icalc)', ovrlpminonep_new(1), invovrlpp_arr_new(1,icalc)
                             end do
                         end if
-                        call f_free(ovrlp_large_compr)
       
                         do i=2,iorder
                             !call timing(iproc,'lovrlp^-1     ','OF')
@@ -905,6 +904,8 @@ module matrix_operations
                         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
       
                     end do
+
+                    call f_free(ovrlp_large_compr)
       
                     call f_free(factor_arr)
       
