@@ -855,7 +855,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
-  logical :: calculate_inverse, allow_increase
+  logical :: calculate_inverse, allow_increase, recovered_old_kernel
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -1054,6 +1054,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   end if
 
   energy_increased = .false.
+  recovered_old_kernel = .false.
 
   iterLoop: do
 
@@ -1220,7 +1221,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    ice_obj=tmb%ice_obj)
               call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
           end if
-          if (.not.energy_increased) then
+          !if (.not.energy_increased) then
+          if (.not.recovered_old_kernel) then
               call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
           end if
           !if (iproc==0) call yaml_sequence_close()
@@ -1406,6 +1408,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           can_use_ham=.false.
           call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, kernel_best(1), 1, &
                tmb%linmat%kernel_%matrix_compr(1), 1)
+          if (iproc==0) then
+              call yaml_map('Recovering old support functions and kernel',.true.)
+          end if
+          recovered_old_kernel = .true.
 
 
           ! Recalculate the matrix powers
@@ -1444,6 +1450,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       else
           can_use_ham=.true.
+          recovered_old_kernel = .false.
       end if 
 
 
