@@ -866,7 +866,8 @@ module module_interfaces
 
     interface
       subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-        energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
+        energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,&
+        calculate_pspandkin,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
         calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
         pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
@@ -892,7 +893,7 @@ module module_interfaces
       type(DFT_PSP_projectors),intent(inout) :: nlpsp
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
-      logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
+      logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix, calculate_pspandkin
       logical,intent(in):: communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(work_mpiaccumulate),intent(inout) :: energs_work

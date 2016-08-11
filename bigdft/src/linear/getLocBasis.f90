@@ -9,7 +9,8 @@
 
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-    energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
+    energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,&
+    calculate_pspandkin,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
     calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
     pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
@@ -59,7 +60,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
-  logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
+  logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix, calculate_pspandkin
   logical,intent(in):: communicate_phi_for_lsumrho
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(work_mpiaccumulate),intent(inout) :: energs_work
@@ -156,8 +157,15 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           auxiliary_arguments_present = .false.
       end if
 
+      if (.not.calculate_pspandkin) then
+          if (.not.auxiliary_arguments_present) then
+              call f_err_throw('The optionals arguments hphi_pspandkin, eproj and ekin must be present &
+                   &when calculate_pspandkin is wrong')
+          end if
+      end if
 
-      if(calculate_overlap_matrix .or. .not.auxiliary_arguments_present) then
+
+      if(calculate_pspandkin) then
 
           if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 
@@ -176,11 +184,15 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
                   ekin = energs%ekin
               end if
           end if
+          if (iproc==0) then
+              call yaml_map('PSP and kinetic Hamiltonian application','recalculated')
+          end if
       else
-          if (tmb%ham_descr%npsidim_orbs > 0) then
-              call f_memcpy(src=hphi_pspandkin, dest=tmb%hpsi)
-              energs%eproj = eproj
-              energs%ekin = ekin
+          call f_memcpy(src=hphi_pspandkin, dest=tmb%hpsi)
+          energs%eproj = eproj
+          energs%ekin = ekin
+          if (iproc==0) then
+              call yaml_map('PSP and kinetic Hamiltonian application','from memory')
           end if
       end if
       !!do i=1,tmb%ham_descr%comgp%nrecvbuf
@@ -309,7 +321,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the asymmetry of S and H
   call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
        tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, asymm_S)
-   write(*,*) 'tmb%linmat%ham_%matrix_compr',tmb%linmat%ham_%matrix_compr
   call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
        tmb%linmat%m, tmb%linmat%ham_%matrix_compr, asymm_H)
 

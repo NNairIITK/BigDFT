@@ -468,7 +468,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                 !                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
                 !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                     infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,.true.,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
                      input%tel, input%occopt, &
@@ -972,7 +972,7 @@ end if
 
        !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
        call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,KSwfn%orbs,at,rxyz,denspot,GPU,&
-           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
+           infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
            input%tel, input%occopt, &
@@ -1515,7 +1515,8 @@ end if
                  ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
                  cdft_loop : do cdft_it=1,100
                     call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
+                         (it_scc>1),invert_overlap_matrix,update_phi,&
                          .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                          input%tel, input%occopt, &
@@ -1535,7 +1536,8 @@ end if
                  call DIIS_free(vdiis)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
+                      (it_scc>1),invert_overlap_matrix,update_phi,&
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
@@ -1569,7 +1571,8 @@ end if
                  ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
                  cdft_loop1 : do cdft_it=1,100
                     call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                         infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
+                         (it_scc>1),invert_overlap_matrix,update_phi,&
                          .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                          input%tel, input%occopt, &
@@ -1589,7 +1592,8 @@ end if
                  call DIIS_free(vdiis)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
+                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
+                      (it_scc>1),invert_overlap_matrix,update_phi,&
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
