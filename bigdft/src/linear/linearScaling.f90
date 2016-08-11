@@ -616,6 +616,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   input%correction_co_contra, &
                   precond_convol_workarrays, precond_workarrays, &
                   wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
+                  input%lin%reset_DIIS_history, &
                   cdft, input%frag, ref_frags, &
                   hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
            else
@@ -629,6 +630,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                   can_use_ham, norder_taylor, input%lin%max_inversion_error, input%kappa_conv,&
                   input%correction_co_contra, precond_convol_workarrays, precond_workarrays, &
                   wt_philarge, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation, &
+                  input%lin%reset_DIIS_history, &
                   hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               !if (iproc==0) call yaml_scalar('call boundary analysis')
               call get_boundary_weight(iproc, nproc, tmb%orbs, tmb%lzd, at, &

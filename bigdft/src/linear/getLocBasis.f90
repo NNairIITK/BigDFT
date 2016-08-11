@@ -309,6 +309,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Calculate the asymmetry of S and H
   call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
        tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, asymm_S)
+   write(*,*) 'tmb%linmat%ham_%matrix_compr',tmb%linmat%ham_%matrix_compr
   call max_asymmetry_of_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
        tmb%linmat%m, tmb%linmat%ham_%matrix_compr, asymm_H)
 
@@ -761,7 +762,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
     correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
-    wt_philarge,  wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
+    wt_philarge,  wt_hphi, wt_phi, fnrm, energs_work, frag_calc, reset_DIIS_history, &
     cdft, input_frag, ref_frags, hphi_pspandkin, eproj, ekin)
   !
   ! Purpose:
@@ -827,7 +828,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
   type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
-  logical, intent(in) :: frag_calc
+  logical, intent(in) :: frag_calc, reset_DIIS_history
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -968,9 +969,6 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ldiis%immediateSwitchToSD=.false.
   allow_increase=.false.
 
-  ! Reset the DIIS history
-  ldiis%is = 0
-  if (iproc==0) call yaml_warning('Reset the DIIS history')
  
   call timing(iproc,'getlocbasinit','OF')
 
@@ -1068,6 +1066,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           !!    call yaml_map('target function','HYBRID')
           !!end if
+          ! Reset the DIIS history
+          if (it_tot==1) then
+              if (reset_DIIS_history) then
+                  ldiis%is = 0
+                  if (iproc==0) call yaml_map('reset DIIS history',.true.)
+              else
+                  if (iproc==0) call yaml_map('reset DIIS history',.false.)
+              end if
+          end if
       end if
 
       ! Synchronize the mpi_get before starting a new communication
@@ -2309,11 +2316,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!     basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
              call dgemm('t', 'n', norbx, norbx, basis_overlap%nfvctrp, 1.d0, coeff(basis_overlap%isfvctr+1,ist), &
                   basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
-             !!do iorb=1,norbx
-             !!    do jorb=1,norbx
-             !!        write(2200+iproc,'(a,2i9,es13.5)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
-             !!    end do
-             !!end do
+             do iorb=1,norbx
+                 do jorb=1,norbx
+                     write(2200+iproc,'(a,i3,3x,2i9,es13.5)') 'ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)', &
+                         ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)
+                 end do
+             end do
           else
              call f_zero(ovrlp_coeff)
           end if

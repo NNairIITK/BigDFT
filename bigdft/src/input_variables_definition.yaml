@@ -1821,6 +1821,9 @@
      orthogonalize_ao:
        COMMENT: Orthogonalize the atomic orbitals used as input guess
        default: Yes    
+     reset_DIIS_history:
+       COMMENT: reset the DIIS history when starting the loop which optimizes the support functions
+       default: No
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:

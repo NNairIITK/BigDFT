@@ -136,6 +136,7 @@ module module_input_keys
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
      real(kind=8) :: precision_FOE_eigenvalues !< decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
      logical :: orthogonalize_ao !< orthogonalize the AO generated as input guess
+     logical :: reset_DIIS_history !< reset the DIIS history when starting the loop which optimizes the support functions
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -2173,6 +2174,8 @@ contains
           in%lin%correctionOrthoconstraint = val
        case (orthogonalize_ao)
           in%lin%orthogonalize_ao = val
+       case (RESET_DIIS_HISTORY)
+          in%lin%reset_DIIS_history = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

@@ -810,7 +810,7 @@ module module_interfaces
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
           correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
+          wt_philarge, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, reset_DIIS_history, &
           cdft, input_frag, ref_frags, hphi_pspandkin, eproj, ekin)
         use module_defs, only: gp,dp,wp
         use module_types
@@ -854,7 +854,7 @@ module module_interfaces
         type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
         type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
         type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
-        logical, intent(in) :: frag_calc
+        logical, intent(in) :: frag_calc, reset_DIIS_history
         !these must all be present together
         type(cdft_data),intent(inout),optional :: cdft
         type(fragmentInputParameters),optional,intent(in) :: input_frag

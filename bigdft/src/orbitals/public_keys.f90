@@ -56,6 +56,7 @@ module public_keys
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
   character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
   character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
+  character(len = *), parameter :: RESET_DIIS_HISTORY = "reset_DIIS_history"
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
