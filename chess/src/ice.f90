@@ -775,8 +775,8 @@ module ice
       npl_stride = foe_data_get_int(ice_obj,"npl_stride")
       betax = foe_data_get_real(ice_obj,"betax")
 
-      !@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
+      !!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
+      !call get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max)
 
 
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
