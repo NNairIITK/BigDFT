@@ -468,7 +468,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
                 !                         input%method_updatekernel==UPDATE_BY_RENORMALIZATION)))
                 !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
                 call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
-                     infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,.true.,invert_overlap_matrix,update_phi,&
+                     infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,.true.,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
                      input%tel, input%occopt, &
@@ -1459,6 +1459,7 @@ end if
 
     !> This loop is simply copied down here such that it can again be called
     !! in a post-processing way.
+    !SM: Must be cleaned up a lot!
     subroutine scf_kernel(nit_scc, remove_coupling_terms, update_phi)
       use module_interfaces, only: get_coeff, write_eigenvalues_data
        implicit none
@@ -1469,7 +1470,14 @@ end if
        logical, intent(inout) :: update_phi
 
        ! Local variables
-       logical :: calculate_overlap, invert_overlap_matrix
+       logical :: calculate_overlap, invert_overlap_matrix, calculate_pspandkin, calculate_ham
+
+       ! Flag whether the Hamiltonian application should be done or not
+       calculate_ham = .true.
+
+       ! Flag indicating whether the PSP and kinetic Hamiltonian applications should be done.
+       ! This is necessary only once, since later only the potential contribution changes.
+       calculate_pspandkin = update_phi
 
        kernel_loop : do it_scc=1,nit_scc
            dmin_diag_it=dmin_diag_it+1
@@ -1491,6 +1499,7 @@ end if
                                     !cur_it_highaccuracy==1)
            !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
            if(update_phi .and. can_use_ham) then! .and. info_basis_functions>=0) then
+              calculate_ham = .false.
               if (input%lin%constrained_dft) then
                  !Allocate weight matrix which is used in the CDFT loop
                  weight_matrix_ = matrices_null()
@@ -1512,12 +1521,13 @@ end if
                  call vcopy(tmb%orbs%norb**2,tmb%coeff(1,1),1,coeff_tmp(1,1),1)
                  vold=cdft%lag_mult
 
+
                  ! The self consistency cycle. Here we try to get a self consistent density/potential with the fixed basis.
                  cdft_loop : do cdft_it=1,100
                     call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
-                         (it_scc>1),invert_overlap_matrix,update_phi,&
-                         .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                         invert_overlap_matrix,calculate_pspandkin,update_phi,&
+                         calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                          input%tel, input%occopt, &
                          input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
@@ -1537,8 +1547,8 @@ end if
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
-                      (it_scc>1),invert_overlap_matrix,update_phi,&
-                      .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                      invert_overlap_matrix,calculate_pspandkin,update_phi,&
+                      calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
@@ -1547,6 +1557,7 @@ end if
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                end if
            else
+              calculate_ham = .true.
               if (input%lin%constrained_dft) then
                  !Allocate weight matrix which is used in the CDFT loop
                  weight_matrix_ = matrices_null()
@@ -1572,8 +1583,8 @@ end if
                  cdft_loop1 : do cdft_it=1,100
                     call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                          infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
-                         (it_scc>1),invert_overlap_matrix,update_phi,&
-                         .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                         invert_overlap_matrix,calculate_pspandkin,update_phi,&
+                         calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                          input%tel, input%occopt, &
                          input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
@@ -1593,8 +1604,8 @@ end if
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,&
-                      (it_scc>1),invert_overlap_matrix,update_phi,&
-                      .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
+                      invert_overlap_matrix,calculate_pspandkin,update_phi,&
+                      calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
@@ -1603,11 +1614,17 @@ end if
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               end if
            end if
+
+
            !do i=1,tmb%linmat%l%nvctr
            !    write(*,*) 'i, lernel', i, tmb%linmat%kernel_%matrix_compr(i)
            !end do
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
+           ! Check whether we have to again calculate the PSP and kinetic part in the next iteration
+           if (calculate_ham .and. calculate_pspandkin) then
+               calculate_pspandkin = .false.
+           end if
 
 
            ! Since we do not update the basis functions anymore in this loop
