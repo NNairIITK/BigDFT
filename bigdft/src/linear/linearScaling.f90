@@ -1325,7 +1325,7 @@ end if
       call timing(iproc,'write_matrices','ON')
       call write_linear_matrices(iproc,nproc,bigdft_mpi%mpi_comm,input%imethod_overlap,trim(input%dir_output),&
            input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
-           input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
+           input%lin%calculate_onsite_overlap, write_SminusonehalfH=.false.)
 
       !temporary at the moment - to eventually be moved to more appropriate location
       !tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')

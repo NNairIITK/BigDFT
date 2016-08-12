@@ -354,6 +354,10 @@ test.testforces.ref.yaml:
  Ekin: 5.1e-10
  Epot: 2.91e-09
  EvXC: 6.51e-10
+ Multipole coefficients: 1.0e-9
+ Raw forces norm (Ha/Bohr): 1.5e-10
+ difference: 1.4e-9
+ relative difference: 4.8e-10
 
 
 
@@ -2506,7 +2510,7 @@ largesystems_dnawater:
 
 H2Omultipoles_1:
   EBS: 9.8e-10
-  EBS higher temperature: 1.4e-9
+  EBS higher temperature: 6.4e-9
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2517,14 +2521,14 @@ H2Omultipoles_1:
   Pseudo Fermi level for occupations: 2.5e-11
   Omega: 2.7e-11
   Total charge: 2.6e-11
-  Tr(K): 1.1e-07
+  Tr(K): 2.0e-07
   eF: 1.1e-07
   energy: 2.5e-11
   multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  difference: 1.4e-9
-  relative difference: 6.1e-10
+  difference: 6.4e-9
+  relative difference: 2.9e-9
 
 H2Omultipoles_11:
   EBS: 9.3e-10
