@@ -1315,6 +1315,7 @@ contains
     !local variables
     type(dictionary), pointer :: item
     logical :: dict_from_files
+    integer :: i
 
     if (associated(runObj%user_inputs)) then
        item => dict_iter(dict)
@@ -1333,6 +1334,8 @@ contains
 
     ! Parse new dictionary.
     call set_run_objects(runObj)
+    ! Create sections if any.
+    call set_section_objects(runObj)
 
     !init and update the restart objects
     call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
@@ -1340,6 +1343,12 @@ contains
     call free_MM_restart_objects(runObj%mm_rst)
     call nullify_MM_restart_objects(runObj%mm_rst)
     call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
+
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call init_restart_objects(runObj%sections(i), bigdft_mpi%iproc)
+       end do
+    end if
   END SUBROUTINE run_objects_update
 
   subroutine associate_restart_objects(runObj, rst, mm_rst)
