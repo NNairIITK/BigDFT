@@ -3017,7 +3017,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !! debug
         !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
         !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
-        !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+        !call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
         !if (iproc==0) then
         !   open(30)
         !   do itmb=1,tmb%orbs%norb
@@ -3274,7 +3274,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%calculate_KS_residue,in%calculate_gap, &
-             energs_work,.false.,in%lin%coeff_factor,&
+             energs_work,.false.,in%lin%coeff_factor,in%tel,in%occopt,&
              in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
              in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 

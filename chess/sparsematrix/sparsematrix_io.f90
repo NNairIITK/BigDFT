@@ -11,6 +11,7 @@ module sparsematrix_io
   public :: write_sparse_matrix_metadata
   public :: write_linear_coefficients
   public :: read_linear_coefficients
+  public :: write_dense_matrix
 
   contains
 
@@ -74,9 +75,11 @@ module sparsematrix_io
       read(iunit,*) nspin, nfvctr, nseg, nvctr
       keyv = f_malloc_ptr(nseg,id='keyv')
       keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+
       do iseg=1,nseg
           read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
       end do
+
       mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
       ind = 0
       do ispin=1,nspin
@@ -89,6 +92,7 @@ module sparsematrix_io
               end do
           end do
       end do
+
 
       call f_close(iunit)
 
@@ -215,6 +219,35 @@ module sparsematrix_io
           call f_close(iunit)
 
           call f_free(matrix_compr)
+
+          if (smat%smatmul_initialized) then
+              iunit = 99
+              call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
+
+              write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%smmm%nseg, sum(smat%smmm%nvctr_par), &
+                  '   # nspin, nfvctr, nseg, nvctr'
+              do iseg=1,smat%smmm%nseg
+                  write(iunit,'(5i12,a)') smat%smmm%keyv(iseg), smat%smmm%keyg(1,1,iseg), smat%smmm%keyg(2,1,iseg), &
+                      smat%smmm%keyg(1,2,iseg), smat%smmm%keyg(2,2,iseg), &
+                      '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+              end do
+              ind = 0
+              do ispin=1,smat%nspin
+                  do iseg=1,smat%smmm%nseg
+                      icol = smat%smmm%keyg(1,2,iseg)
+                      !iat = smat%on_which_atom(icol)
+                      do jorb=smat%smmm%keyg(1,1,iseg),smat%smmm%keyg(2,1,iseg)
+                          irow = jorb
+                          !jat = smat%on_which_atom(irow)
+                          ind = ind + 1
+                          !write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+                          write(iunit,'(es24.16,a,i0,a)') 0123456789._mp,'   # matrix_compr(',ind,')'
+                      end do
+                  end do
+              end do
+
+              call f_close(iunit)
+          end if
 
       end if
 
@@ -464,5 +497,120 @@ module sparsematrix_io
       call f_release_routine()
     
     end subroutine read_linear_coefficients
+
+
+    !> Write a sparse matrix to disk, but in dense format
+    !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
+    !! in distributed among the matrix taksgroups
+    subroutine write_dense_matrix(iproc, nproc, comm, smat, mat, filename, binary)
+      use sparsematrix_base
+      use sparsematrix, only: uncompress_matrix2
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(inout) :: mat
+      character(len=*),intent(in) :: filename
+      logical, intent(in) :: binary
+
+      ! Local variables
+      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype, iorb
+      real(kind=8),dimension(:),allocatable :: matrix_compr
+
+      call f_routine(id='write_dense_matrix')
+
+
+      mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
+      call uncompress_matrix2(iproc, nproc, comm, &
+           smat, mat%matrix_compr, mat%matrix)
+
+      if (iproc==0) then
+
+          iunit = 99
+          call f_open_file(iunit, file=trim(filename), binary=binary)
+
+          !write(iunit,'(i10,2i6,a)') nat, ntypes, smat%nspin, &
+          !    '   # number of atoms, number of atom types, nspin'
+          !do itype=1,ntypes
+          !    write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
+          !        '   # nz, nelpsp, name'
+          !end do
+          !do iat=1,nat
+          !    write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          !end do
+          !write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
+          !do iseg=1,smat%nseg
+          !    write(iunit,'(5i12,a)') smat%keyv(iseg), smat%keyg(1,1,iseg), smat%keyg(2,1,iseg), &
+          !        smat%keyg(1,2,iseg), smat%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+          !end do
+          !ind = 0
+          !do ispin=1,smat%nspin
+          !    do iseg=1,smat%nseg
+          !        icol = smat%keyg(1,2,iseg)
+          !        iat = smat%on_which_atom(icol)
+          !        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+          !            irow = jorb
+          !            jat = smat%on_which_atom(irow)
+          !            ind = ind + 1
+          !            write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+          !        end do
+          !    end do
+          !end do
+
+          !unify the structure with write_sparse?
+          !!!if (.not. binary) then
+          !!!    write(iunit,'(a,3i10,a)') '#  ',smat%nfvctr, nat, smat%nspin, &
+          !!!        '    number of basis functions, number of atoms, number of spins'
+          !!!else
+          !!!    write(iunit) '#  ',smat%nfvctr, nat, smat%nspin, &
+          !!!        '    number of basis functions, number of atoms, number of spins'
+          !!!end if
+          !!!do iat=1,nat
+          !!!    if (.not. binary) then
+          !!!        write(iunit,'(a,3es24.16,a,i4.4)') '#  ',rxyz(1:3,iat), '   # position of atom no. ',iat
+          !!!    else
+          !!!        write(iunit) '#  ',rxyz(1:3,iat)
+          !!!    end if
+          !!!end do
+          if (.not. binary) then
+              write(iunit,'(2i10,a)') smat%nspin, smat%nfvctr, ' # nspin, nfvctr'
+          else
+              write(iunit) smat%nspin, smat%nfvctr, ' # nspin, nfvctr'
+          end if
+    
+          do ispin=1,smat%nspin
+             !!do iorb=1,smat%nfvctr
+             !!   iat=onwhichatom(iorb)
+             !!   do jorb=1,smat%nfvctr
+             !!      jat=onwhichatom(jorb)
+             !!      if (.not. binary) then
+             !!         write(iunit,'(2(i6,1x),es19.12,2(1x,i6),a)') iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat, &
+             !!             '   # i, j, mat(i,j), iat, jat'
+             !!      else
+             !!         write(iunit) iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat
+             !!      end if
+             !!   end do
+             !!end do
+             do iorb=1,smat%nfvctr
+                do jorb=1,smat%nfvctr
+                   if (.not. binary) then
+                      write(iunit,'(2(i6,1x),es19.12,a)') iorb,jorb,mat%matrix(iorb,jorb,ispin), &
+                          '   # i, j, mat(i,j)'
+                   else
+                      write(iunit) iorb,jorb,mat%matrix(iorb,jorb,ispin)
+                   end if
+                end do
+             end do
+          end do
+
+          call f_close(iunit)
+
+          call f_free_ptr(mat%matrix)
+      end if
+
+      call f_release_routine()
+
+    end subroutine write_dense_matrix
 
 end module sparsematrix_io

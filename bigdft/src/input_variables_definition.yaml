@@ -1137,7 +1137,8 @@
      COMMENT: Time-Dependent DFT method
      EXCLUSIVE:
        none: no tddft post-processing
-       TDA: Tamm Dancoff approximation
+       TDA: Casida's LR-TDDFT using Tamm-Dancoff Approximation
+       full: Full Casida's LR-TDDFT
      default: none
    decompose_perturbation:
      COMMENT: Indicate the directory of the perturbation to be decomposed in the basis of empty states
@@ -1160,8 +1161,13 @@
        cp2k: CP2K
        dftbp: DFTP+
        sw: Stillinger-Weber for Si
+       bazant:  Bazant force for Si
        multi: Mixed approach where parts of the system are treated with different methods
      default: dft
+   add_coulomb_force:
+     COMMENT: Boolean to add coulomb force on top of any of above selected force
+     MASTER_KEY: method
+     default: No
    nab_options:
      COMMENT: String to be passed to nab_init compiler in the case of ambertools compilation
      default: ntpr=1
@@ -1570,12 +1576,18 @@
           *  1 => Plain text in sparse format
           * 11 => Plain text in dense format
           * 21 => Plain text in both formats
+          *  2 => Fortran binary in sparse format
+          * 12 => Fortran binary in dense format
+          * 22 => Fortran binary in both formats
        default: 0
        EXCLUSIVE:
          0:  None
          1:  Plain text sparse
          11: Plain text dense
          21: Plain text sparse and dense
+         2:  Fortran binary sparse
+         12: Fortran binary dense
+         22: Fortran binary sparse and dense
      output_coeff:
        COMMENT: output KS coefficients; 0 no output, 1 formatted output
        DESCRIPTION: |
@@ -1803,6 +1815,9 @@
            - 1 => don't take into account
        default: 1
        RANGE:  [0,1]
+     orthogonalize_ao:
+       COMMENT: Orthogonalize the atomic orbitals used as input guess
+       default: Yes    
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:

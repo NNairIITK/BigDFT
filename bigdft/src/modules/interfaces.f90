@@ -866,7 +866,7 @@ module module_interfaces
       subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
-        calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+        calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
         pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_defs, only: gp,dp,wp
@@ -876,7 +876,7 @@ module module_interfaces
       use diis_sd_optimization
       use sparsematrix_base, only: sparse_matrix
       implicit none
-      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, occopt
       integer,intent(inout) :: order_taylor
       real(kind=8),intent(in) :: max_inversion_error
       type(orbitals_data),intent(inout) :: orbs
@@ -895,7 +895,7 @@ module module_interfaces
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(work_mpiaccumulate),intent(inout) :: energs_work
       logical,intent(in) :: remove_coupling_terms
-      real(kind=8), intent(in) :: factor
+      real(kind=8), intent(in) :: factor, tel
       integer,intent(in) :: pexsi_npoles
       real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only

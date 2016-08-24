@@ -86,8 +86,7 @@ contains
 
   subroutine f_err_unset_callback()
     implicit none
-    !$ include 'halt_omp-inc.f90'
-
+    !!$ include 'halt_omp-inc.f90'
     callback_add=0
     callback_data_add=0
   end subroutine f_err_unset_callback
@@ -104,7 +103,7 @@ contains
 
   subroutine f_err_severe_restore()
     implicit none
-    !$ include 'halt_omp-inc.f90'
+    !!$ include 'halt_omp-inc.f90'
     severe_callback_add=0
   end subroutine f_err_severe_restore
 

@@ -19,6 +19,8 @@ module orbitalbasis
   implicit none
   private
 
+  integer, parameter :: NONE=-1
+
   type, public :: transposed_descriptor
      integer :: nspin !< spin multiplicity
      integer :: nup,ndown !<orbitals up and down
@@ -44,6 +46,7 @@ module orbitalbasis
      real(gp), dimension(:), pointer :: occup_ptr
      real(wp), dimension(:), pointer :: phi_wvl
      integer :: matrix_size !< size of all the matrices on the subspaces
+     integer :: matrix_zip_size !< size of all the matrices on the subspaces for a zipped iterator
      !>metadata
      integer :: ispsi
      integer :: ispsi_prev
@@ -94,6 +97,9 @@ module orbitalbasis
      real(wp), dimension(:), pointer :: phi_wvl !<coefficient
      !>starting address of potential
      integer :: ispot
+     !> metadata for the progress bar 
+     type(f_progress_bar) :: pbar
+     integer :: pbunit=NONE
      !> original orbital basis
      type(orbital_basis), pointer :: ob => null() !to be checked if it implies explicit save attribute
 
@@ -151,9 +157,11 @@ contains
 
   !>this subroutine is not reinitializing each component of the
   !! iterator as some of them has to be set by the 'next' functions
-  pure subroutine nullify_ket(k)
+  !pure 
+  subroutine nullify_ket(k)
     use module_defs, only: UNINITIALIZED
     use locreg_operations, only: nullify_confpot_data
+    use yaml_output, only: yaml_mapping_close
     implicit none
     type(ket), intent(inout) :: k
 
@@ -171,12 +179,23 @@ contains
     k%ispot=-1
     nullify(k%phi_wvl)
     nullify(k%ob)
+    if (k%pbunit /= NONE) then
+       call yaml_mapping_close(unit=k%pbunit)
+    end if
   end subroutine nullify_ket
 
-  function orbital_basis_iterator(ob) result(it)
+  function orbital_basis_iterator(ob,progress_bar,unit,id) result(it)
+    use yaml_output
     implicit none
     type(orbital_basis), intent(in), target :: ob
+    logical, intent(in), optional :: progress_bar
+    integer, intent(in), optional :: unit !< makes sense only if dump_progress_bar is .true.
+    character(len=*), intent(in), optional :: id !< name of the iteration
     type(ket) :: it
+    !local variables
+    logical :: pbyes
+    integer :: pbunt
+    character(len=128) :: pbname
 
     call nullify_ket(it)
     it%ob => ob
@@ -202,6 +221,17 @@ contains
     end if
     !end kpoint
     it%ikpt_max=maxval(ob%orbs%iokpt)
+    
+    pbyes=.false.
+    if (present(progress_bar)) pbyes=progress_bar
+    if (.not. pbyes) return
+    !here follow the treatment for the progress bar
+    call yaml_get_default_stream(it%pbunit)
+    if (present(unit)) it%pbunit=unit
+    pbname='Orbital Iterations'
+    if (present(id)) pbname=id
+    call yaml_mapping_open(pbname,unit=it%pbunit)
+    it%pbar=f_progress_bar_new(nstep=ob%orbs%norbp)
 
   end function orbital_basis_iterator
 
@@ -412,6 +442,7 @@ contains
 
 
   subroutine update_ket(k)
+    use yaml_output, only: dump_progress_bar
     implicit none
     type(ket), intent(inout) :: k
     !local variables
@@ -455,6 +486,9 @@ contains
        k%nphidim=(k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f)*k%nspinor
     end if
     if (associated(k%ob%phis_wvl)) k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
+    if (k%pbunit /= NONE) then
+       call dump_progress_bar(k%pbar,step=k%iorbp,unit=k%pbunit)
+    end if
   end subroutine update_ket
 
   function ob_ket_map(ob_ptr,it)
@@ -532,6 +566,13 @@ contains
     ss1%s2=>ss2
     ss2%s2=>ss1
 
+    !define the zip size
+    call zipped_offset(ss1%ob%orbs,ss2%ob%orbs,-1,ss1%ob%td%nspin,&
+         -1,ss1%matrix_zip_size)
+
+    ss1%matrix_zip_size=ss1%matrix_zip_size
+    ss2%matrix_zip_size=ss1%matrix_zip_size
+
   end subroutine subspace_iterator_zip
 
 
@@ -566,6 +607,7 @@ contains
     ss%ise        =f_none()
     ss%ise_prev   =f_none()
     ss%matrix_size=f_none()
+    ss%matrix_zip_size=f_none()
     nullify(ss%ob)
     nullify(ss%phi_wvl)
     nullify(ss%s2)
@@ -591,18 +633,25 @@ contains
   end function ob_ss_psi_map
 
   !>map the matrix pointer at the correct point
-  function ob_ss_matrix_map(mat,ss) result(ptr)
+  function ob_ss_matrix_map(mat,ss,ss2) result(ptr)
     use dynamic_memory, only: f_subptr
     implicit none
     real(wp), dimension(:), target, intent(in) :: mat
     type(subspace), intent(in) :: ss
+    type(subspace), intent(in), optional :: ss2 !<in the acse of a zipped iterator
     real(wp), dimension(:), pointer :: ptr
     !local variables
     integer :: istart,size
     
-    istart=ss%ob%td%ndim_ovrlp(ss%ispin,ss%ikpt-1)+1
-    size=ss%norb*ss%norb*ss%ncplx
-
+    if (present(ss2)) then
+       call zipped_offset(ss%ob%orbs,ss2%ob%orbs,&
+            ss%ispin,ss%ob%td%nspin,ss%ikpt,istart)
+       istart=istart+1
+       size=ss%norb*ss2%norb*ss%ncplx
+    else
+       istart=ss%ob%td%ndim_ovrlp(ss%ispin,ss%ikpt-1)+1
+       size=ss%norb*ss%norb*ss%ncplx
+    end if
     !the change of shape might be verified, but the mechanism
     !of f_subptr implementation should pass to a substructure
     !but on this case the pointer association should be replaced 
@@ -932,6 +981,7 @@ contains
   subroutine orbital_basis_release(ob)
     use module_base, only: bigdft_mpi
     use dynamic_memory
+    use module_base, only: bigdft_mpi
     use f_precisions
     implicit none
     type(orbital_basis), intent(inout) :: ob
@@ -948,7 +998,7 @@ contains
        call f_purge_database(isize,sizeof(ob%dd),iadd,'dd','orbital_basis_release')
     end if
     call f_free_ptr(ob%td%ndim_ovrlp)
-    if (bigdft_mpi%nproc>1) call f_free_ptr(ob%phis_wvl_t)
+    if (bigdft_mpi%nproc >1) call f_free_ptr(ob%phis_wvl_t)
     call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
 
