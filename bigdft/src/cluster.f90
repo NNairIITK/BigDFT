@@ -987,7 +987,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !analyse the possibility to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= abs(in%norbv) > 0 .and. DoLastRunThings
+  DoDavidson= (abs(in%norbv) > 0 .or. in%nkptv > 0) .and. DoLastRunThings
 
   !project the wavefunctions on a gaussian basis and keep in memory
   !if (in%gaussian_help) then
@@ -1171,6 +1171,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call timing(iproc,'CrtProjectors ','OF')
            if (iproc == 0) call print_nlpsp(nlpsp)
 
+           nvirt = KSwfn%orbs%norbu + in%nvirt
         else
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
@@ -1182,6 +1183,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms,&
                 basedist=KSwfn%comms%nvctr_par(0:,1:))
 
+           nvirt = in%nvirt
         end if
 
         !allocate psivirt pointer (note the orbs dimension)
@@ -1205,9 +1207,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            if(abs(in%nplot)>KSwfn%orbs%norb+nvirt) then
               if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
            end if
-        else if (in%norbv > 0) then
+        else if (in%norbv > 0 .or. in%nkptv > 0) then
            call davidson(iproc,nproc,in,atoms,&
-                KSwfn%orbs,VTwfn%orbs,in%nvirt,VTwfn%Lzd,&
+                KSwfn%orbs,VTwfn%orbs,nvirt,VTwfn%Lzd,&
                 KSwfn%comms,VTwfn%comms,&
                 rxyz,denspot%rhov,nlpsp, &
                 denspot%pkernelseq,KSwfn%psi,VTwfn%psi,denspot%dpbox,denspot%xc,GPU)
