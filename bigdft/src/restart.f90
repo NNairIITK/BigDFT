@@ -2184,7 +2184,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions
+  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions, plot_wf
   use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix
   use locreg_operations, only: lpsi_to_global2
   use public_enums
@@ -2448,7 +2448,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         end if
 
         ! useful for identifying which fragments are problematic
-        if (iproc==0) .and. frag_trans_frag(ifrag)%Werror>W_tol) then
+        if (iproc==0 .and. frag_trans_frag(ifrag)%Werror>W_tol) then
            write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x),2(I8,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
                 ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),&
                 frag_trans_frag(ifrag)%Werror,itoo_big,iproc
@@ -2809,7 +2809,7 @@ END SUBROUTINE readmywaves_linear_new
       end if
      
       if (astruct_ghost%nat>0) then
-         iatype=f_malloc_ptr(nat_not_frag,id='iatype')
+         iatype=f_malloc_ptr(at%astruct%nat+astruct_ghost%nat,id='iatype')
          call vcopy(at%astruct%nat,at%astruct%iatype(1),1,iatype(1),1)
          do iat=at%astruct%nat+1,at%astruct%nat+astruct_ghost%nat
             iatype(iat)=at%astruct%ntypes+1
@@ -2894,7 +2894,7 @@ END SUBROUTINE readmywaves_linear_new
       end do
 
       ! sort atoms into neighbour order
-      call sort_positions(nat_not_Frag,dist,ipiv)
+      call sort_positions(nat_not_frag,dist,ipiv)
 
       rxyz_new = f_malloc((/ 3,ref_frag%astruct_env%nat /),id='rxyz_new')
 

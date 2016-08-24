@@ -196,7 +196,7 @@ contains
                   ' does not exist in full structure'
              stop
           end if
-          frag%nbasis_env=frag%nbasis_env+input%lin%norbsPerType(jtyp)
+          if (trim(frag%astruct_env%atomnames(ityp))/='X') frag%nbasis_env=frag%nbasis_env+input%lin%norbsPerType(jtyp)
        end do
 
     else

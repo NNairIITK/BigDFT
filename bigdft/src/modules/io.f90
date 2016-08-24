@@ -743,15 +743,15 @@ module io
       ! we actually want num_neighbours of each atom type (if possible)
       ! figure out how many atoms that actually is by counting how many of each type are not in fragment
 
-      ! ghost atoms are an additinonal atom type added to end of list
+      ! ghost atoms are an additional atom type added to end of list
       if (astruct_ghost%nat>0) then
          ntypes=at%astruct%ntypes+1
       else
          ntypes=at%astruct%ntypes
       end if
 
-      atype_not_frag=f_malloc0(at%astruct%ntypes,id='atype_not_frag')
-      num_neighbours_type=f_malloc(at%astruct%ntypes,id='num_neighbours_type')
+      atype_not_frag=f_malloc0(ntypes,id='atype_not_frag')
+      num_neighbours_type=f_malloc(ntypes,id='num_neighbours_type')
              
       iatnf=0
       do iat=1,at%astruct%nat
@@ -791,14 +791,14 @@ module io
             num_neighbours_type(ityp) = min(atype_not_frag(ityp),num_neighbours)
             num_neighbours_tot = num_neighbours_tot + num_neighbours_type(ityp)
             !write(*,'(a,6(i3,2x))') 'type',ifrag,ifrag_ref,ityp,at%astruct%ntypes,num_neighbours_type(ityp),num_neighbours_tot
-            !write(*,'(a,4(i3,2x))') 'type',ityp,ntypes,num_neighbours_type(ityp),num_neighbours_tot
+            !write(*,'(a,5(i3,2x))') 'type',ityp,ntypes,num_neighbours_type(ityp),num_neighbours_tot,astruct_ghost%nat
          end do
       end if
       call f_free(atype_not_frag)
 
      
       if (astruct_ghost%nat>0) then
-         iatype=f_malloc_ptr(nat_not_frag,id='iatype')
+         iatype=f_malloc_ptr(at%astruct%nat+astruct_ghost%nat,id='iatype')
          call vcopy(at%astruct%nat,at%astruct%iatype(1),1,iatype(1),1)
          do iat=at%astruct%nat+1,at%astruct%nat+astruct_ghost%nat
             iatype(iat)=at%astruct%ntypes+1
@@ -860,7 +860,7 @@ module io
             ! first apply a distance cut-off so that all neighbours are ignored beyond some distance (needed e.g. for defects)
             if (abs(dist(ipiv(iat))) > cutoff) then
                ! subtract the neighbours that we won't be including
-               !print*,'cut',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv),cutoff,&
+               !if (bigdft_mpi%iproc==0) write(*,'(a,5(i3,2x),2(F8.2,2x),2(i3,2x))') 'cut',ityp,iatt,num_neighbours_type(ityp),iatf,iat,dist(ipiv(iat)),cutoff,&
                !     num_neighbours_tot,num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
                num_neighbours_tot = num_neighbours_tot - (num_neighbours_type(ityp) - iatt)
                num_neighbours_type(ityp) = iatt
