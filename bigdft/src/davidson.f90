@@ -665,7 +665,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if (iproc == 0) then
          call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)')))&
               // ' BZ coord. = ' // &
-              trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+              trim(yaml_toa(orbsv%kpts(:, ikpt),fmt='(f12.6)')))
          !call yaml_sequence(advance='no')
          !write(*,"(1x,A,I3.3,A,3F12.6)") " Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
       end if
@@ -1840,7 +1840,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
          !write(*,'(1x,a)')'Complete list of energy eigenvalues'
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
-            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            & trim(yaml_toa(orbsv%kpts(:, ikpt),fmt='(f12.6)')))
             !if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
             do iorb=1,orbs%norb
                if (occorbs) then
@@ -1853,10 +1853,12 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
                !write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
             end do
-            call yaml_sequence(advance='no')
-            call yaml_map('HOMO LUMO gap (AU, eV)', &
-               &   (/ orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
-               &   Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val) /), fmt='(1pe21.14)')
+            if (orbsv%norb > occnorb) then
+               call yaml_sequence(advance='no')
+               call yaml_map('HOMO LUMO gap (AU, eV)', &
+                    &   (/ orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
+                    &   Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val) /), fmt='(1pe21.14)')
+            end if
             !write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
             !   &   'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
             !   &   ' (',Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
@@ -1874,7 +1876,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
       else
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
-            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            & trim(yaml_toa(orbsv%kpts(:, ikpt),fmt='(f12.6)')))
             !write(*,'(1x,a)')'Complete list of energy eigenvalues'
             do iorb=1,min(orbs%norbu,orbs%norbd)
                if (occorbs) then
