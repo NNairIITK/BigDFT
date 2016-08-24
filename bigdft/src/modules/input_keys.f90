@@ -2741,6 +2741,7 @@ contains
     use m_ab6_kpoints
     use yaml_output
     use public_keys
+    use f_utils
     implicit none
     !Arguments
     integer, intent(in) :: iproc
@@ -2914,13 +2915,12 @@ contains
 
        in%kptv = f_malloc_ptr((/ 3, in%nkptv /),id='in%kptv')
 
-       ikpt = 0
+       ikpt = 1
+       in%kptv(:, ikpt) = dict // KPTV // (ikpt - 1)
        do i=1,nseg
           iseg_ = dict // ISEG // (i-1)
           ikpt=ikpt+iseg_
-          in%kptv(1,ikpt) = dict // KPTV // (ikpt - 1) // 0
-          in%kptv(2,ikpt) = dict // KPTV // (ikpt - 1) // 1
-          in%kptv(3,ikpt) = dict // KPTV // (ikpt - 1) // 2
+          in%kptv(:,ikpt) = dict // KPTV // i
           !interpolate the values
           do j=ikpt-iseg_+1,ikpt-1
              in%kptv(:,j)=in%kptv(:,ikpt-iseg_) + &
@@ -2936,18 +2936,17 @@ contains
 
        if (has_key(dict, BAND_STRUCTURE_FILENAME)) then
           in%band_structure_filename = dict // BAND_STRUCTURE_FILENAME
-          !since a file for the local potential is already given, do not perform ground state calculation
-          if (iproc==0) then
-             write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
-                  ', do not optimise GS wavefunctions'
+          call f_file_exists(in%band_structure_filename, lstat)
+
+          if (lstat) then
+             !since a file for the local potential is already given,
+             !do not perform ground state calculation
+             in%nrepmax=0
+             in%itermax=0
+             in%itrpmax=0
+             call set_inputpsiid(INPUT_PSI_EMPTY,in%inputPsiId)
+             call set_output_denspot(OUTPUT_DENSPOT_NONE,in%output_denspot)
           end if
-          in%nrepmax=0
-          in%itermax=0
-          in%itrpmax=0
-          !in%inputPsiId=-1000 !allocate empty wavefunctions
-          call set_inputpsiid(INPUT_PSI_EMPTY,in%inputPsiId)
-          call set_output_denspot(OUTPUT_DENSPOT_NONE,in%output_denspot)
-          !in%output_denspot=0
        end if
     else
        in%nkptv = 0
