@@ -725,6 +725,7 @@ module io
       if (check_for_ghosts) then
          !ghost atoms in ghost.xyz - would be better if this was seed_ghost.xyz but since we don't have seed here at the moment come back to this point later
          call nullify_atomic_structure(astruct_ghost)
+         astruct_ghost%nat=0
 
          ! first check if ghost file exists
          inquire(FILE = 'ghost.xyz', EXIST = ghosts_exist)
@@ -838,8 +839,8 @@ module io
       call sort_positions(nat_not_frag,dist,ipiv)
 
       ! allocate this larger than needed in case we have to complete a 'shell' of neighbours
-      !rxyz_frag_and_env = f_malloc((/ 3,ref_frag%astruct_frg%nat+num_neighbours_tot /),id='rxyz_frag_and_env')
-      rxyz_frag_and_env = f_malloc((/ 3,nat_not_frag /),id='rxyz_frag_and_env')
+      rxyz_frag_and_env = f_malloc((/ 3,ref_frag%astruct_frg%nat+num_neighbours_tot /),id='rxyz_frag_and_env')
+      !rxyz_frag_and_env = f_malloc((/ 3,nat_not_frag /),id='rxyz_frag_and_env')
 
       ! take fragment and closest neighbours (assume that environment atoms were originally the closest)
       do iat=1,ref_frag%astruct_frg%nat
