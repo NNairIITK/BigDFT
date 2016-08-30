@@ -441,6 +441,7 @@ module sparsematrix_io
       integer(kind=mpi_offset_kind) :: disp
       integer,dimension(4) :: workarr_header
       integer,dimension(:,:),allocatable :: workarr_keys
+      integer(kind=f_long) :: is_long, nseg_long, four_long, five_long, size_of_integer_long, size_of_double_long
 
       call f_routine(id='write_sparse_matrix_parallel')
 
@@ -449,6 +450,8 @@ module sparsematrix_io
            mpi_info_null, thefile, ierr) 
       size_of_integer = mpitypesize(1)
       size_of_double = mpitypesize(1.0_mp)
+      size_of_integer_long = int(size_of_integer,kind=f_long)
+      size_of_double_long = int(size_of_double,kind=f_long)
 
       ! Write the header
       disp = int(0,kind=mpi_offset_kind)
@@ -472,14 +475,19 @@ module sparsematrix_io
           workarr_keys(4,i) = keyg(1,2,ii)
           workarr_keys(5,i) = keyg(2,2,ii)
       end do
-      disp = int((4+5*is)*size_of_integer,kind=mpi_offset_kind)
+      !disp = int((4+5*is)*size_of_integer,kind=mpi_offset_kind)
+      is_long = int(is,kind=f_long)
+      disp = int((four_long+five_long*is_long)*size_of_integer_long,kind=mpi_offset_kind)
       call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
       call mpi_file_write(thefile, workarr_keys, 5*np, mpi_integer, mpi_status_ignore, ierr)
       call f_free(workarr_keys)
 
       ! Write the matrices
       call distribute_on_tasks(nvctr, iproc, nproc, np, is)
-      disp = int((4+5*nseg)*size_of_integer+is*size_of_double,kind=mpi_offset_kind)
+      !disp = int((4+5*nseg)*size_of_integer+is*size_of_double,kind=mpi_offset_kind)
+      is_long = int(is,kind=f_long)
+      nseg_long = int(nseg,kind=f_long)
+      disp = int((four_long+five_long*nseg_long)*size_of_integer_long+is_long*size_of_double_long,kind=mpi_offset_kind)
       call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr)
       if (np>1) then
           call mpi_file_write(thefile, matrix_compr(is+1), np, mpi_double_precision, mpi_status_ignore, ierr)
