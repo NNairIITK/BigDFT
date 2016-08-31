@@ -662,9 +662,10 @@ module postprocessing_linear
                          tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
       phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
       phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
-      call small_to_large_locreg(iproc, tmb%npsidim_orbs, &
+      call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+           tmb%npsidim_orbs, &
            tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
-           KSwfn%lzd, tmb%orbs, tmb%psi, phi_global, to_global=.true.)
+           KSwfn%lzd, tmb%psi, phi_global, to_global=.true.)
       call transpose_v(iproc, nproc, orbs, tmb%lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
     
       !apply frag coeffs instead (might still be orthonormalized)

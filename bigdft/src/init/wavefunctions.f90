@@ -39,7 +39,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !write(*,*) 'all((/present(basedist),present(basedistu),present(basedistd)/))',all((/present(basedist),present(basedistu),present(basedistd)/))
   if (any((/present(basedist),present(basedistu),present(basedistd)/))) then
       if (.not. all((/present(basedist),present(basedistu),present(basedistd)/))) then
-          stop 'basedist, basedistu and basedistd must all be present at the same time'
+          call f_err_throw('basedist, basedistu and basedistd must all be present at the same time')
       end if
   end if
 

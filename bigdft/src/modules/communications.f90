@@ -2236,7 +2236,7 @@ module communications
     
             !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
             !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
-            call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+            call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, &
                  orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1:), workarr(totshift:))
             psishift1 = psishift1 + ldim
             totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor

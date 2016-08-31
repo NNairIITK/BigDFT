@@ -81,7 +81,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
           sdim=lzd_l%llr(ilr)%wfd%nvctr_c+7*lzd_l%llr(ilr)%wfd%nvctr_f
           ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
           call f_zero(psi_g)
-          call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, 1, lzd_l%glr, &
+          call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, 1, lzd_l%glr, &
                lzd_l%llr(ilr), psi(ist:), psi_g)
       else
           sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f

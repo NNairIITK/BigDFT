@@ -1085,7 +1085,7 @@ module unitary_tests
                           psii(i)=psival
                        end do
                        call f_zero(psiig)
-                       call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
+                       call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, 1, lzd%glr, &
                                             lzd%llr(ilr), psii, psiig)
                        do jjorb=1,orbs%norb
                            if (orbs%spinsgn(jjorb)>0) then
@@ -1111,7 +1111,7 @@ module unitary_tests
                            end do
                            call f_zero(psijg)
                            !!write(4200+iproc,'(a,2i8,l4)') 'iproc, jlr, associated(lzd%llr(jlr)%wfd%keygloc)', iproc, jlr, associated(lzd%llr(jlr)%wfd%keygloc)
-                           call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, orbs%nspinor, 1, lzd%glr, &
+                           call Lpsi_to_global2(iproc, ldim, gdim, orbs%norb, 1, lzd%glr, &
                                                 lzd%llr(jlr), psij, psijg)
                            matp(jjjorb,niorb)=ddot(gdim, psiig, 1, psijg, 1)
                            call f_free(psij)

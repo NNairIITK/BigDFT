@@ -2470,7 +2470,7 @@ module io
       !!phi=0.d0
       !call to_zero(gdim,phi(1))
       !call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
-      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspinor, nspin, glr, llr, lphi, phi)
+      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspin, glr, llr, lphi, phi)
       
       write(num,'(i6.6)') orbitalNumber
       filename='grid_'//trim(num)

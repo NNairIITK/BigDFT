@@ -141,8 +141,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+      call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+           tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%psi, tmb%ham_descr%psi)
 
       ! Check the optional arguments
       if (any((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
@@ -1097,8 +1098,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmb%ham_descr%npsidim_orbs > 0)  call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
-      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+      call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+           tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%psi, tmb%ham_descr%psi)
 
       ! Start the nonblocking transposition (the results will be gathered in
       ! orthoconstraintNonorthogonal)
