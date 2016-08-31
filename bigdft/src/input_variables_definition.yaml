@@ -2213,7 +2213,7 @@ linear:
    check_matrix_compression: No
    correction_co_contra: Yes
    store_index: No
-   mixing_after_inputguess: 1
+   mixing_after_inputguess: 0
    kappa_conv: 0.1
    FOE_restart: 1
    hamapp_radius_incr: 6
@@ -2238,6 +2238,7 @@ linear:
    fix_basis: 1.0e-12
    correction_orthoconstraint: 0
    gnrm_ig: 1.e-1
+   reset_DIIS_history: yes
  lin_kernel:
    nstep: 10
    nit: 6
@@ -2248,6 +2249,7 @@ linear:
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0e-2
+   delta_pnrm: 0.1
  lin_basis_params:
    ao_confinement: -1.0
    confinement: -1.0
@@ -2264,6 +2266,16 @@ linear:
    Na: {nbasis: 1, rloc: 7.5}
    K:  {nbasis: 1, rloc: 8.0}
    Sn: {nbasis: 4, rloc: 6.5}
+   Fe: {nbasis: 13, rloc: 8.0}
+ ig_occupation:
+   Fe:
+     3s: 2.0
+     3p: 6.0
+     3d:
+       up: 4.0
+       down: 2.0
+     4s: 2.0
+     4p: 0.0
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:
