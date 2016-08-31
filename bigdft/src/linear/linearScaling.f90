@@ -1616,6 +1616,8 @@ end if
            end if
 
 
+
+
            !do i=1,tmb%linmat%l%nvctr
            !    write(*,*) 'i, lernel', i, tmb%linmat%kernel_%matrix_compr(i)
            !end do
@@ -1723,6 +1725,15 @@ end if
               pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
                    !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
               !write(*,*) 'new pnrm',pnrm
+
+              ! NEW WAY OF DETERMINING THE CONVERGENCE CRITERION #####################
+              if (input%lin%delta_pnrm>0.d0) then
+                  if (it_scc==1) then
+                      convCritMix = input%lin%delta_pnrm*pnrm
+                  end if
+              end if
+              ! ######################################################################
+
               call check_negative_rho(input%nspin, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                    denspot%rhov, rho_negative)
               if (rho_negative) then
@@ -1818,6 +1829,15 @@ end if
               !SM: to make sure that the result is analogous for polarized and non-polarized calculations, to be checked...
               pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
                   !write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
+
+              ! NEW WAY OF DETERMINING THE CONVERGENCE CRITERION #####################
+              if (input%lin%delta_pnrm>0.d0) then
+                  if (it_scc==1) then
+                      convCritMix = input%lin%delta_pnrm*pnrm
+                  end if
+              end if
+              ! ######################################################################
+
               if (pnrm<convCritMix .or. it_scc==nit_scc) then
                  ! calculate difference in density for convergence criterion of outer loop
                  ! There is no ioffset (unlike to the case of density mixing)

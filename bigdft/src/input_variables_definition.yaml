@@ -1936,6 +1936,13 @@
          or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
+     delta_pnrm:
+       COMMENT: stop the kernel optimization if the density/potential difference has decreased by this factor (deactivated if -1.0)
+       DESCRIPTION: |
+         stop the kernel optimization if the density/potential difference has decreased by this factor compared to the first iteration.
+         The feature is deactivated for a value of -1.0
+       default: -1.0
+       RANGE: [-1.0,1.0]
      pexsi_npoles:
        COMMENT: number of poles used by PEXSI
        DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices

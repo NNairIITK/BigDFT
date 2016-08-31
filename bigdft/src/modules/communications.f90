@@ -1100,7 +1100,9 @@ module communications
       !!end if
       !npot=nsendbuf/comm%nspin
     
-      if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
+      if(.not.comm%communication_complete) then
+          call f_err_throw('ERROR: there is already a p2p communication going on...')
+      end if
 
       !nproc_if: if (nproc>1) then
 
