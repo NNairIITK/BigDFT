@@ -1547,24 +1547,24 @@ O2spin_diag:
  delta: 1.1e-10
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 2.64e-8
- EH: 2.5e-7
- EXC: 2.1e-8
+ Atomic Forces (Ha/Bohr): 1.3e-7
+ EH: 4.3e-6
+ EXC: 8.2e-7
  Ekin: 4.8e-9
- Epot: 1.4e-7
- EvXC: 2.7e-8
+ Epot: 1.8e-6
+ EvXC: 1.1e-6
  Enl: 2.6e-9
- Tr(K): 6.9e-6
+ Tr(K): 2.81e-5
  D Tr(K): 1.01e-4
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
- EBS: 8.8e-8
- EBS higher temperature: 1.2e-7
+ EBS: 1.7e-6
+ EBS higher temperature: 1.7e-6
  Omega: 2.3e-9
  energy: 1.1e-7
- Raw forces norm (Ha/Bohr): 9.9e-8
- Clean forces norm (Ha/Bohr): 9.9e-8
+ Raw forces norm (Ha/Bohr): 1.2e-7
+ Clean forces norm (Ha/Bohr): 1.3e-7
  Average noise forces: 3.2e-8
  Total charge: 1.1e-7
  decay length of error function: 1.1e-5
@@ -1572,10 +1572,11 @@ O2spin_foe:
  D Tr: 2.1e-7
  relative difference: 5.2e-8
  Energy (Hartree): 8.8e-8
- Force Norm (Hartree/Bohr): 3.73e-8
+ Force Norm (Hartree/Bohr): 1.8e-7
  Maxdiff for transpose (checksum): 2.4e-10
  trace(KS): 1.1e-7
  fnrm2: 1.01e-7
+ spin occupations: 2.7e-05
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 2.44e-5
@@ -2510,7 +2511,7 @@ largesystems_dnawater:
 
 H2Omultipoles_1:
   EBS: 9.8e-10
-  EBS higher temperature: 6.4e-9
+  EBS higher temperature: 8.7e-9
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2521,14 +2522,15 @@ H2Omultipoles_1:
   Pseudo Fermi level for occupations: 2.5e-11
   Omega: 2.7e-11
   Total charge: 2.6e-11
-  Tr(K): 2.0e-07
+  Tr(K): 4.1e-07
   eF: 1.1e-07
   energy: 2.5e-11
   multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  difference: 6.4e-9
-  relative difference: 2.9e-9
+  difference: 8.7e-9
+  relative difference: 3.9e-9
+  Average noise forces: 1.0e-10
 
 H2Omultipoles_11:
   EBS: 9.3e-10

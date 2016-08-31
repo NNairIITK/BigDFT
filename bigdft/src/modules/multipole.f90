@@ -165,7 +165,7 @@ module multipole
       real(8),dimension(:),allocatable :: monopole
       real(8),dimension(:,:),allocatable :: norm, dipole, quadrupole, norm_check
       real(kind=8),dimension(:,:,:),allocatable :: gaussians1, gaussians2, gaussians3
-      logical,dimension(:),allocatable :: norm_ok
+      logical,dimension(:),allocatable :: norm_ok, skip3_array
       real(kind=8),parameter :: norm_threshold = 1.d-2
       real(kind=8),dimension(0:lmax) :: max_error
       integer :: ixc_tmp, nzatom, npspcode, ilr, j1s, j1e, j2s, j2e, j3s, j3e, j1, j2, j3
@@ -253,7 +253,8 @@ module multipole
           call geocode_buffers('F', lzd%glr%geocode, nl1, nl2, nl3)
           call calculate_gaussian(is1, ie1, 1, nl1, lzd%glr%d%n1i, perx, hx, shift, ep, gaussians1)
           call calculate_gaussian(is2, ie2, 2, nl2, lzd%glr%d%n2i, pery, hy, shift, ep, gaussians2)
-          call calculate_gaussian(is3, ie3, 3, nl3, lzd%glr%d%n3i, perz, hz, shift, ep, gaussians3)
+          skip3_array = f_malloc(ep%nmpl,id='skip3_array')
+          call calculate_gaussian(is3, ie3, 3, nl3, lzd%glr%d%n3i, perz, hz, shift, ep, gaussians3, skip3_array)
     
     
           norm = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm')
@@ -268,7 +269,9 @@ module multipole
           ! First calculate the norm of the Gaussians for each multipole
           !norm = 0.d0
           call calculate_norm(nproc, is1, ie1, is2, ie2, is3, ie3, ep, &
-               hhh, gaussians1, gaussians2, gaussians3, norm)
+               hhh, gaussians1, gaussians2, gaussians3, skip3_array, norm)
+
+          call f_free(skip3_array)
     
           ! Check whether they are ok.
           do impl=1,ep%nmpl
@@ -3963,7 +3966,7 @@ module multipole
 
  !!end subroutine get_optimal_sigmas
 
- subroutine calculate_gaussian(is, ie, idim, nl, nglob, periodic, hh, shift, ep, gaussian_array)
+ subroutine calculate_gaussian(is, ie, idim, nl, nglob, periodic, hh, shift, ep, gaussian_array, skip_array)
    use module_base
    use multipole_base, only: lmax, external_potential_descriptors
    implicit none
@@ -3975,10 +3978,13 @@ module multipole
    real(kind=8),dimension(3),intent(in) :: shift
    type(external_potential_descriptors),intent(in) :: ep
    real(kind=8),dimension(0:lmax,is:ie,ep%nmpl),intent(out) :: gaussian_array
+   logical,dimension(ep%nmpl),intent(out),optional :: skip_array
 
    ! Local variables
    integer :: i, ii, impl, l, isx, iex, n, imod, nn, nu, nd, js, je, j
-   real(kind=8) :: x, tt, sig, dr
+   real(kind=8) :: x, tt, sig, dr, gg, maxval_gaussian
+   logical,dimension(:),allocatable :: skip_array_
+   logical :: skip_array_present
 
    call f_routine(id='calculate_gaussian')
 
@@ -3986,6 +3992,9 @@ module multipole
    !    write(*,*) 'idim, shift(idim), ep%mpl(impl)%rxyz(idim)', idim, shift(idim), ep%mpl(impl)%rxyz(idim)
    !end do
 
+   skip_array_present = present(skip_array)
+
+   skip_array_ = f_malloc(ep%nmpl,id='skip_array_')
    call f_zero(gaussian_array)
 
    ! Calculate the boundaries of the Gaussian to be calculated. To make it simple, take always the maximum:
@@ -4001,9 +4010,11 @@ module multipole
 
    !$omp parallel default(none) &
    !$omp shared(is, ie, hh, shift, idim, ep, gaussian_array, js, je, nl, nglob) &
-   !$omp private(i, ii, x, impl, tt, l, sig, j, dr)
+   !$omp shared(skip_array_present, skip_array_) &
+   !$omp private(i, ii, x, impl, tt, l, sig, j, dr, gg, maxval_gaussian)
    !$omp do
    do impl=1,ep%nmpl
+       maxval_gaussian = 0.d0
        do i=is,ie
            ii = i - nl - 1
            tt = huge(tt)
@@ -4014,12 +4025,29 @@ module multipole
            tt = tt**2
            do l=0,lmax
                sig = ep%mpl(impl)%sigma(l)
-               gaussian_array(l,i,impl) = gaussian(sig,tt)
+               gg = gaussian(sig,tt)
+               gaussian_array(l,i,impl) = gg
+               if (skip_array_present) then
+                   maxval_gaussian = max(gg,maxval_gaussian)
+               end if
            end do
        end do
+       if (skip_array_present) then
+           if (maxval_gaussian>0.d0) then
+               skip_array_(impl) = .false.
+           else
+               skip_array_(impl) = .true.
+           end if
+       end if
    end do
    !$omp end do
    !$omp end parallel
+
+   if (skip_array_present) then
+       call f_memcpy(src=skip_array_, dest=skip_array)
+   end if
+
+   call f_free(skip_array_)
 
    call f_release_routine()
 
@@ -4047,7 +4075,7 @@ module multipole
  end subroutine calculate_gaussian
 
  subroutine calculate_norm(nproc, is1, ie1, is2, ie2, is3, ie3, ep, &
-            hhh, gaussians1, gaussians2, gaussians3, norm)
+            hhh, gaussians1, gaussians2, gaussians3, skip3_array, norm)
    use module_base
    use multipole_base, only: external_potential_descriptors
    implicit none
@@ -4059,6 +4087,7 @@ module multipole
    real(kind=8),dimension(0:lmax,is1:ie1,1:ep%nmpl),intent(in) :: gaussians1
    real(kind=8),dimension(0:lmax,is2:ie2,1:ep%nmpl),intent(in) :: gaussians2
    real(kind=8),dimension(0:lmax,is3:ie3,1:ep%nmpl),intent(in) :: gaussians3
+   logical,dimension(ep%nmpl),intent(in) :: skip3_array
    real(kind=8),dimension(0:2,ep%nmpl),intent(out) :: norm
 
    ! Local variables
@@ -4072,10 +4101,14 @@ module multipole
 
    !$omp parallel default(none) &
    !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
-   !$omp shared(gaussians1, gaussians2, gaussians3) &
+   !$omp shared(gaussians1, gaussians2, gaussians3, skip3_array) &
    !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg23, gg) 
    !$omp do schedule(guided)
-   do impl=1,ep%nmpl
+   impl_loop: do impl=1,ep%nmpl
+       if (skip3_array(impl)) then
+           !write(*,'(a,i0)') '#skip impl ',impl
+           cycle impl_loop
+       end if
        i3loop: do i3=is3,ie3
            if (maxval(gaussians3(:,i3,impl))<1.d-20) cycle i3loop
            ii3 = i3 - 15
@@ -4097,7 +4130,7 @@ module multipole
                end do i1loop
            end do i2loop
        end do i3loop
-   end do
+   end do impl_loop
    !$omp end do
    !$omp end parallel
 
