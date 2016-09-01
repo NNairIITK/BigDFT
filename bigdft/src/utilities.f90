@@ -14,7 +14,9 @@ program utilities
 
    use module_base
    use yaml_output
-   use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
+   use module_types, only: local_zone_descriptors, local_zone_descriptors_null
+   use module_types, only: bigdft_init_errors, bigdft_init_timing_categories, orbitals_data
+   use public_enums, only: LINEAR_PARTITION_SIMPLE
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), &
                                 SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, &
@@ -22,7 +24,7 @@ program utilities
                                 sparse_matrix_metadata, deallocate_sparse_matrix_metadata
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple, &
                                 write_sparsematrix_info
-   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix
+   use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, read_linear_coefficients
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
@@ -32,11 +34,15 @@ program utilities
                                      ccs_matrix_write, &
                                      matrices_init, &
                                      get_selected_eigenvalues_from_FOE
-   use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN
+   use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, build_ks_orbitals_postprocessing
    use multipole, only: multipole_analysis_driver_new
    use multipole_base, only: lmax
-   !!use io, only: write_linear_coefficients, read_linear_coefficients
+   use io, only: io_read_descr_linear, read_psi_compress
    use bigdft_run, only: bigdft_init
+   use locregs, only: nullify_locreg_descriptors
+   ! It's very bad practice to oblige the use of module_interfaces.
+   ! If it is not done, it crashes with segfault due to the optional arguments
+   use module_interfaces, only: orbitals_descriptors, open_filename_of_iorb
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
@@ -52,6 +58,7 @@ program utilities
    logical :: calculate_pdos = .false.
    logical :: convert_matrix_format = .false.
    logical :: calculate_selected_eigenvalues = .false.
+   logical :: build_KS_orbitals = .false.
    type(atoms_data) :: at
    type(sparse_matrix_metadata) :: smmd
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method, ntypes
@@ -64,10 +71,11 @@ program utilities
    integer,dimension(:),pointer :: iatype, nzatom, nelpsp
    integer,dimension(:),pointer :: col_ptr, row_ind
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
+   integer,dimension(:),allocatable :: in_which_locreg
    logical,dimension(-lmax:lmax) :: file_present
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
-   real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
+   real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups, phi, phi_tmp
    real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found
@@ -84,6 +92,15 @@ program utilities
    character(len=2) :: backslash, num
    real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale
    type(f_progress_bar) :: bar
+   type(orbitals_data) :: orbs
+   integer,parameter :: nkpt = 1
+   real(kind=8),dimension(3,nkpt),parameter :: kpt = reshape((/0.d0,0.d0,0.d0/),(/3,nkpt/))
+   real(kind=8),dimension(nkpt),parameter :: wkpt = (/1.d0/)
+   type(local_zone_descriptors) :: lzd
+   integer :: confpotorder, ilr, iiorb, iiorb_out, ispinor, nspinor, onwhichatom_tmp, npsidim_orbs, nsize
+   real(kind=8) :: confpotprefac, eval_tmp
+   character(len=256) :: error, filename
+   logical :: lstat
    integer,parameter :: ncolors = 12
    ! Presumably well suited colorschemes from colorbrewer2.org
    character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
@@ -227,6 +244,12 @@ program utilities
          !!    call get_command_argument(i_arg, value = fscale_)
          !!    read(fscale_,fmt=*,iostat=ierr) fscale
          !!    calculate_selected_eigenvalues = .true.
+         else if (trim(tatonam)=='build-KS-orbitals') then
+             i_arg = i_arg + 1
+             call get_command_argument(i_arg, value = metadata_file)
+             i_arg = i_arg + 1
+             call get_command_argument(i_arg, value = coeff_file)
+             build_KS_orbitals = .true.
          end if
          i_arg = i_arg + 1
       end do loop_getargs
@@ -360,6 +383,139 @@ program utilities
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('done',hfill='-')
        end if
+
+   end if
+
+
+   if (build_KS_orbitals) then
+
+       write(*,*) 'in build_KS_orbitals'
+
+       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+
+       nspin = 1
+
+       if (nspin/=1) then
+           call f_err_throw('KS orbitals nor implemented for nspin/=1')
+       end if
+
+       iunit = 99
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
+       call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
+       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
+            eval=eval_ptr)
+       call f_close(iunit)
+
+       in_which_locreg = f_malloc(ntmb,id='in_which_locreg')
+       do iorb=1,ntmb
+           in_which_locreg(iorb) = iorb
+       end do
+       !!write(*,*) 'HAC: MANUAL MODIFICATION OF IN_WHICH_LOCREG'
+       !!in_which_locreg = (/5,1,2,3,4,6/)
+
+       write(*,*) 'nkpt',nkpt
+       write(*,*) 'kpt', kpt
+       write(*,*) 'wkpt', wkpt
+
+       call orbitals_descriptors(bigdft_mpi%iproc, bigdft_mpi%nproc, ntmb, ntmb, 0, nspin, 1,&
+            nkpt, kpt, wkpt, orbs, linear_partition=LINEAR_PARTITION_SIMPLE)
+       !!call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
+
+       write(*,*) 'orbs%inwhichlocreg',orbs%inwhichlocreg
+
+       nspinor = 1
+
+       rxyz = f_malloc_ptr((/3,smmd%nat/),id='rxyz')
+
+       lzd = local_zone_descriptors_null()
+       allocate(lzd%llr(orbs%norb),stat=istat)
+       do iorb=1,orbs%norb
+           call nullify_locreg_descriptors(lzd%llr(iorb))
+       end do
+
+       ! Read the global grid
+       call f_open_file(iunit, file='KSgrid.dat', binary=.false.)
+       call io_read_descr_linear(iunit, .true., iiorb, eval_tmp, &
+            lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
+            lzd%glr%ns1, lzd%glr%ns2, lzd%glr%ns3, lzd%hgrids, &
+            lstat, error, onwhichatom_tmp, lzd%glr%locrad, lzd%glr%locregCenter, &
+            confpotorder, confpotprefac, &
+            nvctr_c=lzd%glr%wfd%nvctr_c, &
+            nvctr_f=lzd%glr%wfd%nvctr_f, &
+            nseg_c=lzd%glr%wfd%nseg_c, &
+            nseg_f=lzd%glr%wfd%nseg_f, &
+            keygloc=lzd%glr%wfd%keygloc, &
+            keyglob=lzd%glr%wfd%keyglob, &
+            keyvloc=lzd%glr%wfd%keyvloc, &
+            keyvglob=lzd%glr%wfd%keyvglob)
+       call f_close(iunit)
+
+       filename='minBasis'
+
+       npsidim_orbs = 0
+       phi = f_malloc(npsidim_orbs,id='phi')
+       !do iat = 1,smmd%nat
+          do iorb=1,orbs%norbp
+             !if(iat == smmd%on_which_atom(iorb+orbs%isorb)) then
+                write(*,*) 'iat, iorb', iat, iorb
+                !shift = 1
+                !do jorb = 1, iorb-1
+                !   jlr = smmd%on_which_atom(jorb+isorb)
+                !   shift = shift + Lzd%Llr(jlr)%wfd%nvctr_c+7*Lzd%Llr(jlr)%wfd%nvctr_f
+                !end do
+                ilr = in_which_locreg(iorb+orbs%isorb)
+                do ispinor=1,nspinor
+                   call open_filename_of_iorb(iunit, .false., trim(filename), &
+                        orbs, iorb, ispinor, iiorb_out)
+                   write(*,*) 'iiorb_out, trim(filename)', iiorb_out, trim(filename)
+
+                   call io_read_descr_linear(iunit, .true., iiorb, eval_tmp, &
+                        lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+                        lzd%llr(ilr)%ns1, lzd%llr(ilr)%ns2, lzd%llr(ilr)%ns3, lzd%hgrids, &
+                        lstat, error, onwhichatom_tmp, lzd%llr(ilr)%locrad, lzd%llr(ilr)%locregCenter, &
+                        confpotorder, confpotprefac, &
+                        nvctr_c=lzd%llr(ilr)%wfd%nvctr_c, &
+                        nvctr_f=lzd%llr(ilr)%wfd%nvctr_f, &
+                        nseg_c=lzd%llr(ilr)%wfd%nseg_c, &
+                        nseg_f=lzd%llr(ilr)%wfd%nseg_f, &
+                        keygloc=lzd%llr(ilr)%wfd%keygloc, &
+                        keyglob=lzd%llr(ilr)%wfd%keyglob, &
+                        keyvloc=lzd%llr(ilr)%wfd%keyvloc, &
+                        keyvglob=lzd%llr(ilr)%wfd%keyvglob)
+
+
+                   phi_tmp = f_malloc(npsidim_orbs,id='phi_tmp')
+                   call f_memcpy(src=phi, dest=phi_tmp)
+                   call f_free(phi)
+                   nsize = lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+                   phi = f_malloc(npsidim_orbs+nsize,id='phi')
+                   call f_memcpy(src=phi_tmp, dest=phi)
+                   call f_free(phi_tmp)
+
+                   call read_psi_compress(iunit, .true., lzd%llr(ilr)%wfd%nvctr_c, lzd%llr(ilr)%wfd%nvctr_f, &
+                        phi(npsidim_orbs+1:npsidim_orbs+nsize), lstat, error)
+
+                   npsidim_orbs = npsidim_orbs + nsize
+
+                   call f_close(iunit)
+                end do
+             !end if
+          enddo
+       !end do
+
+       write(*,*) 'dot', dot(npsidim_orbs, phi(1), 1, phi(1), 1)
+
+       ! have to copy the structures...
+       at = atoms_data_null()
+
+       write(*,*) 'orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd', &
+                   orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd
+       write(*,*) 'call build_ks_orbitals_postprocessing: in_which_locreg',in_which_locreg
+       read(101,*) coeff_ptr
+       call build_ks_orbitals_postprocessing(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+            orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd, &
+            nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, phi, coeff_ptr)
+
 
    end if
 

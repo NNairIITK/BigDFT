@@ -39,7 +39,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, &
-                plot_locreg_grids, write_energies
+                plot_locreg_grids, write_energies, writeonewave_linear
   use postprocessing_linear, only: loewdin_charge_analysis, &
                                    build_ks_orbitals
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
@@ -86,7 +86,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8) :: pnrm,trace,trace_old,fnrm_tmb
   integer :: infoCoeff,istat,it_scc,itout,info_scf,i,iorb
   character(len=*), parameter :: subname='linearScaling'
-  real(kind=8), dimension(:), allocatable :: rhopotold_out, eval
+  real(kind=8), dimension(:), allocatable :: rhopotold_out, eval, psi_KS_fake
   real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix, convCritMix_init
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
@@ -126,7 +126,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   integer :: nit_energyoscillation, ieval_min, ieval_max
   integer(kind=8) :: nsize
   type(work_mpiaccumulate) :: fnrm_work, energs_work
-  integer :: ilr, iiorb, iiat
+  integer :: ilr, iiorb, iiat, iunit
 !!$  real(kind=8), dimension(3) :: rr
   real(kind=8), dimension(1,1) :: K_H
   real(kind=8), dimension(4,4) :: K_O
@@ -841,6 +841,73 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   end if
 
 
+  ! COPIED UP ###############################################################################################
+  !Write the linear wavefunctions to file if asked
+  if (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) then
+     nelec=0
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
+        nelec=nelec+at%nelpsp(ityp)
+     enddo
+     if (write_full_system) then
+        call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',mod(input%lin%plotBasisFunctions,10),&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
+
+        if (iproc==0) then
+            ! Write also the global grid... maybe a misuse of writeonewave_linear
+            iunit = 99
+            call f_open_file(iunit, file=trim(input%dir_output)//'KSgrid.dat', binary=.false.)
+
+            psi_KS_fake = f_malloc0(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+            call writeonewave_linear(iunit, .true., 0, &
+                 tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, &
+                 tmb%lzd%glr%ns1, tmb%lzd%glr%ns2, tmb%lzd%glr%ns3, &
+                 tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                 tmb%lzd%glr%locregCenter, tmb%lzd%glr%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+                 at%astruct%nat, rxyz, tmb%lzd%glr%wfd%nseg_c, tmb%lzd%glr%wfd%nvctr_c, &
+                 tmb%lzd%glr%wfd%keygloc, tmb%lzd%glr%wfd%keyglob, &
+                 tmb%lzd%glr%wfd%keyvloc, tmb%lzd%glr%wfd%keyvglob, &
+                 tmb%lzd%glr%wfd%nseg_f, tmb%lzd%glr%wfd%nvctr_f, &
+                 tmb%lzd%glr%wfd%keygloc(1:,tmb%lzd%glr%wfd%nseg_c+1:), &
+                 tmb%lzd%glr%wfd%keyglob(1:,tmb%lzd%glr%wfd%nseg_c+1:), &
+                 tmb%lzd%glr%wfd%keyvloc(tmb%lzd%glr%wfd%nseg_c+1:), &
+                 tmb%lzd%glr%wfd%keyvglob(tmb%lzd%glr%wfd%nseg_c+1:), &
+                 psi_KS_fake, psi_KS_fake(tmb%lzd%glr%wfd%nvctr_c), 0.d0, 0)
+            call f_free(psi_KS_fake)
+            call f_close(iunit)
+        end if
+
+
+        !!call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+        !!     mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz,input%lin%calculate_onsite_overlap)
+        !!call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
+        !!     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
+        if (input%lin%plotBasisFunctions>20) then
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFun', &
+                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .false., tmb%lzd)
+        else if (input%lin%plotBasisFunctions>10) then
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
+                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .true., tmb%lzd)
+
+        end if
+     end if
+     !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
+     !(now kernel is done internally in writemywaves)
+     if (write_fragments .and. input%lin%fragment_calculation) then
+        call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
+             max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
+             trim(input%dir_output),input%frag,ref_frags,tmb%linmat,norder_taylor,input%lin%max_inversion_error,&
+             tmb%orthpar,input%lin%frag_num_neighbours,input%lin%frag_neighbour_cutoff)
+
+!      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+!           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+     end if
+  end if
+  ! END COPIED UP ###########################################################################################
+
+  stop
+
+
 
 
   !TEMPORARY, to be cleaned/removed
@@ -1284,6 +1351,40 @@ end if
       end do
   end if
 
+!!!!!  ! COPIED DOWN ######################################################################################
+!!!!!  close(110)
+!!!!!  if (input%write_orbitals>0) then
+!!!!!      if (write_full_system) then
+!!!!!         call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+!!!!!                  energs, nlpsp, input, norder_taylor,&
+!!!!!                  energy, energyDiff, energyold, ref_frags, .false.)
+!!!!!      end if
+!!!!!
+!!!!!      if (input%lin%fragment_calculation .and. write_fragments) then
+!!!!!         call build_ks_orbitals(iproc, nproc, tmb, KSwfn, at, rxyz, denspot, GPU, &
+!!!!!                  energs, nlpsp, input, norder_taylor,&
+!!!!!                  energy, energyDiff, energyold, ref_frags, .true.)
+!!!!!      end if
+!!!!!
+!!!!!      !call write_orbital_density(iproc, .false., input%lin%plotBasisFunctions, 'KS', &
+!!!!!      !     KSwfn%orbs%npsidim_orbs, KSwfn%psi, KSwfn%orbs, KSwfn%lzd, at)
+!!!!!
+!!!!!      !ioffset_isf = f_malloc((/3,orbs%norbp/),id='ioffset_isf')
+!!!!!      !do iorb=1,orbs%norbp
+!!!!!      !    !iiorb = tmb%orbs%isorb + iorb
+!!!!!      !    !ilr = tmb%orbs%inwhichlocreg(iiorb)
+!!!!!      !    !call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+!!!!!      !    ioffset_isf(1,iorb) = 0 !tmb%lzd%llr(ilr)%nsi1 - nl1 - 1
+!!!!!      !    ioffset_isf(2,iorb) = 0 !tmb%lzd%llr(ilr)%nsi2 - nl2 - 1
+!!!!!      !    ioffset_isf(3,iorb) = 0 !tmb%lzd%llr(ilr)%nsi3 - nl3 - 1
+!!!!!      !    !write(*,'(a,3es16.8)') 'iorb, rxyzConf(3), locregcenter(3)', iorb, tmb%confdatarr(iorb)%rxyzConf(3), tmb%lzd%llr(ilr)%locregcenter(3)
+!!!!!      !end do
+!!!!!      !call analyze_wavefunctions('global', tmb%lzd, orbs, KSwfn%orbs%npsidim_orbs, %psi, ioffset_isf)
+!!!!!      !call f_free(ioffset_isf)
+!!!!!  end if
+!!!!!  ! END COPIED DOWN ##################################################################################
+
+
 
   !Write the linear wavefunctions to file if asked
   if (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) then
@@ -1295,6 +1396,32 @@ end if
      if (write_full_system) then
         call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
+
+        if (iproc==0) then
+            ! Write also the global grid... maybe a misuse of writeonewave_linear
+            iunit = 99
+            call f_open_file(iunit, file=trim(input%dir_output)//'KSgrid.dat', binary=.false.)
+
+            psi_KS_fake = f_malloc0(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
+            call writeonewave_linear(iunit, .true., 0, &
+                 tmb%lzd%glr%d%n1, tmb%lzd%glr%d%n2, tmb%lzd%glr%d%n3, &
+                 tmb%lzd%glr%ns1, tmb%lzd%glr%ns2, tmb%lzd%glr%ns3, &
+                 tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
+                 tmb%lzd%glr%locregCenter, tmb%lzd%glr%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
+                 at%astruct%nat, rxyz, tmb%lzd%glr%wfd%nseg_c, tmb%lzd%glr%wfd%nvctr_c, &
+                 tmb%lzd%glr%wfd%keygloc, tmb%lzd%glr%wfd%keyglob, &
+                 tmb%lzd%glr%wfd%keyvloc, tmb%lzd%glr%wfd%keyvglob, &
+                 tmb%lzd%glr%wfd%nseg_f, tmb%lzd%glr%wfd%nvctr_f, &
+                 tmb%lzd%glr%wfd%keygloc(1:,tmb%lzd%glr%wfd%nseg_c+1:), &
+                 tmb%lzd%glr%wfd%keyglob(1:,tmb%lzd%glr%wfd%nseg_c+1:), &
+                 tmb%lzd%glr%wfd%keyvloc(tmb%lzd%glr%wfd%nseg_c+1:), &
+                 tmb%lzd%glr%wfd%keyvglob(tmb%lzd%glr%wfd%nseg_c+1:), &
+                 psi_KS_fake, psi_KS_fake(tmb%lzd%glr%wfd%nvctr_c), 0.d0, 0)
+            call f_free(psi_KS_fake)
+            call f_close(iunit)
+        end if
+
+
         !!call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
         !!     mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz,input%lin%calculate_onsite_overlap)
         !!call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &

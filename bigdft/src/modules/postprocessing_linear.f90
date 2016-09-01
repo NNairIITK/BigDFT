@@ -8,6 +8,7 @@ module postprocessing_linear
   public :: loewdin_charge_analysis
   public :: loewdin_charge_analysis_core
   public :: build_ks_orbitals
+  public :: build_ks_orbitals_postprocessing
 
   !> Public constants
   integer,parameter,public :: CHARGE_ANALYSIS_LOEWDIN   = 501
@@ -569,7 +570,7 @@ module postprocessing_linear
       type(comms_cubic) :: comms
       real(gp) :: fnrm
       logical :: rho_negative
-      integer :: infoCoeff, nvctrp, npsidim_global
+      integer :: infoCoeff, nvctrp, npsidim_global, i
       real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
       real(kind=8),dimension(:),allocatable :: tmparr
       character(len=*),parameter :: subname='build_ks_orbitals'
@@ -662,6 +663,11 @@ module postprocessing_linear
                          tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
       phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
       phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
+      write(*,*) 'dot tmb%psi', dot(size(tmb%psi), tmb%psi(1), 1, tmb%psi(1), 1)
+      write(*,*) 'orbs%inwhichlocreg',orbs%inwhichlocreg
+      do i=1,size(tmb%psi)
+          write(120,*) tmb%psi(i)
+      end do
       call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
            tmb%npsidim_orbs, &
            tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
@@ -682,6 +688,14 @@ module postprocessing_linear
     
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
+
+      close(100)
+      write(100,*) 'coeff',tmb%coeff
+      close(110)
+      write(110,*) size(phi_global)
+      do i=1,size(phi_global)
+          write(110,*) phi_global(i)
+      end do
       call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
                  tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
 
@@ -798,6 +812,130 @@ module postprocessing_linear
       call deallocate_work_mpiaccumulate(energs_work)
     
     end subroutine build_ks_orbitals
+
+
+
+    subroutine build_ks_orbitals_postprocessing(iproc, nproc, norb, norbp, isorb, norbu, norbd, nspin, nspinor, &
+               nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, psi, coeff)
+      use module_base
+      use module_types
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
+      use communications_base, only: comms_cubic, comms_cubic_null
+      use communications_init, only: orbitals_communicators
+      use communications, only: transpose_v, untranspose_v
+      use locregs_init, only: small_to_large_locreg
+      ! It's very bad practice to oblige the use of module_interfaces.
+      ! If it is not done, it crashes with segfault due to the optional arguments
+      use module_interfaces, only: orbitals_descriptors
+      implicit none
+      
+      ! Calling arguments
+      integer:: iproc, nproc, norb, norbp, isorb, norbu, norbd, nspin, nspinor, nkpt, npsidim_orbs, i
+      real(gp), dimension(3,nkpt), intent(in) :: kpt
+      real(gp), dimension(nkpt), intent(in) :: wkpt
+      type(atoms_data), intent(in) :: at
+      integer,dimension(norb),intent(in) :: in_which_locreg
+      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
+      real(kind=8),dimension(norb,norb),intent(in) :: coeff
+    
+      ! Local variables
+      type(orbitals_data) :: orbs
+      type(comms_cubic) :: comms
+      integer :: infoCoeff, nvctrp, npsidim_global
+      real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
+      character(len=*),parameter :: subname='build_ks_orbitals_postprocessing'
+      integer,dimension(:,:),allocatable :: ioffset_isf
+    
+      write(*,*) 'in_which_locreg',in_which_locreg
+    
+      ! Create orbitals_data and communication arrays for support functions in the global box
+      call nullify_orbitals_data(orbs)
+      write(*,*) 'in build_ks_orbitals_postprocessing: before orbitals_descriptors'
+      write(*,*) 'iproc, nproc, norb, norbu, norbd, nspin, nspinor', iproc, nproc, norb, norbu, norbd, nspin, nspinor
+      write(*,*) 'nkpt, kpt, wkpt', nkpt, kpt, wkpt
+      call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, nspinor, &
+           nkpt, kpt, wkpt, orbs, LINEAR_PARTITION_NONE)
+      write(*,*) 'after orbitals_descriptors'
+      comms = comms_cubic_null()
+      call orbitals_communicators(iproc, nproc, lzd%glr, orbs, comms)
+    
+    
+      ! Transform the support functions to the global box
+      ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+      npsidim_global=max(norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), &
+                         norb*comms%nvctr_par(iproc,0)*nspinor)
+      phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
+      phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
+      do i=1,size(psi)
+          write(220,*) psi(i)
+      end do
+      call small_to_large_locreg(iproc, norb, norbp, isorb, in_which_locreg, &
+           npsidim_orbs, &
+           norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), lzd, &
+           lzd, psi, phi_global, to_global=.true.)
+      call transpose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
+    
+    
+      ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
+      nvctrp=comms%nvctr_par(iproc,0)*nspinor
+      write(200,*) 'coeff',coeff
+      write(210,*) size(phi_global)
+      do i=1,size(phi_global)
+          write(210,*) phi_global(i)
+      end do
+      call dgemm('n', 'n', nvctrp, norb, norb, 1.d0, phi_global, nvctrp, coeff(1,1), &
+                 norb, 0.d0, phiwork_global, nvctrp)
+
+      
+      call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, phiwork_global(1), phi_global(1))  
+    
+      call f_free_ptr(phi_global)
+    
+    
+      !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
+      write(*,*) 'associated(orbs%eval)', associated(orbs%eval)
+      write(*,*) 'orbs%norb, size(orbs%eval)', orbs%norb, size(orbs%eval)
+      orbs%eval = f_malloc0_ptr(orbs%norb,id='orbs%eval')
+      call writemywaves(iproc,"KS_post", WF_FORMAT_PLAIN, &
+           orbs, Lzd%Glr%d%n1, Lzd%Glr%d%n2, Lzd%Glr%d%n3, &
+           Lzd%hgrids(1), Lzd%hgrids(2), Lzd%hgrids(3), &
+           at, rxyz, Lzd%Glr%wfd, phiwork_global)
+    
+!!!      if (input%write_orbitals==2) then
+!!!          if (frag_coeffs) then
+!!!             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
+!!!                  KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+!!!          else
+!!!             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDensFrag', &
+!!!                  KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+!!!          end if
+!!!      else if (input%write_orbitals==3) then 
+!!!          if (frag_coeffs) then
+!!!              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSFrag', &
+!!!                   KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+!!!          else
+!!!              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
+!!!                   KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+!!!          end if
+!!!      end if
+!!!    
+!!!      if (input%wf_extent_analysis) then
+!!!          ioffset_isf = f_malloc0((/3,KSwfn%orbs%norbp/),id='ioffset_isf')
+!!!          call analyze_wavefunctions('Kohn Sham orbitals extent analysis', 'global', &
+!!!               KSwfn%lzd, KSwfn%orbs, KSwfn%orbs%npsidim_orbs, phiwork_global, ioffset_isf)
+!!!          call f_free(ioffset_isf)
+!!!      end if
+    
+    
+    
+       call f_free_ptr(phiwork_global)
+       call deallocate_orbitals_data(orbs)
+       call deallocate_comms_cubic(comms)
+    
+    
+    end subroutine build_ks_orbitals_postprocessing
     
 
 

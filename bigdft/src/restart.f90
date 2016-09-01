@@ -525,7 +525,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
      !print *,'complete name <',trim(filename_out),'> end'
  else
      filename_out = trim(filename)//completename//"."//f4
-     !print *,'complete name <',trim(filename_out),'> end'
+     print *,'complete name <',trim(filename_out),'> end'
  end if
 
   !print *,'filename: ',filename_out
@@ -2305,8 +2305,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                    Lzd_old%Llr(ilr)%d%n1,Lzd_old%Llr(ilr)%d%n2,Lzd_old%Llr(ilr)%d%n3, &
                    Lzd_old%Llr(ilr)%ns1,Lzd_old%Llr(ilr)%ns2,Lzd_old%Llr(ilr)%ns3, lzd_old%hgrids, &
                    lstat, error, onwhichatom_tmp, Lzd_old%Llr(ilr)%locrad, Lzd_old%Llr(ilr)%locregCenter, &
-                   confPotOrder, confPotprefac, Lzd_old%Llr(ilr)%wfd%nvctr_c, Lzd_old%Llr(ilr)%wfd%nvctr_f, &
-                   ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat))
+                   confPotOrder, confPotprefac, nvctr_c=Lzd_old%Llr(ilr)%wfd%nvctr_c, nvctr_f=Lzd_old%Llr(ilr)%wfd%nvctr_f, &
+                   nat=ref_frags(ifrag_ref)%astruct_frg%nat, &
+                   rxyz_old=rxyz_old(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat))
                    !ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(1,isfat+1))
 
               ! in general this might point to a different tmb

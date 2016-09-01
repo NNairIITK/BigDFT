@@ -31,7 +31,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "plot-wavefunction", "suggest-cutoff", "multipole-analysis", "dos", 
            "export-proj", "fit-proj",
            "convert-matrix-format", "calculate-selected-eigenvalues",
-           "kernel-purity"]
+           "kernel-purity", "build-KS-orbitals"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -1159,5 +1159,8 @@ options:
           gauss2plot(args[0])
         else:
           fitPAW(args[0], options.n_funcs)
+    if options.action == "build-KS-orbitals":
+        command = "%s %s build-KS-orbitals %s %s" % (options.mpirun, utilities, options.metadata_file, options.coeff_file)
+        print command
     if command is not None:
         os.system(command)

@@ -968,9 +968,13 @@ program WaCo
                  call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
                    Glr%ns1,Glr%ns2,Glr%ns3,input%hx,input%hy,input%hz, &
                    (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,atoms%astruct%rxyz,  & 
-                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1:,1:),&
-                   Lzd%Llr(iiwann)%wfd%keyvglob(1:),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
+                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c, &
+                   Lzd%Llr(iiwann)%wfd%keygloc(1:,1:),Lzd%Llr(iiwann)%wfd%keyglob(1:,1:), &
+                   Lzd%Llr(iiwann)%wfd%keyvgloc(1:), Lzd%Llr(iiwann)%wfd%keyvglob(1:), &
+                   Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
+                   Lzd%Llr(iiwann)%wfd%keygloc(1:,Lzd%Llr(iiwann)%wfd%nseg_c+1:),&
                    Lzd%Llr(iiwann)%wfd%keyglob(1:,Lzd%Llr(iiwann)%wfd%nseg_c+1:),&
+                   Lzd%Llr(iiwann)%wfd%keyvloc(Lzd%Llr(iiwann)%wfd%nseg_c+1:), & 
                    Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1:), & 
                    lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann),&
                    -1) !SM: Not sure about the value of onwhichatom, so simply pass -1 to indicate that it is fake
