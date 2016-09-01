@@ -742,19 +742,23 @@ module postprocessing_linear
     
       if (input%write_orbitals==2) then
           if (frag_coeffs) then
-             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
-                  KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), &
+                  trim(input%dir_output)//'KSDens', &
+                  KSwfn%orbs%npsidim_orbs, phiwork_global,  KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
           else
-             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDensFrag', &
-                  KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+             call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), &
+                  trim(input%dir_output)//'KSDensFrag', &
+                  KSwfn%orbs%npsidim_orbs, phiwork_global, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
           end if
       else if (input%write_orbitals==3) then 
           if (frag_coeffs) then
-              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSFrag', &
-                   KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), &
+                   trim(input%dir_output)//'KSFrag', &
+                   KSwfn%orbs%npsidim_orbs, phiwork_global, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
           else
-              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
-                   KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
+              call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), &
+                   trim(input%dir_output)//'KS', &
+                   KSwfn%orbs%npsidim_orbs, phiwork_global, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
           end if
       end if
     
@@ -836,7 +840,7 @@ module postprocessing_linear
       type(atoms_data), intent(in) :: at
       integer,dimension(norb),intent(in) :: in_which_locreg
       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-      type(local_zone_descriptors),intent(in) :: lzd
+      type(local_zone_descriptors),intent(inout) :: lzd !just be in, is inout due to call to write_orbital_density...
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
       real(kind=8),dimension(norb,norb),intent(in) :: coeff
     
@@ -902,6 +906,10 @@ module postprocessing_linear
            orbs, Lzd%Glr%d%n1, Lzd%Glr%d%n2, Lzd%Glr%d%n3, &
            Lzd%hgrids(1), Lzd%hgrids(2), Lzd%hgrids(3), &
            at, rxyz, Lzd%Glr%wfd, phiwork_global)
+
+      call write_orbital_density(iproc, .false., 1, &
+           'KS_post-Dens', &
+           npsidim_global, phiwork_global,  orbs, lzd, at, rxyz, .true.)
     
 !!!      if (input%write_orbitals==2) then
 !!!          if (frag_coeffs) then

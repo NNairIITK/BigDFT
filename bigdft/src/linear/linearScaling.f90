@@ -883,11 +883,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
         !!call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
         !!     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
         if (input%lin%plotBasisFunctions>20) then
-            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFun', &
-                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .false., tmb%lzd)
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), &
+                 trim(input%dir_output)//'SupFun', &
+                 tmb%npsidim_orbs, tmb%psi, tmb%orbs, KSwfn%lzd, at, rxyz, .false., tmb%lzd)
         else if (input%lin%plotBasisFunctions>10) then
-            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
-                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .true., tmb%lzd)
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), &
+                 trim(input%dir_output)//'SupFunDens', &
+                 tmb%npsidim_orbs, tmb%psi, tmb%orbs, KSwfn%lzd, at, rxyz, .true., tmb%lzd)
 
         end if
      end if
@@ -1427,11 +1429,13 @@ end if
         !!call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
         !!     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
         if (input%lin%plotBasisFunctions>20) then
-            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFun', &
-                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .false., tmb%lzd)
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), &
+                 trim(input%dir_output)//'SupFun', &
+                 tmb%npsidim_orbs, tmb%psi, tmb%orbs, KSwfn%lzd, at, rxyz, .false., tmb%lzd)
         else if (input%lin%plotBasisFunctions>10) then
-            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
-                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .true., tmb%lzd)
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), &
+                 trim(input%dir_output)//'SupFunDens', &
+                 tmb%npsidim_orbs, tmb%psi, tmb%orbs, KSwfn%lzd, at, rxyz, .true., tmb%lzd)
 
         end if
      end if

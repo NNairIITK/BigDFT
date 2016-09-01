@@ -11,7 +11,7 @@
 !> Write the square of the wave functions (i.e. the orbital densities).
 !! This routine can also be used to print the "support functions densities".
 subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, dens, lzd_l)
+           filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l)
   use module_base
   use module_types
   !use module_interface2, except_this_one => write_orbital_density
@@ -25,7 +25,6 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   character(len=*),intent(in) :: filename
   integer,intent(in) :: iproc, npsidim, iformat
   real(kind=8),dimension(npsidim),intent(in),target :: psi
-  type(input_variables),intent(in) :: input
   type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
   type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
   type(atoms_data),intent(in) :: at
@@ -65,11 +64,13 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   ! Need to create the convolution bounds
   ! check first if already allocated - maybe should be more thorough than just checking one array?
   if (.not. associated(lzd_g%glr%bounds%kb%ibyz_c)) then
+     write(*,*) 'before calling locreg_bounds'
      call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
           lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
           lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
           lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
           lzd_g%glr%wfd, lzd_g%glr%bounds)
+     write(*,*) 'after locreg_bounds'
   end if
 
   ist = 1
@@ -90,7 +91,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       ist = ist + sdim
       do ispinor=1,orbs%nspinor
           if (orbs%nspinor/=1) stop 'write_orbital_density not implemented for nspinor/=1'
-          call plot_one_orbdens(lzd_g%glr, at, orbs, rxyz, lzd_g%hgrids, trim(input%dir_output)//filename, &
+          call plot_one_orbdens(lzd_g%glr, at, orbs, rxyz, lzd_g%hgrids, filename, &
                iorb, ispinor, binary, psi_g, dens)
           !iunit0 = 101
           !iunit0 = 102

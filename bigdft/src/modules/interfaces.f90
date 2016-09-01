@@ -1583,7 +1583,7 @@ module module_interfaces
 
   interface
      subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-          filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, dens, lzd_l)
+          filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l)
        use module_defs, only: gp,dp,wp
        use module_types
        implicit none
@@ -1591,7 +1591,6 @@ module module_interfaces
        character(len=*),intent(in) :: filename
        integer,intent(in) :: iproc, npsidim, iformat
        real(kind=8),dimension(npsidim),intent(in),target :: psi
-       type(input_variables),intent(in) :: input
        type(orbitals_data),intent(in) :: orbs !< orbitals descriptors
        type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
        type(atoms_data),intent(in) :: at

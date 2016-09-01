@@ -450,6 +450,29 @@ program utilities
             keyvglob=lzd%glr%wfd%keyvglob)
        call f_close(iunit)
 
+       ! THIS MUST BE MADE CLEANEE !!!!!!!!!
+       !starting point of the region for interpolating functions grid
+       lzd%glr%nsi1= 2 * lzd%glr%ns1 !- (Lnbl1 - Gnbl1)
+       lzd%glr%nsi2= 2 * lzd%glr%ns2 !- (Lnbl2 - Gnbl2)
+       lzd%glr%nsi3= 2 * lzd%glr%ns3 !- (Lnbl3 - Gnbl3)
+
+       !dimensions of the fine grid inside the localisation region
+       lzd%glr%d%nfl1=0
+       lzd%glr%d%nfl2=0
+       lzd%glr%d%nfl3=0
+
+       !NOTE: This will not work with symmetries (must change it)
+       lzd%glr%d%nfu1=lzd%glr%d%n1
+       lzd%glr%d%nfu2=lzd%glr%d%n2
+       lzd%glr%d%nfu3=lzd%glr%d%n3
+
+       !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+       lzd%glr%d%n1i=2*lzd%glr%d%n1+31
+       lzd%glr%d%n2i=2*lzd%glr%d%n2+31
+       lzd%glr%d%n3i=2*lzd%glr%d%n3+31
+
+
+
        filename='minBasis'
 
        npsidim_orbs = 0
@@ -483,6 +506,29 @@ program utilities
                         keyvloc=lzd%llr(ilr)%wfd%keyvloc, &
                         keyvglob=lzd%llr(ilr)%wfd%keyvglob)
 
+                    ! THIS MUST BE MADE CLEANEE !!!!!!!!!
+                    !starting point of the region for interpolating functions grid
+                    lzd%llr(ilr)%nsi1= 2 * lzd%llr(ilr)%ns1 !- (Lnbl1 - Gnbl1)
+                    lzd%llr(ilr)%nsi2= 2 * lzd%llr(ilr)%ns2 !- (Lnbl2 - Gnbl2)
+                    lzd%llr(ilr)%nsi3= 2 * lzd%llr(ilr)%ns3 !- (Lnbl3 - Gnbl3)
+
+                    !dimensions of the fine grid inside the localisation region
+                    lzd%llr(ilr)%d%nfl1=max(lzd%llr(ilr)%ns1,lzd%glr%d%nfl1)-lzd%llr(ilr)%ns1 ! should we really substract isx (probably because the routines are coded with 0 as origin)?
+                    lzd%llr(ilr)%d%nfl2=max(lzd%llr(ilr)%ns2,lzd%glr%d%nfl2)-lzd%llr(ilr)%ns2
+                    lzd%llr(ilr)%d%nfl3=max(lzd%llr(ilr)%ns3,lzd%glr%d%nfl3)-lzd%llr(ilr)%ns3
+
+                    !NOTE: This will not work with symmetries (must change it)
+                    lzd%llr(ilr)%d%nfu1=min(lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1,lzd%glr%d%nfu1)-lzd%llr(ilr)%ns1
+                    lzd%llr(ilr)%d%nfu2=min(lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2,lzd%glr%d%nfu2)-lzd%llr(ilr)%ns2
+                    lzd%llr(ilr)%d%nfu3=min(lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3,lzd%glr%d%nfu3)-lzd%llr(ilr)%ns3
+
+                    write(*,*) 'lzd%llr(ilr)%d%nfu3',lzd%llr(ilr)%d%nfu3
+
+                    !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+                    lzd%llr(ilr)%d%n1i=2*lzd%llr(ilr)%d%n1+31
+                    lzd%llr(ilr)%d%n2i=2*lzd%llr(ilr)%d%n2+31
+                    lzd%llr(ilr)%d%n3i=2*lzd%llr(ilr)%d%n3+31
+
 
                    phi_tmp = f_malloc(npsidim_orbs,id='phi_tmp')
                    call f_memcpy(src=phi, dest=phi_tmp)
@@ -507,11 +553,21 @@ program utilities
 
        ! have to copy the structures...
        at = atoms_data_null()
+       at%astruct%iatype = f_malloc_ptr(smmd%nat,id='at%astruct%iatype')
+       at%nzatom = f_malloc_ptr(smmd%ntypes,id='at%astruct%nzatom')
+       at%nelpsp = f_malloc_ptr(smmd%ntypes,id='at%astruct%nelpsp')
+       call f_memcpy(src=smmd%iatype, dest=at%astruct%iatype)
+       call f_memcpy(src=smmd%nzatom, dest=at%nzatom)
+       call f_memcpy(src=smmd%nelpsp, dest=at%nelpsp)
 
        write(*,*) 'orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd', &
                    orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd
        write(*,*) 'call build_ks_orbitals_postprocessing: in_which_locreg',in_which_locreg
        read(101,*) coeff_ptr
+       
+       rxyz(1:3,1) = (/7.576417, 5.980391, 5.963297/)
+       rxyz(1:3,2) = (/5.771699, 5.702495, 5.771181/)
+       rxyz(1:3,3) = (/7.728301, 7.297505, 7.228819/)
        call build_ks_orbitals_postprocessing(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd, &
             nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, phi, coeff_ptr)
