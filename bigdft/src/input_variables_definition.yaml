@@ -2260,6 +2260,7 @@ linear:
    C:  {nbasis: 4, rloc: 5.5}
    N:  {nbasis: 4, rloc: 5.5}
    O:  {nbasis: 4, rloc: 5.5}
+   F:  {nbasis: 4, rloc: 5.5}
    P:  {nbasis: 4, rloc: 6.0}
    S:  {nbasis: 4, rloc: 6.0}
    Cl: {nbasis: 4, rloc: 6.0}

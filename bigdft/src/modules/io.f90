@@ -1422,7 +1422,7 @@ module io
                  if (i_stat /= 0) return
               end do
            else
-              read(unitwf,*,iostat=i_stat) nseg_c, nseg_f
+              read(unitwf,*,iostat=i_stat) nseg_c_, nseg_f_
               do iseg=1,nseg_c_+nseg_f_
                  read(unitwf,*,iostat=i_stat) idummy(1:6)
                  if (i_stat /= 0) return
@@ -1478,7 +1478,7 @@ module io
                  if (i_stat /= 0) return
               end do
            else
-              read(unitwf,*,iostat=i_stat) nseg_c, nseg_f
+              read(unitwf,*,iostat=i_stat) nseg_c_, nseg_f_
               do iseg=1,nseg_c_+nseg_f_
                  read(unitwf,*,iostat=i_stat) idummy(1:6)
                  if (i_stat /= 0) return

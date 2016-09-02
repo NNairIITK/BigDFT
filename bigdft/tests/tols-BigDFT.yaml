@@ -2511,7 +2511,7 @@ largesystems_dnawater:
 
 H2Omultipoles_1:
   EBS: 9.8e-10
-  EBS higher temperature: 8.7e-9
+  EBS higher temperature: 9.8e-9
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2528,8 +2528,8 @@ H2Omultipoles_1:
   multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  difference: 8.7e-9
-  relative difference: 3.9e-9
+  difference: 9.8e-9
+  relative difference: 4.4e-9
   Average noise forces: 1.0e-10
 
 H2Omultipoles_11:
