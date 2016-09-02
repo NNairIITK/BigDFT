@@ -59,6 +59,7 @@ module module_atoms
      integer :: nat                        !< Number of atoms
      integer :: ntypes                     !< Number of atomic species in the structure
      real(gp), dimension(3) :: cell_dim    !< Dimensions of the simulation domain (each one periodic or free according to geocode)
+     real(gp), dimension(3) :: shift       !< Rigid shift applied to the atomic positions
      !pointers
      real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
      real(gp), dimension(:,:), pointer :: rxyz_int         !< Atomic positions in internal coordinates (Z matrix)
@@ -280,6 +281,7 @@ contains
     astruct%nat=-1
     astruct%ntypes=-1
     astruct%cell_dim=0.0_gp
+    astruct%shift=0.0_gp
     nullify(astruct%input_polarization)
     nullify(astruct%ifrztyp)
     nullify(astruct%atomnames)

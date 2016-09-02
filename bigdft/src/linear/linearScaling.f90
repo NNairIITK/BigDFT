@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopotold,nlpsp,GPU,&
+subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
            energs,energy,fpulay,infocode,ref_frags,cdft, &
            fdisp, fion)
 
@@ -65,7 +65,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   integer, intent(in) :: iproc, nproc
   type(atoms_data), intent(inout) :: at
   type(input_variables), intent(in) :: input ! need to hack to be inout for geopt changes
-  real(kind=8), dimension(3), intent(in) :: shift
   real(kind=8), dimension(3,at%astruct%nat), intent(inout) :: rxyz
   real(kind=8), dimension(3,at%astruct%nat), intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
@@ -907,7 +906,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   end if
   ! END COPIED UP ###########################################################################################
 
-  stop
+  !stop
 
 
 
@@ -1202,7 +1201,7 @@ end if
   end if
 
   if (input%support_function_multipoles) then
-      call support_function_gross_multipoles(iproc, nproc, tmb, at, shift, denspot)
+      call support_function_gross_multipoles(iproc, nproc, tmb, at, at%astruct%shift, denspot)
   end if
 
   if (input%lin%charge_multipoles>0) then
@@ -1304,7 +1303,7 @@ end if
                write_multipole_matrices_mode=input%lin%output_mat_format, &
                nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
                hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
-               lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=shift, &
+               lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=at%astruct%shift, &
                ice_obj=tmb%ice_obj, filename=trim(input%dir_output))
   end if
 

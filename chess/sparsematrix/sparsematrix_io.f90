@@ -226,7 +226,7 @@ module sparsematrix_io
     end subroutine read_sparse_matrix_parallel
 
 
-    subroutine read_sparse_matrix_metadata(filename, nfvctr, nat, ntypes, units, geocode, cell_dim, &
+    subroutine read_sparse_matrix_metadata(filename, nfvctr, nat, ntypes, units, geocode, cell_dim, shift, &
                nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use dynamic_memory
       use f_utils
@@ -237,7 +237,7 @@ module sparsematrix_io
       integer,intent(out) :: nfvctr
       character(len=20),intent(out) :: units
       character(len=1),intent(out) :: geocode
-      real(kind=mp),dimension(3),intent(out) :: cell_dim
+      real(kind=mp),dimension(3),intent(out) :: cell_dim, shift
       integer,intent(out) :: nat, ntypes
       integer,dimension(:),pointer,intent(inout) :: nzatom, nelpsp, iatype
       character(len=20),dimension(:),pointer,intent(inout) :: atomnames
@@ -258,6 +258,7 @@ module sparsematrix_io
       read(iunit,*) nfvctr, nat, ntypes
       read(iunit,*) units
       read(iunit,*) geocode, cell_dim
+      read(iunit,*) shift
       nzatom = f_malloc_ptr(ntypes,id='nzatom')
       nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
       atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
@@ -502,7 +503,7 @@ module sparsematrix_io
 
 
 
-    subroutine write_sparse_matrix_metadata(iproc, nfvctr, nat, ntypes, units, geocode, cell_dim, iatype, &
+    subroutine write_sparse_matrix_metadata(iproc, nfvctr, nat, ntypes, units, geocode, cell_dim, shift, iatype, &
                rxyz, nzatom, nelpsp, atomnames, on_which_atom, filename)
       use dynamic_memory
       use f_utils
@@ -512,7 +513,7 @@ module sparsematrix_io
       integer,intent(in) :: iproc, nfvctr, nat, ntypes
       character(len=*),intent(in) :: units
       character(len=1),intent(in) :: geocode
-      real(kind=mp),dimension(3),intent(in) :: cell_dim
+      real(kind=mp),dimension(3),intent(in) :: cell_dim, shift
       integer,dimension(nat),intent(in) :: iatype
       real(kind=mp),dimension(3,nat),intent(in) :: rxyz
       integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
@@ -536,6 +537,8 @@ module sparsematrix_io
           write(iunit,'(a,a)') trim(units), '  # units'
           write(iunit,'(a,3es24.16,a)') geocode, cell_dim, &
               '   # geocode, cell_dim'
+          write(iunit,'(3es24.16,a)') -shift, &
+              '   # atomic shift'
           do itype=1,ntypes
               write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'

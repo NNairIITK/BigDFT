@@ -106,6 +106,7 @@ module sparsematrix_types
   type,public :: sparse_matrix_metadata
       character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
       real(kind=mp),dimension(3) :: cell_dim !< dimensions of the simulation cell
+      real(kind=mp),dimension(3) :: shift !< global shift of the atomic positions
       integer :: nfvctr !< size of the matrix
       integer :: nat !< number of atoms
       integer :: ntypes !< number of atoms types

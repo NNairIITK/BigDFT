@@ -312,6 +312,16 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
   n2i=lr%d%n2i
   n3i=lr%d%n3i
 
+  write(500,*) 'n1 ', n1
+  write(500,*) 'n2 ', n2
+  write(500,*) 'n3 ', n3
+  write(500,*) 'n1s', n1s
+  write(500,*) 'n2s', n2s
+  write(500,*) 'n3s', n3s
+  write(500,*) 'n1i', n1i
+  write(500,*) 'n2i', n2i
+  write(500,*) 'n3i', n3i
+
 
   ndims(1)=n1i
   ndims(2)=n2i
@@ -326,6 +336,7 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
   if (lr%geocode == 'F') call f_zero(psir)
 
   call daub_to_isf(lr,w,psi,psir)
+  write(500,*) 'sum(psi), sum(psir)', sum(psi), sum(psir)
 
   if (units_provided) then
       iunit0 = unit0_

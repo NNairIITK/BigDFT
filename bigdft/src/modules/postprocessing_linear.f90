@@ -577,7 +577,7 @@ module postprocessing_linear
       real(wp), dimension(:,:,:), pointer :: mom_vec_fake
       type(work_mpiaccumulate) :: energs_work
       integer,dimension(:,:),allocatable :: ioffset_isf
-      integer :: nstates_max, ndimcoeff
+      integer :: nstates_max, ndimcoeff, ist, nsize, iorb
       logical :: overlap_calculated=.false. ! recalculate just to be safe
       real(kind=8), allocatable, dimension(:) :: coeff_tmp
     
@@ -732,6 +732,13 @@ module postprocessing_linear
       !!do i=1,KSwfn%orbs%norb*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f)
       !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
       !!end do
+
+      ist = 1
+      nsize = kswfn%lzd%glr%wfd%nvctr_c+7*kswfn%lzd%glr%wfd%nvctr_f
+      do iorb=1,orbs%norb
+          write(500,*) 'nsize, sum(phiwork_global(ist:ist+nsize-1))', nsize, sum(phiwork_global(ist:ist+nsize-1))
+          ist = ist + nsize
+      end do
     
     
       !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
@@ -847,10 +854,11 @@ module postprocessing_linear
       ! Local variables
       type(orbitals_data) :: orbs
       type(comms_cubic) :: comms
-      integer :: infoCoeff, nvctrp, npsidim_global
+      integer :: infoCoeff, nvctrp, npsidim_global, iorb, istat, ist, nsize
       real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
       character(len=*),parameter :: subname='build_ks_orbitals_postprocessing'
       integer,dimension(:,:),allocatable :: ioffset_isf
+      !type(local_zone_descriptors) :: lzd_global
     
       write(*,*) 'in_which_locreg',in_which_locreg
     
@@ -907,9 +915,22 @@ module postprocessing_linear
            Lzd%hgrids(1), Lzd%hgrids(2), Lzd%hgrids(3), &
            at, rxyz, Lzd%Glr%wfd, phiwork_global)
 
+      !!lzd_global = local_zone_descriptors_null()
+      !!allocate(lzd_global%llr(orbs%norb),stat=istat)
+      !!do iorb=1,orbs%norb
+      !!    call nullify_locreg_descriptors(lzd_global%llr(iorb))
+      !!    lzd_global%llr(iorb) => lzd%glr
+      !!end do
+      ist = 1
+      nsize = lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
+      do iorb=1,orbs%norb
+          write(500,*) 'nsize, sum(phiwork_global(ist:ist+nsize-1))', nsize, sum(phiwork_global(ist:ist+nsize-1))
+          ist = ist + nsize
+      end do
       call write_orbital_density(iproc, .false., 1, &
            'KS_post-Dens', &
-           npsidim_global, phiwork_global,  orbs, lzd, at, rxyz, .true.)
+           npsidim_global, phiwork_global,  orbs, lzd, at, rxyz, .true., &
+           in_which_locreg=in_which_locreg)
     
 !!!      if (input%write_orbitals==2) then
 !!!          if (frag_coeffs) then

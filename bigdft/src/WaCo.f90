@@ -42,7 +42,7 @@ program WaCo
    real(gp), parameter :: b2a=0.5291772108_dp
    real :: tcpu0,tcpu1
    real(gp) :: tel
-   real(gp), dimension(3) :: shift,CM
+   real(gp), dimension(3) :: CM
    real(gp) :: dist,rad,sprdfact,sprddiff,enediff,sprdmult
    integer :: iproc, nproc, ierr, npsidim
    integer :: nvirtu,nvirtd,nrpts
@@ -172,9 +172,9 @@ program WaCo
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-        .false.,Glr,shift)
+        .false.,Glr)
    if (iproc == 0) &
-        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
+        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, input%hx,input%hy,input%hz)
    
    box(1) = atoms%astruct%cell_dim(1)*b2a !Glr%d%n1*input%hx * b2a
    box(2) = atoms%astruct%cell_dim(2)*b2a !Glr%d%n2*input%hy * b2a

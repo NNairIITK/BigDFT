@@ -1090,7 +1090,7 @@ END SUBROUTINE print_memory_estimation
 
 
 !> Display information about the box and the grid
-subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
+subroutine print_atoms_and_grid(Glr, atoms, rxyz, hx, hy, hz)
   use module_defs
   use numerics, only: Bohr_Ang
   use module_types
@@ -1101,7 +1101,6 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   type(atoms_data), intent(in) :: atoms
   type(locreg_descriptors), intent(in) :: Glr
   real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
-  real(gp), dimension(3), intent(in) :: shift
   real(gp), intent(in) :: hx, hy, hz
   !Local variables
   integer :: iunit !, iat
@@ -1123,7 +1122,7 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
      call yaml_mapping_open('Atomic structure')
      call yaml_get_default_stream(unit = iunit)
      call wtyaml(iunit, UNINITIALIZED(1.d0), rxyz, atoms%astruct, .false., rxyz, &
-          .true., shift, (/ hx, hy, hz /))
+          .true., atoms%astruct%shift, (/ hx, hy, hz /))
      call yaml_mapping_close()
   end if
   call yaml_comment('Grid properties',hfill='-')

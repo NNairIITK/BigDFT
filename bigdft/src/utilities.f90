@@ -565,9 +565,14 @@ program utilities
        write(*,*) 'call build_ks_orbitals_postprocessing: in_which_locreg',in_which_locreg
        read(101,*) coeff_ptr
        
-       rxyz(1:3,1) = (/7.576417, 5.980391, 5.963297/)
-       rxyz(1:3,2) = (/5.771699, 5.702495, 5.771181/)
-       rxyz(1:3,3) = (/7.728301, 7.297505, 7.228819/)
+       !!rxyz(1:3,1) = (/7.576417, 5.980391, 5.963297/)
+       !!rxyz(1:3,2) = (/5.771699, 5.702495, 5.771181/)
+       !!rxyz(1:3,3) = (/7.728301, 7.297505, 7.228819/)
+       !!write(*,*) 'rxyz',rxyz
+       !!write(*,*) 'smmd%rxyz', smmd%rxyz
+       do iat=1,smmd%nat
+           rxyz(:3,iat) = smmd%rxyz(1:3,iat) + smmd%shift(1:3)
+       end do
        call build_ks_orbitals_postprocessing(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd, &
             nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, phi, coeff_ptr)

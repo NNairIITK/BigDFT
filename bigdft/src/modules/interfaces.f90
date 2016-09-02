@@ -1017,7 +1017,7 @@ module module_interfaces
        interface
          subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,&
             & dry_run,in,atoms,rxyz,OCLconv,&
-            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
+            orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,&
             ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
             norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
          use module_defs, only: gp,dp,wp
@@ -1038,7 +1038,6 @@ module module_interfaces
          type(DFT_local_fields), intent(out), optional :: denspot
          type(DFT_PSP_projectors), intent(out) :: nlpsp
          type(comms_cubic), intent(out) :: comms
-         real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
          !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
          type(system_fragment), dimension(:), pointer :: ref_frags
          real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
@@ -1583,7 +1582,7 @@ module module_interfaces
 
   interface
      subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-          filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l)
+          filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l, in_which_locreg)
        use module_defs, only: gp,dp,wp
        use module_types
        implicit none
@@ -1597,6 +1596,7 @@ module module_interfaces
        real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
        type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
        logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
+       integer,dimension(orbs%norb),intent(in),optional :: in_which_locreg
      END SUBROUTINE write_orbital_density
   end interface
 

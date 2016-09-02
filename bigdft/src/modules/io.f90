@@ -2005,7 +2005,7 @@ module io
 
       if (write_sparse) then
           call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
-               at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
+               at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%shift, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.dat'))
 

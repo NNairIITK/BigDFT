@@ -11,7 +11,7 @@
 !> Write the square of the wave functions (i.e. the orbital densities).
 !! This routine can also be used to print the "support functions densities".
 subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-           filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l)
+           filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l, in_which_locreg)
   use module_base
   use module_types
   !use module_interface2, except_this_one => write_orbital_density
@@ -31,6 +31,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
   type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+  integer,dimension(orbs%norb),intent(in),optional :: in_which_locreg
 
   ! Local variables
   logical :: binary
@@ -39,11 +40,21 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz, sdim, ldim
   character(len=500) :: filebase0, filebasex, filebasey, filebasez
   character(len=500) :: file0, filex, filey, filez
+  integer,dimension(:),allocatable :: in_which_locreg_
 
   call f_routine(id='write_orbital_density')
 
   if (transform_to_global) then
       if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+
+  in_which_locreg_ = f_malloc(orbs%norb,id='in_which_locreg_')
+  if (present(in_which_locreg)) then
+      !in_which_locreg_ = in_which_locreg
+      call f_memcpy(src=in_which_locreg, dest=in_which_locreg_)
+  else
+      !in_which_locreg_ = orbs%inwhichlocreg
+      call f_memcpy(src=orbs%inwhichlocreg, dest=in_which_locreg_)
   end if
 
   !!! Transform to the global region
@@ -77,16 +88,21 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   ncount = lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
   do iorb=1,orbs%norbp
       iiorb = orbs%isorb + iorb
-      ilr = orbs%inwhichlocreg(iiorb)
+      !ilr = orbs%inwhichlocreg(iiorb)
+      ilr = in_which_locreg_(iiorb)
       if (transform_to_global) then
           sdim=lzd_l%llr(ilr)%wfd%nvctr_c+7*lzd_l%llr(ilr)%wfd%nvctr_f
           ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
           call f_zero(psi_g)
+          write(500,*) 'sdim, ldim', sdim, ldim
           call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, 1, lzd_l%glr, &
                lzd_l%llr(ilr), psi(ist:), psi_g)
+          write(500,*) 'ldim, sum(psi(ist:ist+ldim-1))', ldim, sum(psi_g)
       else
-          sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
+          !sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
+          sdim=lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
           call vcopy(sdim, psi(ist), 1, psi_g(1), 1)
+          write(500,*) 'sdim, sum(psi(ist:ist+sdim-1))', sdim, sum(psi(ist:ist+sdim-1))
       end if
       ist = ist + sdim
       do ispinor=1,orbs%nspinor
@@ -131,6 +147,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
 
   !if (transform_to_global) then
       call f_free_ptr(psi_g)
+  call f_free(in_which_locreg_)
   !end if
 
   call f_release_routine()
@@ -180,6 +197,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   !call f_open_file(iunity, file=filey, binary=binary)
   !call f_open_file(iunitz, file=filez, binary=binary)
   if (dens) then
+     write(500,*) 'sum(psi_g)',sum(psi_g)
      call plot_wf(.true.,trim(filebase0), 2, at, 1.d0, lr, &
           hgrids(1), hgrids(2), hgrids(3), &
           rxyz, psi_g, &

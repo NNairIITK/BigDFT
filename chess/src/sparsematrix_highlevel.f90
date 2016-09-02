@@ -437,7 +437,7 @@ module sparsematrix_highlevel
 
       smmd = sparse_matrix_metadata_null()
       call read_sparse_matrix_metadata(filename, smmd%nfvctr, smmd%nat, smmd%ntypes, &
-           smmd%units, smmd%geocode, smmd%cell_dim, smmd%nzatom, smmd%nelpsp, &
+           smmd%units, smmd%geocode, smmd%cell_dim, smmd%shift, smmd%nzatom, smmd%nelpsp, &
            smmd%atomnames, smmd%iatype, smmd%rxyz, smmd%on_which_atom)
 
     end subroutine sparse_matrix_metadata_init_from_file
