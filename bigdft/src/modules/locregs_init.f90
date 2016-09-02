@@ -131,7 +131,6 @@ module locregs_init
       do iorb=1,norbp
          ilr = in_which_locreg(isorb+iorb)
          sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-         write(*,*) 'iorb, ilr, sdim', iorb, ilr, sdim
          if (global) then
             ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
          else

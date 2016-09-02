@@ -99,7 +99,7 @@ program utilities
    type(local_zone_descriptors) :: lzd
    integer :: confpotorder, ilr, iiorb, iiorb_out, ispinor, nspinor, onwhichatom_tmp, npsidim_orbs, nsize
    real(kind=8) :: confpotprefac, eval_tmp
-   character(len=256) :: error, filename
+   character(len=256) :: error, filename, KSgrid_file
    logical :: lstat
    integer,parameter :: ncolors = 12
    ! Presumably well suited colorschemes from colorbrewer2.org
@@ -389,8 +389,8 @@ program utilities
 
    if (build_KS_orbitals) then
 
-       write(*,*) 'in build_KS_orbitals'
 
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(metadata_file),hfill='~')
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
 
        nspin = 1
@@ -400,10 +400,9 @@ program utilities
        end if
 
        iunit = 99
-       !if (iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
-       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
-            eval=eval_ptr)
+       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr)
        call f_close(iunit)
 
        in_which_locreg = f_malloc(ntmb,id='in_which_locreg')
@@ -413,15 +412,11 @@ program utilities
        !!write(*,*) 'HAC: MANUAL MODIFICATION OF IN_WHICH_LOCREG'
        !!in_which_locreg = (/5,1,2,3,4,6/)
 
-       write(*,*) 'nkpt',nkpt
-       write(*,*) 'kpt', kpt
-       write(*,*) 'wkpt', wkpt
 
        call orbitals_descriptors(bigdft_mpi%iproc, bigdft_mpi%nproc, ntmb, ntmb, 0, nspin, 1,&
             nkpt, kpt, wkpt, orbs, linear_partition=LINEAR_PARTITION_SIMPLE)
        !!call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
 
-       write(*,*) 'orbs%inwhichlocreg',orbs%inwhichlocreg
 
        nspinor = 1
 
@@ -434,7 +429,9 @@ program utilities
        end do
 
        ! Read the global grid
-       call f_open_file(iunit, file='KSgrid.dat', binary=.false.)
+       KSgrid_file = 'KSgrid.dat'
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(KSgrid_file),hfill='~')
+       call f_open_file(iunit, file=trim(KSgrid_file), binary=.false.)
        call io_read_descr_linear(iunit, .true., iiorb, eval_tmp, &
             lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
             lzd%glr%ns1, lzd%glr%ns2, lzd%glr%ns3, lzd%hgrids, &
@@ -474,13 +471,13 @@ program utilities
 
 
        filename='minBasis'
+       if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(filename)//'*',hfill='~')
 
        npsidim_orbs = 0
        phi = f_malloc(npsidim_orbs,id='phi')
        !do iat = 1,smmd%nat
           do iorb=1,orbs%norbp
              !if(iat == smmd%on_which_atom(iorb+orbs%isorb)) then
-                write(*,*) 'iat, iorb', iat, iorb
                 !shift = 1
                 !do jorb = 1, iorb-1
                 !   jlr = smmd%on_which_atom(jorb+isorb)
@@ -490,7 +487,6 @@ program utilities
                 do ispinor=1,nspinor
                    call open_filename_of_iorb(iunit, .false., trim(filename), &
                         orbs, iorb, ispinor, iiorb_out)
-                   write(*,*) 'iiorb_out, trim(filename)', iiorb_out, trim(filename)
 
                    call io_read_descr_linear(iunit, .true., iiorb, eval_tmp, &
                         lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
@@ -522,8 +518,6 @@ program utilities
                     lzd%llr(ilr)%d%nfu2=min(lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2,lzd%glr%d%nfu2)-lzd%llr(ilr)%ns2
                     lzd%llr(ilr)%d%nfu3=min(lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3,lzd%glr%d%nfu3)-lzd%llr(ilr)%ns3
 
-                    write(*,*) 'lzd%llr(ilr)%d%nfu3',lzd%llr(ilr)%d%nfu3
-
                     !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
                     lzd%llr(ilr)%d%n1i=2*lzd%llr(ilr)%d%n1+31
                     lzd%llr(ilr)%d%n2i=2*lzd%llr(ilr)%d%n2+31
@@ -549,7 +543,6 @@ program utilities
           enddo
        !end do
 
-       write(*,*) 'dot', dot(npsidim_orbs, phi(1), 1, phi(1), 1)
 
        ! have to copy the structures...
        at = atoms_data_null()
@@ -560,10 +553,7 @@ program utilities
        call f_memcpy(src=smmd%nzatom, dest=at%nzatom)
        call f_memcpy(src=smmd%nelpsp, dest=at%nelpsp)
 
-       write(*,*) 'orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd', &
-                   orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd
-       write(*,*) 'call build_ks_orbitals_postprocessing: in_which_locreg',in_which_locreg
-       read(101,*) coeff_ptr
+       !read(101,*) coeff_ptr
        
        !!rxyz(1:3,1) = (/7.576417, 5.980391, 5.963297/)
        !!rxyz(1:3,2) = (/5.771699, 5.702495, 5.771181/)
@@ -576,6 +566,18 @@ program utilities
        call build_ks_orbitals_postprocessing(bigdft_mpi%iproc, bigdft_mpi%nproc, &
             orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd, &
             nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, phi, coeff_ptr)
+
+       !call deallocate_atoms_data(at)
+       call deallocate_local_zone_descriptors(lzd)
+       call deallocate_orbitals_data(orbs)
+       call f_free(in_which_locreg)
+       call f_free_ptr(rxyz)
+       call f_free(phi)
+       call f_free_ptr(coeff_ptr)
+       call deallocate_sparse_matrix_metadata(smmd)
+       call f_free_ptr(at%astruct%iatype)
+       call f_free_ptr(at%nzatom)
+       call f_free_ptr(at%nelpsp)
 
 
    end if

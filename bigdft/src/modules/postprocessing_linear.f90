@@ -733,13 +733,6 @@ module postprocessing_linear
       !!    write(600,'(i10,es16.7)') i, tmb%psi(i)
       !!end do
 
-      ist = 1
-      nsize = kswfn%lzd%glr%wfd%nvctr_c+7*kswfn%lzd%glr%wfd%nvctr_f
-      do iorb=1,orbs%norb
-          write(500,*) 'nsize, sum(phiwork_global(ist:ist+nsize-1))', nsize, sum(phiwork_global(ist:ist+nsize-1))
-          ist = ist + nsize
-      end do
-    
     
       !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
       call writemywaves(iproc,trim(input%dir_output)//"wavefunction", WF_FORMAT_PLAIN, &
@@ -835,6 +828,7 @@ module postprocessing_linear
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
       use locregs_init, only: small_to_large_locreg
+      use yaml_output
       ! It's very bad practice to oblige the use of module_interfaces.
       ! If it is not done, it crashes with segfault due to the optional arguments
       use module_interfaces, only: orbitals_descriptors
@@ -858,18 +852,14 @@ module postprocessing_linear
       real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
       character(len=*),parameter :: subname='build_ks_orbitals_postprocessing'
       integer,dimension(:,:),allocatable :: ioffset_isf
+      character(len=256) :: filename
       !type(local_zone_descriptors) :: lzd_global
     
-      write(*,*) 'in_which_locreg',in_which_locreg
     
       ! Create orbitals_data and communication arrays for support functions in the global box
       call nullify_orbitals_data(orbs)
-      write(*,*) 'in build_ks_orbitals_postprocessing: before orbitals_descriptors'
-      write(*,*) 'iproc, nproc, norb, norbu, norbd, nspin, nspinor', iproc, nproc, norb, norbu, norbd, nspin, nspinor
-      write(*,*) 'nkpt, kpt, wkpt', nkpt, kpt, wkpt
       call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, nspinor, &
            nkpt, kpt, wkpt, orbs, LINEAR_PARTITION_NONE)
-      write(*,*) 'after orbitals_descriptors'
       comms = comms_cubic_null()
       call orbitals_communicators(iproc, nproc, lzd%glr, orbs, comms)
     
@@ -880,9 +870,6 @@ module postprocessing_linear
                          norb*comms%nvctr_par(iproc,0)*nspinor)
       phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
       phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
-      do i=1,size(psi)
-          write(220,*) psi(i)
-      end do
       call small_to_large_locreg(iproc, norb, norbp, isorb, in_which_locreg, &
            npsidim_orbs, &
            norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), lzd, &
@@ -892,11 +879,6 @@ module postprocessing_linear
     
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*nspinor
-      write(200,*) 'coeff',coeff
-      write(210,*) size(phi_global)
-      do i=1,size(phi_global)
-          write(210,*) phi_global(i)
-      end do
       call dgemm('n', 'n', nvctrp, norb, norb, 1.d0, phi_global, nvctrp, coeff(1,1), &
                  norb, 0.d0, phiwork_global, nvctrp)
 
@@ -907,10 +889,10 @@ module postprocessing_linear
     
     
       !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
-      write(*,*) 'associated(orbs%eval)', associated(orbs%eval)
-      write(*,*) 'orbs%norb, size(orbs%eval)', orbs%norb, size(orbs%eval)
       orbs%eval = f_malloc0_ptr(orbs%norb,id='orbs%eval')
-      call writemywaves(iproc,"KS_post", WF_FORMAT_PLAIN, &
+      filename = 'KS_post'
+      if (iproc==0) call yaml_comment('Writing to file '//trim(filename)//'*',hfill='~')
+      call writemywaves(iproc,trim(filename), WF_FORMAT_PLAIN, &
            orbs, Lzd%Glr%d%n1, Lzd%Glr%d%n2, Lzd%Glr%d%n3, &
            Lzd%hgrids(1), Lzd%hgrids(2), Lzd%hgrids(3), &
            at, rxyz, Lzd%Glr%wfd, phiwork_global)
@@ -921,14 +903,10 @@ module postprocessing_linear
       !!    call nullify_locreg_descriptors(lzd_global%llr(iorb))
       !!    lzd_global%llr(iorb) => lzd%glr
       !!end do
-      ist = 1
-      nsize = lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f
-      do iorb=1,orbs%norb
-          write(500,*) 'nsize, sum(phiwork_global(ist:ist+nsize-1))', nsize, sum(phiwork_global(ist:ist+nsize-1))
-          ist = ist + nsize
-      end do
+      filename = 'KS_post-Dens'
+      if (iproc==0) call yaml_comment('Writing to file '//trim(filename)//'*',hfill='~')
       call write_orbital_density(iproc, .false., 1, &
-           'KS_post-Dens', &
+           trim(filename), &
            npsidim_global, phiwork_global,  orbs, lzd, at, rxyz, .true., &
            in_which_locreg=in_which_locreg)
     

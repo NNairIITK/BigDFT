@@ -525,7 +525,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
      !print *,'complete name <',trim(filename_out),'> end'
  else
      filename_out = trim(filename)//completename//"."//f4
-     print *,'complete name <',trim(filename_out),'> end'
+     !print *,'complete name <',trim(filename_out),'> end'
  end if
 
   !print *,'filename: ',filename_out

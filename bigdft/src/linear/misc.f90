@@ -94,15 +94,12 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
           sdim=lzd_l%llr(ilr)%wfd%nvctr_c+7*lzd_l%llr(ilr)%wfd%nvctr_f
           ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
           call f_zero(psi_g)
-          write(500,*) 'sdim, ldim', sdim, ldim
           call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, 1, lzd_l%glr, &
                lzd_l%llr(ilr), psi(ist:), psi_g)
-          write(500,*) 'ldim, sum(psi(ist:ist+ldim-1))', ldim, sum(psi_g)
       else
           !sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
           sdim=lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
           call vcopy(sdim, psi(ist), 1, psi_g(1), 1)
-          write(500,*) 'sdim, sum(psi(ist:ist+sdim-1))', sdim, sum(psi(ist:ist+sdim-1))
       end if
       ist = ist + sdim
       do ispinor=1,orbs%nspinor
@@ -197,7 +194,6 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   !call f_open_file(iunity, file=filey, binary=binary)
   !call f_open_file(iunitz, file=filez, binary=binary)
   if (dens) then
-     write(500,*) 'sum(psi_g)',sum(psi_g)
      call plot_wf(.true.,trim(filebase0), 2, at, 1.d0, lr, &
           hgrids(1), hgrids(2), hgrids(3), &
           rxyz, psi_g, &
