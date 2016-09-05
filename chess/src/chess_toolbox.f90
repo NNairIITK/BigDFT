@@ -96,7 +96,7 @@ program chess_toolbox
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
-   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt, tracediff
+   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt, tracediff, totdiff
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    character(len=1024) :: outfile_base, outfile_extension, matrix_format
@@ -999,10 +999,12 @@ program chess_toolbox
                    end if
                end do
            end do
+           totdiff = meandiff
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
            if (iproc==0) then
                call yaml_mapping_open('analyzing KSK-K')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('total deviation',totdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
                call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
@@ -1028,11 +1030,13 @@ program chess_toolbox
                    end if
                end do
            end do
+           totdiff = meandiff
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
 
            if (iproc==0) then
                call yaml_mapping_open('analyzing (KS)^2-(KS)')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('total deviation',totdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
                call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
@@ -1055,10 +1059,12 @@ program chess_toolbox
                    end if
                end do
            end do
+           totdiff = meandiff
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
            if (iproc==0) then
                call yaml_mapping_open('analyzing (S^1/2KS^1/2)^2 - S^1/2KS^1/2')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('total deviation',totdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
                call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
