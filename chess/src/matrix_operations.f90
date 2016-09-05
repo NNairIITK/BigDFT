@@ -33,6 +33,7 @@ module matrix_operations
     public :: overlap_power_minus_one_half_parallel
     public :: check_taylor_order
     public :: calculate_S_minus_one_half_onsite
+    public :: matrix_for_orthonormal_basis
 
 
     contains
@@ -2687,6 +2688,89 @@ module matrix_operations
       call f_release_routine()
 
     end subroutine calculate_S_minus_one_half_onsite
+
+
+    !> Calculate either:
+    !! - S^1/2 * K * S^1/2, which is the kernel corresponding to a orthonormal set of support functions.
+    !! - S^-1/2 * S * S^-1/2, which is the overlap corresponding to a orthonormal set of support functions.
+    !! To keep it simple, always call the matrix in the middle matrix
+    subroutine matrix_for_orthonormal_basis(iproc, nproc, comm, meth_overlap, smats, smatl, &
+               ovrlp, matrix, operation, weight_matrix_compr)
+      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, SPARSE_TASKGROUP, &
+                                   matrices_null, assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
+                                   deallocate_matrices
+      use sparsematrix, only: matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer :: iproc, nproc, comm, meth_overlap
+      type(sparse_matrix),intent(in) :: smats, smatl
+      type(matrices),intent(in) :: matrix
+      type(matrices),intent(in) :: ovrlp
+      character(len=*),intent(in) :: operation
+      real(kind=8),dimension(smatl%nvctrp_tg*smatl%nspin),intent(out) :: weight_matrix_compr
+
+      ! Local variables
+      type(matrices),dimension(1) :: inv_ovrlp
+      real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
+      real(kind=8) :: max_error, mean_error
+      integer :: ioperation
+      integer, dimension(1) :: power
+
+      call f_routine(id='matrix_for_orthonormal_basis')
+
+      select case (trim(operation))
+      case ('plus')
+          ioperation = 2
+      case ('minus')
+          ioperation = -2
+      case default
+          call f_err_throw('wrong value of operation')
+      end select
+
+      !!if (iproc==0) then
+      !!    call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
+      !!end if
+
+      inv_ovrlp(1) = matrices_null()
+      inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+
+      power(1)=ioperation
+      call overlapPowerGeneral(iproc, nproc, comm, &
+           meth_overlap, 1, power, -1, &
+           imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
+      !call f_free_ptr(ovrlp%matrix)
+
+      proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
+      !if (norbp>0) then
+         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+              matrix%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
+      !end if
+      !weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
+      !if (norbp>0) then
+         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+              inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr)
+      !end if
+      call f_free(proj_ovrlp_half_compr)
+
+      call deallocate_matrices(inv_ovrlp(1))
+
+      !!! Maybe this can be improved... not really necessary to gather the entire matrix
+      !!!weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
+      !!call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+
+      !call f_free(weight_matrix_compr_tg)
+
+      !!if (iproc==0) then
+      !!    call yaml_comment('Kernel calculated',hfill='~')
+      !!end if
+
+      call f_release_routine()
+
+    end subroutine matrix_for_orthonormal_basis
+
 
 
 end module matrix_operations

@@ -993,88 +993,6 @@ module multipole
 
 
 
-    !> Calculate either:
-    !! - S^1/2 * K * S^1/2, which is the kernel corresponding to a orthonormal set of support functions.
-    !! - S^-1/2 * S * S^-1/2, which is the overlap corresponding to a orthonormal set of support functions.
-    !! To keep it simple, always call the matrix in the middle matrix
-    subroutine matrix_for_orthonormal_basis(iproc, nproc, meth_overlap, smats, smatl, &
-               ovrlp, matrix, operation, weight_matrix_compr)
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, SPARSE_TASKGROUP, &
-                                   matrices_null, assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
-                                   deallocate_matrices
-      use matrix_operations, only: overlapPowerGeneral
-      use sparsematrix, only: matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
-      use yaml_output
-      implicit none
-
-      ! Calling arguments
-      integer :: iproc, nproc,  meth_overlap
-      type(sparse_matrix),intent(in) :: smats, smatl
-      type(matrices),intent(in) :: matrix
-      type(matrices),intent(in) :: ovrlp
-      character(len=*),intent(in) :: operation
-      real(kind=8),dimension(smatl%nvctrp_tg*smatl%nspin),intent(out) :: weight_matrix_compr
-
-      ! Local variables
-      type(matrices),dimension(1) :: inv_ovrlp
-      real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
-      real(kind=8) :: max_error, mean_error
-      integer :: ioperation
-      integer, dimension(1) :: power
-
-      call f_routine(id='matrix_for_orthonormal_basis')
-
-      select case (trim(operation))
-      case ('plus')
-          ioperation = 2
-      case ('minus')
-          ioperation = -2
-      case default
-          call f_err_throw('wrong value of operation')
-      end select
-
-      !!if (iproc==0) then
-      !!    call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
-      !!end if
-
-      inv_ovrlp(1) = matrices_null()
-      inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
-
-      power(1)=ioperation
-      call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
-           meth_overlap, 1, power, -1, &
-           imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
-      !call f_free_ptr(ovrlp%matrix)
-
-      proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
-      !if (norbp>0) then
-         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-              matrix%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
-      !end if
-      !weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
-      !if (norbp>0) then
-         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-              inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr)
-      !end if
-      call f_free(proj_ovrlp_half_compr)
-
-      call deallocate_matrices(inv_ovrlp(1))
-
-      !!! Maybe this can be improved... not really necessary to gather the entire matrix
-      !!!weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
-      !!call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
-
-      !call f_free(weight_matrix_compr_tg)
-
-      !!if (iproc==0) then
-      !!    call yaml_comment('Kernel calculated',hfill='~')
-      !!end if
-
-      call f_release_routine()
-
-    end subroutine matrix_for_orthonormal_basis
-
 
 
 
@@ -2018,7 +1936,7 @@ module multipole
 
 
      
-    subroutine multipole_analysis_driver_new(iproc, nproc, lmax, ixc, smmd, smats, smatm, smatl, &
+    subroutine multipole_analysis_driver_new(iproc, nproc, comm, lmax, ixc, smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices, do_check, write_multipole_matrices_mode, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
@@ -2038,7 +1956,7 @@ module multipole
       use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null, &
            deallocate_external_potential_descriptors
       use orbitalbasis
-      use matrix_operations, only: overlapPowerGeneral
+      use matrix_operations, only: overlapPowerGeneral, matrix_for_orthonormal_basis
       !use Poisson_Solver, only: H_potential
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use foe_base, only: foe_data
@@ -2046,7 +1964,7 @@ module multipole
       use io, only: get_sparse_matrix_format
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, lmax, ixc
+      integer,intent(in) :: iproc, nproc, comm, lmax, ixc
       type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smats
       type(sparse_matrix),intent(in) :: smatm
@@ -2244,7 +2162,7 @@ module multipole
       ! Loewdin it is S^-1/2*K*S^-1/2.
       if (do_ortho==yes) then
           methTransformOverlap = 1020
-          call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+          call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
                ovrlp, kernel, 'plus', kernel_ortho)
       else if (do_ortho==no) then
           ovrlp_large = matrices_null()
@@ -2277,7 +2195,7 @@ module multipole
           ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
-          call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+          call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
                ovrlp, ovrlp_large, 'minus', newoverlap_large)
           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                lmat_in=newoverlap_large, smat_out=newovrlp%matrix_compr)
@@ -2361,7 +2279,7 @@ module multipole
                   ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                        smat_in=multipole_matrix%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
-                  call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+                  call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
                        ovrlp, ovrlp_large, 'minus', newoverlap_large)
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                        lmat_in=newoverlap_large, smat_out=multipole_matrix%matrix_compr)

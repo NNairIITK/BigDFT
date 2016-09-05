@@ -45,6 +45,7 @@ program chess_toolbox
    !!use multipole_base, only: lmax
    use sparsematrix_io, only: write_linear_coefficients, read_linear_coefficients
    !!use bigdft_run, only: bigdft_init
+   use matrix_operations, only: matrix_for_orthonormal_basis
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
@@ -83,7 +84,7 @@ program chess_toolbox
    real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found, found_a_fragment, found_icol, found_irow
-   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large, KS_large
+   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large, KS_large, kernel_ortho
    type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(matrices),dimension(:,:),allocatable :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
@@ -95,7 +96,7 @@ program chess_toolbox
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
-   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt
+   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt, tracediff
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    character(len=1024) :: outfile_base, outfile_extension, matrix_format
@@ -893,6 +894,13 @@ program chess_toolbox
        end do
        call f_close(iunit)
 
+       ! Calculate K'=S^1/2*K*S^1/2
+       kernel_ortho = matrices_null()
+       kernel_ortho%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_ortho%matrix_compr')
+       call matrix_for_orthonormal_basis(iproc, nproc, mpiworld(), &
+            1020, smat_s, smat_l, &
+            ovrlp_mat, kernel_mat, 'plus', kernel_ortho%matrix_compr)
+
 
        ovrlp_large = matrices_null()
        ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='ovrlp_large%matrix_compr')
@@ -980,11 +988,15 @@ program chess_toolbox
                 kernel_fragment(1,1), nfvctr_frag, 0.d0, ksk_fragment(1,1), nfvctr_frag)
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
+           tracediff = 0.0_mp
            do i=1,nfvctr_frag
                do j=1,nfvctr_frag
-                   tt = abs(kernel_fragment(j,i)-ksk_fragment(j,i))
-                   maxdiff = max(maxdiff,tt)
-                   meandiff = meandiff + tt
+                   tt = kernel_fragment(j,i)-ksk_fragment(j,i)
+                   maxdiff = max(maxdiff,abs(tt))
+                   meandiff = meandiff + abs(tt)
+                   if (i==j) then
+                       tracediff = tracediff + tt
+                   end if
                end do
            end do
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
@@ -992,6 +1004,7 @@ program chess_toolbox
                call yaml_mapping_open('analyzing KSK-K')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
            end if
 
@@ -1004,11 +1017,15 @@ program chess_toolbox
 
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
+           tracediff = 0.0_mp
            do i=1,nfvctr_frag
                do j=1,nfvctr_frag
-                   tt = abs(kernel_fragment(j,i)-tmpmat(j,i))
-                   maxdiff = max(maxdiff,tt)
-                   meandiff = meandiff + tt
+                   tt = kernel_fragment(j,i)-tmpmat(j,i)
+                   maxdiff = max(maxdiff,abs(tt))
+                   meandiff = meandiff + abs(tt)
+                   if (i==j) then
+                       tracediff = tracediff + tt
+                   end if
                end do
            end do
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
@@ -1017,6 +1034,33 @@ program chess_toolbox
                call yaml_mapping_open('analyzing (KS)^2-(KS)')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_map('trace difference',tracediff,fmt='(es10.3)')
+               call yaml_mapping_close()
+           end if
+
+           call extract_fragment_submatrix(smmd, smat_l, kernel_ortho, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, kernel_fragment)
+           call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, factor, kernel_fragment(1,1), nfvctr_frag, &
+                kernel_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
+           maxdiff = 0.0_mp
+           meandiff = 0.0_mp
+           tracediff = 0.0_mp
+           do i=1,nfvctr_frag
+               do j=1,nfvctr_frag
+                   tt = kernel_fragment(j,i)-tmpmat(j,i)
+                   maxdiff = max(maxdiff,abs(tt))
+                   meandiff = meandiff + abs(tt)
+                   if (i==j) then
+                       tracediff = tracediff + tt
+                   end if
+               end do
+           end do
+           meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
+           if (iproc==0) then
+               call yaml_mapping_open('analyzing (S^1/2KS^1/2)^2 - S^1/2KS^1/2')
+               call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
            end if
 
@@ -1041,6 +1085,7 @@ program chess_toolbox
        call deallocate_matrices(kernel_mat)
        call deallocate_matrices(ovrlp_large)
        call deallocate_matrices(KS_large)
+       call deallocate_matrices(kernel_ortho)
        call f_free_str(len(fragment_atomnames),fragment_atomnames)
        call f_free(fragment_atom_id)
        call f_free(fragment_supfun_id)

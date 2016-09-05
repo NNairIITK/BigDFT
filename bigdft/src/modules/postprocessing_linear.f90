@@ -663,11 +663,6 @@ module postprocessing_linear
                          tmb%orbs%norb*comms%nvctr_par(iproc,0)*orbs%nspinor)
       phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
       phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
-      write(*,*) 'dot tmb%psi', dot(size(tmb%psi), tmb%psi(1), 1, tmb%psi(1), 1)
-      write(*,*) 'orbs%inwhichlocreg',orbs%inwhichlocreg
-      do i=1,size(tmb%psi)
-          write(120,*) tmb%psi(i)
-      end do
       call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
            tmb%npsidim_orbs, &
            tmb%orbs%norbp*(tmb%lzd%glr%wfd%nvctr_c+7*tmb%lzd%glr%wfd%nvctr_f), tmb%lzd, &
@@ -689,13 +684,6 @@ module postprocessing_linear
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*orbs%nspinor
 
-      close(100)
-      write(100,*) 'coeff',tmb%coeff
-      close(110)
-      write(110,*) size(phi_global)
-      do i=1,size(phi_global)
-          write(110,*) phi_global(i)
-      end do
       call dgemm('n', 'n', nvctrp, KSwfn%orbs%norb, tmb%orbs%norb, 1.d0, phi_global, nvctrp, tmb%coeff(1,1), &
                  tmb%orbs%norb, 0.d0, phiwork_global, nvctrp)
 

@@ -345,7 +345,7 @@ program utilities
        ! Determine whether the multipoles matrices to be used are calculated analytically or on the grid.
        select case(trim(matrix_basis))
        case ('wavelet','WAVELET')
-           call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, 0, 11, &
+           call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, 0, 11, &
                 smmd, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
                 methodc, do_ortho=trim(do_ortho), projectormode='simple', &
@@ -353,7 +353,7 @@ program utilities
                 write_multipole_matrices_mode=0, &
                 multipole_matrix_in=(/(/ovrlp_mat/)/))
        case ('realspace','REALSPACE')
-           call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, ll, 11, &
+           call multipole_analysis_driver_new(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, ll, 11, &
                 smmd, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
                 methodc, do_ortho=trim(do_ortho), projectormode='simple', &
