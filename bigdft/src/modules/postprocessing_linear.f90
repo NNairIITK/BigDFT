@@ -807,7 +807,7 @@ module postprocessing_linear
 
 
 
-    subroutine build_ks_orbitals_postprocessing(iproc, nproc, norb, norbp, isorb, norbu, norbd, nspin, nspinor, &
+    subroutine build_ks_orbitals_postprocessing(iproc, nproc, ntmb, norb, nspin, nspinor, &
                nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, psi, coeff)
       use module_base
       use module_types
@@ -823,7 +823,7 @@ module postprocessing_linear
       implicit none
       
       ! Calling arguments
-      integer:: iproc, nproc, norb, norbp, isorb, norbu, norbd, nspin, nspinor, nkpt, npsidim_orbs, i
+      integer:: iproc, nproc, ntmb, norb, nspin, nspinor, nkpt, npsidim_orbs, i
       real(gp), dimension(3,nkpt), intent(in) :: kpt
       real(gp), dimension(nkpt), intent(in) :: wkpt
       type(atoms_data), intent(in) :: at
@@ -831,7 +831,7 @@ module postprocessing_linear
       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
       type(local_zone_descriptors),intent(inout) :: lzd !just be in, is inout due to call to write_orbital_density...
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
-      real(kind=8),dimension(norb,norb),intent(in) :: coeff
+      real(kind=8),dimension(ntmb,norb),intent(in) :: coeff
     
       ! Local variables
       type(orbitals_data) :: orbs
@@ -843,10 +843,13 @@ module postprocessing_linear
       character(len=256) :: filename
       !type(local_zone_descriptors) :: lzd_global
     
+      if (nspin/=1) then
+          call f_err_throw('build_ks_orbitals_postprocessing not implented for nspin/=1')
+      end if
     
       ! Create orbitals_data and communication arrays for support functions in the global box
       call nullify_orbitals_data(orbs)
-      call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, nspinor, &
+      call orbitals_descriptors(iproc, nproc, ntmb, ntmb, 0, nspin, nspinor, &
            nkpt, kpt, wkpt, orbs, LINEAR_PARTITION_NONE)
       comms = comms_cubic_null()
       call orbitals_communicators(iproc, nproc, lzd%glr, orbs, comms)
@@ -854,21 +857,21 @@ module postprocessing_linear
     
       ! Transform the support functions to the global box
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
-      npsidim_global=max(norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), &
-                         norb*comms%nvctr_par(iproc,0)*nspinor)
+      npsidim_global=max(orbs%norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), &
+                         orbs%norb*comms%nvctr_par(iproc,0)*nspinor)
       phi_global = f_malloc_ptr(npsidim_global,id='phi_global')
       phiwork_global = f_malloc_ptr(npsidim_global,id='phiwork_global')
-      call small_to_large_locreg(iproc, norb, norbp, isorb, in_which_locreg, &
+      call small_to_large_locreg(iproc, orbs%norb, orbs%norbp, orbs%isorb, in_which_locreg, &
            npsidim_orbs, &
-           norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), lzd, &
+           orbs%norbp*(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f), lzd, &
            lzd, psi, phi_global, to_global=.true.)
       call transpose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, phi_global(1), phiwork_global(1))
     
     
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*nspinor
-      call dgemm('n', 'n', nvctrp, norb, norb, 1.d0, phi_global, nvctrp, coeff(1,1), &
-                 norb, 0.d0, phiwork_global, nvctrp)
+      call dgemm('n', 'n', nvctrp, ntmb, orbs%norb, 1.d0, phi_global, nvctrp, coeff(1,1), &
+                 ntmb, 0.d0, phiwork_global, nvctrp)
 
       
       call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, phiwork_global(1), phi_global(1))  

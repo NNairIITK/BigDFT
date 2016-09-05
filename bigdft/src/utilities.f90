@@ -85,7 +85,7 @@ program utilities
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
-   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb
+   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, istart_ks, iend_ks, norb_ks
    character(len=20),dimension(:),pointer :: atomnames
    character(len=30),dimension(:),allocatable :: pdos_name
    real(kind=8),dimension(3) :: cell_dim
@@ -502,7 +502,7 @@ program utilities
                         keyvloc=lzd%llr(ilr)%wfd%keyvloc, &
                         keyvglob=lzd%llr(ilr)%wfd%keyvglob)
 
-                    ! THIS MUST BE MADE CLEANEE !!!!!!!!!
+                    ! THIS MUST BE MADE CLEANER !!!!!!!!!
                     !starting point of the region for interpolating functions grid
                     lzd%llr(ilr)%nsi1= 2 * lzd%llr(ilr)%ns1 !- (Lnbl1 - Gnbl1)
                     lzd%llr(ilr)%nsi2= 2 * lzd%llr(ilr)%ns2 !- (Lnbl2 - Gnbl2)
@@ -563,9 +563,13 @@ program utilities
        do iat=1,smmd%nat
            rxyz(:3,iat) = smmd%rxyz(1:3,iat) + smmd%shift(1:3)
        end do
+       istart_ks = 1
+       iend_ks = orbs%norb
+       norb_ks = iend_ks - istart_ks + 1
        call build_ks_orbitals_postprocessing(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-            orbs%norb, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norbd, &
-            nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, phi, coeff_ptr)
+            orbs%norb, norb_ks, &
+            nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg(istart_ks:iend_ks), at, lzd, rxyz, &
+            npsidim_orbs, phi, coeff_ptr(:,istart_ks:iend_ks))
 
        !call deallocate_atoms_data(at)
        call deallocate_local_zone_descriptors(lzd)
