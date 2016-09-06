@@ -310,6 +310,8 @@ def parse():
     group.add_option("--iev_min", type="int", default=1, metavar="NUM",)
     group.add_option("--iev_max", type="int", default=1000000, metavar="NUM",)
     group.add_option("--fscale", type="float", default=1.e-2, metavar="NUM",)
+    group.add_option("--is_ks", type="float", default=1, metavar="NUM",)
+    group.add_option("--ie_ks", type="float", default=2, metavar="NUM",)
 
     return parser
 
@@ -1160,7 +1162,7 @@ options:
         else:
           fitPAW(args[0], options.n_funcs)
     if options.action == "build-KS-orbitals":
-        command = "%s %s build-KS-orbitals %s %s" % (options.mpirun, utilities, options.metadata_file, options.coeff_file)
+        command = "%s %s build-KS-orbitals %s %s %i %i" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.is_ks, options.ie_ks)
         print command
     if command is not None:
         os.system(command)

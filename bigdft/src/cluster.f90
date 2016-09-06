@@ -23,7 +23,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        & XC_potential, communicate_density, copy_old_wavefunctions, &
        denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
-       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication
+       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication, &
+       writemywaves
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft

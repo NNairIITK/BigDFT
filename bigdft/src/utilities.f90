@@ -51,7 +51,7 @@ program utilities
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
-   character(len=128) :: kernel_file_matmul
+   character(len=128) :: kernel_file_matmul, istart_ks_, iend_ks_
    character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
    logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
@@ -85,7 +85,7 @@ program utilities
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
-   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, istart_ks, iend_ks, norb_ks
+   integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, istart_ks, iend_ks
    character(len=20),dimension(:),pointer :: atomnames
    character(len=30),dimension(:),allocatable :: pdos_name
    real(kind=8),dimension(3) :: cell_dim
@@ -249,6 +249,12 @@ program utilities
              call get_command_argument(i_arg, value = metadata_file)
              i_arg = i_arg + 1
              call get_command_argument(i_arg, value = coeff_file)
+             i_arg = i_arg + 1
+             call get_command_argument(i_arg, value = istart_ks_)
+             read(istart_ks_,fmt=*,iostat=ierr) istart_ks
+             i_arg = i_arg + 1
+             call get_command_argument(i_arg, value = iend_ks_)
+             read(iend_ks_,fmt=*,iostat=ierr) iend_ks
              build_KS_orbitals = .true.
          end if
          i_arg = i_arg + 1
@@ -563,12 +569,15 @@ program utilities
        do iat=1,smmd%nat
            rxyz(:3,iat) = smmd%rxyz(1:3,iat) + smmd%shift(1:3)
        end do
-       istart_ks = 1
-       iend_ks = orbs%norb
-       norb_ks = iend_ks - istart_ks + 1
+       if (istart_ks<1) then
+           call f_err_throw('istart_ks<1')
+       end if
+       if (iend_ks>orbs%norb) then
+           call f_err_throw('iend_ks>orbs%norb')
+       end if
        call build_ks_orbitals_postprocessing(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-            orbs%norb, norb_ks, &
-            nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg(istart_ks:iend_ks), at, lzd, rxyz, &
+            orbs%norb, istart_ks, iend_ks, &
+            nspin, nspinor, nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, &
             npsidim_orbs, phi, coeff_ptr(:,istart_ks:iend_ks))
 
        !call deallocate_atoms_data(at)

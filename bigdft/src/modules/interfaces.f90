@@ -708,7 +708,7 @@ module module_interfaces
       end interface
 
       interface
-        subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
+        subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iorb_shift,iiorb)
          use module_defs, only: gp,dp,wp
          use module_types
          implicit none
@@ -717,12 +717,12 @@ module module_interfaces
          integer, intent(in) :: iorb,ispinor,unitfile
          type(orbitals_data), intent(in) :: orbs
          integer, intent(out) :: iorb_out
-         integer,intent(in),optional :: iiorb
+         integer,intent(in),optional :: iorb_shift,iiorb
         END SUBROUTINE open_filename_of_iorb
       end interface
 
       interface
-        subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+        subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift,iiorb)
          use module_defs, only: gp,dp,wp
          use module_types
          implicit none
@@ -732,7 +732,7 @@ module module_interfaces
          type(orbitals_data), intent(in) :: orbs
          character(len=*) :: filename_out
          integer, intent(out) :: iorb_out
-         integer,intent(in),optional :: iiorb
+         integer,intent(in),optional :: iorb_shift,iiorb
         END SUBROUTINE filename_of_iorb
       end interface
 
@@ -1582,7 +1582,7 @@ module module_interfaces
 
   interface
      subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-          filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l, in_which_locreg)
+          filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, iorb_shift, lzd_l, in_which_locreg)
        use module_defs, only: gp,dp,wp
        use module_types
        implicit none
@@ -1594,10 +1594,30 @@ module module_interfaces
        type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
        type(atoms_data),intent(in) :: at
        real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+       integer,intent(in),optional :: iorb_shift
        type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
        logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
        integer,dimension(orbs%norb),intent(in),optional :: in_which_locreg
      END SUBROUTINE write_orbital_density
+  end interface
+
+  interface
+     subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi,iorb_shift)
+       use module_types
+       use module_base
+       use yaml_output
+       use public_enums
+       implicit none
+       integer, intent(in) :: iproc,n1,n2,n3,iformat
+       real(gp), intent(in) :: hx,hy,hz
+       type(atoms_data), intent(in) :: at
+       type(orbitals_data), intent(in) :: orbs
+       type(wavefunctions_descriptors), intent(in) :: wfd
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+       character(len=*), intent(in) :: filename
+       integer,intent(in),optional :: iorb_shift
+     END SUBROUTINE writemywaves
   end interface
 
 END MODULE module_interfaces

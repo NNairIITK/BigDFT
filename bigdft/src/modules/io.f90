@@ -318,7 +318,7 @@ module io
                      full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
     
                      call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
-                          & orbs,iorbp,ispinor,iorb_out,iforb)
+                          & orbs,iorbp,ispinor,iorb_out,iiorb=iforb)
     
                      !also what to do with eval? - at the moment completely arbitrary
                      call writeonewave_linear(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,&

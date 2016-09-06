@@ -537,7 +537,7 @@ module postprocessing_linear
                energy, energyDiff, energyold, ref_frags, frag_coeffs)
       use module_base
       use module_types
-      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density, writemywaves
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -807,11 +807,11 @@ module postprocessing_linear
 
 
 
-    subroutine build_ks_orbitals_postprocessing(iproc, nproc, ntmb, norb, nspin, nspinor, &
+    subroutine build_ks_orbitals_postprocessing(iproc, nproc, ntmb, istart_ks, iend_ks, nspin, nspinor, &
                nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, psi, coeff)
       use module_base
       use module_types
-      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density, writemywaves
       use communications_base, only: comms_cubic, comms_cubic_null
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -823,20 +823,20 @@ module postprocessing_linear
       implicit none
       
       ! Calling arguments
-      integer:: iproc, nproc, ntmb, norb, nspin, nspinor, nkpt, npsidim_orbs, i
+      integer,intent(in):: iproc, nproc, ntmb, istart_ks, iend_ks, nspin, nspinor, nkpt, npsidim_orbs
       real(gp), dimension(3,nkpt), intent(in) :: kpt
       real(gp), dimension(nkpt), intent(in) :: wkpt
       type(atoms_data), intent(in) :: at
-      integer,dimension(norb),intent(in) :: in_which_locreg
+      integer,dimension(ntmb),intent(in) :: in_which_locreg
       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
       type(local_zone_descriptors),intent(inout) :: lzd !just be in, is inout due to call to write_orbital_density...
       real(kind=8),dimension(npsidim_orbs),intent(in) :: psi
-      real(kind=8),dimension(ntmb,norb),intent(in) :: coeff
+      real(kind=8),dimension(ntmb,iend_ks-istart_ks+1),intent(in) :: coeff
     
       ! Local variables
-      type(orbitals_data) :: orbs
-      type(comms_cubic) :: comms
-      integer :: infoCoeff, nvctrp, npsidim_global, iorb, istat, ist, nsize
+      type(orbitals_data) :: orbs, orbs_ks
+      type(comms_cubic) :: comms, comms_ks
+      integer :: infoCoeff, nvctrp, npsidim_global, iorb, istat, ist, nsize, norb_ks
       real(kind=8),dimension(:),pointer :: phi_global, phiwork_global
       character(len=*),parameter :: subname='build_ks_orbitals_postprocessing'
       integer,dimension(:,:),allocatable :: ioffset_isf
@@ -853,6 +853,14 @@ module postprocessing_linear
            nkpt, kpt, wkpt, orbs, LINEAR_PARTITION_NONE)
       comms = comms_cubic_null()
       call orbitals_communicators(iproc, nproc, lzd%glr, orbs, comms)
+
+      ! Create orbitals_data and communication arrays for KS orbitals
+      call nullify_orbitals_data(orbs_ks)
+      norb_ks = iend_ks-istart_ks+1
+      call orbitals_descriptors(iproc, nproc, norb_ks, norb_ks, 0, nspin, nspinor, &
+           nkpt, kpt, wkpt, orbs_ks, LINEAR_PARTITION_NONE)
+      comms_ks = comms_cubic_null()
+      call orbitals_communicators(iproc, nproc, lzd%glr, orbs_ks, comms_ks)
     
     
       ! Transform the support functions to the global box
@@ -870,23 +878,23 @@ module postprocessing_linear
     
       ! WARNING: WILL NOT WORK WITH K-POINTS, CHECK THIS
       nvctrp=comms%nvctr_par(iproc,0)*nspinor
-      call dgemm('n', 'n', nvctrp, ntmb, orbs%norb, 1.d0, phi_global, nvctrp, coeff(1,1), &
+      call dgemm('n', 'n', nvctrp, orbs_ks%norb, orbs%norb, 1.d0, phi_global, nvctrp, coeff(1,1), &
                  ntmb, 0.d0, phiwork_global, nvctrp)
 
       
-      call untranspose_v(iproc, nproc, orbs, lzd%glr%wfd, comms, phiwork_global(1), phi_global(1))  
+      call untranspose_v(iproc, nproc, orbs_ks, lzd%glr%wfd, comms_ks, phiwork_global(1), phi_global(1))  
     
       call f_free_ptr(phi_global)
     
     
       !!write(*,*) 'iproc, input%output_wf_format',iproc, WF_FORMAT_PLAIN
-      orbs%eval = f_malloc0_ptr(orbs%norb,id='orbs%eval')
+      orbs_ks%eval = f_malloc0_ptr(orbs_ks%norb,id='orbs%eval')
       filename = 'KS_post'
       if (iproc==0) call yaml_comment('Writing to file '//trim(filename)//'*',hfill='~')
       call writemywaves(iproc,trim(filename), WF_FORMAT_PLAIN, &
-           orbs, Lzd%Glr%d%n1, Lzd%Glr%d%n2, Lzd%Glr%d%n3, &
-           Lzd%hgrids(1), Lzd%hgrids(2), Lzd%hgrids(3), &
-           at, rxyz, Lzd%Glr%wfd, phiwork_global)
+           orbs_ks, lzd%glr%d%n1, lzd%glr%d%n2, lzd%glr%d%n3, &
+           lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), &
+           at, rxyz, lzd%glr%wfd, phiwork_global, iorb_shift=istart_ks-1)
 
       !!lzd_global = local_zone_descriptors_null()
       !!allocate(lzd_global%llr(orbs%norb),stat=istat)
@@ -898,8 +906,8 @@ module postprocessing_linear
       if (iproc==0) call yaml_comment('Writing to file '//trim(filename)//'*',hfill='~')
       call write_orbital_density(iproc, .false., 1, &
            trim(filename), &
-           npsidim_global, phiwork_global,  orbs, lzd, at, rxyz, .true., &
-           in_which_locreg=in_which_locreg)
+           npsidim_global, phiwork_global,  orbs_ks, lzd, at, rxyz, .true., &
+           iorb_shift=istart_ks-1, in_which_locreg=in_which_locreg)
     
 !!!      if (input%write_orbitals==2) then
 !!!          if (frag_coeffs) then
@@ -931,6 +939,8 @@ module postprocessing_linear
        call f_free_ptr(phiwork_global)
        call deallocate_orbitals_data(orbs)
        call deallocate_comms_cubic(comms)
+       call deallocate_orbitals_data(orbs_ks)
+       call deallocate_comms_cubic(comms_ks)
     
     
     end subroutine build_ks_orbitals_postprocessing

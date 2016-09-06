@@ -11,7 +11,7 @@
 !> Write the square of the wave functions (i.e. the orbital densities).
 !! This routine can also be used to print the "support functions densities".
 subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-           filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, lzd_l, in_which_locreg)
+           filename, npsidim, psi, orbs, lzd_g, at, rxyz, dens, iorb_shift, lzd_l, in_which_locreg)
   use module_base
   use module_types
   !use module_interface2, except_this_one => write_orbital_density
@@ -29,6 +29,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  integer,intent(in),optional :: iorb_shift
   logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
   type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
   integer,dimension(orbs%norb),intent(in),optional :: in_which_locreg
@@ -37,12 +38,15 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   logical :: binary
   real(kind=8),dimension(:),pointer :: psi_g
   integer :: iunit0, iunitx, iunity, iunitz, iorb, ispinor, ist, ncount, iiorb, ilr
-  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz, sdim, ldim
+  integer :: iorb_out0, iorb_outx, iorb_outy, iorb_outz, sdim, ldim, iorb_shift_
   character(len=500) :: filebase0, filebasex, filebasey, filebasez
   character(len=500) :: file0, filex, filey, filez
   integer,dimension(:),allocatable :: in_which_locreg_
 
   call f_routine(id='write_orbital_density')
+
+  iorb_shift_ = 0
+  if (present(iorb_shift)) iorb_shift_ = iorb_shift
 
   if (transform_to_global) then
       if (.not.present(lzd_l)) call f_err_throw('lzd_l not present',err_name='BIGDFT_RUNTIME_ERROR')
@@ -105,7 +109,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       do ispinor=1,orbs%nspinor
           if (orbs%nspinor/=1) stop 'write_orbital_density not implemented for nspinor/=1'
           call plot_one_orbdens(lzd_g%glr, at, orbs, rxyz, lzd_g%hgrids, filename, &
-               iorb, ispinor, binary, psi_g, dens)
+               iorb, iorb_shift_, ispinor, binary, psi_g, dens)
           !iunit0 = 101
           !iunit0 = 102
           !iunit0 = 103
@@ -153,7 +157,7 @@ end subroutine write_orbital_density
 
 
 
-subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g, dens)
+subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, iorb_shift, ispinor, binary, psi_g, dens)
   use module_base
   use module_types
   use module_interfaces, only: filename_of_iorb, plot_wf
@@ -166,7 +170,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
   real(kind=8),dimension(3),intent(in) :: hgrids
   character(len=*),intent(in) :: filename
-  integer,intent(in) :: iorb, ispinor
+  integer,intent(in) :: iorb, iorb_shift, ispinor
   logical,intent(in) :: binary
   real(kind=8),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),intent(in) :: psi_g
   logical,intent(in) :: dens !< density of wavefunction or just wavefunction
@@ -180,10 +184,10 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   iunitx = 102
   iunity = 103
   iunitz = 104
-  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebase0, iorb_out0)
-  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasex, iorb_outx)
-  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasey, iorb_outy)
-  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasez, iorb_outz)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebase0, iorb_out0, iorb_shift=iorb_shift)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasex, iorb_outx, iorb_shift=iorb_shift)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasey, iorb_outy, iorb_shift=iorb_shift)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasez, iorb_outz, iorb_shift=iorb_shift)
   file0 = trim(filebase0)//'.cube'
   filex = trim(filebasex)//'_x'
   filey = trim(filebasey)//'_y'
