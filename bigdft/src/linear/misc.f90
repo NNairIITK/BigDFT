@@ -79,13 +79,11 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   ! Need to create the convolution bounds
   ! check first if already allocated - maybe should be more thorough than just checking one array?
   if (.not. associated(lzd_g%glr%bounds%kb%ibyz_c)) then
-     write(*,*) 'before calling locreg_bounds'
      call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
           lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
           lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
           lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
           lzd_g%glr%wfd, lzd_g%glr%bounds)
-     write(*,*) 'after locreg_bounds'
   end if
 
   ist = 1
