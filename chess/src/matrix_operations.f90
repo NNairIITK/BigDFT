@@ -2695,7 +2695,7 @@ module matrix_operations
     !! - S^-1/2 * S * S^-1/2, which is the overlap corresponding to a orthonormal set of support functions.
     !! To keep it simple, always call the matrix in the middle matrix
     subroutine matrix_for_orthonormal_basis(iproc, nproc, comm, meth_overlap, smats, smatl, &
-               ovrlp, matrix, operation, weight_matrix_compr)
+               ovrlp, matrix, operation, weight_matrix_compr, inv_ovrlp_ext)
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, SPARSE_TASKGROUP, &
                                    matrices_null, assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
                                    deallocate_matrices
@@ -2710,13 +2710,16 @@ module matrix_operations
       type(matrices),intent(in) :: ovrlp
       character(len=*),intent(in) :: operation
       real(kind=8),dimension(smatl%nvctrp_tg*smatl%nspin),intent(out) :: weight_matrix_compr
+      type(matrices),dimension(1),target,optional :: inv_ovrlp_ext
 
       ! Local variables
-      type(matrices),dimension(1) :: inv_ovrlp
+      type(matrices),dimension(:),pointer :: inv_ovrlp
+      type(matrices),dimension(1),target :: inv_ovrlp_
       real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
       real(kind=8) :: max_error, mean_error
       integer :: ioperation
       integer, dimension(1) :: power
+      logical :: inv_ovrlp_ext_present
 
       call f_routine(id='matrix_for_orthonormal_basis')
 
@@ -2733,8 +2736,15 @@ module matrix_operations
       !!    call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
       !!end if
 
-      inv_ovrlp(1) = matrices_null()
-      inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+      inv_ovrlp_ext_present = present(inv_ovrlp_ext)
+
+      if (inv_ovrlp_ext_present) then
+          inv_ovrlp => inv_ovrlp_ext
+      else
+          inv_ovrlp => inv_ovrlp_
+          inv_ovrlp(1) = matrices_null()
+          inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+      end if
 
       power(1)=ioperation
       call overlapPowerGeneral(iproc, nproc, comm, &
@@ -2755,7 +2765,9 @@ module matrix_operations
       !end if
       call f_free(proj_ovrlp_half_compr)
 
-      call deallocate_matrices(inv_ovrlp(1))
+      if (.not.inv_ovrlp_ext_present) then
+          call deallocate_matrices(inv_ovrlp(1))
+      end if
 
       !!! Maybe this can be improved... not really necessary to gather the entire matrix
       !!!weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')

@@ -2012,7 +2012,7 @@ module multipole
       !type(matrices),target :: multipole_matrix_
       type(matrices) :: newovrlp, ovrlp_large, multipole_matrix_large
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
-      type(matrices),dimension(1) :: inv_ovrlp
+      type(matrices),dimension(1) :: inv_ovrlp, inv_minus_onehalf_ovrlp
       logical :: perx, pery, perz, write_matrices
       logical,dimension(:,:),allocatable :: neighborx
       integer,dimension(:),allocatable :: nx
@@ -2193,10 +2193,13 @@ module multipole
           newoverlap_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newoverlap_large')
           ovrlp_large = matrices_null()
           ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+          inv_minus_onehalf_ovrlp(1) = matrices_null()
+          inv_minus_onehalf_ovrlp(1)%matrix_compr = &
+              sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_minus_onehalf_ovrlp(1)%matrix_compr')
           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
           call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
-               ovrlp, ovrlp_large, 'minus', newoverlap_large)
+               ovrlp, ovrlp_large, 'minus', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                lmat_in=newoverlap_large, smat_out=newovrlp%matrix_compr)
           call deallocate_matrices(ovrlp_large)
@@ -2280,7 +2283,7 @@ module multipole
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                        smat_in=multipole_matrix%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
                   call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
-                       ovrlp, ovrlp_large, 'minus', newoverlap_large)
+                       ovrlp, ovrlp_large, 'minus', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                        lmat_in=newoverlap_large, smat_out=multipole_matrix%matrix_compr)
                   call deallocate_matrices(ovrlp_large)
@@ -2351,6 +2354,10 @@ module multipole
 
           end do
       end do
+
+      if (do_ortho==yes) then
+          call deallocate_matrices(inv_minus_onehalf_ovrlp(1))
+      end if
 
 
       if (calculate_multipole_matrices) then
