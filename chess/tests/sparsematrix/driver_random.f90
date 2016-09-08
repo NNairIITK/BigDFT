@@ -225,7 +225,7 @@ program driver_random
   call matrices_init(smatl(1), mat3(2))
   call matrices_init(smatl(1), mat3(3))
 
-  if (trim(sparsegen_method)=='random') then
+  if (trim(matgen_method)=='random') then
 
       call matrices_init(smats, mat1)
       call matrices_init(smats, mat2)
@@ -270,7 +270,7 @@ program driver_random
        gather_routine=gather_timings)
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smats, mat2, eval_min, eval_max)
+  call get_minmax_eigenvalues(iproc, smats, mat2, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
       call yaml_mapping_open('Eigenvalue properties')
       call yaml_map('Minimal',eval_min)
@@ -291,6 +291,7 @@ program driver_random
   ! Calculate the desired matrix power
   if (iproc==0) then
       call yaml_comment('Calculating mat^x',hfill='~')
+      call yaml_mapping_open('Calculating mat^x')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
@@ -303,18 +304,26 @@ program driver_random
       call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
   end if
 
+  if (iproc==0) then
+      call yaml_mapping_close()
+  end if
 
 
   ! Calculate the inverse of the desired matrix power
   if (iproc==0) then
       call yaml_comment('Calculating mat^-x',hfill='~')
+      call yaml_mapping_open('Calculating mat^-x')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/-expo/), smats, smatl(1), mat2, mat3(2), ice_obj=ice_obj)
 
+  if (iproc==0) then
+      call yaml_mapping_close()
+  end if
+
   ! Multiply the two resulting matrices.
   if (iproc==0) then
-      call yamL_comment('Calculating mat^x*mat^-x',hfill='~')
+      call yaml_comment('Calculating mat^x*mat^-x',hfill='~')
   end if
   call matrix_matrix_multiplication(iproc, nproc, smatl(1), mat3(1), mat3(2), mat3(3))
 
@@ -369,7 +378,7 @@ program driver_random
       call yaml_map('max error',max_error,fmt='(es10.3)')
       call yaml_map('mean error',mean_error,fmt='(es10.3)')
       call yaml_mapping_close()
-      call yaml_mapping_open('realtive error')
+      call yaml_mapping_open('relative error')
       call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
       call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
       call yaml_mapping_close()

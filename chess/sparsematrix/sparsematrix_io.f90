@@ -453,6 +453,8 @@ module sparsematrix_io
       size_of_double = mpitypesize(1.0_mp)
       size_of_integer_long = int(size_of_integer,kind=f_long)
       size_of_double_long = int(size_of_double,kind=f_long)
+      four_long = int(4,kind=f_long)
+      five_long = int(5,kind=f_long)
 
       ! Write the header
       disp = int(0,kind=mpi_offset_kind)

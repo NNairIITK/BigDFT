@@ -743,16 +743,19 @@ program chess_toolbox
            iconv = 3
        case ('binary_to_bigdft')
            iconv = 4
+       case ('bigdft_to_binary')
+           iconv = 5
        case default
            call f_err_throw("wrong value for conversion; possible are &
                &'bigdft_to_ccs',&
                &'ccs_to_bigdft',&
                &'bigdft_to_dense',&
+               &'bigdft_to_binary',&
                &'binary_to_bigdft'")
        end select
 
        select case (iconv)
-       case (1,3)
+       case (1,3,5)
            !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
            call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(infile), &
                 iproc, nproc, mpiworld(), &
@@ -775,7 +778,7 @@ program chess_toolbox
            if (iproc==0) call ccs_matrix_write(trim(outfile), smat, row_ind, col_ptr, mat)
            call f_free_ptr(row_ind)
            call f_free_ptr(col_ptr)
-       case (2,4)
+       case (2,4,5)
            !!call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
            !!     mpiworld(), smat, mat, init_matmul=.false.)
            if (len(outfile)>1024) then
@@ -785,11 +788,20 @@ program chess_toolbox
            index_dot = index(outfile,'.',back=.true.)
            outfile_base = outfile(1:index_dot-1)
            outfile_extension = outfile(index_dot:)
-           if (trim(outfile_extension)/='.dat') then
-               call f_err_throw('Wrong file extension; must be .dat, but found '//trim(outfile_extension))
-           end if
-           call write_sparse_matrix('serial_text', iproc, nproc, mpiworld(), &
-                smat, mat, trim(outfile_base))
+           select case(iconv)
+           case (2,4)
+               if (trim(outfile_extension)/='.txt') then
+                   call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
+               end if
+               call write_sparse_matrix('serial_text', iproc, nproc, mpiworld(), &
+                    smat, mat, trim(outfile_base))
+           case (5)
+               if (trim(outfile_extension)/='.mpi') then
+                   call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
+               end if
+               call write_sparse_matrix('parallel_mpi-native', iproc, nproc, mpiworld(), &
+                    smat, mat, trim(outfile_base))
+           end select
        case (3)
            call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
 
