@@ -2282,8 +2282,11 @@ module multipole
                   ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                        smat_in=multipole_matrix%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
+                  !!call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
+                  !!     ovrlp, ovrlp_large, 'minus', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
+                  ! Take S^-1/2 from memory...
                   call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
-                       ovrlp, ovrlp_large, 'minus', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
+                       ovrlp, ovrlp_large, 'none', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                        lmat_in=newoverlap_large, smat_out=multipole_matrix%matrix_compr)
                   call deallocate_matrices(ovrlp_large)

@@ -2728,6 +2728,8 @@ module matrix_operations
           ioperation = 2
       case ('minus')
           ioperation = -2
+      case ('none')
+          ioperation = 0
       case default
           call f_err_throw('wrong value of operation')
       end select
@@ -2746,12 +2748,14 @@ module matrix_operations
           inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
       end if
 
-      power(1)=ioperation
-      call overlapPowerGeneral(iproc, nproc, comm, &
-           meth_overlap, 1, power, -1, &
-           imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
-      !call f_free_ptr(ovrlp%matrix)
+      if (ioperation/=0) then
+          power(1)=ioperation
+          call overlapPowerGeneral(iproc, nproc, comm, &
+               meth_overlap, 1, power, -1, &
+               imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
+          !call f_free_ptr(ovrlp%matrix)
+      end if
 
       proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
       !if (norbp>0) then
