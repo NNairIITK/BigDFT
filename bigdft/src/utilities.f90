@@ -16,7 +16,7 @@ program utilities
    use yaml_output
    use module_types, only: local_zone_descriptors, local_zone_descriptors_null
    use module_types, only: bigdft_init_errors, bigdft_init_timing_categories, orbitals_data
-   use public_enums, only: LINEAR_PARTITION_SIMPLE
+   use public_enums, only: LINEAR_PARTITION_NONE
    use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), &
                                 SPARSE_FULL, DENSE_FULL, DENSE_PARALLEL, &
@@ -327,7 +327,7 @@ program utilities
        allocate(multipoles_matrices(-ll:ll,0:ll))
        do l=0,ll
            do m=-l,l
-               call matrices_init_from_file_bigdft('serial', trim(multipoles_files(m,l)), &
+               call matrices_init_from_file_bigdft('serial_text', trim(multipoles_files(m,l)), &
                     bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, smat_s, multipoles_matrices(m,l))
            end do
        end do
@@ -420,7 +420,7 @@ program utilities
 
 
        call orbitals_descriptors(bigdft_mpi%iproc, bigdft_mpi%nproc, ntmb, ntmb, 0, nspin, 1,&
-            nkpt, kpt, wkpt, orbs, linear_partition=LINEAR_PARTITION_SIMPLE)
+            nkpt, kpt, wkpt, orbs, linear_partition=LINEAR_PARTITION_NONE)
        !!call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
 
 
@@ -548,6 +548,7 @@ program utilities
              !end if
           enddo
        !end do
+
 
 
        ! have to copy the structures...
