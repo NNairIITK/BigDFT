@@ -39,7 +39,7 @@ program driver_random
 
   ! Variables
   integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread
-  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, nrel_threshold, scalapack_blocksize
+  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
@@ -48,7 +48,7 @@ program driver_random
   type(matrices) :: mat1, mat2
   type(matrices),dimension(3) :: mat3
   real(mp) :: condition_number, expo, max_error, mean_error, betax
-  real(mp) :: max_error_rel, mean_error_rel, max_error_rel_threshold, mean_error_rel_threshold
+  real(mp) :: max_error_rel, mean_error_rel
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
   character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method
@@ -57,7 +57,14 @@ program driver_random
   type(yaml_cl_parse) :: parser !< command line parser
   external :: gather_timings
   !$ integer :: omp_get_max_threads
-  real(mp),parameter :: threshold = 1.e-8_mp !< threshold for the relative errror
+  integer,parameter :: nthreshold = 5 !< number of checks with threshold
+  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-4_mp, &
+                                                             1.e-6_mp, &
+                                                             1.e-8_mp, &
+                                                             1.e-10_mp,&
+                                                             1.e-12_mp /) !< threshold for the relative errror
+  integer,dimension(nthreshold) :: nrel_threshold
+  real(mp),dimension(nthreshold) :: max_error_rel_threshold, mean_error_rel_threshold
 
   ! Initialize flib
   call f_lib_initialize()
@@ -148,6 +155,7 @@ program driver_random
       call yaml_map('Exponent for the matrix power calculation',expo)
       call yaml_map('Write the matrices',write_matrices)
       call yaml_map('betax',betax,fmt='(f9.1)')
+      call yaml_map('scalapack_blocksize',scalapack_blocksize)
       call yaml_mapping_close()
   end if
 
@@ -357,9 +365,9 @@ program driver_random
   mean_error = 0.0_mp
   max_error_rel = 0.0_mp
   mean_error_rel = 0.0_mp
-  max_error_rel_threshold = 0.0_mp
-  mean_error_rel_threshold = 0.0_mp
-  nrel_threshold = 0
+  max_error_rel_threshold(:) = 0.0_mp
+  mean_error_rel_threshold(:) = 0.0_mp
+  nrel_threshold(:) = 0
   do i=1,smatl(1)%nvctr
       tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
       tt_rel = tt/abs(mat3(3)%matrix_compr(i))
@@ -367,15 +375,19 @@ program driver_random
       max_error = max(max_error,tt)
       mean_error_rel = mean_error_rel + tt_rel
       max_error_rel = max(max_error_rel,tt_rel)
-      if (abs(mat3(3)%matrix_compr(i))>threshold) then
-          nrel_threshold = nrel_threshold + 1
-          mean_error_rel_threshold = mean_error_rel_threshold + tt_rel
-          max_error_rel_threshold = max(max_error_rel_threshold,tt_rel)
-      end if
+      do ithreshold=1,nthreshold
+          if (abs(mat3(3)%matrix_compr(i))>threshold(ithreshold)) then
+              nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+              mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+              max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+          end if
+      end do
   end do
   mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
   mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
-  mean_error_rel_threshold = mean_error_rel_threshold/real(nrel_threshold,kind=8)
+  do ithreshold=1,nthreshold
+      mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+  end do
   if (iproc==0) then
       call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
       call yaml_mapping_open('absolute error')
@@ -386,10 +398,17 @@ program driver_random
       call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
       call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
       call yaml_mapping_close()
-      call yaml_mapping_open('relative error with threshold')
-      call yaml_map('threshold value',threshold,fmt='(es8.1)')
-      call yaml_map('max error relative',max_error_rel_threshold,fmt='(es10.3)')
-      call yaml_map('mean error relative',mean_error_rel_threshold,fmt='(es10.3)')
+      !call yaml_mapping_open('relative error with threshold')
+      call yaml_sequence_open('relative error with threshold')
+      do ithreshold=1,nthreshold
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+          call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+          call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+          call yaml_mapping_close()
+      end do
+      call yaml_sequence_close()
       call yaml_mapping_close()
       call yaml_mapping_close()
   end if
