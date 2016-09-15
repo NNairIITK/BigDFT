@@ -64,6 +64,8 @@ module parallel_linalg
 
       blocksize_if: if (blocksize<0) then
           call dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+      else if (blocksize==0) then
+          call f_err_throw('blocksize must not be zero')
       else blocksize_if
           ! Block size for scalapack
           mbrow=blocksize
@@ -218,6 +220,8 @@ module parallel_linalg
           work = f_malloc(lwork,id='work')
           call dsyev(jobz, uplo, n, a, lda, w, work, lwork, info)
           call f_free(work)
+      else if (blocksize==0) then
+          call f_err_throw('blocksize must not be zero')
       else blocksize_if
           ! Block size for scalapack
           mbrow=blocksize

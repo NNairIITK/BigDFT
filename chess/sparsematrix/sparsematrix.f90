@@ -2777,6 +2777,7 @@ module sparsematrix
     !> Get the minimal and maximal eigenvalue of a matrix
     subroutine get_minmax_eigenvalues(iproc, nproc, comm, scalapack_blocksize, &
                ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
+      use parallel_linalg, only: dsyev_parallel
       implicit none
 
       ! Calling arguments
@@ -2800,17 +2801,17 @@ module sparsematrix
       tempmat = f_malloc((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
       eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
 
-      ! Workspace query
-      lwork=-1
-      work = f_malloc(1,id='work')
-      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-      if (info/=0) then
-          call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
-      end if
-      lwork=work(1)
-      call f_free(work)
+      !!! Workspace query
+      !!lwork=-1
+      !!work = f_malloc(1,id='work')
+      !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+      !!if (info/=0) then
+      !!    call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
+      !!end if
+      !!lwork=work(1)
+      !!call f_free(work)
 
-      work = f_malloc(lwork,id='work')
+      !!work = f_malloc(lwork,id='work')
 
       do ispin=1,ovrlp_smat%nspin
 
@@ -2832,7 +2833,9 @@ module sparsematrix
           !!        end do
           !!    end do
           !!end if
-          call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+          !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+          call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+               ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, info)
           if (info/=0) then
               call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
           end if
@@ -2847,7 +2850,7 @@ module sparsematrix
 
       call f_free(tempmat)
       call f_free(eval)
-      call f_free(work)
+      !!call f_free(work)
 
       call f_release_routine()
 
