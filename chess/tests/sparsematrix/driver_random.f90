@@ -39,7 +39,7 @@ program driver_random
 
   ! Variables
   integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread
-  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, nrel_threshold
+  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, nrel_threshold, scalapack_blocksize
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
@@ -114,6 +114,7 @@ program driver_random
       matgen_method = options//'matgen_method'
       write_matrices = options//'write_matrices'
       betax = options//'betax'
+      scalapack_blocksize = options//'scalapack_blocksize'
 
       call dict_free(options)
 
@@ -163,6 +164,7 @@ program driver_random
   call mpibcast(sparsegen_method, root=0, comm=mpi_comm_world)
   call mpibcast(matgen_method, root=0, comm=mpi_comm_world)
   call mpibcast(betax, root=0, comm=mpi_comm_world)
+  call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -270,7 +272,8 @@ program driver_random
        gather_routine=gather_timings)
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smats, mat2, eval_min, eval_max, quiet=.true.)
+  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       smats, mat2, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
       call yaml_mapping_open('Eigenvalue properties')
       call yaml_map('Minimal',eval_min)
@@ -346,7 +349,8 @@ program driver_random
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
   end if
   !call operation_using_dense_lapack(iproc, nproc, smats_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, expo, smats, smatl(1), mat2, mat3(3))
+  call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, &
+        expo, smats, smatl(1), mat2, mat3(3))
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp
@@ -569,5 +573,12 @@ subroutine commandline_options(parser)
        'Indicate the betax value, which is used in the exponential of the penalty function',&
        'Allowed values' .is. &
        'Double'))
+
+  call yaml_cl_parse_option(parser,'scalapack_blocksize','-1',&
+      'blocksize for ScaLAPACK (negative for standard LAPACK)','k',&
+       dict_new('Usage' .is. &
+       'Indicate the blocksize to be used by ScaLAPACK. If negative, then the standard LAPACK routines will be used',&
+       'Allowed values' .is. &
+       'Integer'))
 
 end subroutine commandline_options

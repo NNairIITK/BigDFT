@@ -37,7 +37,7 @@ program driver_single
                                     matrices_init, &
                                     matrix_chebyshev_expansion, &
                                     matrix_matrix_multiplication
-  use sparsematrix, only: check_deviation_from_unity_sparse, operation_using_dense_lapack, &
+  use sparsematrix, only: check_deviation_from_unity_sparse, &
                           get_minmax_eigenvalues, matrix_power_dense_lapack
   use sparsematrix_init, only: write_sparsematrix_info
   implicit none
@@ -149,7 +149,8 @@ program driver_single
 
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smat_in, mat_in, eval_min, eval_max, quiet=.true.)
+  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), -1, &
+       smat_in, mat_in, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
       call yaml_comment('Eigenvalue informations',hfill='-')
       call yaml_mapping_open('Eigenvalue properties')
@@ -219,7 +220,8 @@ program driver_single
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='-')
   end if
   !call operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, exp_power, smat_in, smat_out, mat_in, mat_check_accur(3))
+  call matrix_power_dense_lapack(iproc, nproc, mpiworld(), -1, &
+       exp_power, smat_in, smat_out, mat_in, mat_check_accur(3))
   !!!call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat_check_accur(1), 'resultchebyshev.dat', binary=.false.)
   !!!call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat_check_accur(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp

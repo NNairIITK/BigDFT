@@ -50,7 +50,7 @@ module sparsematrix
   public :: max_asymmetry_of_matrix
   public :: symmetrize_matrix
   public :: check_deviation_from_unity_sparse
-  public :: operation_using_dense_lapack
+  !!public :: operation_using_dense_lapack
   public :: matrix_power_dense_lapack
   public :: diagonalizeHamiltonian2
   public :: get_minmax_eigenvalues
@@ -2433,66 +2433,67 @@ module sparsematrix
 
 
 
-    subroutine operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
-      use parallel_linalg, only: dgemm_parallel
+    !!subroutine operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
+    !!  use parallel_linalg, only: dgemm_parallel
+    !!  implicit none
+
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: iproc, nproc
+    !!  real(mp),intent(in) :: exp_power
+    !!  type(sparse_matrix),intent(in) :: smat_in
+    !!  type(matrices),intent(in) :: mat_in
+
+    !!  ! Local variables
+    !!  integer :: blocksize
+    !!  real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+    !!  real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+    !!  external :: gather_timings
+
+    !!  call f_routine(id='operation_using_dense_lapack')
+
+    !!  blocksize = -100
+    !!  mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+    !!  mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
+    !!  mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
+    !!  call uncompress_matrix(iproc, nproc, &
+    !!       smat_in, mat_in%matrix_compr, mat_in_dense)
+
+    !!  call f_timing_checkpoint(ctr_name='INIT_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+    !!       gather_routine=gather_timings)
+
+    !!  call matrix_power_dense(iproc, nproc, comm, blocksize, smat_in%nfvctr, &
+    !!       mat_in_dense, exp_power, mat_out_dense)
+
+    !!  call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+    !!       gather_routine=gather_timings)
+
+    !!  call matrix_power_dense(iproc, nproc, comm, blocksize, smat_in%nfvctr, &
+    !!       mat_in_dense, -exp_power, mat_check_accur_dense)
+    !!  call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
+    !!       smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
+    !!       1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
+    !!       mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
+    !!  call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
+
+    !!  call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+    !!       gather_routine=gather_timings)
+
+    !!  call f_free(mat_check_accur_dense)
+    !!  call f_free(mat_in_dense)
+    !!  call f_free(mat_out_dense)
+
+    !!  call f_release_routine()
+
+    !!end subroutine operation_using_dense_lapack
+
+
+
+    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, &
+               exp_power, smat_in, smat_out, mat_in, mat_out)
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      real(mp),intent(in) :: exp_power
-      type(sparse_matrix),intent(in) :: smat_in
-      type(matrices),intent(in) :: mat_in
-
-      ! Local variables
-      integer :: blocksize
-      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
-      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
-      external :: gather_timings
-
-      call f_routine(id='operation_using_dense_lapack')
-
-      blocksize = -100
-      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
-      mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
-      call uncompress_matrix(iproc, nproc, &
-           smat_in, mat_in%matrix_compr, mat_in_dense)
-
-      call f_timing_checkpoint(ctr_name='INIT_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
-           gather_routine=gather_timings)
-
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
-           mat_in_dense, exp_power, mat_out_dense)
-
-      call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
-           gather_routine=gather_timings)
-
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
-           mat_in_dense, -exp_power, mat_check_accur_dense)
-      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
-           smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
-           1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
-           mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
-      call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
-
-      call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
-           gather_routine=gather_timings)
-
-      call f_free(mat_check_accur_dense)
-      call f_free(mat_in_dense)
-      call f_free(mat_out_dense)
-
-      call f_release_routine()
-
-    end subroutine operation_using_dense_lapack
-
-
-
-    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat_in, smat_out, mat_in, mat_out)
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm, scalapack_blocksize
       real(mp),intent(in) :: exp_power
       type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
@@ -2505,13 +2506,12 @@ module sparsematrix
 
       call f_routine(id='operation_using_dense_lapack')
 
-      blocksize = -100
       mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
       mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
       !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
            smat_in, mat_in%matrix_compr, mat_in_dense)
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
+      call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)
       call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
       call f_free(mat_in_dense)
@@ -2524,13 +2524,13 @@ module sparsematrix
 
 
     !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
-    subroutine matrix_power_dense(iproc, nproc, blocksize, n, mat_in, ex, mat_out)
+    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out)
       !use module_base
       use parallel_linalg, only: dgemm_parallel, dsyev_parallel
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, blocksize, n
+      integer,intent(in) :: iproc, nproc, comm, blocksize, n
       real(kind=8),dimension(n,n),intent(in) :: mat_in
       real(kind=8),intent(in) :: ex
       real(kind=8),dimension(n,n),intent(out) :: mat_out
@@ -2547,8 +2547,15 @@ module sparsematrix
       ! Diagonalize the matrix
       mat_tmp = f_malloc((/n,n,2/),id='mat_tmp')
       eval = f_malloc(n,id='mat_tmp')
-      call f_memcpy(src=mat_in, dest=mat_tmp)
-      call dsyev_parallel(iproc, nproc, blocksize, mpi_comm_world, 'v', 'l', n, mat_tmp, n, eval, info)
+      ! f_memcpy can cause segfault for large matrices (I assume integer overflows)
+      !call f_memcpy(src=mat_in, dest=mat_tmp)
+      do i=1,n
+          do j=1,n
+              mat_tmp(j,i,1) = mat_in(j,i)
+          end do
+      end do
+
+      call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
       if (info /= 0) then
           call f_err_throw('wrong infocode, value ='//trim(yaml_toa(info)))
       end if
@@ -2768,11 +2775,12 @@ module sparsematrix
 
 
     !> Get the minimal and maximal eigenvalue of a matrix
-    subroutine get_minmax_eigenvalues(iproc, ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
+    subroutine get_minmax_eigenvalues(iproc, nproc, comm, scalapack_blocksize, &
+               ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
       implicit none
 
       ! Calling arguments
-      integer, intent(in) :: iproc
+      integer, intent(in) :: iproc, nproc, comm, scalapack_blocksize
       type(sparse_matrix), intent(in) :: ovrlp_smat
       type(matrices), intent(in) :: ovrlp_mat
       real(mp),dimension(ovrlp_smat%nspin),intent(out) :: eval_min, eval_max
