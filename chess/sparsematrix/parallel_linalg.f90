@@ -207,7 +207,13 @@ module parallel_linalg
       call f_timing(TCAT_SMAT_HL_DSYEV,'ON')
       
       blocksize_if: if (blocksize<0) then
-          lwork = 100*n
+          ! Worksize query
+          lwork = -1
+          work = f_malloc(1,id='work')
+          call dsyev(jobz, uplo, n, a, lda, w, work, lwork, info)
+          lwork = work(1)
+          call f_free(work)
+
           work = f_malloc(lwork,id='work')
           call dsyev(jobz, uplo, n, a, lda, w, work, lwork, info)
           call f_free(work)
