@@ -90,7 +90,7 @@ module parallel_linalg
           end do
           nproccol=nproc_scalapack/nprocrow
           !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-          if (iproc==0) call write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+          if (iproc==0) call write_processor_setup('pdgemm', nproc_scalapack, nprocrow, nproccol)
           
           
           ! Initialize blacs context,
@@ -247,7 +247,7 @@ module parallel_linalg
           end do
           nproccol=nproc_scalapack/nprocrow
           !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-          if (iproc==0) call write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+          if (iproc==0) call write_processor_setup('pdsyevx', nproc_scalapack, nprocrow, nproccol)
     
           
           ! Initialize blacs context
@@ -418,7 +418,7 @@ module parallel_linalg
       end do
       nproccol=nproc_scalapack/nprocrow
       !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-      if (iproc==0) call write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+      if (iproc==0) call write_processor_setup('pdsygvx', nproc_scalapack, nprocrow, nproccol)
       
       
       ! Initialize blacs context
@@ -587,7 +587,7 @@ module parallel_linalg
       end do
       nproccol=nproc_scalapack/nprocrow
       !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-      if (iproc==0) call write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+      if (iproc==0) call write_processor_setup('pdgesv', nproc_scalapack, nprocrow, nproccol)
     
       
       ! Initialize blacs context
@@ -719,7 +719,7 @@ module parallel_linalg
       end do
       nproccol=nproc_scalapack/nprocrow
       !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-      if (iproc==0) call write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+      if (iproc==0) call write_processor_setup('pdpotrf', nproc_scalapack, nprocrow, nproccol)
       
       
       ! Initialize blacs context,
@@ -835,7 +835,7 @@ module parallel_linalg
       end do
       nproccol=nproc_scalapack/nprocrow
       !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-      if (iproc==0) call write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+      if (iproc==0) call write_processor_setup('pdpotri', nproc_scalapack, nprocrow, nproccol)
       
       
       ! Initialize blacs context,
@@ -906,10 +906,11 @@ module parallel_linalg
     end subroutine dpotri_parallel
 
 
-    subroutine write_processor_setup(nproc_scalapack, nprocrow, nproccol)
+    subroutine write_processor_setup(routine_name, nproc_scalapack, nprocrow, nproccol)
       implicit none
+      character(len=*),intent(in) :: routine_name
       integer,intent(in) :: nproc_scalapack, nprocrow, nproccol
-      call yaml_mapping_open('ScaLAPACK setup for pdsyevx')
+      call yaml_mapping_open('ScaLAPACK setup for '//trim(routine_name))
       call yaml_map('Number of processes',nproc_scalapack)
       call yaml_map('Processor grid dimension',(/nprocrow,nproccol/))
       call yaml_mapping_close()

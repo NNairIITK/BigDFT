@@ -57,11 +57,14 @@ program driver_random
   type(yaml_cl_parse) :: parser !< command line parser
   external :: gather_timings
   !$ integer :: omp_get_max_threads
-  integer,parameter :: nthreshold = 5 !< number of checks with threshold
-  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-4_mp, &
+  integer,parameter :: nthreshold = 8 !< number of checks with threshold
+  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-5_mp, &
                                                              1.e-6_mp, &
+                                                             1.e-7_mp, &
                                                              1.e-8_mp, &
+                                                             1.e-9_mp, &
                                                              1.e-10_mp,&
+                                                             1.e-11_mp,&
                                                              1.e-12_mp /) !< threshold for the relative errror
   integer,dimension(nthreshold) :: nrel_threshold
   real(mp),dimension(nthreshold) :: max_error_rel_threshold, mean_error_rel_threshold
