@@ -2790,9 +2790,18 @@ module sparsematrix
       if (present(quiet)) quiet_ = quiet
 
       tempmat = f_malloc((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-
       eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
-      lwork=100*ovrlp_smat%nfvctr
+
+      ! Workspace query
+      lwork=-1
+      work = f_malloc(1,id='work')
+      call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+      if (info/=0) then
+          call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
+      end if
+      lwork=work(1)
+      call f_free(work)
+
       work = f_malloc(lwork,id='work')
 
       do ispin=1,ovrlp_smat%nspin
@@ -2816,6 +2825,9 @@ module sparsematrix
           !!    end do
           !!end if
           call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
+          if (info/=0) then
+              call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
+          end if
           !if (iproc==0) write(*,*) 'eval',eval
           if (iproc==0 .and. .not.quiet_) then
               call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
