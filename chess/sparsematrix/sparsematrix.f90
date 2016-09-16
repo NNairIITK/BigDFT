@@ -2557,7 +2557,9 @@ module sparsematrix
 
       call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
       if (info /= 0) then
-          call f_err_throw('wrong infocode, value ='//trim(yaml_toa(info)))
+          if (iproc==0) then
+              call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
+          end if
       end if
 
       ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix
@@ -2837,7 +2839,9 @@ module sparsematrix
           call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
                ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, info)
           if (info/=0) then
-              call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
+              if (iproc==0) then
+                  call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
+              end if
           end if
           !if (iproc==0) write(*,*) 'eval',eval
           if (iproc==0 .and. .not.quiet_) then
