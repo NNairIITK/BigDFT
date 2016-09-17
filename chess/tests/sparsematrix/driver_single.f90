@@ -1,4 +1,25 @@
 !> @file
+!!   Test of the matrix power expansion
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
+!> @file
 !! Test of the sparsematrix library
 !! @author
 !!    Copyright (C) 2015-2016 BigDFT group
@@ -32,7 +53,7 @@ program driver_single
   integer :: ierr, nthread, blocksize, iproc, nproc, i
   real(mp) :: exp_power, max_error, mean_error, eval_min, eval_max
   real(mp) :: max_error_rel, mean_error_rel, tt, tt_rel
-  character(len=200) :: filename_in, filename_out
+  character(len=200) :: filename_in, filename_out, filename_out_matmul
   type(dictionary), pointer :: dict_timing_info
   !$ integer :: omp_get_max_threads
 
@@ -45,6 +66,8 @@ program driver_single
   call mpiinit()
   iproc=mpirank()
   nproc=mpisize()
+
+  call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
 
   ! Initialize the sparsematrix error handling and timing.
   call sparsematrix_init_errors()
@@ -78,11 +101,12 @@ program driver_single
   ! 3) exponent for the operation (mat**exponent)
   ! 4) the degree of the polynomial that shall be used
   if (iproc==0) then
-      read(*,*) filename_in, filename_out, exp_power
+      read(*,*) filename_in, filename_out, filename_out_matmul, exp_power
 
       call yaml_mapping_open('Input parameters')
       call yaml_map('File with input matrix',trim(filename_in))
       call yaml_map('File with output matrix descriptors',trim(filename_out))
+      call yaml_map('File with output matrix multiplication descriptors',trim(filename_out_matmul))
       call yaml_map('Exponent',exp_power)
       call yaml_mapping_close()
   end if
@@ -90,6 +114,7 @@ program driver_single
   ! Send the input parameters to all MPI tasks
   call mpibcast(filename_in, root=0, comm=mpi_comm_world)
   call mpibcast(filename_out, root=0, comm=mpi_comm_world)
+  call mpibcast(filename_out_matmul, root=0, comm=mpi_comm_world)
   call mpibcast(exp_power, root=0, comm=mpi_comm_world)
 
   ! Read the input matrix descriptors and the matrix itself, and create the correpsonding structures
@@ -97,7 +122,7 @@ program driver_single
       call yaml_comment('Input matrix',hfill='-')
       !call yaml_mapping_open('Input matrix structure')
   end if
-  call sparse_matrix_and_matrices_init_from_file_bigdft(filename_in, &
+  call sparse_matrix_and_matrices_init_from_file_bigdft(trim(filename_in), &
        iproc, nproc, mpi_comm_world, smat_in, mat_in)
   if (iproc==0) then
       call write_sparsematrix_info(smat_in, 'Input matrix')
@@ -110,8 +135,9 @@ program driver_single
       call yaml_comment('Output matrix',hfill='-')
       !call yaml_mapping_open('Output matrix structure')
   end if
-  call sparse_matrix_init_from_file_bigdft(filename_out, &
-       iproc, nproc, mpi_comm_world, smat_out)
+  call sparse_matrix_init_from_file_bigdft(trim(filename_out), &
+       iproc, nproc, mpi_comm_world, smat_out, &
+       init_matmul=.true., filename_mult=trim(filename_out_matmul))
   if (iproc==0) then
       call write_sparsematrix_info(smat_out, 'Input matrix')
       call yaml_mapping_close()
@@ -122,8 +148,9 @@ program driver_single
 
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smat_in, mat_in, eval_min, eval_max)
+  call get_minmax_eigenvalues(iproc, smat_in, mat_in, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
+      call yaml_comment('Eigenvalue informations',hfill='-')
       call yaml_mapping_open('Eigenvalue properties')
       call yaml_map('Minimal',eval_min)
       call yaml_map('Maximal',eval_max)
@@ -199,7 +226,7 @@ program driver_single
   max_error_rel = 0.0_mp
   mean_error_rel = 0.0_mp
   do i=1,smat_out%nvctr
-      tt = abs(mat_check_accur(1)%matrix_compr(i)-mat_check_accur(3)%matrix_compr(i))
+      tt = abs(mat_out(1)%matrix_compr(i)-mat_check_accur(3)%matrix_compr(i))
       tt_rel = tt/abs(mat_check_accur(3)%matrix_compr(i))
       mean_error = mean_error + tt
       max_error = max(max_error,tt)
@@ -244,9 +271,7 @@ program driver_single
   call mpifinalize()
 
   ! Finalize flib
-  ! SM: I have the impression that every task should call this routine, but if I do so
-  ! some things are printed nproc times instead of once.
-  if (iproc==0) call f_lib_finalize()
+  call f_lib_finalize()
 
 
   !!contains

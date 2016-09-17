@@ -1,11 +1,22 @@
 !> @file
-!! BigDFT package performing ab initio calculation based on wavelets
+!!   Routines used to find the Fermi level during FOE
 !! @author
-!!    Copyright (C) 2014-2014 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
 
 
 !> Determination of the Fermi level for the density matrix
@@ -364,7 +375,7 @@ module fermi_level
         case ("bisection_shift")
             val = f%bisection_shift
         case default
-            stop 'ERROR: wrong argument'
+            call f_err_throw("wrong argument for "//trim(fieldname))
         end select
     end function fermilevel_get_real
 
@@ -380,7 +391,7 @@ module fermi_level
         case ("bisection_bounds_ok(2)")
             val = f%bisection_bounds_ok(2)
         case default
-            stop 'ERROR: wrong argument'
+            call f_err_throw("wrong argument for "//trim(fieldname))
         end select
     end function fermilevel_get_logical
 

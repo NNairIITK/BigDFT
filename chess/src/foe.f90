@@ -1,3 +1,24 @@
+!> @file
+!!   File containing the main FOE routine
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module foe
   use sparsematrix_base
   implicit none
@@ -80,7 +101,7 @@ module foe
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=mp) :: degree_multiplicator, betax, ebsp_allspins
+      real(kind=mp) :: degree_multiplicator, ebsp_allspins
       real(kind=mp),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
@@ -117,7 +138,6 @@ module foe
       npl_min = foe_data_get_int(foe_obj,"npl_min")
       npl_max = foe_data_get_int(foe_obj,"npl_max")
       npl_stride = foe_data_get_int(foe_obj,"npl_stride")
-      betax = foe_data_get_real(foe_obj,"betax")
 
       evbounds_shrinked=.false.
 
@@ -200,6 +220,7 @@ module foe
           fscale_new = fscale_newx
           call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
+      ilshift = 0
       !!    isshift=(ispin-1)*smats%nvctrp_tg
       !!    imshift=(ispin-1)*smatm%nvctrp_tg
       !!    ilshift=(ispin-1)*smatl%nvctrp_tg
@@ -253,7 +274,7 @@ module foe
                   ! Use kernel_%matrix_compr as workarray to save memory
                   efarr(1) = foe_data_get_real(foe_obj,"ef",1)
                   fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",1)
-                  call get_bounds_and_polynomials(iproc, nproc, comm, 2, 1, NPL_MAX, NPL_STRIDE, betax, &
+                  call get_bounds_and_polynomials(iproc, nproc, comm, 2, 1, NPL_MAX, NPL_STRIDE, &
                        1, FUNCTION_ERRORFUNCTION, .false., 1.2_mp, 1.2_mp, foe_verbosity, &
                        smatm, smatl, ham_, foe_obj, npl_min, kernel_%matrix_compr(ilshift+1:), &
                        chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
@@ -705,7 +726,7 @@ module foe
 
       ! Local variables
       integer :: iev, i, ispin, ilshift, npl, npl_min, ind
-      real(mp) :: dq, q, scale_factor, shift_value, factor, betax
+      real(mp) :: dq, q, scale_factor, shift_value, factor
       real(mp),dimension(:),allocatable :: charges
       type(matrices) :: kernel
       real(mp),dimension(1),parameter :: EF = 0.0_mp
@@ -723,8 +744,6 @@ module foe
 
       kernel = matrices_null()
       kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
-
-      betax = foe_data_get_real(foe_obj,"betax")
 
       ! the occupation numbers...
       if (smatl%nspin==1) then
@@ -752,7 +771,7 @@ module foe
       ! Use kernel_%matrix_compr as workarray to save memory
       npl_min = 10
       ispin = 1 !hack
-      call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, NPL_MAX, NPL_STRIDE, betax, &
+      call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, NPL_MAX, NPL_STRIDE, &
            1, FUNCTION_ERRORFUNCTION, .false., 2.2_mp, 2.2_mp, 0, &
            smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr(ilshift+1:), &
            chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
