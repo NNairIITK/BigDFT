@@ -13,6 +13,14 @@ NVTX_DEP = nvtx_fake.o
 CUDA_SOURCES = cudall_fake.f90
 endif
 
+if USE_SIMGRID_SHARED_ALLOCS
+SIMGRID_SHARED_SOURCE = simgrid_shared.f90 #nvtx.f90
+SIMGRID_SHARED_DEP = smpi_shared.o
+else
+SIMGRID_SHARED_SOURCE = simgrid_shared_fake.f90
+SIMGRID_SHARED_DEP = smpi_shared_fake.o
+endif
+
 # Module files.
 if CAPITALIZE
 CUDA_MODS = NVTX.@MODULE_EXT@
@@ -49,7 +57,7 @@ libflib_a_SOURCES = utils.c utilsadd.c f_plugin.c \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
 	f_ternary.f90 f_bind.f90 f_objects.f90 fpython.f90 \
-	$(flush_files) $(getarg_files) $(CUDA_PROF) $(CUDA_SOURCES)
+	$(flush_files) $(getarg_files) $(CUDA_PROF) $(SIMGRID_SHARED_SOURCE) $(CUDA_SOURCES)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	deallocate-c-inc.f90 allocate-c-inc.f90 \
@@ -57,7 +65,8 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	malloc_templates-inc.f90 \
 	deallocate-multiple-inc.f90 deallocate-multiple-inc-ptr.f90 \
 	f_memcpy-inc.f90 f_memcpy-base-inc.f90 f_maxdiff-base-inc.f90 \
-	allocate-ptr-inc.f90 f_map-inc.f90
+	allocate-ptr-inc.f90 f_map-inc.f90 \
+	deallocate-simgrid-inc.f90 allocate-simgrid-inc.f90
 
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
@@ -162,15 +171,16 @@ dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 dictionaries_base.o: yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)
 $(NVTX_DEP): $(NOOMP_INCLUDES)
+$(SIMGRID_DEP): $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o f_utils.o f_enums.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
-f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
+f_malloc.o: dictionaries.o $(SIMGRID_DEP) $(F_MALLOC_INCLUDES)
 f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o yaml_parse.o yaml_strings.o
-f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) time.o f_utils.o f_input_file.o
+f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) $(SIMGRID_DEP) time.o f_utils.o f_input_file.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
 f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
