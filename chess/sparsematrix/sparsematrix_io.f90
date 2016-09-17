@@ -35,8 +35,8 @@ module sparsematrix_io
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       write(iunit,'(4(i0,1x))') nfvctr, nfvctr, nvctr, 0
-      write(iunit,'(100000(i0,1x))') (col_ptr(i),i=1,nfvctr),nvctr+1
-      write(iunit,'(100000(i0,1x))') (row_ind(i),i=1,nvctr)
+      write(iunit,'(10000(i0,1x))') (col_ptr(i),i=1,nfvctr),nvctr+1
+      write(iunit,'(10000(i0,1x))') (row_ind(i),i=1,nvctr)
       do i=1,nvctr
           write(iunit,'(es24.15)') mat_compr(i)
       end do

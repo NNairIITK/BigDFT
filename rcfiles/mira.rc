@@ -27,6 +27,7 @@ module_autogenargs.update({
     'futile': """'CFLAGS= -I"""+getcwd()+"""/install/include  -g -O3 ' 'CC=mpixlc' 'CXX=mpixlcxx' 'FC=mpixlf90' 'CPPFLAGS=-I.' """+fcflags()+' '+libs()+' '+linalg(),
     'libxc': simple_line(),
     'libABINIT': complete_line(),
+    'chess': complete_line(),
     'GaIn': simple_line(),
     'bigdft': complete_line(),
     'psolver': complete_line(),

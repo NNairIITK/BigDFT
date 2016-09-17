@@ -4245,7 +4245,7 @@ module sparsematrix_init
       implicit none
       ! Calling arguments
       integer,intent(in) :: nseg
-      integer,dimension(nseg),intent(out) :: nvctr_per_segment
+      integer,dimension(nseg),intent(in) :: nvctr_per_segment
       integer,dimension(nseg),intent(out) :: keyv
       ! Local variables
       integer :: jseg
