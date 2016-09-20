@@ -91,3 +91,7 @@
     stop 'FAKE DSYRK'
   END SUBROUTINE cublas_DSYRK
 
+subroutine poisson_cublas_daxpy()
+   implicit none
+   stop 'poisson_cublas_daxpy'
+ END SUBROUTINE poisson_cublas_daxpy

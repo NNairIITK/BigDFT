@@ -39,7 +39,7 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
   call init_foe(iproc, nproc, input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
        input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
-       input%fscale_lowerbound, input%fscale_upperbound)
+       input%fscale_lowerbound, input%fscale_upperbound, 1.d0)
 
   call f_release_routine()
 
@@ -349,8 +349,9 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
            norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
   use module_types
-  use module_interfaces, only: assignToLocreg2, orbitals_descriptors
+  use module_interfaces, only: orbitals_descriptors
   use public_enums
+  use locregs_init, only: assign_to_atoms_and_locregs
   implicit none
 
   ! Calling arguments
@@ -429,43 +430,53 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
            input%gen_nkpt, input%gen_kpt, input%gen_wkpt, lorbs,LINEAR_PARTITION_SIMPLE) !simple repartition
    end if
 
-  locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
+  !!locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
 
+  !!
+  !!! this loop does not take into account the additional TMBs required for spin polarized systems
+  !!ilr=0
+  !!do iat=1,astruct%nat
+  !!    ityp=astruct%iatype(iat)
+  !!    do iorb=1,input%lin%norbsPerType(ityp)
+  !!        ilr=ilr+1
+  !!        locregCenter(:,ilr)=rxyz(:,iat)
+  !!        ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
+  !!    end do
+  !!end do
 
-  ! this loop does not take into account the additional TMBs required for spin polarized systems
-  ilr=0
-  do iat=1,astruct%nat
-      ityp=astruct%iatype(iat)
-      do iorb=1,input%lin%norbsPerType(ityp)
-          ilr=ilr+1
-          locregCenter(:,ilr)=rxyz(:,iat)
-          ! DEBUGLR write(10,*) iorb,locregCenter(:,ilr)
-      end do
-  end do
+  !!! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+  !!do iorb=lorbs%norbu+1,lorbs%norb
+  !!    locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
+  !!end do
 
-  ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
-  do iorb=lorbs%norbu+1,lorbs%norb
-      locregCenter(:,iorb)=locregCenter(:,iorb-lorbs%norbu)
-  end do
+ 
+  !!norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
+  !!norbsPerLocreg=1 !should be norbsPerLocreg
+    
+  !!call f_free_ptr(lorbs%inWhichLocreg)
+  !!call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, nlr, &
+  !!     input%nspin, norbsPerLocreg, lorbs%spinsgn, locregCenter, lorbs%inwhichlocreg)
 
+  !!call f_free_ptr(lorbs%onwhichatom)
+  !!call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
+  !!     input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
 
-  norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
-  norbsPerLocreg=1 !should be norbsPerLocreg
+  !!if (iproc==0) write(*,*) 'OLD: iwl',lorbs%inwhichlocreg
+  !!if (iproc==0) write(*,*) 'OLD: owa',lorbs%onwhichatom
 
-  call f_free_ptr(lorbs%inWhichLocreg) !< Freed before allocation in the next routine
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, nlr, &
-       input%nspin, norbsPerLocreg, lorbs%spinsgn, locregCenter, lorbs%inwhichlocreg)
-
-  call f_free_ptr(lorbs%onwhichatom) !< Freed before allocation in the next routine
-  call assignToLocreg2(iproc, nproc, lorbs%norb, lorbs%norbu, lorbs%norb_par, astruct%nat, astruct%nat, &
-       input%nspin, norbsPerAtom, lorbs%spinsgn, rxyz, lorbs%onwhichatom)
+  call f_free_ptr(lorbs%inWhichLocreg)
+  call f_free_ptr(lorbs%onwhichatom)
+  call assign_to_atoms_and_locregs(iproc, nproc, lorbs%norb, astruct%nat, input%nspin, norbsPerAtom, rxyz, &
+       lorbs%onwhichatom, lorbs%inwhichlocreg)
+  !!if (iproc==0) write(*,*) 'NEW: iwl',lorbs%inwhichlocreg
+  !!if (iproc==0) write(*,*) 'NEW: owa',lorbs%onwhichatom
 
 
   lorbs%eval = f_malloc_ptr(lorbs%norb,id='lorbs%eval')
   lorbs%eval=-.5d0
 
-  call f_free(norbsPerLocreg)
-  call f_free(locregCenter)
+  !!call f_free(norbsPerLocreg)
+  !!call f_free(locregCenter)
   call f_free(norbsPerAtom)
 
   call f_release_routine()
@@ -550,13 +561,14 @@ end subroutine lzd_init_llr
 
 subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, locregCenter, glr_tmp, &
            useDerivativeBasisFunctions, nscatterarr, hx, hy, hz, astruct, input, &
-           orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
+           orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lice, lbcollcom_sr)
   use module_base
   use module_types
   use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
+  use foe_common, only: init_foe
   use locregs, only: locreg_null,copy_locreg_descriptors
   use locregs_init, only: initLocregs
   implicit none
@@ -578,11 +590,13 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
   type(foe_data), intent(inout),optional :: lfoe
   type(comms_linear), intent(inout) :: lbcollcom
   type(comms_linear), intent(inout),optional :: lbcollcom_sr
+  type(foe_data),intent(inout),optional :: lice
 
 
   ! Local variables
   integer :: iorb, ilr, npsidim, istat
   real(kind=8),dimension(:,:), allocatable :: locreg_centers
+  real(kind=8),dimension(:), allocatable :: charge_fake
   character(len=*), parameter :: subname='update_locreg'
 
   call timing(iproc,'updatelocreg1','ON')
@@ -642,8 +656,17 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       do ilr=1,lzd%nlr
           locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
       end do
-      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, lfoe)
       call f_free(locreg_centers)
+      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, lfoe)
+      ! Do the same for the object which handles the calculation of the inverse.
+      charge_fake = f_malloc0(input%nspin,id='charge_fake')
+      call init_foe(iproc, nproc, input%nspin, charge_fake, lice, 0.d0, &
+           input%evbounds_nsatur, input%evboundsshrink_nsatur, &
+           0.5d0, 1.5d0, input%lin%fscale, input%lin%ef_interpol_det, &
+           input%lin%ef_interpol_chargediff, &
+           input%fscale_lowerbound, input%fscale_upperbound, 1.d0)
+      call f_free(charge_fake)
+
   end if
 
   call init_comms_linear(iproc, nproc, input%imethod_overlap, npsidim_orbs, orbs, lzd, input%nspin, lbcollcom)
@@ -750,7 +773,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
-  use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
+  use sparsematrix_base, only: deallocate_sparse_matrix, deallocate_matrices, &
                                deallocate_sparse_matrix_metadata
   use foe_base, only: foe_data_deallocate
   implicit none
@@ -804,6 +827,7 @@ subroutine destroy_DFT_wavefunction(wfn)
   call deallocate_local_zone_descriptors(wfn%lzd)
   call deallocate_local_zone_descriptors(wfn%ham_descr%lzd)
   call foe_data_deallocate(wfn%foe_obj)
+  call foe_data_deallocate(wfn%ice_obj)
 
   call f_free_ptr(wfn%coeff)
 
@@ -916,7 +940,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   call update_locreg(iproc, nproc, tmb%lzd%nlr, locrad_tmp(:,1), locrad_tmp(:,2), locrad_tmp(:,3), locregCenter, tmb%lzd%glr, &
        .false., denspot%dpbox%nscatterarr, tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), &
        at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%ham_descr%lzd, tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%ham_descr%comgp, tmb%ham_descr%collcom)
+       tmb%ham_descr%comgp, tmb%ham_descr%collcom, lice=tmb%ice_obj)
 
   call allocate_auxiliary_basis_function(max(tmb%ham_descr%npsidim_comp,tmb%ham_descr%npsidim_orbs), subname, &
        tmb%ham_descr%psi, tmb%hpsi)
@@ -1139,10 +1163,11 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
-  use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
+  use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
+                               SPARSE_TASKGROUP, assignment(=), sparsematrix_malloc_ptr
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
-  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
-                               init_matrixindex_in_compressed_fortransposed
+  use sparsematrix_init, only: init_matrix_taskgroups
+  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locregs_init, only: small_to_large_locreg
@@ -1170,6 +1195,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   type(local_zone_descriptors) :: lzd_tmp
   character(len=*), parameter :: subname='adjust_locregs_and_confinement'
   integer,dimension(2) :: irow, icol, iirow, iicol
+  integer :: ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s
+  integer :: ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m
+  integer :: ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l
 
   call f_routine(id='adjust_locregs_and_confinement')
 
@@ -1206,6 +1234,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call deallocate_local_zone_descriptors(tmb%lzd)
 
      call foe_data_deallocate(tmb%foe_obj)
+     call foe_data_deallocate(tmb%ice_obj)
 
      npsidim_orbs_tmp = tmb%npsidim_orbs
      npsidim_comp_tmp = tmb%npsidim_comp
@@ -1250,9 +1279,12 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      !temporary,  moved from update_locreg
      tmb%orbs%eval=-0.5_gp
-     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locrad_kernel, locrad_mult, locregCenter, lzd_tmp%glr, .false., &
-          denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
-          tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, tmb%foe_obj, tmb%collcom_sr)
+     call update_locreg(iproc, nproc, lzd_tmp%nlr, locrad, locrad_kernel, &
+          locrad_mult, locregCenter, lzd_tmp%glr, .false., &
+          denspot%dpbox%nscatterarr, hx, hy, hz, at%astruct, &
+          input, KSwfn%orbs, tmb%orbs, tmb%lzd, &
+          tmb%npsidim_orbs, tmb%npsidim_comp, tmb%comgp, tmb%collcom, &
+          lfoe=tmb%foe_obj, lice=tmb%ice_obj, lbcollcom_sr=tmb%collcom_sr)
 
      call f_free(locregCenter)
      call f_free(locrad_kernel)
@@ -1310,15 +1342,19 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
 
      ! Update sparse matrices
+     ! Do not initialize the matrix multiplication to save memory. The multiplications
+     ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%ham_descr%lzd, at%astruct, &
-          input%store_index, imode=1, smat=tmb%linmat%m)
+          input%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%m)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
+     ! Do not initialize the matrix multiplication to save memory. The multiplications
+     ! are always done with the tmb%linmat%l type.
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=1, smat=tmb%linmat%s)
+          input%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%s)
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1326,7 +1362,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
-          input%store_index, imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
+          input%store_index, init_matmul=.true., imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
@@ -1340,40 +1376,61 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
      call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, &
+          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, &
+          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd,  tmb%linmat%l, irow, icol)
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, &
+          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
+          irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
-          tmb%linmat%s, tmb%linmat%smmd, tmb%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
-          tmb%linmat%m, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, input%enable_matrix_taskgroups, &
-          tmb%linmat%l, tmb%linmat%smmd, tmb%ham_descr%collcom, tmb%collcom_sr, iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+          input%enable_matrix_taskgroups, tmb%linmat%s, &
+          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
+          iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+          input%enable_matrix_taskgroups, tmb%linmat%m, &
+          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
+          iirow, iicol)
+     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, &
+          input%enable_matrix_taskgroups, tmb%linmat%l, &
+          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
+          iirow, iicol)
 
-     call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
-          matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
-     call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
-          matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
-     call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-          matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     !call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+     !     matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
+     tmb%linmat%ham_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, &
+                  iaction=SPARSE_TASKGROUP,id='tmb%linmat%ham_%matrix_compr')
+     !call allocate_matrices(tmb%linmat%s, allocate_full=.false., &
+     !     matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+     tmb%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
+          iaction=SPARSE_TASKGROUP,id='tmb%linmat%ovrlp_%matrix_compr')
+     !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+     !     matname='tmb%linmat%kernel_', mat=tmb%linmat%kernel_)
+     tmb%linmat%kernel_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+                    iaction=SPARSE_TASKGROUP,id='tmb%linmat%kernel_%matrix_compr')
      do i=1,size(tmb%linmat%ovrlppowers_)
-         call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
-              matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
+         !     matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
+         tmb%linmat%ovrlppowers_(i)%matrix_compr = &
+              sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
+
      end do
 
 

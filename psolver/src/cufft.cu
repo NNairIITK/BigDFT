@@ -45,8 +45,10 @@ static const char *_cublasGetErrorString(cublasStatus_t error)
             return "CUBLAS_STATUS_INTERNAL_ERROR";
         case CUBLAS_STATUS_NOT_SUPPORTED:
             return "CUBLAS_STATUS_NOT_SUPPORTED";
+#if CUDA_VERSION >= 6500
         case CUBLAS_STATUS_LICENSE_ERROR:
             return "CUBLAS_STATUS_LICENSE_ERROR";
+#endif
     }
     return "<unknown>";
 }
@@ -80,8 +82,8 @@ static const char *_cufftGetErrorString(cufftResult error)
 }
 
 
-cudaStream_t stream1=NULL;
-cublasHandle_t handle1=NULL;
+extern cudaStream_t stream1;
+extern cublasHandle_t handle1;
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -117,12 +119,6 @@ inline void __cublasAssert(cublasStatus_t code, const char *file, const int line
    }
 }
 
-// synchronize blocks
-extern "C" void synchronize_() {
- 
-  cudaStreamSynchronize(stream1);
-}
-
 
 // create stream for kernel
 extern "C" void FC_FUNC(cudacreatestream, CUDACREATESTREAM) (int* ierr) {
@@ -143,47 +139,8 @@ extern "C" void FC_FUNC(cudadestroycublashandle, CUDADESTROYCUBLASHANDLE) () {
 }
 
 
-// allocate device memory
-extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *ierr) {
-
-  *ierr = cudaMalloc((void**)d_data, sizeof(Real)*(*size));
-  //errors should be treated in the fortran part
-}
-
-// allocate device memory
-extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int* size,int *ierr) {
-
-  *ierr = cudaMemsetAsync((void*)*d_data, *value, sizeof(Real)*(*size),stream1);
-}
-
-extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
-  cudaFree(*d_data);
-}
-
 extern "C" void FC_FUNC(cufftdestroy, CUFFTDESTROY) (cufftHandle *plan) {
   cufftDestroy(*plan);
-}
-
-// set device memory
-extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data, Real **d_data){
-  cudaMemcpyAsync(*d_data, h_data, sizeof(Real)*(*size),
-         cudaMemcpyHostToDevice,stream1);
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-// copy data on the card
-extern "C" void FC_FUNC_(copy_gpu_data, COPY_GPU_DATA)(int *size, Real** dest_data, Real **send_data){
-  cudaMemcpyAsync(*dest_data, *send_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToDevice,stream1);
-  gpuErrchk( cudaPeekAtLastError() );
-}
-
-
-// read device memory
-extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
-  cudaMemcpyAsync(h_data, *d_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToHost,stream1);
-  gpuErrchk( cudaPeekAtLastError() );
 }
 
 // set device memory
@@ -296,16 +253,9 @@ if(*iproc==0){
     //   cufftGetSize1d(plan, NZ, Transform, (NX/2+1)*NY, &workSize);
     //   printf("cufftGetSize1d worksize 4 = %lu\n",workSize);
 
-
  gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
 
 }
-
-extern "C" void FC_FUNC_(cuda_get_mem_info, CUDA_GET_MEM_INFO)(size_t* freeSize, size_t* totalSize){
- gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
-}
-
-
 
 // transpose
 __global__ void transpose(Complex *idata, Complex *odata,
@@ -1628,11 +1578,3 @@ extern "C" void FC_FUNC_(gpu_accumulate_eexctx,GPU_ACCUMULATE_EEXCTX)(Real** eha
  // gpuErrchk( cudaPeekAtLastError() );
 }
 
-
-// set device memory
-extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy,int* offset_y){
-
-  cublasSetStream(handle1, stream1);
-  cublasErrchk(cublasDaxpy(handle1,*size,alpha,*d_x,*facx,*d_y+*offset_y,*facy));
-//  gpuErrchk( cudaPeekAtLastError() );
-}

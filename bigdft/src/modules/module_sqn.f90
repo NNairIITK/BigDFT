@@ -275,8 +275,9 @@ subroutine findbonds(label,iproc,verbosity,nat,rcov,pos,nbond,&
     enddo
     if(nbond==0)stop 'nbond==0'
     if(iproc==0.and.verbosity>=2)&
-        call yaml_scalar(trim(adjustl(label))//&
-        ' Found'//trim(yaml_toa(nbond))//' bonds.')
+        call yaml_map('Number of identified bonds',nbond)
+        !call yaml_scalar(trim(adjustl(label))//&
+        !' Found'//trim(yaml_toa(nbond))//' bonds.')
 end subroutine
 
 subroutine projectbond(nat,nbond,rat,fat,fstretch,iconnect,wold,&

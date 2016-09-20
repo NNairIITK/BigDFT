@@ -130,114 +130,6 @@ subroutine print_configure_options()
 end subroutine print_configure_options
 
 
-!> Write the energies for a given iteration
-subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
-  use module_base
-  use module_types
-  use yaml_output
-  implicit none
-  !Arguments
-  integer, intent(in) :: iter !< Iteration Id
-  type(energy_terms), intent(in) :: energs
-  real(gp), intent(in) :: gnrm,gnrm_zero
-  character(len=*), intent(in) :: comment
-  logical,intent(in),optional :: only_energies
-  type(f_enumerator), intent(in), optional :: scf_mode
-  !local variables
-  logical :: write_only_energies,yesen,noen
-
-  if (present(only_energies)) then
-      write_only_energies=only_energies
-  else
-      write_only_energies=.false.
-  end if
-  noen=.false.
-  if (present(scf_mode)) noen=scf_mode .hasattr. 'MIXING'
-
-  if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
-     if (verbose >0) call yaml_newline()
-     call write_iter()
-     if (verbose >0) call yaml_comment(trim(comment))
-  end if
-
-  yesen=verbose > 0
-  if (present(scf_mode)) yesen=yesen .and. .not. (scf_mode .hasattr. 'MIXING')
-
-  if (yesen) then
-     call yaml_newline()
-     call yaml_mapping_open('Energies',flow=.true.)
-  !call yaml_flow_map()
-  !call yaml_indent_map('Energies')
-     if (energs%ekin /= 0.0_gp)&
-          call yaml_map('Ekin',energs%ekin,fmt='(1pe18.11)')
-     if (energs%epot /= 0.0_gp)&
-          call yaml_map('Epot',energs%epot,fmt='(1pe18.11)')
-     if (energs%eproj /= 0.0_gp)&
-          call yaml_map('Enl',energs%eproj,fmt='(1pe18.11)')
-     if (energs%eh /= 0.0_gp)&
-          call yaml_map('EH',energs%eh,fmt='(1pe18.11)')
-     if (energs%exc /= 0.0_gp)&
-          call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
-     if (energs%evxc /= 0.0_gp)&
-          call yaml_map('EvXC',energs%evxc,fmt='(1pe18.11)')
-     if (energs%eexctX /= 0.0_gp)&
-          call yaml_map('EexctX',energs%eexctX,fmt='(1pe18.11)')
-     if (energs%evsic /= 0.0_gp)&
-          call yaml_map('EvSIC',energs%evsic,fmt='(1pe18.11)')
-     if (energs%epawdc /= 0.0_gp)&
-          call yaml_map('Epaw',energs%epawdc,fmt='(1pe18.11)')
-     if (len(trim(comment)) > 0) then
-        if (energs%eion /= 0.0_gp)&
-             call yaml_map('Eion',energs%eion,fmt='(1pe18.11)')
-        if (energs%edisp /= 0.0_gp)&
-             call yaml_map('Edisp',energs%edisp,fmt='(1pe18.11)')
-        if (energs%excrhoc /= 0.0_gp)&
-             call yaml_map('Exc(rhoc)',energs%excrhoc,fmt='(1pe18.11)')
-        if (energs%eTS /= 0.0_gp)&
-             call yaml_map('TS',energs%eTS,fmt='(1pe18.11)')
-
-     end if
-     call yaml_mapping_close()
-  end if
-
-  if (.not.write_only_energies) then
-     call yaml_newline()
-     if (len(trim(comment)) == 0) then
-        call write_iter()
-        if (verbose >0) call yaml_newline()
-     else if (verbose > 1 .and. present(scf_mode)) then
-        call yaml_map('SCF criterion',scf_mode)
-     end if
-  end if
-
-
-  contains
-
-    subroutine write_iter()
-      implicit none
-      if (iter > 0) call yaml_map('iter',iter,fmt='(i6)')
-      if (noen) then
-         call yaml_map('tr(H)',energs%trH,fmt='(1pe24.17)')
-      else
-         if (energs%eTS==0.0_gp) then
-            call yaml_map('EKS',energs%energy,fmt='(1pe24.17)')
-         else
-            call yaml_map('FKS',energs%energy,fmt='(1pe24.17)')
-         end if
-      end if
-      if (gnrm > 0.0_gp) call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
-      if (gnrm_zero > 0.0_gp) &
-           call yaml_map('gnrm0',gnrm_zero,fmt='(1pe8.1)')
-      if (noen) then
-         if (energs%trH_prev /=0.0_gp) &
-              call yaml_map('D',energs%trH-energs%trH_prev,fmt='(1pe9.2)')
-      else
-         if (energs%e_prev /=0.0_gp) &
-              call yaml_map('D',energs%energy-energs%e_prev,fmt='(1pe9.2)')
-      end if
-
-    end subroutine write_iter
-end subroutine write_energies
 
 
 !> Write the eigenvalues-related information
@@ -863,6 +755,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
   do while(atoms_iter_next(atit))
     igamma=nl%iagamma(:,atit%iat)
     if (all(igamma == 0)) cycle
+    call yaml_newline()
     call yaml_sequence(advance='no')
     call yaml_map('Symbol',trim(atit%name),advance='no')
     call yaml_comment('Atom '//trim(yaml_toa(atit%iat)))
@@ -871,6 +764,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
       if (igamma(l) == 0) cycle
       call yaml_mapping_open('Channel '//ishell_toa(l))
       do ispin=1,nspin
+         call yaml_newline()
         if (nspin==1) then
           call f_strcpy(src='Matrix',dest=msg)
         else if (ispin==1) then
@@ -879,7 +773,7 @@ subroutine write_atomic_density_matrix(nspin,astruct,nl)
           call f_strcpy(src='Spin down',dest=msg)
         end if
         call yaml_map(trim(msg),&
-            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,ispin,igamma(l)),fmt='(1pg15.5)')
+            nl%gamma_mmp(1,1:2*l+1,1:2*l+1,igamma(l),ispin),fmt='(1pg12.2)')
       end do
       call yaml_mapping_close()
     end do

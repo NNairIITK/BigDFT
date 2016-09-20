@@ -6,8 +6,10 @@ EXTRA_DIST = \
 	README
 
 SUBDIRS = \
-	  flib \
-	  fft
+	flib \
+	fft \
+	wrappers \
+	c-bindings
 
 #Installation of some python file (use $pythondir to access into).
 python_PYTHON = fldiff_yaml.py yaml_hl.py report.py fldiff.py
@@ -26,7 +28,7 @@ mpirun_message =
 endif
 
 fldiff_yaml.py: fldiff_yaml.py.in
-	@sed							\
+	@$(SED)							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\
@@ -35,7 +37,7 @@ fldiff_yaml.py: fldiff_yaml.py.in
 		< $< > $@
 
 report.py: report.py.in
-	@sed							\
+	@$(SED)							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\

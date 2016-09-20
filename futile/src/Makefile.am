@@ -1,8 +1,18 @@
 # To be installed:
 dynlibdir        = $(libdir)
 lib_LIBRARIES    = libfutile-1.a
+noinst_LIBRARIES = $(pylib)
 dynlib_DATA      = $(futile_dynlib)
 noinst_DATA      = $(futile_linklib)
+module_DATA      = $(modules)
+pyexec_DATA      = $(pymodule)
+
+if HAVE_PYTHON
+if BUILD_DYNAMIC_LIBS
+pymodule = futile.so
+pylib = libpyimp.a
+endif
+endif
 
 # Static or dynamic library
 futile_dynamic_library = libfutile-1.so.@FUTILE_MINOR_VERSION@.0.@FUTILE_MICRO_VERSION@
@@ -19,9 +29,29 @@ endif
 
 libfutile_1_a_SOURCES = f_lib_highlev.f90
 
-AM_FCFLAGS = -I$(top_builddir)/flib @MPI_INCLUDE@
+libpyimp_a_SOURCES = pyobjs.c
 
-tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/wrappers/libwrappers.a
+f_lib_highlev.o: f_lib_highlev.f90 configure.inc
+
+if CAPITALIZE
+modules = F_LIB_PACKAGE.@MODULE_EXT@ FUTILE.@MODULE_EXT@
+else
+modules = f_lib_package.@MODULE_EXT@ futile.@MODULE_EXT@
+endif
+
+AM_FCFLAGS = -I. -I$(top_builddir)/flib @MPI_INCLUDE@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings @GLIB_CFLAGS@ @PYTHON_INCLUDES@ -D'PYTHON_EXECDIR="$(pyexecdir)"'
+
+AM_LDFLAGS = -L$(top_builddir)/src
+if BUILD_DYNAMIC_LIBS
+flib_libraries = -lfutile-1
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src
+else
+flib_libraries = libfutile-1.a
+LIBS += @LIB_YAML_LIBS@ @GLIB_LIBS@ @PYTHON_LIBS@
+endif
+
+tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a
 	test -e "tmp-libfutile" || $(INSTALL) -d -m 755 tmp-libfutile
 	cd tmp-libfutile ; \
 	rm -f *; \
@@ -43,10 +73,34 @@ $(futile_library_soname): $(futile_dynamic_library)
 	ln -fs $^ $@
 	ln -fs $@ libfutile-1.so
 
-install-data-hook:
+futile.so: $(libpyimp_a_OBJECTS) libfutile-1.a $(futile_library_soname)
+	$(CC) $(CFLAGS) $(CPPFLAGS) -shared $(LDFLAGS) $(AM_LDFLAGS) -Wl,-soname=$@ -o $@ $(libpyimp_a_OBJECTS) $(flib_libraries) $(LIBS) @PYTHON_LIBS@
+	@chmod a+x $@
+
+install-data-hook: 
 	if test -n "$(futile_dynlib)" ; then \
 	  cd $(DESTDIR)$(dynlibdir) ; \
 	  chmod a+x $(futile_dynamic_library) ; \
 	  ln -fs $(futile_dynamic_library) $(futile_library_soname) ; \
 	  ln -fs $(futile_library_soname) libfutile-1.so ; \
 	fi
+	if test -n "$(pymodule)" ; then \
+	  cd $(DESTDIR)$(pyexecdir) ; \
+	  chmod a+x $(pymodule) ; \
+	fi
+
+CLEANFILES = libfutile-1.so* *.@MODULE_EXT@
+clean-local:
+	rm -rf tmp-libfutile
+
+$(modules): $(libfutile_1_a_OBJECTS)
+
+# Copy modules in a common include directory.
+all: all-am insmod
+install: install-am insmod
+check: check-am insmod
+insmod: $(modules)
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
+	for mod in "$(modules)" ; do \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
+	done

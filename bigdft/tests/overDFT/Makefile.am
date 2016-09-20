@@ -139,6 +139,7 @@ IO-wf_ETSF.cube:
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
+	  BigDFT2Wannier.b2w*) prec="2.1e-6" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(pythondir)/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

@@ -167,8 +167,8 @@
          astruct%cell_dim(2)=alat2d0
          astruct%cell_dim(3)=alat3d0
       else
-         call f_err_throw('Length units in input file unrecognized.' // &
-              'Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+         call f_err_throw('Length units in input file unrecognized (found "'//astruct%units// &
+              '"). Recognized units are angstroem or atomic = bohr',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
          return
          !write(*,*) 'length units in input file unrecognized'
          !write(*,*) 'recognized units are angstroem or atomic = bohr'
@@ -1348,10 +1348,12 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
           & advance = "NO", unit = iunit)
      call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     if (associated(astruct%attributes(iat)%d)) then
-        call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
-        call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
-        call yaml_mapping_close(unit = iunit)
+     if (associated(astruct%attributes)) then
+        if (associated(astruct%attributes(iat)%d)) then
+           call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+           call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
+           call yaml_mapping_close(unit = iunit)
+        end if
      end if
      call yaml_newline(unit = iunit)
   enddo

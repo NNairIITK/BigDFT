@@ -32,6 +32,8 @@
    calc_quadrupole: Yes
    charge_multipoles: 11
    support_function_multipoles: yes
+   calculate_FOE_eigenvalues: [350,370]
+   precision_FOE_eigenvalues: 2.e-2
  lin_basis:
    nit: 1
    idsx: 8

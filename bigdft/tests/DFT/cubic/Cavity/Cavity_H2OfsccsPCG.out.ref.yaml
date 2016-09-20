@@ -172,9 +172,6 @@
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
-   nsigma                              : 1 #      Number of iterations (for each angular momentum l) to get an optimal sigma for the 
-    #                                              Gaussian used for the radial part of the 
-    #                                              function based on the multipoles.
  psppar.O:
    Pseudopotential type                : HGH-K + NLCC
    Atomic number                       : 8
@@ -681,12 +678,19 @@ Iteration quality: { #_________________________________________________________ 
    - Iteration quality: { #_____________________________________________________ Iteration5
  iter:  5, res:  9.31283149223209243E-06, ratio:  2.37314458293203244E-04, 
          alpha:  1.47847922958301570E-01, beta:  7.98774323677721811E-05}
+ Multipole analysis origin             :  [  1.16E+01,  1.244311E+01,  1.300000E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [  3.6829E-03, -1.1985E+00,  2.8208E-03 ]
-   norm(P)                             :  1.198530E+00
+   P vector                            :  [  3.6736E-03, -1.1985E+00,  2.8103E-03 ]
+   norm(P)                             :  1.198540E+00
  Electric Dipole Moment (Debye):
-   P vector                            :  [  9.3611E-03, -3.0463E+00,  7.1696E-03 ]
-   norm(P)                             :  3.046358E+00
+   P vector                            :  [  9.3374E-03, -3.0464E+00,  7.1431E-03 ]
+   norm(P)                             :  3.046383E+00
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [-3.9975E+00, -2.0967E-03,  5.5180E-04]
+   -  [-2.0967E-03, -8.1376E-01,  5.8957E-03]
+   -  [ 5.5180E-04,  5.8957E-03,  4.8112E+00]
+   trace                               : -4.31E-13
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:

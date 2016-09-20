@@ -22,7 +22,7 @@ module dynamic_memory_base
   private 
 
   logical :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -89,6 +89,7 @@ module dynamic_memory_base
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
      module procedure l1_all,l2_all,l3_all
+     module procedure ll1_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all,r4_all
      module procedure z2_all,z3_all
@@ -108,6 +109,7 @@ module dynamic_memory_base
      !     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
+     module procedure ll1_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free,r4_all_free
      module procedure z2_all_free,z3_all_free
@@ -587,7 +589,8 @@ contains
     ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
     !address of first element (not needed for deallocation)
     nullify(dict_add)
-    if (track_origins .and. iadd/=int(0,f_address)) then
+    if (track_origins .and. iadd/=int(0,f_address) .and. &
+         ilsize/=int(0,kind=8)) then
        !hopefully only address is necessary for the deallocation
 
        !search in the dictionaries the address
@@ -791,7 +794,9 @@ contains
   !> Opens a new instance of the dynamic memory handling
   subroutine f_malloc_initialize()
     implicit none
-    
+    !local variables
+    integer :: istat
+    character(len=1) :: val
     !increase the number of active instances
     ictrl=ictrl+1
     if (f_err_raise(ictrl > max_ctrl,&
@@ -802,7 +807,12 @@ contains
     mems(ictrl)=mem_ctrl_init()
 
     !in the first instance initialize the global memory info
-    if (ictrl==1) call memstate_init(memstate)
+    if (ictrl==1) then
+       call memstate_init(memstate)
+       !check if we are in the bigdebug mode or not
+       call get_environment_variable('FUTILE_DEBUG_MODE', val,status=istat)
+       bigdebug = val == '1' .and. istat == 0
+    end if
 
     !initialize the memprofiling counters
     call set(mems(ictrl)%dict_global//'Timestamp of Profile initialization',&
@@ -1122,25 +1132,45 @@ contains
   end subroutine f_malloc_dump_status
 
   !>points toward a region of a given pointer
-  function f_subptr_d0(ptr,region,lbound) result(win)
+  function f_subptr_d0(ptr,region,from,size,lbound) result(win)
     implicit none
-    real(f_double), dimension(:), pointer :: ptr,win
-    type(array_bounds), intent(in) :: region
+    real(f_double), dimension(:), target :: ptr
+    real(f_double), dimension(:), pointer :: win
+    type(array_bounds), intent(in), optional :: region
+    integer, intent(in), optional :: from
+    integer, intent(in), optional :: size
     integer, intent(in), optional :: lbound !<in the case of different bounds for the pointer
     !local variables
-    integer(f_kind) :: lb,ub
+    integer(f_kind) :: lb,ub,is,ie
     
+    if (present(region) .eqv. present(size)) then
+       call f_err_throw('Error in f_subptr, size of the window unknown or redundant',&
+            ERR_INVALID_MALLOC)
+       return
+    end if
+
     nullify(win)
+    if (present(region)) then
+       is=region%nlow
+       ie=region%nhigh
+    else if (present(from)) then
+       is=from
+       ie=from+size-1
+    else
+       is=1
+       ie=size
+    end if
+
     lb=1
     if (present(lbound)) lb=lbound
-    ub=region%nhigh-region%nlow+lb
+    ub=ie-is+lb
     if (ub < lb) return
 
     !perform the association on the window
     if (lb==1) then
-       win => ptr(region%nlow:region%nhigh)
+       win => ptr(is:ie)
     else
-       call f_map_ptr(lb,ub,ptr(lb:ub),win)
+       call f_map_ptr(lb,ub,ptr(is:ie),win)
     end if
 
     !then perform the check for the subpointer region
@@ -1149,8 +1179,8 @@ contains
          trim(yaml_toa(get_lbnd(win)))//' vs. '//trim(yaml_toa(lb)),&
          ERR_MALLOC_INTERNAL)
 
-    if (f_loc(win(lb)) /= f_loc(ptr(region%nlow)) .or. &
-         f_loc(win(ub)) /= f_loc(ptr(region%nhigh))) call f_err_throw(&
+    if (f_loc(win(lb)) /= f_loc(ptr(is)) .or. &
+         f_loc(win(ub)) /= f_loc(ptr(ie))) call f_err_throw(&
          'ERROR (f_subptr): addresses do not match, the allocating system has performed a copy',&
          ERR_MALLOC_INTERNAL)
 

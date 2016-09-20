@@ -46,7 +46,7 @@ MODULE NEB_routines
   use module_atoms, only: astruct_dump_to_file
   use dictionaries
   use wrapper_mpi
-  use module_base, only: bigdft_mpi
+  use module_base, only: bigdft_mpi,f_system
 
   IMPLICIT NONE
 
@@ -63,7 +63,7 @@ MODULE NEB_routines
   character (len=max_field_length) :: scratch_dir, job_name, posinp1
   character (len=80) :: restart_file, velocity_file
 
-  type(mpi_environment), private :: neb_mpi
+  type(mpi_environment), private, save :: neb_mpi
 
   CONTAINS
 
@@ -482,7 +482,7 @@ MODULE NEB_routines
 
       IF ( flag ) THEN
 
-         CALL SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
+         CALL f_SYSTEM( "./NEB_driver.sh all " // trim(job_name) // &
               & " " // trim(scratch_dir) // " " // trim(posinp1) // "1")
 
         N_in  = 1
@@ -490,7 +490,7 @@ MODULE NEB_routines
 
       ELSE
 
-         CALL SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
+         CALL f_SYSTEM( "./NEB_driver.sh free_only " // trim(job_name) // &
               & " " // trim(scratch_dir) // " " // trim(posinp1) // "1")
 
         N_in  = 2

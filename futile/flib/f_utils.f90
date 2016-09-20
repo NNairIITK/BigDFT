@@ -69,7 +69,7 @@ module f_utils
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
      module procedure zero_string
-     module procedure zero_li,zero_i,zero_r,zero_d,zero_l
+     module procedure zero_li,zero_i,zero_r,zero_d,zero_l,zero_ll
      !module procedure put_to_zero_simple, put_to_zero_long
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
@@ -108,7 +108,7 @@ module f_utils
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
-  public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime
+  public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime,f_system
   public :: assignment(=),f_none
 
 contains
@@ -263,19 +263,15 @@ contains
     if (sht) then
        !find the first unit which is not zero
        if (y > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
-               trim(adjustl(yaml_toa(d)))+'d')
+          call f_strcpy(dest=time,src=(yaml_toa(y)+'y')+(yaml_toa(d)+'d'))
        else if (d > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(d)))+'d'//&
-               trim(adjustl(yaml_toa(h,fmt)))+'h')
+          call f_strcpy(dest=time,src=(yaml_toa(d)+'d')+(yaml_toa(h,fmt)+'h'))
        else if (h > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(h,fmt)))+'h'//&
-               trim(adjustl(yaml_toa(m,fmt)))+'m')
+          call f_strcpy(dest=time,src=(yaml_toa(h,fmt)+'h')+(yaml_toa(m,fmt)+'m'))
        else if (m > zr) then
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(m,fmt)))+'m'//&
-               trim(adjustl(yaml_toa(s,fmt)))+'s')
+          call f_strcpy(dest=time,src=(yaml_toa(m,fmt)+'m')+(yaml_toa(s,fmt)+'s'))
        else
-          call f_strcpy(dest=time,src=trim(adjustl(yaml_toa(real(s,f_double),'(f5.1)')))+'s')
+          call f_strcpy(dest=time,src=yaml_toa(real(s,f_double),'(f5.1)')+'s')
        end if
     else
        !test with new API to deal with strings
@@ -285,8 +281,7 @@ contains
 !!$
        !split the treatment in the case of multiple days
        if (d >0.0_f_double .or. y > 0.0_f_double ) call f_strcpy(&
-            dest=time,src=trim(adjustl(yaml_toa(y)))+'y'//&
-            trim(adjustl(yaml_toa(d)))+'d'+time)
+            dest=time,src=(yaml_toa(y)+'y')+(yaml_toa(d)+'d')+time)
     end if
 
   end function f_humantime
@@ -306,36 +301,12 @@ contains
     f_tty=itis==1
   end function f_tty
 
-  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
-  subroutine f_pause(sec,verbose)
+  !>call posix sleep function for sec seconds
+  subroutine f_pause(sec)
     implicit none
     integer, intent(in) :: sec !< seconds to be waited
-    logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
-    !local variables
-    logical :: verb,run
-    integer(f_long) :: t0,t1
-    real(f_double) :: tel
-    integer :: count
-
-    verb=.false.
-    if (present(verbose)) verb=verbose
-
     if (sec <=0) return
-    t0=f_time()
-    t1=t0
-    !this loop has to be modified to avoid the compiler to perform too agressive optimisations
-    count=0
-    run=.true.
-    do while(run)
-       count=count+1
-       t1=f_time()
-       tel=real(t1-t0,f_double)*1.e-9_f_double
-       run= tel < real(sec,f_double)
-    end do
-    !this output is needed to avoid the compiler to perform too agressive optimizations
-    !therefore having a infinie loop
-    if (verb) print *,'Paused for '//trim(yaml_toa(tel))//' seconds, counting:'//&
-         trim(yaml_toa(count))
+    call csleep(sec)
   end subroutine f_pause
 
   !> gives the maximum record length allowed for a given unit
@@ -511,6 +482,21 @@ contains
     f_getpid=pid
 
   end function f_getpid
+
+  !> run the system command "command" and raise an
+  !! error if needed
+  subroutine f_system(command)
+    implicit none
+    character(len=*), intent(in) :: command
+    !local variables
+    integer :: ierr
+
+    call callsystem(trim(command),len_trim(command),ierr)
+
+    if (ierr ==-1) call f_err_throw('Error in system call "'//&
+         trim(command),err_id=INPUT_OUTPUT_ERROR)
+
+  end subroutine f_system
 
   !> rewind a unit
   subroutine f_rewind(unit)
@@ -1037,6 +1023,22 @@ contains
     logical, intent(out) :: val
     val=.false.
   end subroutine zero_l
+
+  pure subroutine zero_ll(val)
+    implicit none
+    logical(f_byte), intent(out) :: val
+    val=f_F
+  end subroutine zero_ll
+
+!!$  subroutine put_to_zero_byte_1(da)
+!!$    implicit none
+!!$    logical(f_byte), dimension(:), intent(out) :: da
+!!$    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+!!$    !call razero(size(da),da(lbound(da,1)))
+!!$    call setzero(int(size(da),f_long)*kind(da),da)
+!!$    call f_timer_resume()
+!!$  end subroutine put_to_zero_byte_1
+
 
   subroutine put_to_zero_simple(n,da)
     implicit none

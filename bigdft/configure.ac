@@ -111,10 +111,12 @@ dnl Libraries
 AX_MPI()
 AX_LINALG()
 AX_FLIB()
+AX_CHESS()
 AX_PSOLVER()
-if test "$ax_have_psolver" != "yes" ; then
+if test "$ax_have_PSOLVER" != "yes" ; then
   AC_MSG_ERROR(["Cannot find PSolver library."])
 fi
+
 
 dnl Look for GLib and friends for bindings.
 AX_FC_POINTER()
@@ -185,8 +187,6 @@ AM_CONDITIONAL(BUILD_BINARIES, test "$ac_build_bin_cluster" = "yes")
 AC_MSG_CHECKING([for BigDFT binaries build])
 AC_MSG_RESULT([$ac_build_bin_cluster])
 
-dnl ---------------------------------------
-AM_CONDITIONAL(USE_BLACS, test x"$ax_have_scalapack" = x"yes")
 dnl Error on the linking part only if required.
 if test "$ac_build_bin_cluster" = "yes" -a $ax_have_linalg != "yes" ; then
   AC_MSG_ERROR(["No blas/lapack implementation."])
@@ -286,13 +286,17 @@ else
 fi
 
 dnl Agregate all the optional libs.
-LIB_BIGDFT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
-LIB_BIGDFT_PKG=
+LIB_BIGDFT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LIB_ARCHIVE_LIBS $LIB_CHESS_DYNAMIC_LIBS $LIB_PSOLVER_DYNAMIC_LIBS $LIB_FUTILE_LIBS"
+if test $ax_FUTILE_static != "yes" ; then
+   LIB_BIGDFT_DEPS="$LIB_BIGDFT_DEPS $LIBCUDA_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+fi
+dnl LIB_BIGDFT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_GAIN_LIBS $CP2K_LINKLINE $PEXSI_LINKLINE $LIB_AMBERTOOLS_LIBS $LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+LIB_BIGDFT_PKG=""
 if test $ax_build_dynamic != "yes" ; then
   LIB_BIGDFT_PKG="$LIB_BIGDFT_DEPS"
 fi
 AC_SUBST(LIB_BIGDFT_PKG)
-LIB_BIGDFT_DEPS="$LIB_BIGDFT_DEPS $LIB_PSOLVER_LIBS $LIB_FUTILE_LIBS"
+dnl LIB_BIGDFT_DEPS="$LIB_BIGDFT_DEPS $LIB_PSOLVER_LIBS $LIB_FUTILE_LIBS"
 AC_SUBST(LIB_BIGDFT_DEPS)
 
 dnl Test for the documentation.
@@ -326,7 +330,6 @@ src/modules/Makefile
 src/modules/configure.c
 src/orbitals/Makefile
 src/orbitals/configure.inc
-src/sparsematrix/Makefile
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
@@ -350,9 +353,7 @@ tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
-tests/libs/sparsematrix/Makefile
 tests/benchs/Makefile
-tests/benchs/sparsealgebra/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile

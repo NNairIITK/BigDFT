@@ -110,8 +110,9 @@ program wvl
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)
 
   !grid spacings and box of the density
-  call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,inputs%PSolver_groupsize, &
-       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin,inputs%matacc%PSolver_igpu)
+  call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,&
+       !inputs%PSolver_groupsize, &
+       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin)!,inputs%matacc%PSolver_igpu)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))

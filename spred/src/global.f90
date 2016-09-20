@@ -15,6 +15,7 @@ program MINHOP
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
   use SPREDtypes
+  use random, only: builtin_rand
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   type(SPRED_inputs) :: spredinputs
@@ -69,7 +70,7 @@ program MINHOP
   integer:: nposaccmax
   logical:: disable_hatrans
   integer, save :: idum=0
-  real(kind=4) :: builtin_rand, rtmp
+  real(kind=4) :: rtmp
 
   call f_lib_initialize()
 
@@ -1367,6 +1368,7 @@ END SUBROUTINE velnorm
 subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
+  use random, only: builtin_rand
   implicit none
   integer, intent(in) :: nat
   integer, intent(inout) :: idum
@@ -1375,7 +1377,7 @@ subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   character(len=1) :: geocode
   !local variables
   integer :: i
-  real(kind=4) :: tt,builtin_rand
+  real(kind=4) :: tt
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator

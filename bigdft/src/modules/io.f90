@@ -14,8 +14,8 @@ module io
   public :: write_dense_matrix
   public :: write_linear_matrices
   public :: writeLinearCoefficients
-  public :: write_linear_coefficients
-  public :: read_linear_coefficients
+  !!public :: write_linear_coefficients
+  !!public :: read_linear_coefficients
   public :: write_partial_charges
 
   public :: io_error, io_warning, io_open
@@ -26,10 +26,36 @@ module io
   public :: dist_and_shift
   public :: find_neighbours
   public :: plot_density
+  public :: plot_locreg_grids
+  public :: write_energies
 
+  public :: io_files_exists
 
   contains
 
+    function io_files_exists(directory,radical,orbs) result(yes)
+      use module_interfaces, only: verify_file_presence
+      use yaml_strings
+      use module_base, only: bigdft_mpi
+      use f_utils
+      use module_types, only: orbitals_data
+      implicit none
+      character(len=*), intent(in) :: directory,radical
+      type(orbitals_data), intent(in) :: orbs
+      logical :: yes
+      !local variables
+      logical :: onefile
+      integer :: input_wf_format,ipos
+
+      ! Test ETSF file.
+      call f_file_exists(file=directory+radical+".etsf",exists=onefile)
+      if (onefile) then
+         input_wf_format = WF_FORMAT_ETSF
+      else
+         call verify_file_presence(directory+radical,orbs,input_wf_format,bigdft_mpi%nproc)
+      end if
+      yes=input_wf_format /= WF_FORMAT_NONE
+    end function io_files_exists
 
     !> Write all my wavefunctions in files by calling writeonewave
     subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,nfvctr,coeff)
@@ -389,8 +415,8 @@ module io
             ! should eventually extract this from sparse?
             linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%l,iaction=DENSE_FULL,id='linmat%kernel_%matrix')
     
-            call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
-                 linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
+            call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+                 linmat%l, linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
 
             !might be better to move this outside of the routine?
             !if (calc_sks) then
@@ -1775,8 +1801,8 @@ module io
 
 
       mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
-      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, smat, &
-           mat%matrix_compr, mat%matrix)
+      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+           smat, mat%matrix_compr, mat%matrix)
 
       if (bigdft_mpi%iproc==0) then
 
@@ -1965,7 +1991,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices
-      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix, matrix_matrix_mult_wrapper
       use sparsematrix_io, only: write_sparse_matrix, write_sparse_matrix_metadata
       use matrix_operations, only: overlapPowerGeneral
       implicit none
@@ -2103,14 +2129,16 @@ module io
               sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
           ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
           tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, 'small_to_large', &
-               smatrix_compr_in=tmb%linmat%ham_%matrix_compr, lmatrix_compr_out=ham_large)
+          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           ! calculate S^-1/2
           power=-2
-          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, power, -1, &
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               norder_taylor, 1, power, -1, &
                imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
-               check_accur=.true., max_error=max_error, mean_error=mean_error)
+               check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error, &
+               ice_obj=tmb%ice_obj)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
           call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
@@ -2193,202 +2221,6 @@ module io
       if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
     
     END SUBROUTINE writeLinearCoefficients
-
-
-    !> Basically the same as writeLinearCoefficients, but with a slightly different format
-    subroutine write_linear_coefficients(iroot, filename, nat, rxyz, iatype, ntypes, nzatom, &
-               nelpsp, atomnames, nfvctr, ntmb, nspin, coeff, eval)
-      use module_base
-      use module_types
-      use yaml_output
-      implicit none
-      ! Calling arguments
-      character(len=*),intent(in) :: filename
-      !type(atoms_data),intent(in) :: at
-      integer,intent(in) :: iroot, nat, ntypes, nfvctr, ntmb, nspin
-      real(gp), dimension(3,nat), intent(in) :: rxyz
-      integer,dimension(nat),intent(in) :: iatype
-      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
-      character(len=20),dimension(ntypes),intent(in) :: atomnames
-      real(wp), dimension(nfvctr,ntmb), intent(in) :: coeff
-      real(wp), dimension(ntmb), intent(in) :: eval
-      ! Local variables
-      integer :: iunit, itype, iat, i, j
-      logical :: scaled
-
-      call f_routine(id='write_linear_coefficients')
-
-
-      if (bigdft_mpi%iproc==iroot) then
-
-          iunit = 99
-          call f_open_file(iunit, file=trim(filename), binary=.false.)
-    
-          ! Write the Header
-          !write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
-          write(iunit,'(i10,2i6,a)') nat, ntypes, nspin, &
-              '   # number of atoms, number of atom types, nspin'
-          !do itype=1,at%astruct%ntypes
-          do itype=1,ntypes
-              !write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
-              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
-                  '   # nz, nelpsp, name'
-          end do
-          !do iat=1,at%astruct%nat
-          do iat=1,nat
-              !write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
-              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
-          end do
-          write(iunit,'(2i12,a)') nfvctr, ntmb, '   # nfvctr, ntmb'
-          do i=1,ntmb
-              write(iunit,'(es24.16,a,i0)') eval(i), '   # eval no. ', i
-          enddo
-    
-          ! Now write the coefficients
-          do i=1,ntmb
-             ! First element always positive, for consistency when using for transfer integrals;
-             ! unless 1st element below some threshold, in which case first significant element.
-             scaled = .false.
-             do j=1,nfvctr
-                if (abs(coeff(j,i))>1.0d-3) then
-                   if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
-                   scaled = .true.
-                   exit
-                end if
-             end do
-             if (.not.scaled) then
-                 call yaml_warning('Consistency between the written coefficients not guaranteed')
-             end if
-    
-             do j = 1,nfvctr
-                 write(iunit,'(es24.16,2i9,a)') coeff(j,i), j, i, '   # coeff, j, i'
-             end do
-          end do  
-          if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
-
-          call f_close(iunit)
-
-      end if
-
-      call f_release_routine()
-    
-    end subroutine write_linear_coefficients
-
-
-    subroutine read_linear_coefficients(filename, nspin, nfvctr, ntmb, coeff, &
-               nat, ntypes, nzatom, nelpsp, iatype, atomnames, rxyz, eval)
-      use module_base
-      use module_types
-      use yaml_output
-      implicit none
-      ! Calling arguments
-      character(len=*),intent(in) :: filename
-      integer,intent(out) :: nspin, nfvctr, ntmb
-      real(kind=8),dimension(:,:),pointer,intent(inout) :: coeff
-      integer,intent(out),optional :: nat, ntypes
-      integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
-      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
-      real(kind=8),dimension(:),pointer,intent(inout),optional :: eval
-      ! Local variables
-      real(kind=8) :: dummy_double
-      character(len=20) :: dummy_char
-      integer :: iunit, itype, iat, i, j, dummy_int, ntypes_, nat_
-      logical :: scaled, read_rxyz, read_eval
-
-      call f_routine(id='read_linear_coefficients')
-
-      if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
-          present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
-          read_rxyz = .true.
-      else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
-          present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
-          call f_err_throw("not all optional arguments were given", &
-               err_name='BIGDFT_RUNTIME_ERROR')
-      else
-          read_rxyz = .false.
-      end if
-
-      if (present(eval)) then
-          read_eval = .true.
-      else
-          read_eval = .false.
-      end if
-
-      iunit = 99
-      call f_open_file(iunit, file=trim(filename), binary=.false.)
-    
-      ! Read the Header
-      if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin
-          nzatom = f_malloc_ptr(ntypes,id='nzatom')
-          nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
-
-          do itype=1,ntypes
-              read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
-          end do
-          rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
-          iatype = f_malloc_ptr(nat,id='iatype')
-          do iat=1,nat
-              read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
-          end do
-      else
-          read(iunit,*) nat_, ntypes_, nspin
-          do itype=1,ntypes_
-              read(iunit,*) dummy_int, dummy_int, dummy_char
-          end do
-          do iat=1,nat_
-              read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
-          end do
-      end if
-
-      read(iunit,*) nfvctr, ntmb
-
-      if (read_eval) then
-          eval = f_malloc_ptr(ntmb,id='eval')
-          do i=1,ntmb
-              read(iunit,*) eval(i)
-          end do
-      else
-          do i=1,ntmb
-              read(iunit,*) dummy_double
-          end do
-      end if
-    
-      ! Now read the coefficients
-      coeff = f_malloc_ptr((/nfvctr,ntmb/),id='coeff')
-
-      do i=1,ntmb
-
-         do j = 1,nfvctr
-             read(iunit,*) coeff(j,i)
-         end do
-
-         ! First element always positive, for consistency when using for transfer integrals;
-         ! unless 1st element below some threshold, in which case first significant element.
-         scaled = .false.
-         do j=1,nfvctr
-            if (abs(coeff(j,i))>1.0d-3) then
-               if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
-               scaled = .true.
-               exit
-            end if
-         end do
-         if (.not.scaled) then
-             call yaml_warning('Consistency between the written coefficients not guaranteed')
-         end if
-    
-      end do  
-
-      call f_close(iunit)
-
-
-      call f_release_routine()
-    
-    end subroutine read_linear_coefficients
-
-
 
 
 
@@ -2520,23 +2352,27 @@ module io
       !local variables
       integer :: ispin
       real(dp), dimension(:,:,:,:), allocatable :: pot_ion
+
+      call f_routine(id='plot_density')
     
       pot_ion = &
            f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3), nspin],id='pot_ion')
 
       call PS_gather(src=rho,dest=pot_ion,kernel=kernel,nsrc=nspin)
     
-      if (present(ixyz0)) then
-         if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
-              call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
-                   ' should be within the size of the box (1 to'+&
-                   yaml_toa(kernel%ndims)+')',&
-                   err_name='BIGDFT_RUNTIME_ERROR')
-          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
-      else
-          call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
-               rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+      if (iproc==0) then
+          if (present(ixyz0)) then
+             if (any(ixyz0 < 1) .or. any(ixyz0 > kernel%ndims)) &
+                  call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                       ' should be within the size of the box (1 to'+&
+                       yaml_toa(kernel%ndims)+')',&
+                       err_name='BIGDFT_RUNTIME_ERROR')
+              call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+                   rxyz,at%astruct%iatype,at%nzatom,at%nelpsp,ixyz0=ixyz0)
+          else
+              call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
+                   rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
+          end if
       end if
     
       call f_free(pot_ion)
@@ -2685,8 +2521,231 @@ module io
     !!$  !if (nproc > 1) then
     !!$     call f_free_ptr(pot_ion)
     !!$  !end if
+
+      call f_release_routine()
     
     END SUBROUTINE plot_density
+
+
+    subroutine plot_locreg_grids(iproc, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
+      use module_base
+      use module_types
+      use locreg_operations, only: lpsi_to_global2
+      implicit none
+      
+      ! Calling arguments
+      integer, intent(in) :: iproc, nspinor, nspin, orbitalNumber
+      type(locreg_descriptors), intent(in) :: llr, glr
+      type(atoms_data), intent(in) ::atoms
+      real(kind=8), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+      real(kind=8), intent(in) :: hx, hy, hz
+      
+      ! Local variables
+      integer :: iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ishift, iat, ldim, gdim, jjj, iunit
+      character(len=10) :: num
+      character(len=20) :: filename
+      real(kind=8), dimension(:), allocatable :: lphi, phi
+    
+      call f_routine(id='plot_locreg_grids')
+    
+      ldim=llr%wfd%nvctr_c+7*llr%wfd%nvctr_f
+      gdim=glr%wfd%nvctr_c+7*glr%wfd%nvctr_f
+      lphi = f_malloc(ldim,id='lphi')
+      phi = f_malloc0(gdim,id='phi')
+      lphi=1.d0
+      !!phi=0.d0
+      !call to_zero(gdim,phi(1))
+      !call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
+      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspinor, nspin, glr, llr, lphi, phi)
+      
+      write(num,'(i6.6)') orbitalNumber
+      filename='grid_'//trim(num)
+      
+      !open(unit=2000+iproc,file=trim(filename)//'.xyz',status='unknown')
+      iunit = 2000+iproc
+      call f_open_file(iunit, file=trim(filename)//'.xyz', binary=.false.)
+    
+      !write(2000+iproc,*) llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      write(2000+iproc,*) glr%wfd%nvctr_c+glr%wfd%nvctr_f+llr%wfd%nvctr_c+llr%wfd%nvctr_f+atoms%astruct%nat,' atomic'
+      if (atoms%astruct%geocode=='F') then
+         write(2000+iproc,*)'complete simulation grid with low and high resolution points'
+      else if (atoms%astruct%geocode =='S') then
+         write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'surface',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
+      else if (atoms%astruct%geocode =='P') then
+         write(2000+iproc,'(a,2x,3(1x,1pe24.17))')'periodic',atoms%astruct%cell_dim(1),atoms%astruct%cell_dim(2),&
+              atoms%astruct%cell_dim(3)
+      end if
+    
+      do iat=1,atoms%astruct%nat
+        write(2000+iproc,'(a6,2x,3(1x,e12.5),3x)') trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat))),&
+             rxyz(1,iat),rxyz(2,iat),rxyz(3,iat)
+      end do
+    
+      
+      jjj=0
+      do iseg=1,glr%wfd%nseg_c
+         jj=glr%wfd%keyvloc(iseg)
+         j0=glr%wfd%keygloc(1,iseg)
+         j1=glr%wfd%keygloc(2,iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+             jjj=jjj+1
+             if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  lg ',&
+                  real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+             write(2000+iproc,'(a4,2x,3(1x,e10.3))') '  g ',real(i,kind=8)*hx,&
+                  real(i2,kind=8)*hy,real(i3,kind=8)*hz
+         enddo
+      enddo
+    
+      ishift=glr%wfd%nseg_c  
+      ! fine part
+      do iseg=1,glr%wfd%nseg_f
+         jj=glr%wfd%keyvloc(ishift+iseg)
+         j0=glr%wfd%keygloc(1,ishift+iseg)
+         j1=glr%wfd%keygloc(2,ishift+iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            jjj=jjj+1
+            if(phi(jjj)==1.d0) write(2000+iproc,'(a4,2x,3(1x,e10.3))') &
+                '  lG ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+            write(2000+iproc,'(a4,2x,3(1x,e10.3))') &
+                '  G ',real(i,kind=8)*hx,real(i2,kind=8)*hy,real(i3,kind=8)*hz
+            jjj=jjj+6
+         enddo
+      enddo
+
+      call f_free(lphi)
+      call f_free(phi)
+      
+      !close(unit=2000+iproc)
+      call f_close(iunit)
+
+      call f_release_routine()
+    
+    end subroutine plot_locreg_grids
+
+
+    !> Write the energies for a given iteration
+    subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies,label)
+      use module_base
+      use module_types
+      use yaml_output
+      implicit none
+      !Arguments
+      integer, intent(in) :: iter !< Iteration Id
+      type(energy_terms), intent(in) :: energs
+      real(gp), intent(in) :: gnrm,gnrm_zero
+      character(len=*), intent(in) :: comment
+      logical,intent(in),optional :: only_energies
+      type(f_enumerator), intent(in), optional :: scf_mode
+      character(len=*), intent(in), optional :: label !< label of the mapping (usually 'Energies', but can also be different)
+      !local variables
+      logical :: write_only_energies,yesen,noen
+      character(len=128) :: label_
+    
+      if (present(only_energies)) then
+          write_only_energies=only_energies
+      else
+          write_only_energies=.false.
+      end if
+      noen=.false.
+      if (present(scf_mode)) noen=scf_mode .hasattr. 'MIXING'
+      label_ = 'Energies'
+      if (present(label)) label_ = trim(label)
+    
+      if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
+         if (verbose >0) call yaml_newline()
+         call write_iter()
+         if (verbose >0) call yaml_comment(trim(comment))
+      end if
+    
+      yesen=verbose > 0
+      if (present(scf_mode)) yesen=yesen .and. .not. (scf_mode .hasattr. 'MIXING')
+    
+      if (yesen) then
+         call yaml_newline()
+         call yaml_mapping_open(trim(label_),flow=.true.)
+      !call yaml_flow_map()
+      !call yaml_indent_map('Energies')
+         if (energs%ekin /= 0.0_gp)&
+              call yaml_map('Ekin',energs%ekin,fmt='(1pe18.11)')
+         if (energs%epot /= 0.0_gp)&
+              call yaml_map('Epot',energs%epot,fmt='(1pe18.11)')
+         if (energs%eproj /= 0.0_gp)&
+              call yaml_map('Enl',energs%eproj,fmt='(1pe18.11)')
+         if (energs%eh /= 0.0_gp)&
+              call yaml_map('EH',energs%eh,fmt='(1pe18.11)')
+         if (energs%exc /= 0.0_gp)&
+              call yaml_map('EXC',energs%exc,fmt='(1pe18.11)')
+         if (energs%evxc /= 0.0_gp)&
+              call yaml_map('EvXC',energs%evxc,fmt='(1pe18.11)')
+         if (energs%eexctX /= 0.0_gp)&
+              call yaml_map('EexctX',energs%eexctX,fmt='(1pe18.11)')
+         if (energs%evsic /= 0.0_gp)&
+              call yaml_map('EvSIC',energs%evsic,fmt='(1pe18.11)')
+         if (len(trim(comment)) > 0) then
+            if (energs%eion /= 0.0_gp)&
+                 call yaml_map('Eion',energs%eion,fmt='(1pe18.11)')
+            if (energs%edisp /= 0.0_gp)&
+                 call yaml_map('Edisp',energs%edisp,fmt='(1pe18.11)')
+            if (energs%excrhoc /= 0.0_gp)&
+                 call yaml_map('Exc(rhoc)',energs%excrhoc,fmt='(1pe18.11)')
+            if (energs%eTS /= 0.0_gp)&
+                 call yaml_map('TS',energs%eTS,fmt='(1pe18.11)')
+    
+         end if
+         call yaml_mapping_close()
+      end if
+    
+      if (.not.write_only_energies) then
+         call yaml_newline()
+         if (len(trim(comment)) == 0) then
+            call write_iter()
+            if (verbose >0) call yaml_newline()
+         else if (verbose > 1 .and. present(scf_mode)) then
+            call yaml_map('SCF criterion',scf_mode)
+         end if
+      end if
+    
+    
+      contains
+    
+        subroutine write_iter()
+          implicit none
+          if (iter > 0) call yaml_map('iter',iter,fmt='(i6)')
+          if (noen) then
+             call yaml_map('tr(H)',energs%trH,fmt='(1pe24.17)')
+          else
+             if (energs%eTS==0.0_gp) then
+                call yaml_map('EKS',energs%energy,fmt='(1pe24.17)')
+             else
+                call yaml_map('FKS',energs%energy,fmt='(1pe24.17)')
+             end if
+          end if
+          if (gnrm > 0.0_gp) call yaml_map('gnrm',gnrm,fmt='(1pe9.2)')
+          if (gnrm_zero > 0.0_gp) &
+               call yaml_map('gnrm0',gnrm_zero,fmt='(1pe8.1)')
+          if (noen) then
+             if (energs%trH_prev /=0.0_gp) &
+                  call yaml_map('D',energs%trH-energs%trH_prev,fmt='(1pe9.2)')
+          else
+             if (energs%e_prev /=0.0_gp) &
+                  call yaml_map('D',energs%energy-energs%e_prev,fmt='(1pe9.2)')
+          end if
+    
+        end subroutine write_iter
+    end subroutine write_energies
 
 
 end module io

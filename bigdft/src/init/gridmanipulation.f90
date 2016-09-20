@@ -263,11 +263,6 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
    Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
 
-  !allocate projflg
-!   allocate(Glr%projflg(atoms%astruct%nat),stat=i_stat)
-!   call memocc(i_stat,Glr%projflg,'Glr%projflg',subname)
-!   Glr%projflg = 1 
-   
    !OCL convolutions not compatible with hybrid boundary conditions
    if (OCLConv) Glr%hybrid_on = .false.
 END SUBROUTINE system_size
@@ -510,6 +505,7 @@ END SUBROUTINE export_grids
 subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
       &   ntypes,iatype,rxyz,radii,rmult,hx,hy,hz,logrid)
    use module_base
+   use sparsematrix_init, only: distribute_on_tasks
    implicit none
    !Arguments
    character(len=*), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -522,7 +518,9 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    !local variables
    real(kind=8), parameter :: eps_mach=1.d-12
    integer :: i1,i2,i3,iat,ml1,ml2,ml3,mu1,mu2,mu3,j1,j2,j3,i1s,i1e,i2s,i2e,i3s,i3e
+   integer :: natp, isat, iiat
    real(gp) :: dx,dy2,dz2,rad,dy2pdz2,radsq
+   logical :: parallel
 
    call f_routine(id='fill_logrid')
 
@@ -541,6 +539,10 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
    end if
 
    if (geocode(1:1) == 'F') then
+      !$omp parallel default(none) &
+      !$omp shared(nl3, nu3, nl2, nu2, nl1, nu1, logrid) &
+      !$omp private(i3, i2, i1)
+      !$omp do schedule(static)
       do i3=nl3,nu3 
          do i2=nl2,nu2 
             do i1=nl1,nu1
@@ -548,9 +550,15 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
             enddo
          enddo
       enddo
+      !$omp end do
+      !$omp end parallel
    else !
       !Special case if no atoms (homogeneous electron gas): all points are used (TD)
       if (nat == 0) then
+         !$omp parallel default(none) &
+         !$omp shared(n3, n2, n1, logrid) &
+         !$omp private(i3, i2, i1)
+         !$omp do schedule(static)
          do i3=0,n3 
             do i2=0,n2 
                do i1=0,n1
@@ -558,7 +566,13 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
                enddo
             enddo
          enddo
+         !$omp end do
+         !$omp end parallel
       else
+         !$omp parallel default(none) &
+         !$omp shared(n3, n2, n1, logrid) &
+         !$omp private(i3, i2, i1)
+         !$omp do schedule(static)
          do i3=0,n3 
             do i2=0,n2 
                do i1=0,n1
@@ -566,18 +580,32 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
                enddo
             enddo
          enddo
+         !$omp end do
+         !$omp end parallel
       end if
    end if
 
-   do iat=1,nat
-      rad=radii(iatype(iat))*rmult+real(nbuf,gp)*hx
+   ! MPI parallelization over the atoms, ony if there are many atoms.
+   ! Maybe 200 is too low, but in this way there is a test for this feature.
+   if (nat>200) then
+       call distribute_on_tasks(nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natp, isat)
+       parallel = .true.
+   else
+       natp = nat
+       isat = 0
+       parallel = .false.
+   end if
+
+   do iat=1,natp
+      iiat = iat + isat
+      rad=radii(iatype(iiat))*rmult+real(nbuf,gp)*hx
       if (rad /= 0.0_gp) then
-         ml1=ceiling((rxyz(1,iat)-rad)/hx - eps_mach)  
-         ml2=ceiling((rxyz(2,iat)-rad)/hy - eps_mach)   
-         ml3=ceiling((rxyz(3,iat)-rad)/hz - eps_mach)   
-         mu1=floor((rxyz(1,iat)+rad)/hx + eps_mach)
-         mu2=floor((rxyz(2,iat)+rad)/hy + eps_mach)
-         mu3=floor((rxyz(3,iat)+rad)/hz + eps_mach)
+         ml1=ceiling((rxyz(1,iiat)-rad)/hx - eps_mach)  
+         ml2=ceiling((rxyz(2,iiat)-rad)/hy - eps_mach)   
+         ml3=ceiling((rxyz(3,iiat)-rad)/hz - eps_mach)   
+         mu1=floor((rxyz(1,iiat)+rad)/hx + eps_mach)
+         mu2=floor((rxyz(2,iiat)+rad)/hy + eps_mach)
+         mu3=floor((rxyz(3,iiat)+rad)/hz + eps_mach)
 
          !for Free BC, there must be no incoherences with the previously calculated delimiters
          if (geocode(1:1) == 'F') then
@@ -618,17 +646,17 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          !$omp parallel default(shared) private(i3,dz2,j3,i2,dy2,j2,i1,j1,dx,dy2pdz2)
          !$omp do schedule(static,1)
          do i3=i3s,i3e
-            dz2=(real(i3,gp)*hz-rxyz(3,iat))**2-eps_mach
+            dz2=(real(i3,gp)*hz-rxyz(3,iiat))**2-eps_mach
             if (dz2>radsq) cycle
             j3=modulo(i3,n3+1)
             do i2=i2s,i2e
-               dy2=(real(i2,gp)*hy-rxyz(2,iat))**2
+               dy2=(real(i2,gp)*hy-rxyz(2,iiat))**2
                dy2pdz2=dy2+dz2
                if (dy2pdz2>radsq) cycle
                j2=modulo(i2,n2+1)
                do i1=i1s,i1e
                   j1=modulo(i1,n1+1)
-                  dx=real(i1,gp)*hx-rxyz(1,iat)
+                  dx=real(i1,gp)*hx-rxyz(1,iiat)
                   if (dx**2+dy2pdz2 <= radsq) then 
                      logrid(j1,j2,j3)=.true.
                   endif
@@ -639,6 +667,10 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
          !$omp end parallel
       end if
    enddo
+
+   if (parallel) then
+       call mpiallred(logrid, mpi_lor, comm=bigdft_mpi%mpi_comm)
+   end if
 
    call f_release_routine()
 

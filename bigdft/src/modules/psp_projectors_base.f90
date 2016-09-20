@@ -2,6 +2,7 @@ module psp_projectors_base
   use module_base
   use gaussians
   use locregs
+  use locreg_operations
   implicit none
 
   private
@@ -9,32 +10,13 @@ module psp_projectors_base
   integer,parameter,public :: NCPLX_MAX = 2
 
 
-  !> Parameters identifying the different strategy for the application of a projector
-  !! in a localisation region
-  integer, parameter, public :: PSP_APPLY_SKIP=0 !< The projector is not applied. This might happend when ilr and iat does not interact
-  integer, parameter :: PSP_APPLY_MASK=1         !< Use mask arrays. The mask array has to be created before.
-  integer, parameter :: PSP_APPLY_KEYS=2         !< Use keys. No mask nor packing. Equivalend to traditional application
-  integer, parameter,public :: PSP_APPLY_MASK_PACK=3    !< Use masking and creates a pack arrays from them.
-                                                 !! Most likely this is the common usage for atoms
-                                                 !! with lots of projectors and localization regions "close" to them
-  integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays,
-                                                 !! for example when lots of lrs interacts with lots of atoms
-
-  !> arrays defining how a given projector and a given wavefunction descriptor should interact
-  type, public :: nlpsp_to_wfd
-     integer :: strategy !< can be MASK,KEYS,MASK_PACK,KEYS_PACK,SKIP
-     integer :: nmseg_c !< number of segments intersecting in the coarse region
-     integer :: nmseg_f !< number of segments intersecting in the fine region
-     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp application
-  end type nlpsp_to_wfd
-
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors
      integer :: mproj !< number of projectors for this descriptor
      real(gp) :: gau_cut !< cutting radius for the gaussian description of projectors.
      integer :: nlr !< total no. localization regions potentially interacting with the psp
      type(locreg_descriptors) :: plr !< localization region descriptor of a given projector (null if nlp=0)
-     type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension noverlap
+     type(wfd_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension noverlap
      integer,dimension(:),pointer :: lut_tolr !< lookup table for tolr, dimension noverlap
      integer :: noverlap !< number of locregs which overlap with the projectors of the given atom
   end type nonlocal_psp_descriptors
@@ -49,6 +31,7 @@ module psp_projectors_base
   type, public :: DFT_PSP_projectors
      logical :: on_the_fly             !< strategy for projector creation
      logical :: normalized             !< .true. if projectors are normalized to one.
+     logical :: apply_gamma_target     !< apply the target identified by the gamma_mmp value
      integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
      real(gp) :: zerovol               !< Proportion of zero components.
      type(gaussian_basis_new) :: proj_G !< Store the projector representations in gaussians.
@@ -72,28 +55,9 @@ module psp_projectors_base
 
   public :: free_DFT_PSP_projectors
   public :: DFT_PSP_projectors_null
-  public :: nonlocal_psp_descriptors_null
-  public :: deallocate_nonlocal_psp_descriptors
+  public :: nonlocal_psp_descriptors_null!,free_pspd_ptr
   public :: workarrays_projectors_null, allocate_workarrays_projectors, deallocate_workarrays_projectors
-  public :: deallocate_nlpsp_to_wfd
-  public :: nullify_nlpsp_to_wfd
-
 contains
-
-  !creators
-  pure function nlpsp_to_wfd_null() result(tolr)
-    implicit none
-    type(nlpsp_to_wfd) :: tolr
-    call nullify_nlpsp_to_wfd(tolr)
-  end function nlpsp_to_wfd_null
-  pure subroutine nullify_nlpsp_to_wfd(tolr)
-    implicit none
-    type(nlpsp_to_wfd), intent(out) :: tolr
-    tolr%strategy=PSP_APPLY_SKIP
-    tolr%nmseg_c=0
-    tolr%nmseg_f=0
-    nullify(tolr%mask)
-  end subroutine nullify_nlpsp_to_wfd
 
   pure function nonlocal_psp_descriptors_null() result(pspd)
     implicit none
@@ -124,11 +88,13 @@ contains
     implicit none
     type(DFT_PSP_projectors), intent(out) :: nl
     nl%on_the_fly=.true.
+    nl%normalized=.false.
+    nl%apply_gamma_target=.false.
     nl%nproj=0
     nl%nprojel=0
     nl%natoms=0
     nl%zerovol=100.0_gp
-    call nullify_gaussian_basis_new(nl%proj_G)! = gaussian_basis_null()
+    call nullify_gaussian_basis_new(nl%proj_G)
     call nullify_workarrays_projectors(nl%wpr)
     nullify(nl%iagamma)
     nullify(nl%gamma_mmp)
@@ -142,45 +108,37 @@ contains
 
   !allocators
 
+
   !destructors
-  subroutine deallocate_nlpsp_to_wfd(tolr)
-    implicit none
-    type(nlpsp_to_wfd), intent(inout) :: tolr
-    call f_free_ptr(tolr%mask)
-  end subroutine deallocate_nlpsp_to_wfd
-
-
   subroutine deallocate_nonlocal_psp_descriptors(pspd)
     implicit none
     type(nonlocal_psp_descriptors), intent(inout) :: pspd
     !local variables
-    integer :: ilr
-    if (associated(pspd%tolr)) then
-       do ilr=1,size(pspd%tolr)
-          call deallocate_nlpsp_to_wfd(pspd%tolr(ilr))
-          call nullify_nlpsp_to_wfd(pspd%tolr(ilr))
-       end do
-       deallocate(pspd%tolr)
-       nullify(pspd%tolr)
-    end if
-    call deallocate_locreg_descriptors(pspd%plr)
+    call free_tolr_ptr(pspd%tolr)
     call f_free_ptr(pspd%lut_tolr)
+    call deallocate_locreg_descriptors(pspd%plr)
   end subroutine deallocate_nonlocal_psp_descriptors
 
+  subroutine free_pspd_ptr(pspd)
+    implicit none
+    type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd
+    !local variables
+    integer :: iat
+
+    if (.not. associated(pspd)) return
+    do iat=lbound(pspd,1),ubound(pspd,1)
+       call deallocate_nonlocal_psp_descriptors(pspd(iat))
+    end do
+    deallocate(pspd)
+    nullify(pspd)
+
+  end subroutine free_pspd_ptr
 
   subroutine deallocate_DFT_PSP_projectors(nl)
     implicit none
     type(DFT_PSP_projectors), intent(inout) :: nl
-    !local variables
-    integer :: iat
 
-    if (associated(nl%pspd)) then
-       do iat=1,nl%natoms
-          call deallocate_nonlocal_psp_descriptors(nl%pspd(iat))
-       end do
-       deallocate(nl%pspd)
-       nullify(nl%pspd)
-    end if
+    call free_pspd_ptr(nl%pspd)
     nullify(nl%proj_G%rxyz)
     call gaussian_basis_free(nl%proj_G)
     call deallocate_workarrays_projectors(nl%wpr)

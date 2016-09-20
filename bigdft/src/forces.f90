@@ -290,7 +290,7 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
   type(denspot_distribution), intent(in) :: dpbox
 !!!  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(wp), dimension(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3p,nspin), intent(in) :: potxc
+  real(wp), dimension(dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3p,nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
   !Local variables
@@ -307,12 +307,12 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
 
   call f_routine(id='rhocore_forces')
 
-  hxh = dpbox%hgrids(1)
-  hyh = dpbox%hgrids(2)
-  hzh = dpbox%hgrids(3)
-  n1i=dpbox%ndims(1)
-  n2i=dpbox%ndims(2)
-  n3i=dpbox%ndims(3)
+  hxh = dpbox%mesh%hgrids(1)
+  hyh = dpbox%mesh%hgrids(2)
+  hzh = dpbox%mesh%hgrids(3)
+  n1i=dpbox%mesh%ndims(1)
+  n2i=dpbox%mesh%ndims(2)
+  n3i=dpbox%mesh%ndims(3)
   n3pi = dpbox%n3pi
   n3p = dpbox%n3p
   i3s = dpbox%i3s + dpbox%i3xcsh
@@ -1139,8 +1139,8 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                                 ispin=2
                              end if
                              factor=ob%orbs%occup(iorb+ob%orbs%isorb)*ob%orbs%kwgts(ob%orbs%iokpt(iorb))
-                             call atomic_PSP_density_matrix_update(lmax_ao,l-1,ncplx,scalprod(:,0,1:2*l-1,i,l,iat,jorb),&
-                                  factor,nlpsp%gamma_mmp(1,1,1,ispin,nlpsp%iagamma(l-1,iat)))
+                             call atomic_PSP_density_matrix_update('N',lmax_ao,l-1,ncplx,scalprod(1:ncplx,0,1:2*l-1,i,l,iat,jorb),&
+                                  factor,nlpsp%gamma_mmp(1,1,1,nlpsp%iagamma(l-1,iat),ispin))
                           end if
                        end if
 
@@ -1270,35 +1270,152 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
 END SUBROUTINE nonlocal_forces
 
+!> calculate the density matrix of the system from the scalar product with the projectors
+subroutine cproj_to_gamma(iat,proj_G,mproj,lmax,ncplx,cproj,factor,iagamma,gamma_mmp)
+  use module_defs, only: wp
+  use gaussians
+  implicit none
+  integer, intent(in) :: mproj,iat,ncplx,lmax
+  real(wp), intent(in) :: factor
+  type(gaussian_basis_new), intent(in) :: proj_G
+  integer, dimension(2*lmax+1), intent(in) :: iagamma
+  real(wp), dimension(ncplx,mproj), intent(in) :: cproj
+  real(wp), dimension(2,2*lmax+1,2*lmax+1,*), intent(inout) :: gamma_mmp 
+  !local variables
+  integer :: iproj
+  type(gaussian_basis_iter) :: iter
+
+  call gaussian_iter_start(proj_G, iat, iter)
+
+  ! Loop on shell.
+  iproj=1
+  do while (gaussian_iter_next_shell(proj_G, iter))
+     if (iter%n ==1 .and. iagamma(iter%l)/=0) then
+        call atomic_PSP_density_matrix_update('C',lmax,iter%l-1,ncplx,cproj(1,iproj),&
+             factor,gamma_mmp(1,1,1,iagamma(iter%l)))
+     end if
+     iproj = iproj + (2*iter%l-1)*ncplx
+  end do
+
+end subroutine cproj_to_gamma
+
+!>calculate the atomic density difference in case of occupancy control
+subroutine atomic_density_matrix_delta(dump,nspin,astruct,nl,gamma_target)
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use module_atoms
+  use ao_inguess, only: lmax_ao,ishell_toa
+  use yaml_strings
+  use yaml_output
+  use module_base, only: bigdft_mpi,wp
+  use f_blas, only: f_matrix
+  implicit none
+  logical, intent(in) :: dump
+  integer, intent(in) :: nspin
+  type(DFT_PSP_projectors), intent(in) :: nl
+  type(atomic_structure), intent(in) :: astruct
+  type(f_matrix), dimension(0:lmax_ao,2,astruct%nat), intent(in) :: gamma_target
+  !local variables
+  real(wp), parameter :: thr=1.e-1
+  integer :: ispin,l,m,mp
+  real(wp) :: diff,gt,gg
+  real(wp), dimension(2) :: maxdiff
+  integer, dimension(0:lmax_ao) :: igamma
+  character(len=32) :: msg
+  type(atoms_iterator) :: atit
+
+  if (.not. associated(nl%iagamma)) return
+  if (dump) call yaml_sequence_open('Atomic density matrix delta from imposed occupancy')
+  !iterate above atoms
+  atit=atoms_iter(astruct)
+  do while(atoms_iter_next(atit))
+     igamma=nl%iagamma(:,atit%iat)
+     if (all(igamma == 0)) cycle
+     if (dump) then
+        call yaml_newline()
+        call yaml_sequence(advance='no')
+        call yaml_map('Symbol',trim(atit%name),advance='no')
+        call yaml_comment('Atom '//trim(yaml_toa(atit%iat)))
+     end if
+     do l=0,lmax_ao
+        !for the moment no imaginary part printed out
+        if (igamma(l) == 0) cycle
+        maxdiff=0.0_wp
+        do ispin=1,nspin
+           if (.not. associated(gamma_target(l,ispin,atit%iat)%dmat)) then
+!!$              do mp=1,2*l+1
+!!$                 do m=1,2*l+1
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=0.0_wp
+!!$                    nl%gamma_mmp(2,m,mp,igamma(l),ispin)=0.0_wp
+!!$                 end do
+!!$              end do
+              cycle
+!!$           else
+!!$              call yaml_map('target',gamma_target(l,ispin,atit%iat)%dmat)
+           end if
+           !change the density matrix to be
+           !the difference between the target and the calculated result
+           do mp=1,2*l+1
+              do m=1,2*l+1
+                 gt=gamma_target(l,ispin,atit%iat)%dmat(m,mp)
+                 gg=nl%gamma_mmp(1,m,mp,igamma(l),ispin)
+                 diff=gt-gg 
+!!$                 nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt
+!!$                 if (gt == 0.0_wp) then
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=0.0_wp
+!!$                 else if (abs(gg) > thr) then
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt/gg
+!!$                 else
+!!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt
+!!$                 end if 
+                 maxdiff(ispin)=max(maxdiff(ispin),abs(diff))
+              end do
+           end do
+        end do
+        if (dump .and. any(maxdiff(1:nspin) /=0.0_wp)) then
+           call yaml_newline()
+           call yaml_map('Channel '//ishell_toa(l),maxdiff(1:nspin),fmt='(1pg12.2)')
+        end if
+     end do
+  end do
+  if (dump) call yaml_sequence_close()
+end subroutine atomic_density_matrix_delta
 
 !>calculate the density matrix for a atomic contribution
 !!from the values of scalprod calculated in the code
-subroutine atomic_PSP_density_matrix_update(lmax,l,ncplx,sp,fac,gamma_mmp)
+subroutine atomic_PSP_density_matrix_update(transp,lmax,l,ncplx,sp,fac,gamma_mmp)
   use module_defs, only: wp,gp
+  use yaml_strings
   implicit none
+  !> scalprod coefficients are <p_i | psi> ('N') or <psi | p_i> ('C'),
+  !! ignored if ncplx=1
+  character(len=1), intent(in) :: transp
   integer, intent(in) :: ncplx
   integer, intent(in) :: lmax !< maximum value of the angular momentum considered
   integer, intent(in) :: l !<angular momentum of the density matrix, form 0 to l_max
   !> coefficients of the scalar products between projectos and orbitals
   real(gp), intent(in) :: fac !<rescaling factor
-  real(wp), dimension(2,2*l+1), intent(in) :: sp
+  real(wp), dimension(ncplx,2*l+1), intent(in) :: sp
   !>density matrix for this angular momenum and this spin
   real(wp), dimension(2,2*lmax+1,2*lmax+1), intent(inout) :: gamma_mmp
   !local variables
-  integer :: m,mp
+  integer :: m,mp,icplx
+  real(wp) :: gamma_im
 
   if (fac==0.0_gp) return
 
   do m=1,2*l+1
      do mp=1,2*l+1
-        if (ncplx==1) then
+        do icplx=1,ncplx
            gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
-                real(fac,wp)*sp(1,mp)*sp(1,m)
-        else
-           gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
-                real(fac,wp)*(sp(1,mp)*sp(1,m)+sp(2,mp)*sp(2,m))
-           gamma_mmp(2,m,mp)=gamma_mmp(1,m,mp)+&
-                real(fac,wp)*(sp(2,mp)*sp(1,m)-sp(1,mp)*sp(2,m))
+                real(fac,wp)*sp(icplx,mp)*sp(icplx,m)
+        end do
+        if (ncplx==2) then
+           gamma_im=real(fac,wp)*(sp(2,mp)*sp(1,m)-sp(1,mp)*sp(2,m))
+           if (transp .eqv. 'N') then
+              gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)+gamma_im
+           else if (transp .eqv. 'C') then
+              gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)-gamma_im
+           end if
         end if
      end do
   end do

@@ -45,7 +45,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	module_tersoff.f90 \
 	module_bornmayerhugginstosifumi.f90 \
 	module_tdpot.f90 \
-	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
@@ -75,6 +74,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
+	bigdft_matrices.f90 \
 	$(PEXSI_SRC) \
 	configure.c \
 	$(cp2k_interfacemod) \
@@ -87,8 +87,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_MIXING.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_PRIVATE_API.@MODULE_EXT@ \
-	MODULE_XC.@MODULE_EXT@ \
-	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSDAUB.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
@@ -110,7 +108,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
 	MODULE_FORCES.@MODULE_EXT@ \
-	MODULE_FINGERPRINTS.@MODULE_EXT@ \
 	TRANSPOSED_OPERATIONS.@MODULE_EXT@ \
 	UNITARY_TESTS.@MODULE_EXT@ \
 	IO.@MODULE_EXT@ \
@@ -129,6 +126,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
+	BIGDFT_MATRICES.@MODULE_EXT@ \
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
 	MODULE_DFTBP.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
@@ -143,7 +141,6 @@ modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
-	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussdaub.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
@@ -177,6 +174,7 @@ modules = module_types.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
 	forces_linear.@MODULE_EXT@ \
+	bigdft_matrices.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	f90sockets.@MODULE_EXT@ \
@@ -218,7 +216,7 @@ input_keys.o: multipole_base.o atoms_data.o input.o fragment_base.o
 types.o: psp_projectors_base.o atoms_data.o input_keys.o \
 	ab7_mixing.o multipole_base.o dpbox.o
 interfaces.o: types.o fragments.o diis_module.o constrained_dft.o input_keys.o
-#op2p_module.o : base.o
+
 BigDFT_API.o: types.o interfaces.o atoms_data.o input_dicts.o psp_projectors.o communications_init.o bigdft_run.o
 vdwcorrection.o: types.o 
 private_api.o: types.o interfaces.o
@@ -246,12 +244,12 @@ module_dftbp.o: types.o
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
-transposed_operations.o: types.o
+transposed_operations.o: types.o bigdft_matrices.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
 io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
-rhopotential.o: types.o interfaces.o communications.o
+rhopotential.o: types.o interfaces.o communications.o bigdft_matrices.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o

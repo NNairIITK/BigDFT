@@ -1,1 +1,17 @@
  <BigDFT> log of the run will be written in logfile: ./log-waterQM.yaml
+  #WARNING: ERROR of checksum for orbital 1: difference of  9.09495E-13
+  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-12
+  #WARNING: ERROR of checksum for orbital 5: difference of  2.18279E-11
+  #WARNING: ERROR of checksum for orbital 1: difference of  9.09495E-13
+  #WARNING: ERROR of checksum for orbital 2: difference of  3.63798E-12
+  #WARNING: ERROR of checksum for orbital 5: difference of  2.18279E-11
+  #WARNING: ERROR of checksum for orbital 6: difference of  3.63798E-11
+  #WARNING: ERROR of checksum for orbital 6: difference of  3.63798E-11
+  #WARNING: ERROR (Transposition): process 6 found an error of: 3.6379788E-11
+  #WARNING: ERROR (Transposition): process 7 found an error of: 3.6379788E-11
+  #WARNING: ERROR of checksum for orbital 2: difference of  2.18279E-11
+  #WARNING: ERROR of checksum for orbital 2: difference of  2.18279E-11
+  #WARNING: ERROR of checksum for orbital 4: difference of  4.36557E-11
+  #WARNING: ERROR of checksum for orbital 4: difference of  4.36557E-11
+  #WARNING: ERROR (Transposition): process 6 found an error of: 4.3655746E-11
+  #WARNING: ERROR (Transposition): process 7 found an error of: 4.3655746E-11

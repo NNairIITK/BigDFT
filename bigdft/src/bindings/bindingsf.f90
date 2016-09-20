@@ -1022,8 +1022,8 @@ subroutine localfields_copy_metadata(denspot, rhov_is, hgrid, ni, psoffset)
   real(dp), intent(out) :: psoffset
 
   rhov_is = denspot%rhov_is
-  hgrid = denspot%dpbox%hgrids
-  ni = denspot%dpbox%ndims
+  hgrid = denspot%dpbox%mesh%hgrids
+  ni = denspot%dpbox%mesh%ndims
   psoffset = denspot%psoffset
 END SUBROUTINE localfields_copy_metadata
 
@@ -1982,6 +1982,14 @@ subroutine dict_init_binding(dict)
 
   call wrapper(dict)
 END SUBROUTINE dict_init_binding
+
+subroutine dict_free_binding(dict)
+  use dictionaries, only: dictionary, wrapper => dict_free
+  implicit none
+  type(dictionary), pointer :: dict
+
+  call wrapper(dict)
+END SUBROUTINE dict_free_binding
 
 
 subroutine err_severe_override(callback)

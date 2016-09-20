@@ -14,7 +14,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
            hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
            norder_taylor, max_inversion_error, precond_convol_workarrays, precond_workarrays,&
-           wt_hphi, wt_philarge, wt_hpsinoprecond, &
+           wt_hphi, wt_philarge, &
            cdft, input_frag, ref_frags)
   use module_base
   use module_types
@@ -23,10 +23,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
-                               sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, &
-                               sparsematrix_malloc
+                               sparsematrix_malloc_ptr, assignment(=), &
+                               sparsematrix_malloc, SPARSE_TASKGROUP
   use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: transform_sparse_matrix_local
+  use sparsematrix, only: transform_sparse_matrix
   use constrained_dft, only: cdft_data
   use module_fragments, only: system_fragment,fragmentInputParameters
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
@@ -61,7 +61,6 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   type(work_transpose),intent(inout) :: wt_hphi
   type(work_transpose),intent(inout) :: wt_philarge
-  type(work_transpose),intent(out) :: wt_hpsinoprecond
   !!!these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
@@ -155,8 +154,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
       ! Transform to the larger sparse region in order to be compatible with tmb%ham_descr%collcom.
       ! To this end use ham_.
-      call transform_sparse_matrix_local(tmb%linmat%s, tmb%linmat%m, 'small_to_large', &
-           smatrix_compr_in=tmb%linmat%ovrlp_%matrix_compr, lmatrix_compr_out=tmb%linmat%ham_%matrix_compr)
+      call transform_sparse_matrix(iproc, tmb%linmat%s, tmb%linmat%m, SPARSE_TASKGROUP, 'small_to_large', &
+           smat_in=tmb%linmat%ovrlp_%matrix_compr, lmat_out=tmb%linmat%ham_%matrix_compr)
 
       !tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
       !call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
@@ -210,12 +209,12 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
   call orthoconstraintNonorthogonal(iproc, nproc, tmb%ham_descr%lzd, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
-       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
+       tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, tmb%ice_obj, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
        tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
        overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
-       tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond, wt_philarge, wt_hphi, wt_hpsinoprecond)
+       tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond, wt_philarge, wt_hphi)
 
 
   ! Calculate trace (or band structure energy, resp.)
@@ -743,7 +742,8 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   coeff_tmp = f_malloc((/ tmb%orbs%norbp, max(tmb%orbs%norb, 1) /),id='coeff_tmp')
 
   !grad_ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='grad_ovrlp%matrix')
-  call uncompress_matrix2(iproc,nproc,grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
+  call uncompress_matrix2(iproc,nproc,bigdft_mpi%mpi_comm, &
+       grad_ovrlp,grad_ovrlp_%matrix_compr,grad_ovrlp_%matrix)
 
   ! can change this so only go up to ksorbs%norb...
   if (tmb%orbs%norbp>0) then
@@ -891,7 +891,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_ortho
       else
           call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
                tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-               tmb%can_use_transposed)
+               tmb%can_use_transposed, ice_obj=tmb%ice_obj)
        end if
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)
@@ -932,7 +932,7 @@ end subroutine hpsitopsi_linear
 subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
   use module_base
   use module_types
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), &
+  use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), &
                                sparsematrix_malloc, SPARSE_TASKGROUP
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use communications_base, only: TRANSPOSE_FULL

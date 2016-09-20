@@ -90,7 +90,7 @@ module Poisson_Solver
    !intialization of the timings
    public :: PS_initialize_timing_categories,coulomb_operator,PSolver_energies
    ! Calculate the allocation dimensions
-   public :: PS_dim4allocation, PS_getVersion,ps_soft_PCM_forces
+   public :: PS_dim4allocation,PSolver_logo,ps_soft_PCM_forces
    ! Routine that creates the kernel
    public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity
    ! Calculate the poisson solver
@@ -154,6 +154,14 @@ contains
     write(str, "(A)") package_version
   end function PS_getVersion
 
+  subroutine PSolver_logo()
+    implicit none
+    call yaml_map('Reference Paper','The Journal of Chemical Physics 137, 134108 (2012)')
+    call yaml_map('Version Number', "PSolver " // trim(PS_getVersion()))
+    call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
+      call yaml_map('Root process Hostname',mpihostname())
+  end subroutine PSolver_logo
+  
   include 'PSolver_Main.f90'
   include 'createKernel.f90'
 end module Poisson_Solver

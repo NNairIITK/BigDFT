@@ -42,37 +42,10 @@ subroutine second_reduction_kernel()
    stop 'reduction3'
  END SUBROUTINE third_reduction_kernel
 
-
-subroutine cudamalloc()
-   implicit none
-   stop 'allocation'
- END SUBROUTINE cudamalloc
-
-subroutine cudamemset()
-   implicit none
-   stop 'memset'
- END SUBROUTINE cudamemset
-
-
-subroutine cudafree()
-   implicit none
-   stop 'free'
- END SUBROUTINE cudafree
-
 subroutine cuFFTdestroy()
    implicit none
    stop 'FFTdestroy'
  END SUBROUTINE cuFFTdestroy
-
-subroutine reset_gpu_data()
-   implicit none
-   stop 'reset'
- END SUBROUTINE reset_gpu_data
-
-subroutine get_gpu_data()
-   implicit none
-   stop 'get'
- END SUBROUTINE get_gpu_data
 
 subroutine cuda_3d_psolver_general_plan()
    implicit none
@@ -109,25 +82,6 @@ subroutine cudadestroycublashandle()
    stop 'cudadestroycublashandle'
  END SUBROUTINE cudadestroycublashandle
 
-subroutine cuda_get_mem_info()
-   implicit none
-   stop 'cuda_get_mem_info'
- END SUBROUTINE cuda_get_mem_info
-
-subroutine copy_gpu_data()
-   implicit none
-   stop 'copy_gpu_data'
- END SUBROUTINE copy_gpu_data
-
-subroutine synchronize()
-   implicit none
-   stop 'synchronize'
- END SUBROUTINE synchronize
-
-subroutine poisson_cublas_daxpy()
-   implicit none
-   stop 'poisson_cublas_daxpy'
- END SUBROUTINE poisson_cublas_daxpy
 
 subroutine gpu_accumulate_eexctx()
    implicit none

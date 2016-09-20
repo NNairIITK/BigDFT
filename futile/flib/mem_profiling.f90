@@ -223,21 +223,22 @@ contains
 
   !> Put to zero memocc counters
   pure subroutine memstate_init(memstate)
+    use f_precisions
     implicit none
     type(memory_state), intent(out) :: memstate
 
-    memstate%memtot%memory=int(0,kind=8)
-    memstate%memtot%peak=int(0,kind=8)
-    memstate%memtot%routine=''
-    memstate%memtot%array=''
+    memstate%memtot%memory=f_0
+    memstate%memtot%peak=f_0
+    memstate%memtot%routine=f_0
+    memstate%memtot%array=f_0
 
-    memstate%memalloc=0
-    memstate%memdealloc=0
+    memstate%memalloc=f_0
+    memstate%memdealloc=f_0
 
     memstate%memloc%routine='routine'
     memstate%memloc%array='array'
-    memstate%memloc%memory=int(0,kind=8) !fake initialisation to print the first routine
-    memstate%memloc%peak=int(0,kind=8)
+    memstate%memloc%memory=f_0 !fake initialisation to print the first routine
+    memstate%memloc%peak=f_0
   end subroutine memstate_init
 
 
