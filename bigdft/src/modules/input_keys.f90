@@ -135,6 +135,7 @@ module module_input_keys
      logical :: plot_locreg_grids
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
      real(kind=8) :: precision_FOE_eigenvalues !< decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
+     logical :: orthogonalize_ao !< orthogonalize the AO generated as input guess
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -295,6 +296,7 @@ module module_input_keys
      real(gp) :: trustr
 
      !Force Field Parameter
+     logical :: add_coulomb_force
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
      real(gp) :: sw_factor
@@ -1572,7 +1574,11 @@ contains
              in%run_mode=SW_RUN_MODE
           case('multi')
              in%run_mode=MULTI_RUN_MODE
+          case('bazant')
+             in%run_mode=BAZANT_RUN_MODE
           end select
+       case(ADD_COULOMB_FORCE_KEY)
+          in%add_coulomb_force = val          
        case(MM_PARAMSET)
           in%mm_paramset=val
        case(MM_PARAMFILE)
@@ -2165,6 +2171,8 @@ contains
           in%lin%support_functions_converged = val
        case (correction_orthoconstraint)
           in%lin%correctionOrthoconstraint = val
+       case (orthogonalize_ao)
+          in%lin%orthogonalize_ao = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -3284,10 +3292,10 @@ contains
 
   !> Read from all input files and build a dictionary
   recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
+    use yaml_output
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use wrapper_MPI, only: mpi_environment
     use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
-    use yaml_output
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
     use module_input_dicts

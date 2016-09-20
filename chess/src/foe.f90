@@ -16,10 +16,10 @@ module foe
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, ice_obj, &
-               symmetrize_kernel)
+               symmetrize_kernel, calculate_energy_density_kernel, energy_kernel_)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse, symmetrize_matrix, max_asymmetry_of_matrix
+                              trace_sparse_matrix_product, symmetrize_matrix, max_asymmetry_of_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -35,13 +35,14 @@ module foe
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
       real(kind=mp),intent(out) :: ebs
-      logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel
+      logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel, calculate_energy_density_kernel
       integer,intent(in) :: foe_verbosity
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj, ice_obj
+      type(matrices),intent(inout),optional :: energy_kernel_
 
       ! Local variables
       integer :: npl, jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
@@ -50,7 +51,7 @@ module foe
       integer,parameter :: nplx=50000
       real(kind=mp),dimension(:,:,:),pointer :: cc
       real(kind=mp),dimension(:,:,:),allocatable :: cc_check
-      real(kind=mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(kind=mp),dimension(:,:,:),pointer :: chebyshev_polynomials
       real(kind=mp),dimension(:,:),allocatable :: fermip_check
       real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
       real(kind=mp) :: anoise, scale_factor, shift_value, sumn, sumn_check, charge_diff, ef_interpol, ddot
@@ -79,7 +80,7 @@ module foe
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=mp) :: degree_multiplicator
+      real(kind=mp) :: degree_multiplicator, betax, ebsp_allspins
       real(kind=mp),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
@@ -92,8 +93,11 @@ module foe
       real(kind=mp),dimension(:),allocatable :: ham_large
       real(kind=mp),dimension(2) :: fscale_ispin
       real(kind=mp),dimension(1) :: ef_arr, fscale_arr
-      integer,parameter :: NPL_MAX = 10000
-      integer,parameter :: NPL_STRIDE = 10
+      real(mp) :: ebs_check_allspins
+      real(mp),dimension(:),allocatable :: sumn_allspins
+      !!integer,parameter :: NPL_MAX = 10000
+      !!integer,parameter :: NPL_STRIDE = 10
+      integer :: npl_max, npl_stride
 
 
 
@@ -110,6 +114,10 @@ module foe
       !call timing(iproc, 'FOE_auxiliary ', 'ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
 
+      npl_min = foe_data_get_int(foe_obj,"npl_min")
+      npl_max = foe_data_get_int(foe_obj,"npl_max")
+      npl_stride = foe_data_get_int(foe_obj,"npl_stride")
+      betax = foe_data_get_real(foe_obj,"betax")
 
       evbounds_shrinked=.false.
 
@@ -118,6 +126,7 @@ module foe
       !!fermip_check = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp/),id='fermip_check')
       fermi_check_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
       kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
+      sumn_allspins = f_malloc(smatl%nspin,id='sumn_allspins')
 
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
       !!fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
@@ -185,17 +194,21 @@ module foe
       end if
       fscale_ispin(1:2) = huge(fscale_ispin(1:2))
 
-      spin_loop: do ispin=1,smatl%nspin
+      !spin_loop: do ispin=1,smatl%nspin
 
 
           fscale_new = fscale_newx
           call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
-          isshift=(ispin-1)*smats%nvctrp_tg
-          imshift=(ispin-1)*smatm%nvctrp_tg
-          ilshift=(ispin-1)*smatl%nvctrp_tg
+      !!    isshift=(ispin-1)*smats%nvctrp_tg
+      !!    imshift=(ispin-1)*smatm%nvctrp_tg
+      !!    ilshift=(ispin-1)*smatl%nvctrp_tg
 
-          !call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
+      !!do ispin=1,smatl%nspin
+      !!    isshift=(ispin-1)*smats%nvctrp_tg
+      !!    imshift=(ispin-1)*smatm%nvctrp_tg
+      !!    call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
+      !!end do
 
           degree_sufficient=.true.
 
@@ -206,7 +219,7 @@ module foe
 
               if (iproc==0) then
                   call yaml_sequence(advance='no')
-                  call yaml_comment('ispin:'//trim(yaml_toa(ispin))//', itemp:'//trim(yaml_toa(itemp)),hfill='-')
+                  call yaml_comment('ispin:'//trim(yaml_toa(1))//', itemp:'//trim(yaml_toa(itemp)),hfill='-')
                   call yaml_newline()
               end if
 
@@ -227,20 +240,20 @@ module foe
 
                   ! Don't let this value become too small.
                   call foe_data_set_real(foe_obj, &
-                       "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",ispin),1.d-4), &
-                       ispin)
+                       "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",1),1.d-4), &
+                       1)
 
 
                   sumnarr(1)=0.d0
                   sumnarr(2)=1.d100
-                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
-                       foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
+                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef",1), f, &
+                       foe_data_get_real(foe_obj,"bisection_shift",1), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
                        foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
 
                   ! Use kernel_%matrix_compr as workarray to save memory
-                  efarr(1) = foe_data_get_real(foe_obj,"ef",ispin)
-                  fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",ispin)
-                  call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, NPL_MAX, NPL_STRIDE, &
+                  efarr(1) = foe_data_get_real(foe_obj,"ef",1)
+                  fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",1)
+                  call get_bounds_and_polynomials(iproc, nproc, comm, 2, 1, NPL_MAX, NPL_STRIDE, betax, &
                        1, FUNCTION_ERRORFUNCTION, .false., 1.2_mp, 1.2_mp, foe_verbosity, &
                        smatm, smatl, ham_, foe_obj, npl_min, kernel_%matrix_compr(ilshift+1:), &
                        chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
@@ -251,20 +264,20 @@ module foe
                       call yaml_mapping_open('summary',flow=.true.)
                       call yaml_map('npl',npl)
                       call yaml_map('bounds', &
-                           (/foe_data_get_real(ice_obj,"evlow",ispin),foe_data_get_real(ice_obj,"evhigh",ispin)/),fmt='(f6.2)')
+                           (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f6.2)')
                       call yaml_map('exp accur',max_error,fmt='(es8.2)')
                       call yaml_mapping_close()
                   end if
 
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-                       foe_verbosity, 'test', smatl, ispin, foe_obj, kernel_)
+                       foe_verbosity, 'test', smatl, 1, foe_obj, kernel_)
 
                   npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
                   cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
-                  call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale_check)
+                  call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",1), fscalex=fscale_check)
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, &
-                       foe_data_get_real(foe_obj,"evlow",ispin), &
-                       foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, func, cc_check(1,1,1), &
+                       foe_data_get_real(foe_obj,"evlow",1), &
+                       foe_data_get_real(foe_obj,"evhigh",1), npl_check, func, cc_check(1,1,1), &
                        x_max_error_check(1), max_error_check(1), mean_error_check(1))
                   if (smatl%nspin==1) then
                       do ipl=1,npl_check
@@ -273,88 +286,136 @@ module foe
                           cc_check(ipl,1,3)=2.d0*cc_check(ipl,1,3)
                       end do
                   end if
-                  call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
-                       smatl%nfvctr, smatl%smmm%nfvctrp, &
-                       smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
-                  !!call f_free(cc)
+
+                  ebsp_allspins = 0.0_mp
+                  ebs_check_allspins = 0.0_mp
+
+                  spin_loop: do ispin=1,smatl%nspin
+
+
+                      !fscale_new = fscale_newx
+                      !call foe_data_set_real(foe_obj,"fscale",fscale_new)
+
+                      isshift=(ispin-1)*smats%nvctrp_tg
+                      imshift=(ispin-1)*smatm%nvctrp_tg
+                      ilshift=(ispin-1)*smatl%nvctrp_tg
+
+                      !write(*,*) 'start spinloop', trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                      !       ovrlp_%matrix_compr(isshift+1:), &
+                      !       kernel_%matrix_compr(ilshift+1:))
+
+                      call chebyshev_fast(iproc, nproc, nsize_polynomial, npl_check, &
+                           smatl%nfvctr, smatl%smmm%nfvctrp, &
+                           smatl, chebyshev_polynomials(:,:,ispin), 1, cc_check, fermi_check_new)
+                      !!call f_free(cc)
+
+                      call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                           fermi_check_new, fermi_check_compr(ilshift+1:))
+                      ! Calculate S^-1/2 * K * S^-1/2^T
+                      ! Since S^-1/2 is symmetric, don't use the transpose
+                      istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+                      !write(*,*) 'before kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
+                      !!write(*,*) 'BEFORE RET, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+                      !!write(*,*) 'BEFORE RET, ispin, sum(S-)', &
+                      !!    ispin, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+                      call retransform_ext(iproc, nproc, smatl, &
+                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:))
+                      !write(*,*) 'after kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
+                      !!write(*,*) 'AFTER RET, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+
+                      call retransform_ext(iproc, nproc, smatl, &
+                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
+                      ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
+                      call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                           smatl, kernel_%matrix_compr, asymm_K, ispinx=ispin)
+                      !!write(*,*) 'BEFORE SYM, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+                      if (symmetrize_kernel) then
+                          call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
+                          call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
+                          call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
+                          call symmetrize_matrix(smatl, 'plus', kernel_tmp, fermi_check_compr, ispinx=ispin)
+                      end if
+                      !!write(*,*) 'AFTER SYM, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+
+                      call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
+
+                      !@NEW ##########################
+                      sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                             ovrlp_%matrix_compr(isshift+1:), &
+                             kernel_%matrix_compr(ilshift+1:))
+                      !!write(*,*) 'ispin, sumn, sum(K)', ispin, sumn, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+                      sumn_check = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                                   ovrlp_%matrix_compr(isshift+1:), &
+                                   fermi_check_compr(ilshift+1:))
+                      !write(*,*) 'sumn, sumn_check', sumn, sumn_check
+                      !@ENDNEW #######################
+
+
+                      ! Calculate trace(KH). Since they have the same sparsity pattern and K is
+                      ! symmetric, this is a simple ddot.
+                      !write(*,*) 'iproc, smatl%smmm%istartend_mm_dj', iproc, smatl%smmm%istartend_mm_dj
+                      ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
+                      istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+                      !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
+                      !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
+                      !ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+                      ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+                      !!write(*,*) 'ispin, sum(kernel_%matrix_compr), sum(hamscal_compr)', &
+                      !!    sum(kernel_%matrix_compr), sum(hamscal_compr)
+                      !write(*,*) 'ebsp',ebsp
+                      !write(*,*) 'iproc, ncount, ebsp', iproc, ncount, ebsp
+                      !!write(*,'(a,3i8,3es16.8)') 'iproc, ncount, istl, sum(k), sum(h), ebsp', &
+                      !!    iproc, ncount, istl, sum(kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
+
+                      ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
+                      istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
+                      ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
+                                  hamscal_compr(istl), 1)
+                      !write(*,*) 'ebs_check',ebs_check
+
+                      temparr(1) = ebsp
+                      temparr(2) = ebs_check
+                      if (nproc>1) then
+                          call mpiallred(temparr, mpi_sum, comm=comm)
+                      end if
+                      ebsp = temparr(1)
+                      ebs_check = temparr(2)
+
+                      !write(*,'(a,i6,5es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)', &
+                      !    iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)
+                      ebsp=ebsp/scale_factor+shift_value*sumn
+                      ebs_check=ebs_check/scale_factor+shift_value*sumn_check
+                      !write(*,*) 'ispin, ebsp, ebs_check', ispin, ebsp, ebs_check
+                      diff=abs(ebs_check-ebsp)
+                      diff=diff/abs(ebsp)
+
+                      !write(*,*) 'ispin, ebsp', ispin, ebsp
+                      ebsp_allspins = ebsp_allspins + ebsp
+                      ebs_check_allspins = ebs_check_allspins + ebs_check
+
+                      ! Calculate trace(KS).
+                      sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                             ovrlp_%matrix_compr(isshift+1:), &
+                             kernel_%matrix_compr(ilshift+1:))
+                      sumn_allspins(ispin) = sumn
+
+                  end do spin_loop
+
                   call f_free(cc_check)
 
-                  call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                       fermi_check_new, fermi_check_compr(ilshift+1:))
-                  ! Calculate S^-1/2 * K * S^-1/2^T
-                  ! Since S^-1/2 is symmetric, don't use the transpose
-                  istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
-                  !write(*,*) 'before kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
-                  call retransform_ext(iproc, nproc, smatl, &
-                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:))
-                  !write(*,*) 'after kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
-
-                  call retransform_ext(iproc, nproc, smatl, &
-                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
-                  ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
-                  call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                       smatl, kernel_%matrix_compr, asymm_K, ispinx=ispin)
-                  if (symmetrize_kernel) then
-                      call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
-                      call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
-                      call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
-                      call symmetrize_matrix(smatl, 'plus', kernel_tmp, fermi_check_compr, ispinx=ispin)
-                  end if
-
-                  call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
-
-                  !@NEW ##########################
-                  sumn = trace_sparse(iproc, nproc, comm, smats, smatl, &
-                         ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:))
-                  sumn_check = trace_sparse(iproc, nproc, comm, smats, smatl, &
-                               ovrlp_%matrix_compr(isshift+1:), &
-                               fermi_check_compr(ilshift+1:))
-                  !write(*,*) 'sumn, sumn_check', sumn, sumn_check
-                  !@ENDNEW #######################
-
-
-                  ! Calculate trace(KH). Since they have the same sparsity pattern and K is
-                  ! symmetric, this is a simple ddot.
-                  !write(*,*) 'iproc, smatl%smmm%istartend_mm_dj', iproc, smatl%smmm%istartend_mm_dj
-                  ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
-                  istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
-                  !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
-                  !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
-                  ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
-                  !write(*,*) 'ebsp',ebsp
-                  !write(*,*) 'iproc, ncount, ebsp', iproc, ncount, ebsp
-                  !!write(*,'(a,3i8,3es16.8)') 'iproc, ncount, istl, sum(k), sum(h), ebsp', &
-                  !!    iproc, ncount, istl, sum(kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
-
-                  ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
-                  istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
-                  ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
-                              hamscal_compr(istl), 1)
-                  !write(*,*) 'ebs_check',ebs_check
-
-                  temparr(1) = ebsp
-                  temparr(2) = ebs_check
-                  if (nproc>1) then
-                      call mpiallred(temparr, mpi_sum, comm=comm)
-                  end if
-                  ebsp = temparr(1)
-                  ebs_check = temparr(2)
-
-                  !write(*,'(a,i6,5es16.8)') 'iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)', &
-                  !    iproc, ebsp, scale_factor, shift_value, sumn, sum(hamscal_compr)
-                  ebsp=ebsp/scale_factor+shift_value*sumn
-                  ebs_check=ebs_check/scale_factor+shift_value*sumn_check
-                  diff=abs(ebs_check-ebsp)
-                  diff=diff/abs(ebsp)
 
                   if (iproc==0) then
                       call yaml_map('Asymmetry of kernel',asymm_K,fmt='(es8.2)')
                       call yaml_map('symmetrize_kernel',symmetrize_kernel)
-                      call yaml_map('EBS',ebsp,fmt='(es19.12)')
-                      call yaml_map('EBS higher temperature',ebs_check,fmt='(es19.12)')
-                      call yaml_map('difference',ebs_check-ebsp,fmt='(es19.12)')
+                      call yaml_map('EBS',ebsp_allspins,fmt='(es19.12)')
+                      call yaml_map('EBS higher temperature',ebs_check_allspins,fmt='(es19.12)')
+                      call yaml_map('difference',ebs_check_allspins-ebsp_allspins,fmt='(es19.12)')
                       call yaml_map('relative difference',diff,fmt='(es19.12)')
+                      if (smatl%nspin==1) then
+                          call yaml_map('trace(KS)',sumn_allspins(1))
+                      else
+                          call yaml_map('trace(KS)',sumn_allspins)
+                      end if
                   end if
 
                   if (diff<5.d-5) then
@@ -414,38 +475,33 @@ module foe
 !!$                  !if (iproc==0) call yaml_map('diff from reference kernel',diff,fmt='(es10.3)')
 
 
-                  ! Calculate trace(KS).
-                  sumn = trace_sparse(iproc, nproc, comm, smats, smatl, &
-                         ovrlp_%matrix_compr(isshift+1:), &
-                         kernel_%matrix_compr(ilshift+1:))
 
 
-                  ! Recalculate trace(KH) (needed since the kernel was modified in the above purification).
-                  ! If no purification is done, this should not be necessary.
-                  ! Since K and H have the same sparsity pattern and K is
-                  ! symmetric, the trace is a simple ddot.
-                  ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
-                  istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
-                  ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
-                  if (nproc>1) then
-                      call mpiallred(ebsp, 1, mpi_sum, comm=comm)
-                  end if
-                  ebsp=ebsp/scale_factor+shift_value*sumn
+!!!                  ! Recalculate trace(KH) (needed since the kernel was modified in the above purification).
+!!!                  ! If no purification is done, this should not be necessary.
+!!!                  ! Since K and H have the same sparsity pattern and K is
+!!!                  ! symmetric, the trace is a simple ddot.
+!!!                  ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
+!!!                  istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
+!!!                  ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+!!!                  if (nproc>1) then
+!!!                      call mpiallred(ebsp, 1, mpi_sum, comm=comm)
+!!!                  end if
+!!!                  ebsp=ebsp/scale_factor+shift_value*sumn
 
 
-                  if (iproc==0) call yaml_map('trace(KS)',sumn)
 
 
                   if (iproc==0) then
                       call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
                   end if
                   if (degree_sufficient) then
-                      call f_free_ptr(chebyshev_polynomials)
+                      !!call f_free_ptr(chebyshev_polynomials)
                       exit temp_loop
                   end if
                   if (reached_limit) then
                       if (iproc==0) call yaml_map('limit reached, exit loop',.true.)
-                      call f_free_ptr(chebyshev_polynomials)
+                      !!call f_free_ptr(chebyshev_polynomials)
                       exit temp_loop
                   end if
 
@@ -457,18 +513,58 @@ module foe
 
 
           ! Sum up the band structure energy
-          ebs = ebs + ebsp
+          ebs = ebs + ebsp_allspins
 
-          fscale_ispin(ispin) = fscale_new
+          fscale_ispin(1) = fscale_new
 
-      end do spin_loop
+
+          if (calculate_energy_density_kernel) then
+              if (.not.present(energy_kernel_)) then
+                  call f_err_throw('energy_kernel_ not present',err_name='SPARSEMATRIX_RUNTIME_ERROR')
+              end if
+              cc_check = f_malloc0((/npl,1,3/),id='cc_check')
+              call func_set(FUNCTION_XTIMESERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",1), fscalex=fscale)
+              call get_chebyshev_expansion_coefficients(iproc, nproc, comm, &
+                   foe_data_get_real(foe_obj,"evlow",1), &
+                   foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc_check(1,1,1), &
+                   x_max_error_check(1), max_error_check(1), mean_error_check(1))
+              if (smatl%nspin==1) then
+                  do ipl=1,npl
+                      cc_check(ipl,1,1)=2.d0*cc_check(ipl,1,1)
+                      cc_check(ipl,1,2)=2.d0*cc_check(ipl,1,2)
+                      cc_check(ipl,1,3)=2.d0*cc_check(ipl,1,3)
+                  end do
+              end if
+              call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                   smatl%nfvctr, smatl%smmm%nfvctrp, &
+                   smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
+              !!call f_free(cc)
+              call f_free(cc_check)
+
+              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                   fermi_check_new, energy_kernel_%matrix_compr(ilshift+1:))
+              ! Calculate S^-1/2 * K * S^-1/2^T
+              ! Since S^-1/2 is symmetric, don't use the transpose
+              istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+
+              call retransform_ext(iproc, nproc, smatl, &
+                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:))
+
+              !ebsp=ebsp/scale_factor+shift_value*sumn
+              !energy_kernel_%matrix_compr = energy_kernel_%matrix_compr/scale_factor + shift_value*ovrlp_%matrix_compr
+          end if
+
+          call f_free_ptr(chebyshev_polynomials)
+
+      !end do spin_loop
 
       if (iproc==0) then
           call yaml_sequence_close()
       end if
 
-      !!! This always takes the value for ispin=2... should be improved
-      call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
+      !!!!! This always takes the value for ispin=2... should be improved
+      !!call foe_data_set_real(foe_obj,"fscale",minval(fscale_ispin))
+      call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
       degree_sufficient=.true.
 
@@ -476,6 +572,7 @@ module foe
       if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
 
 
+      call f_free(sumn_allspins)
       call f_free(hamscal_compr)
       call f_free(fermi_check_compr)
       call f_free(kernel_tmp)
@@ -525,9 +622,10 @@ module foe
       type(matrices),intent(in) :: ham_mat, ovrlp_mat
 
       ! Local variables
-      integer :: iseg, ii, i, lwork, info
+      integer :: iseg, ii, i, lwork, info, ieval
       real(kind=mp),dimension(:,:,:),allocatable :: tempmat
       real(kind=mp),dimension(:),allocatable :: eval, work
+      !!real(mp) :: tt5, tt7
 
       call f_routine(id='get_minmax_eigenvalues')
 
@@ -560,7 +658,17 @@ module foe
       work = f_malloc(lwork,id='work')
       call sygv(1, 'n','l', ovrlp_smat%nfvctr, tempmat(1,1,1), ovrlp_smat%nfvctr, tempmat(1,1,2), ovrlp_smat%nfvctr, &
            eval(1), work(1), lwork, info)
-      !if (iproc==0) write(*,*) 'eval',eval
+      !!if (iproc==0) then
+      !!    tt5 = 0.d0
+      !!    tt7 = 0.d0
+      !!    do ieval=1,ovrlp_smat%nfvctr
+      !!        write(*,*) 'ieval',ieval,eval(ieval)
+      !!        if (ieval<=5) tt5 = tt5 + eval(ieval)
+      !!        if (ieval<=7) tt7 = tt7 + eval(ieval)
+      !!    end do 
+      !!    write(*,*) 'SUM of evals up to 5', tt5
+      !!    write(*,*) 'SUM of evals up to 7', tt7
+      !!end if
       if (iproc==0) call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
 
       call f_free(tempmat)
@@ -597,7 +705,7 @@ module foe
 
       ! Local variables
       integer :: iev, i, ispin, ilshift, npl, npl_min, ind
-      real(mp) :: dq, q, scale_factor, shift_value, factor
+      real(mp) :: dq, q, scale_factor, shift_value, factor, betax
       real(mp),dimension(:),allocatable :: charges
       type(matrices) :: kernel
       real(mp),dimension(1),parameter :: EF = 0.0_mp
@@ -606,7 +714,7 @@ module foe
       type(fermi_aux) :: f
       integer,parameter :: NPL_MAX = 10000
       integer,parameter :: NPL_STRIDE = 100
-      real(mp),dimension(:,:),pointer :: chebyshev_polynomials
+      real(mp),dimension(:,:,:),pointer :: chebyshev_polynomials
       real(mp),dimension(:),allocatable :: hamscal_compr
       type(f_progress_bar) :: bar
 
@@ -615,6 +723,8 @@ module foe
 
       kernel = matrices_null()
       kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
+
+      betax = foe_data_get_real(foe_obj,"betax")
 
       ! the occupation numbers...
       if (smatl%nspin==1) then
@@ -642,7 +752,7 @@ module foe
       ! Use kernel_%matrix_compr as workarray to save memory
       npl_min = 10
       ispin = 1 !hack
-      call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, NPL_MAX, NPL_STRIDE, &
+      call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, NPL_MAX, NPL_STRIDE, betax, &
            1, FUNCTION_ERRORFUNCTION, .false., 2.2_mp, 2.2_mp, 0, &
            smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr(ilshift+1:), &
            chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &

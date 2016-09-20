@@ -8,6 +8,175 @@
 # distribution.
 #
 
+AC_DEFUN([AX_FC_BUILD_SHARED],
+[dnl Try to find the flag to build shared objects.
+  AC_LANG_PUSH(Fortran)
+  AC_REQUIRE([AC_PROG_FC])
+  AC_REQUIRE([AX_FLAG_PIC])
+
+  AC_LANG_CONFTEST([
+subroutine test()
+  implicit none
+
+  write(*,*) "test"  
+end subroutine test])
+
+  AC_MSG_CHECKING([for option to create shared libraries with $FC])
+  ac_try='$FC $FCFLAGS $ax_fc_pic -c conftest.f90 -o conftest.o 1>&AC_FD_CC'
+  if AC_TRY_EVAL(ac_try); then
+    ac_try=""
+  else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.f90 >&AC_FD_CC
+    AC_MSG_WARN(Fortran compiler cannot compile subroutine.)
+  fi
+
+  f90_test_shared()
+  {
+    ac_try='$FC $FCFLAGS $[1] -Wl,-soname=libtest.so.0 -o libtest.so.0.0.0 conftest.o 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_try); then
+      ac_try=""
+      ax_fc_build_shared=$[1]
+    else
+      ax_fc_build_shared=""
+    fi
+  }
+
+  f90_test_shared "-shared"
+  if test -z "$ax_fc_build_shared" ; then
+   f90_test_shared "-qmkshrobj"
+  fi
+  if test -z "$ax_fc_build_shared" ; then
+   f90_test_shared "-dynamic"
+  fi
+  if test -z "$ax_fc_build_shared" ; then
+    ax_fc_build_shared="no"
+    AC_MSG_WARN(Fortran compiler cannot create shared library.)
+  else
+    AC_SUBST([FC_BUILD_SHARED], [$ax_fc_build_shared])
+    AC_MSG_RESULT([$ax_fc_build_shared])
+  fi
+  rm -f conftest.o libtest.so.0.0.0
+
+  AC_LANG_POP(Fortran)
+])
+
+AC_DEFUN([AX_CC_BUILD_SHARED],
+[dnl Try to find the flag to build shared objects.
+  AC_LANG_PUSH(C)
+  AC_REQUIRE([AC_PROG_CC])
+  AC_REQUIRE([AX_FLAG_PIC])
+
+  AC_LANG_CONFTEST([
+void test(int *a)
+{
+  if (a)
+    *a += 1;
+}])
+
+  AC_MSG_CHECKING([for option to create shared libraries with $CC])
+  ac_try='$CC $CFLAGS $ax_cc_pic -c conftest.c -o conftest.o 1>&AC_FD_CC'
+  if AC_TRY_EVAL(ac_try); then
+    ac_try=""
+  else
+    echo "configure: failed program was:" >&AC_FD_CC
+    cat conftest.c >&AC_FD_CC
+    AC_MSG_WARN(C compiler cannot compile function.)
+  fi
+
+  cc_test_shared()
+  {
+    ac_try='$CC $CFLAGS $[1] -Wl,-soname=libtest.so.0 -o libtest.so.0.0.0 conftest.o 1>&AC_FD_CC'
+    if AC_TRY_EVAL(ac_try); then
+      ac_try=""
+      ax_cc_build_shared=$[1]
+    else
+      ax_cc_build_shared=""
+    fi
+  }
+
+  cc_test_shared "-shared"
+  if test -z "$ax_cc_build_shared" ; then
+    cc_test_shared "-qmkshrobj"
+  fi
+  if test -z "$ax_cc_build_shared" ; then
+    cc_test_shared "-dynamic"
+  fi
+  if test -z "$ax_cc_build_shared" ; then
+    ax_cc_build_shared="no"
+    AC_MSG_WARN(C compiler cannot create shared library.)
+  else
+    AC_SUBST([CC_BUILD_SHARED], [$ax_cc_build_shared])
+    AC_MSG_RESULT([$ax_cc_build_shared])
+  fi
+  rm -f conftest.o libtest.so.0.0.0
+
+  AC_LANG_POP(C)
+])
+
+AC_DEFUN([AX_FC_RPATH],
+[dnl try to find the option flag to specify the rpath to the fortran compiler when linking.
+  AC_LANG_PUSH(Fortran)
+
+  f90_test_rpath()
+  {
+    LDFLAGS_SVG=$LDFLAGS
+    LDFLAGS="$LDFLAGS_SVG $[1]$[PWD]"
+    AC_LINK_IFELSE(AC_LANG_SOURCE([
+program test
+write(*,*) "test"
+end program test
+]), [ax_fc_rpath="$[1]"], [ax_fc_rpath="no"])
+    LDFLAGS=$LDFLAGS_SVG
+  }
+
+  AC_MSG_CHECKING([for option to specify rpath to $FC])
+  f90_test_rpath "-Wl,-rpath="
+  if test x"$ax_fc_rpath" = x"no" ; then
+    f90_test_rpath "-Wl,-rpath,"
+  fi
+  if test x"$ax_fc_rpath" = x"no" ; then
+    AC_MSG_WARN(Fortran compiler expand rpath.)
+  else
+    AC_SUBST([FC_RPATH], [$ax_fc_rpath])
+    AC_MSG_RESULT([$ax_fc_rpath])
+  fi
+  
+  AC_LANG_POP(Fortran)
+])
+
+AC_DEFUN([AX_CC_RPATH],
+[dnl try to find the option flag to specify the rpath to the c compiler when linking.
+  AC_LANG_PUSH(C)
+
+  c_test_rpath()
+  {
+    LDFLAGS_SVG=$LDFLAGS
+    LDFLAGS="$LDFLAGS_SVG $[1]$[PWD]"
+    AC_LINK_IFELSE(AC_LANG_SOURCE([
+int main(int argc, char **argv)
+{
+  return 0;
+}
+]), [ax_cc_rpath="$[1]"], [ax_cc_rpath="no"])
+    LDFLAGS=$LDFLAGS_SVG
+  }
+
+  AC_MSG_CHECKING([for option to specify rpath to $CC])
+  c_test_rpath "-Wl,-rpath="
+  if test x"$ax_cc_rpath" = x"no" ; then
+    c_test_rpath "-Wl,-rpath,"
+  fi
+  if test x"$ax_cc_rpath" = x"no" ; then
+    AC_MSG_WARN(C compiler expand rpath.)
+  else
+    AC_SUBST([CC_RPATH], [$ax_cc_rpath])
+    AC_MSG_RESULT([$ax_cc_rpath])
+  fi
+  
+  AC_LANG_POP(C)
+])
+
 # AX_DYNAMIC_LIBRARIES([DEFAULT = "no"])
 AC_DEFUN([AX_DYNAMIC_LIBRARIES],
 [dnl Produce dynamic libraries and executables.
@@ -18,8 +187,12 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
   dnl Test for library building tools.
   if test x"$ax_build_dynamic" = x"yes" ; then
     AC_REQUIRE([AX_FLAG_PIC])
-    if test -z "$ax_flag_pic" ; then
-      AC_MSG_WARN(["No available position-independent code flag, dynamic libraries disabled."])
+    AC_REQUIRE([AX_FC_BUILD_SHARED])
+    AC_REQUIRE([AX_CC_BUILD_SHARED])
+    AC_REQUIRE([AX_FC_RPATH])
+    AC_REQUIRE([AX_CC_RPATH])
+    if test "$ax_fc_pic" = "no" -o "$ax_cc_pic" = "no" -o "$ax_fc_build_shared" = "no" -o "$ax_fc_rpath" = "no" ; then
+      AC_MSG_WARN(["Dynamic libraries disabled (see reason before)."])
       ax_build_dynamic=no
     else
       dnl try to link with dependencies to see if its working.
@@ -34,7 +207,7 @@ AC_DEFUN([AX_DYNAMIC_LIBRARIES],
         LIBS_SVG=$LIBS
         LIBS="$ax_dyndeps_libs $LIBS"
         FCFLAGS_SVG="$FCFLAGS"
-        FCFLAGS="$ax_flag_pic $FCFLAGS"
+        FCFLAGS="$ax_fc_pic $FCFLAGS"
         AC_LINK_IFELSE([[
 subroutine testlib()
   call $2
@@ -48,20 +221,20 @@ end subroutine testlib
       fi
 
       if test "$ax_dynamic_deps" = "yes" ; then
-        case $CFLAGS   in *"$ax_flag_pic"*) ;; *) CFLAGS="$CFLAGS $ax_flag_pic";; esac
-        case $CXXFLAGS in *"$ax_flag_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_flag_pic";; esac
-        case $FCFLAGS  in *"$ax_flag_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_flag_pic";; esac
+        case $CFLAGS   in *"$ax_cc_pic"*) ;; *) CFLAGS="$CFLAGS $ax_cc_pic";; esac
+        case $CXXFLAGS in *"$ax_cc_pic"*) ;; *) CXXFLAGS="$CXXFLAGS $ax_cc_pic";; esac
+        case $FCFLAGS  in *"$ax_fc_pic"*) ;; *) FCFLAGS="$FCFLAGS $ax_fc_pic";; esac
     
-        eval "set x $ac_configure_args"
-        shift
-        ac_configure_args=
-        for ac_arg ; do
-          case $ac_arg in
-            CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
-            *) ac_configure_args="$ac_configure_args '$ac_arg'"
-          esac
-        done
-        ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
+dnl         eval "set x $ac_configure_args"
+dnl         shift
+dnl         ac_configure_args=
+dnl         for ac_arg ; do
+dnl           case $ac_arg in
+dnl             CFLAGS=* | CXXFLAGS=* | FCFLAGS=*) ;;
+dnl             *) ac_configure_args="$ac_configure_args '$ac_arg'"
+dnl           esac
+dnl         done
+dnl         ac_configure_args="$ac_configure_args 'CFLAGS=$CFLAGS' 'CXXFLAGS=$CXXFLAGS' 'FCFLAGS=$FCFLAGS'"
       else
         ax_build_dynamic="no"
       fi

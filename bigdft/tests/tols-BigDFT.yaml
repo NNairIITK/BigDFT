@@ -71,6 +71,8 @@ Keys to ignore:
  - noise
  - penalty
  - SCF criterion
+ - cavitation
+ - minres
  #- avg pot difference (actual/min)
  #- number of tasks
  #- IDs
@@ -848,27 +850,29 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 4.7e-7
+ eF: 4.5e-6
  guess for new ef: 4.7e-7
- Epot: 3.1e-10
- EH: 3.0e-10
- EXC: 4.1e-11
- EvXC: 4.1e-11
+ Epot: 5.0e-10
+ EH: 5.1e-10
+ EXC: 5.1e-11
+ EvXC: 6.1e-11
  Ekin: 1.1e-10
  D Tr(K): 7.1e-6
  difference from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
- Tr(K) : 1.3e-6
+ Tr(K) : 6.8e-5
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
  EBS: 2.1e-7
  EBS higher temperature: 1.1e-8
  difference: 2.1e-7
  Positions: 2.1e-9
- Omega: 1.2e-11
- Total charge: 1.3e-10
+ Omega: 1.8e-10
+ Total charge: 2.2e-10
  guess for new ef: 4.7e-07
- trace(KS): 1.4e-10
+ trace(KS): 2.2e-10
+ energy: 5.0e-11
+ relative difference: 7.7e-11
  Maxdiff for overlap calculation: 4.5e-08
  Maxdiff for transpose (checksum): 1.2e-10
 
@@ -2364,6 +2368,8 @@ MD-wf-Expl:
    - No. of OMP Threads
 
 QMMM:
+  Electric Dipole Moment (AU): 2.1e-5
+  Electric Dipole Moment (Debye): 1.1e-4
   EKS: 1.2e-11
 
 Cavity_H2OfsccsPCG:
@@ -2492,7 +2498,7 @@ largesystems_dnawater:
 
 H2Omultipoles_1:
   EBS: 9.8e-10
-  EBS higher temperature: 9.8e-10
+  EBS higher temperature: 1.4e-9
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2509,7 +2515,8 @@ H2Omultipoles_1:
   multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  difference: 1.3e-11
+  difference: 1.4e-9
+  relative difference: 6.1e-10
 
 H2Omultipoles_11:
   EBS: 9.3e-10

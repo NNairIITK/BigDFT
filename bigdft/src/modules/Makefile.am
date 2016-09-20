@@ -45,6 +45,8 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	module_tersoff.f90 \
 	module_bornmayerhugginstosifumi.f90 \
 	module_tdpot.f90 \
+	module_coulomb.f90 \
+	module_bazant.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
@@ -129,6 +131,8 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	BIGDFT_MATRICES.@MODULE_EXT@ \
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
 	MODULE_DFTBP.@MODULE_EXT@ \
+	MODULE_COULOMB.@MODULE_EXT@ \
+	MODULE_BAZANT.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
 	MODULE_TDPOT.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@ \
@@ -186,6 +190,8 @@ modules = module_types.@MODULE_EXT@ \
 	module_dftbp.@MODULE_EXT@ \
 	module_tdpot.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@ \
+	module_coulomb.@MODULE_EXT@ \
+	module_bazant.@MODULE_EXT@ \
 	swpotential.@MODULE_EXT@ \
 	pexsi_base.@MODULE_EXT@ \
 	pexsi_interfaces.@MODULE_EXT@ \
@@ -234,12 +240,15 @@ sparsematrix_wrappers.o: types.o interfaces.o
 gaussdaub.o: psp_projectors_base.o
 #module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
-		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sw_potential.o module_tdpot.o
+		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sw_potential.o module_tdpot.o \
+		module_coulomb.o module_bazant.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
 #module_tdpot.o: base.o defs.o
 #module_cp2k.o: base.o defs.o
 #module_morse_bulk.o: base.o
+module_coulomb.o: types.o
+module_bazant.o: types.o
 module_dftbp.o: types.o 
 module_tersoff.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
@@ -253,7 +262,7 @@ rhopotential.o: types.o interfaces.o communications.o bigdft_matrices.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
-locregs_init.o: types.o communications.o
+locregs_init.o: types.o communications.o sort.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
 sw_potential.o: atoms_data.o
 #pexsi.o also depends on pexsi_interfaces, but it is not known which one...

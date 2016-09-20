@@ -1540,7 +1540,7 @@ contains
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
          & GEOPT_VARIABLES, MD_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-         & MODE_VARIABLES, SECTIONS
+         & MODE_VARIABLES, SECTIONS, PLUGINS
     implicit none
     type(dictionary), pointer :: dict
     !local variables
@@ -1578,7 +1578,8 @@ contains
          .item. FRAG_VARIABLES,&
          .item. MINIMAL_FILE_KEY,&
          .item. F_IMPORT_KEY,&
-         .item. PY_HOOKS])
+         .item. PY_HOOKS,&
+         .item. PLUGINS])
     ! If we have mode // sections, then, we need to exclude all
     ! section keys, they will be checked later.
     nullify(mode)
@@ -1927,8 +1928,10 @@ contains
        if (nspin == 4 .or. nspin == 1) then
           norbu = norbu + min(norbsempty, norb_max - norbu)
        else if (nspin == 2) then
+          !!write(*,*) 'BEFORE: norbu, norbd, norbsempty, norb_max', norbu, norbd, norbsempty, norb_max
           norbu = norbu + min(norbsempty, norb_max - norbu)
           norbd = norbd + min(norbsempty, norb_max - norbd)
+          !!write(*,*) 'AFTER: norbu, norbd, norbsempty, norb_max', norbu, norbd, norbsempty, norb_max
        end if
     end if
 

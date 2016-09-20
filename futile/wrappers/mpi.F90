@@ -2618,9 +2618,11 @@ contains
     tcat=TCAT_SEND
     ! Synchronize the communication
     call f_timer_interrupt(tcat)
-
-    if(present(offset)) then
-       if (offset/=0)then
+    
+    !LG: this cannot be written like that (segfault on some compilers, see fortran spec)
+    !if(present(offset) .and. offset/=0)then
+    if (present(offset)) then
+       if (offset /=0) then
           tmpint = TRANSFER(buf, tmpint)
           call mpi_type_size(type, tmpsize, ierr)
           tmpint = tmpint + offset*tmpsize

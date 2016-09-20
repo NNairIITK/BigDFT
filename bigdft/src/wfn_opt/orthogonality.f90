@@ -1162,6 +1162,34 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
 
 END SUBROUTINE dimension_ovrlp
 
+subroutine zipped_offset(orbs,orbsv,jspin,nspin,jkpt,istart)
+  use module_types, only: orbitals_data
+  implicit none
+  integer, intent(in) :: jspin,nspin,jkpt
+  type(orbitals_data), intent(in) :: orbs,orbsv
+  integer, intent(out) :: istart
+  !local variables
+  integer :: norb,norbs,ncomp,ikpt,norbv,ispin
+
+  istart=0
+  ikpt=1
+  loop_kpt :do while(ikpt <= orbs%nkpts)
+     do ispin=1,nspin
+        !this part should be enhanced for real k-points
+        norb=orbs%norbu
+        norbv=orbsv%norbu 
+        if (ispin == 2) then
+           norb=orbs%norbd
+           norbv=orbsv%norbd
+        end if
+        call complex_components(orbs%nspinor,norb,norbs,ncomp)
+        if (ikpt==jkpt .and. jspin==ispin) exit loop_kpt
+        istart=istart+norbs*norbv
+     end do
+     ikpt=ikpt+1
+  end do loop_kpt
+end subroutine zipped_offset
+
 
 subroutine dimension_ovrlp_virt(nspin,orbs,orbsv,ndim_ovrlp)
   use module_base
