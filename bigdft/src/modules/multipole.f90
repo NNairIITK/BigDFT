@@ -949,6 +949,7 @@ module multipole
       real(kind=8),parameter :: sqrt3=sqrt(3.d0)
       !real(kind=8),parameter :: factor=sqrt(4.d0*pi/15.d0)
       real(kind=8),parameter :: factor=1.d0/sqrt3
+      real(kind=8),parameter :: factor3=3.d0*factor
       real(kind=8),dimension(3) :: Qr
 
       !!qq(1,1) = q(1)
@@ -962,11 +963,11 @@ module multipole
       !!qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
 
       qq(1,1) = factor*(-sqrt3*q(3)+q(5))
-      qq(2,1) = factor*q(1)
-      qq(3,1) = factor*q(4)
+      qq(2,1) = factor3*q(1)
+      qq(3,1) = factor3*q(4)
       qq(1,2) = qq(2,1)
       qq(2,2) = factor*(-sqrt3*q(3)-q(5))
-      qq(3,2) = factor*q(2)
+      qq(3,2) = factor3*q(2)
       qq(1,3) = qq(3,1)
       qq(2,3) = qq(3,2)
       qq(3,3) = factor*2.d0*sqrt3*q(3)

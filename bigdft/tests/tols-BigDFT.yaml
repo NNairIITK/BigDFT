@@ -857,29 +857,29 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 4.5e-6
+ eF: 7.9e-6
  guess for new ef: 4.7e-7
- Epot: 5.0e-10
- EH: 5.1e-10
- EXC: 5.1e-11
- EvXC: 6.1e-11
+ Epot: 9.0e-10
+ EH: 1.0e-9
+ EXC: 9.1e-11
+ EvXC: 1.3e-10
  Ekin: 1.1e-10
  D Tr(K): 7.1e-6
  difference from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
- Tr(K) : 6.8e-5
+ Tr(K) : 1.3e-4
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
  EBS: 2.1e-7
  EBS higher temperature: 1.1e-8
  difference: 2.1e-7
  Positions: 2.1e-9
- Omega: 1.8e-10
- Total charge: 2.2e-10
+ Omega: 3.2e-10
+ Total charge: 3.9e-10
  guess for new ef: 4.7e-07
- trace(KS): 2.2e-10
- energy: 5.0e-11
- relative difference: 7.7e-11
+ trace(KS): 3.9e-10
+ energy: 8.9e-11
+ relative difference: 1.4e-10
  Maxdiff for overlap calculation: 4.5e-08
  Maxdiff for transpose (checksum): 1.2e-10
 
@@ -1692,11 +1692,11 @@ FF_LENOSKY-fire:
 
 
 FF_LENOSKY-sdcg:
-  etot: 6.1e-11
+  etot: 6.4e-11
   maxval: 1.01e-9
-  Energy (Hartree): 4.7e-10
+  Energy (Hartree): 8.1e-10
   FORCES norm(Ha/Bohr): 5.3e-10
-  Force Norm (Hartree/Bohr): 1.6e-9
+  Force Norm (Hartree/Bohr): 2.7e-9
   Keys to ignore:
   - WARNINGS
 
@@ -1736,15 +1736,15 @@ FF_LENOSKY-bfgs:
   maxval: 1.0e-10
   fnrm2: 1.01e-10
   Energy: 2.29e-10
-  Energy (Hartree): 2.0e-11
-  Force Norm (Hartree/Bohr): 7.4e-11
+  Energy (Hartree): 2.2e-11
+  Force Norm (Hartree/Bohr): 8.1e-11
   Keys to ignore:
   - WARNINGS
 
 
 FF_LENOSKY-diis:
-  Energy (Hartree): 2.0e-8
-  Force Norm (Hartree/Bohr): 2.12e-07
+  Energy (Hartree): 7.2e-8
+  Force Norm (Hartree/Bohr): 7.7e-07
   FORCES norm(Ha/Bohr): 1.11e-6
   etot: 1.39e-7
   Keys to ignore:
@@ -1763,7 +1763,7 @@ FF_LJ-fire:
   - disablesym
 
 FF_LJ-sdcg:
-  Force Norm (Hartree/Bohr): 3.0e-9
+  Force Norm (Hartree/Bohr): 4.0e-9
   maxval: 1.1e-9
   Keys to ignore:
   - WARNINGS
@@ -1782,7 +1782,7 @@ FF_LJ-lbfgs:
   - disablesym
 
 FF_LJ-sqnm:
-  Force Norm (Hartree/Bohr): 8.3e-8
+  Force Norm (Hartree/Bohr): 1.7e-7
   Energy (Hartree): 9.0e-8
   Geometry: 1.01e-8
   fnrm2: 1.1e-6
@@ -1793,8 +1793,8 @@ FF_LJ-sqnm:
 
 
 FF_LJ-vssd:
-  Force Norm (Hartree/Bohr): 1.1e-07
-  Energy (Hartree): 1.7e-9
+  Force Norm (Hartree/Bohr): 1.6e-07
+  Energy (Hartree): 2.7e-9
   etot: 2.2e-4
   maxval: 3e-4
   last beta: 3.5e-2
@@ -2178,6 +2178,7 @@ igortho_44:
  exp accur: 1.0e-8
  int(V): 1.1e-3
  Err %: 0.10
+ Asymmetry of kernel: 1.1e-06
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -2511,7 +2512,7 @@ largesystems_dnawater:
 
 H2Omultipoles_1:
   EBS: 9.8e-10
-  EBS higher temperature: 9.8e-9
+  EBS higher temperature: 1.0e-8
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2528,13 +2529,13 @@ H2Omultipoles_1:
   multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  difference: 9.8e-9
-  relative difference: 4.4e-9
+  difference: 1.0e-8
+  relative difference: 4.5e-9
   Average noise forces: 1.0e-10
 
 H2Omultipoles_11:
   EBS: 9.3e-10
-  EBS higher temperature: 9.3e-10
+  EBS higher temperature: 8.7e-9
   EH: 1.1e-9
   EXC: 1.7e-10
   Ekin: 4.1e-10
@@ -2544,15 +2545,17 @@ H2Omultipoles_11:
   Charge analysis (charge / net charge): 1.1e-10
   Omega: 2.4e-11
   Total charge: 2.6e-11
-  Tr(K): 1.1e-07
+  Tr(K): 4.1e-07
   eF: 1.1e-07
   energy: 2.3e-11
   multiplicator for the confinement: 4.4e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
   Pseudo Fermi level for occupations: 2.1e-11
-  difference: 1.3e-11
+  difference: 8.7e-9
+  relative difference: 3.9e-09
   q2: 1.1e-09
+  Average noise forces: 1.0e-10
 
 H2Omultipoles_12:
   EBS: 1.2e-9
