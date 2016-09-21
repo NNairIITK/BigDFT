@@ -4615,6 +4615,8 @@ module communications_init
       integer, dimension(:), allocatable :: mykpts
       logical, dimension(:), allocatable :: GPU_for_comp
       integer, dimension(:,:), allocatable :: nvctr_par,norb_par !<for all the components and orbitals (with k-pts)
+
+      call f_routine(id='orbitals_communicators')
       
       !check of allocation of important arrays
       if (.not. associated(orbs%norb_par)) then
@@ -4924,6 +4926,8 @@ module communications_init
         
     !!$  orbs%npsidim=max((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
     !!$       sum(comms%ncntt(0:nproc-1)))
+
+      call f_release_routine()
     
     END SUBROUTINE orbitals_communicators
 
