@@ -2336,12 +2336,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
              !!     basis_orbs%norb, coeff_tmp, basis_orbs%norbp, 0.d0, ovrlp_coeff, norb)
              call dgemm('t', 'n', norbx, norbx, basis_overlap%nfvctrp, 1.d0, coeff(basis_overlap%isfvctr+1,ist), &
                   basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
-             do iorb=1,norbx
-                 do jorb=1,norbx
-                     write(2200+iproc,'(a,i3,3x,2i9,es13.5)') 'ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)', &
-                         ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)
-                 end do
-             end do
+             !!do iorb=1,norbx
+             !!    do jorb=1,norbx
+             !!        write(2200+iproc,'(a,i3,3x,2i9,es13.5)') 'ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)', &
+             !!            ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)
+             !!    end do
+             !!end do
           else
              call f_zero(ovrlp_coeff)
           end if

@@ -611,6 +611,7 @@ rotate_read1:
  eBS: 2.6e-11
  EvXC: 1.1e-10
  EXC: 1.1e-10
+ EH: 1.0e-9
  orthog_energy: 2.4e-11
  energy: 8.7e-11
  energydiff: 8.3e-11
@@ -1547,36 +1548,38 @@ O2spin_diag:
  delta: 1.1e-10
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 1.3e-7
- EH: 4.3e-6
- EXC: 8.2e-7
+ Atomic Forces (Ha/Bohr): 3.0e-7
+ EH: 8.9e-6
+ EXC: 1.7e-6
  Ekin: 4.8e-9
- Epot: 1.8e-6
- EvXC: 1.1e-6
+ Epot: 3.0e-6
+ EvXC: 2.2e-6
  Enl: 2.6e-9
  Tr(K): 2.81e-5
  D Tr(K): 1.01e-4
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
- EBS: 1.7e-6
+ EBS: 3.0e-6
  EBS higher temperature: 1.7e-6
  Omega: 2.3e-9
- energy: 1.1e-7
- Raw forces norm (Ha/Bohr): 1.2e-7
- Clean forces norm (Ha/Bohr): 1.3e-7
+ energy: 1.5e-7
+ Raw forces norm (Ha/Bohr): 2.9e-7
+ Clean forces norm (Ha/Bohr): 3.0e-7
  Average noise forces: 3.2e-8
- Total charge: 1.1e-7
+ Total charge: 3.2e-7
  decay length of error function: 1.1e-5
- difference: 1.9e-7
+ difference: 2.8e-6
  D Tr: 2.1e-7
- relative difference: 5.2e-8
- Energy (Hartree): 8.8e-8
- Force Norm (Hartree/Bohr): 1.8e-7
+ relative difference: 5.0e-7
+ Energy (Hartree): 1.5e-7
+ Force Norm (Hartree/Bohr): 4.3e-7
  Maxdiff for transpose (checksum): 2.4e-10
- trace(KS): 1.1e-7
+ trace(KS): 4.3e-7
  fnrm2: 1.01e-7
  spin occupations: 2.7e-05
+ exp accur: 1.0e-08
+ D: 2.1e-7
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 2.44e-5
