@@ -21,6 +21,7 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	geopt \
+	python \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \

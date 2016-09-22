@@ -100,7 +100,7 @@ contains
   subroutine runMix(obj, outs, subouts)
     type(run_objects), intent(in) :: obj
     type(state_properties), intent(out) :: outs
-    type(state_properties), dimension(size(obj%sections), intent(in) :: subouts
+    type(state_properties), dimension(size(obj%sections)), intent(in) :: subouts
 
     !...
   end subroutine runPost

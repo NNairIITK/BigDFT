@@ -169,4 +169,4 @@ chess/compile
 chess/depcomp
 chess/install-sh
 chess/missing
-
+.ipynb_checkpoints*/
