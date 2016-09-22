@@ -2034,10 +2034,10 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -0.2364521830517319 ]
-   LUMO energy                         :  [  0.3568623056984395 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.5933144887501713 ]
-   HOMO-LUMO gap (eV)                  :  [  16.14490900912481 ]
+   HOMO energy                         : -0.2364521830517319
+   LUMO energy                         :  0.3568623056984395
+   HOMO-LUMO gap (Ha)                  :  0.5933144887501713
+   HOMO-LUMO gap (eV)                  :  16.14490900912481
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:

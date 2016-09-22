@@ -37,7 +37,7 @@ program driver_single
                                     matrices_init, &
                                     matrix_chebyshev_expansion, &
                                     matrix_matrix_multiplication
-  use sparsematrix, only: check_deviation_from_unity_sparse, operation_using_dense_lapack, &
+  use sparsematrix, only: check_deviation_from_unity_sparse, &
                           get_minmax_eigenvalues, matrix_power_dense_lapack
   use sparsematrix_init, only: write_sparsematrix_info
   implicit none
@@ -51,7 +51,8 @@ program driver_single
   type(matrices),dimension(1) :: mat_out
   type(matrices),dimension(3) :: mat_check_accur
   integer :: ierr, nthread, blocksize, iproc, nproc, i
-  real(mp) :: exp_power, max_error, mean_error, eval_min, eval_max
+  real(mp) :: exp_power, max_error, mean_error
+  real(mp),dimension(1) :: eval_min, eval_max
   real(mp) :: max_error_rel, mean_error_rel, tt, tt_rel
   character(len=200) :: filename_in, filename_out, filename_out_matmul
   type(dictionary), pointer :: dict_timing_info
@@ -122,7 +123,7 @@ program driver_single
       call yaml_comment('Input matrix',hfill='-')
       !call yaml_mapping_open('Input matrix structure')
   end if
-  call sparse_matrix_and_matrices_init_from_file_bigdft(trim(filename_in), &
+  call sparse_matrix_and_matrices_init_from_file_bigdft('serial', trim(filename_in), &
        iproc, nproc, mpi_comm_world, smat_in, mat_in)
   if (iproc==0) then
       call write_sparsematrix_info(smat_in, 'Input matrix')
@@ -135,7 +136,7 @@ program driver_single
       call yaml_comment('Output matrix',hfill='-')
       !call yaml_mapping_open('Output matrix structure')
   end if
-  call sparse_matrix_init_from_file_bigdft(trim(filename_out), &
+  call sparse_matrix_init_from_file_bigdft('serial_text', trim(filename_out), &
        iproc, nproc, mpi_comm_world, smat_out, &
        init_matmul=.true., filename_mult=trim(filename_out_matmul))
   if (iproc==0) then
@@ -148,7 +149,8 @@ program driver_single
 
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, smat_in, mat_in, eval_min, eval_max, quiet=.true.)
+  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), -1, &
+       smat_in, mat_in, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
       call yaml_comment('Eigenvalue informations',hfill='-')
       call yaml_mapping_open('Eigenvalue properties')
@@ -218,7 +220,8 @@ program driver_single
       call yaml_comment('Do the same calculation using dense LAPACK',hfill='-')
   end if
   !call operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
-  call matrix_power_dense_lapack(iproc, nproc, exp_power, smat_in, smat_out, mat_in, mat_check_accur(3))
+  call matrix_power_dense_lapack(iproc, nproc, mpiworld(), -1, &
+       exp_power, smat_in, smat_out, mat_in, mat_check_accur(3))
   !!!call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat_check_accur(1), 'resultchebyshev.dat', binary=.false.)
   !!!call write_dense_matrix(iproc, nproc, mpi_comm_world, smat, mat_check_accur(3), 'resultlapack.dat', binary=.false.)
   max_error = 0.0_mp

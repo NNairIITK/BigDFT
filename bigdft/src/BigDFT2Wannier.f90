@@ -45,7 +45,6 @@ program BigDFT2Wannier
    real(kind=8) :: znorm,xnorm,ortho,ddot
    real(kind=8),parameter :: eps6=1.0d-6!, eps8=1.0d-8
    real(gp), dimension(:,:), pointer :: rxyz_old
-   real(gp), dimension(3) :: shift
    real(wp), allocatable :: psi_etsf(:,:),psi_etsfv(:),sph_har_etsf(:),psir(:),psir_re(:),psir_im(:),sph_daub(:)
    real(wp), allocatable :: psi_daub_im(:),psi_daub_re(:),psi_etsf2(:) !!,pvirt(:)
    real(wp), allocatable :: mmnk_v_re(:), mmnk_v_im(:)
@@ -178,9 +177,9 @@ program BigDFT2Wannier
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
    call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-      &   .false.,lzd%Glr,shift)
+      &   .false.,lzd%Glr)
    if (iproc == 0) &
-        & call print_atoms_and_grid(lzd%Glr, atoms, atoms%astruct%rxyz, shift, input%hx,input%hy,input%hz)
+        & call print_atoms_and_grid(lzd%Glr, atoms, atoms%astruct%rxyz, input%hx,input%hy,input%hz)
 
    ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
    call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&

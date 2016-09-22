@@ -329,7 +329,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+                   & orbs,iorb,ispinor,iorb_out, iiorb=orblist(iorb+orbs%isorb))
            else
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
@@ -448,7 +448,7 @@ end subroutine verify_file_presence
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
-subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift,iiorb)
   use module_base
   use module_types
   implicit none
@@ -459,7 +459,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   type(orbitals_data), intent(in) :: orbs
   character(len=*), intent(out) :: filename_out
   integer, intent(out) :: iorb_out
-  integer, intent(in), optional :: iiorb
+  integer, intent(in), optional :: iorb_shift,iiorb
   !local variables
   character(len=1) :: spintype,realimag
   character(len=4) :: f3
@@ -511,6 +511,8 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   !print *,"ikpt (filename_of_iorb) = ", ikpt
   !print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
 
+  if (present(iorb_shift)) iorb_out = iorb_out + iorb_shift
+
   if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
@@ -556,7 +558,7 @@ end subroutine wfn_filename
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
-subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
+subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iorb_shift,iiorb)
   use module_base
   use module_types
   use module_interfaces, only: filename_of_iorb
@@ -568,16 +570,24 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   !>on entry, it suggests the opening unit. On exit, returns the first valid value to which the unit can be associated
   integer, intent(inout) :: unitfile
   integer, intent(out) :: iorb_out
-  integer, intent(in), optional :: iiorb
+  integer, intent(in), optional :: iorb_shift,iiorb
   !local variables
   character(len=500) :: filename_out
 
   if(present(iiorb)) then
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+     if (present(iorb_shift)) then
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift=iorb_shift,iiorb=iiorb)
+     else
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb=iiorb)
+     end if
      !restore previous behaviour even though the wannier construction can be compromised
      !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   else
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+     if (present(iorb_shift)) then
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift=iorb_shift)
+     else
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+     end if
   end if
   call f_open_file(unitfile,file=filename_out,binary=lbin)
 
@@ -585,7 +595,7 @@ end subroutine open_filename_of_iorb
 
 
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi,iorb_shift)
   use module_types
   use module_base
   use yaml_output
@@ -600,12 +610,16 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
+  integer,intent(in),optional :: iorb_shift
   !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf,iorb_shift_
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
   unitwf=99
+
+  iorb_shift_ = 0
+  if (present(iorb_shift)) iorb_shift_ = iorb_shift
 
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
@@ -619,7 +633,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
            call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
-                & orbs,iorb,ispinor,iorb_out)
+                & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
            call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
                 at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  &
                 wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), &
@@ -2300,7 +2314,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
-                   & tmb%orbs,iorbp,ispinor,iorb_out,iforb)
+                   & tmb%orbs,iorbp,ispinor,iorb_out,iiorb=iforb)
                    !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
               ! read headers, reading lzd info directly into lzd_old, which is otherwise nullified
@@ -2308,8 +2322,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                    Lzd_old%Llr(ilr)%d%n1,Lzd_old%Llr(ilr)%d%n2,Lzd_old%Llr(ilr)%d%n3, &
                    Lzd_old%Llr(ilr)%ns1,Lzd_old%Llr(ilr)%ns2,Lzd_old%Llr(ilr)%ns3, lzd_old%hgrids, &
                    lstat, error, onwhichatom_tmp, Lzd_old%Llr(ilr)%locrad, Lzd_old%Llr(ilr)%locregCenter, &
-                   confPotOrder, confPotprefac, Lzd_old%Llr(ilr)%wfd%nvctr_c, Lzd_old%Llr(ilr)%wfd%nvctr_f, &
-                   ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat))
+                   confPotOrder, confPotprefac, nvctr_c=Lzd_old%Llr(ilr)%wfd%nvctr_c, nvctr_f=Lzd_old%Llr(ilr)%wfd%nvctr_f, &
+                   nat=ref_frags(ifrag_ref)%astruct_frg%nat, &
+                   rxyz_old=rxyz_old(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat))
                    !ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(1,isfat+1))
 
               ! in general this might point to a different tmb
@@ -3223,7 +3238,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                  full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
                  call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
-                      & orbs,iorbp,ispinor,iorb_out,iforb)
+                      & orbs,iorbp,ispinor,iorb_out,iiorb=iforb)
                       !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
                  !print *,'before crash',iorbp,trim(full_filename),iiorb,iforb

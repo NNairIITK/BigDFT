@@ -56,6 +56,7 @@ module public_keys
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
   character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
   character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
+  character(len = *), parameter :: RESET_DIIS_HISTORY = "reset_DIIS_history"
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
@@ -282,6 +283,7 @@ module public_keys
   character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
+  character(len=*), parameter :: DELTA_PNRM='delta_pnrm'
   character(len=*), parameter :: PEXSI_NPOLES='pexsi_npoles'
   character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
   character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
@@ -372,13 +374,21 @@ module public_enums
   integer, parameter :: BINARY=2
   integer, parameter :: ETSF=3
   integer, parameter :: CUBE=22
+  integer, parameter :: MPI_NATIVE=4 !<native (i.e. non-portable) MPI format
 
 
   !> Output wf parameters.
-  integer, parameter, public :: WF_FORMAT_NONE   = NONE
-  integer, parameter, public :: WF_FORMAT_PLAIN  = TEXT
-  integer, parameter, public :: WF_FORMAT_BINARY = BINARY
-  integer, parameter, public :: WF_FORMAT_ETSF   = ETSF
+  integer, parameter, public :: WF_FORMAT_NONE       = NONE
+  integer, parameter, public :: WF_FORMAT_PLAIN      = TEXT
+  integer, parameter, public :: WF_FORMAT_BINARY     = BINARY
+  integer, parameter, public :: WF_FORMAT_ETSF       = ETSF
+
+  !> Output matrix parameters.
+  integer, parameter, public :: MATRIX_FORMAT_NONE       = NONE
+  integer, parameter, public :: MATRIX_FORMAT_PLAIN      = TEXT
+  integer, parameter, public :: MATRIX_FORMAT_BINARY     = BINARY
+  integer, parameter, public :: MATRIX_FORMAT_ETSF       = ETSF
+  integer, parameter, public :: MATRIX_FORMAT_MPI_NATIVE = MPI_NATIVE
 
   !> Output grid parameters.
   ! with these options we would have

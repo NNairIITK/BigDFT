@@ -27,8 +27,8 @@ module io
   public :: plot_density
   public :: plot_locreg_grids
   public :: write_energies
-
   public :: io_files_exists
+  public :: get_sparse_matrix_format
 
   contains
 
@@ -115,11 +115,15 @@ module io
                         & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
                         & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
                         & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
-                        & at%astruct%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
-                        & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
+                        & at%astruct%nat,rxyz,&
+                        & Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
+                        & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyglob,&
+                        & Lzd%Llr(ilr)%wfd%keyvloc,Lzd%Llr(ilr)%wfd%keyvglob,&
                         & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
                         & Lzd%Llr(ilr)%wfd%keygloc(1:,Lzd%Llr(ilr)%wfd%nseg_c+1:), &
+                        & Lzd%Llr(ilr)%wfd%keyglob(1:,Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
+                        & Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),orbs%eval(iorb+orbs%isorb),&
                         & orbs%onwhichatom(iorb+orbs%isorb))
                      call f_close(unitwf)
@@ -314,7 +318,7 @@ module io
                      full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
     
                      call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
-                          & orbs,iorbp,ispinor,iorb_out,iforb)
+                          & orbs,iorbp,ispinor,iorb_out,iiorb=iforb)
     
                      !also what to do with eval? - at the moment completely arbitrary
                      call writeonewave_linear(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,&
@@ -324,10 +328,13 @@ module io
                         & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
                         & ref_frags(ifrag_ref)%astruct_frg%nat,rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),&
                         & Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
-                        & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
+                        & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyglob,&
+                        & Lzd%Llr(ilr)%wfd%keyvloc,Lzd%Llr(ilr)%wfd%keyvglob,&
                         & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
                         & Lzd%Llr(ilr)%wfd%keygloc(1:,Lzd%Llr(ilr)%wfd%nseg_c+1:), &
+                        & Lzd%Llr(ilr)%wfd%keyglob(1:,Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
+                        & Lzd%Llr(ilr)%wfd%keyvglob(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),-0.5d0, & !orbs%eval(iiorb),&
                         & onwhichatom_frag)
                         !& orbs%onwhichatom(iiorb)-isfat) ! only works if reading the rewriting fragment tmbs
@@ -1016,8 +1023,8 @@ module io
 
 
     subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,ns3,hx,hy,hz,locregCenter,&
-         locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keyg_c,keyv_c,  &
-         nseg_f,nvctr_f,keyg_f,keyv_f, &
+         locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keygloc_c,keyglob_c,keyvloc_c,keyvglob_c,  &
+         nseg_f,nvctr_f,keygloc_f,keyglob_f,keyvloc_f,keyvglob_f, &
          psi_c,psi_f,eval,onwhichatom)
       use module_base
       use yaml_output
@@ -1026,10 +1033,10 @@ module io
       integer, intent(in) :: unitwf,iorb,n1,n2,n3,ns1,ns2,ns3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
       real(gp), intent(in) :: hx,hy,hz,locrad,confPotprefac
       real(wp), intent(in) :: eval
-      integer, dimension(nseg_c), intent(in) :: keyv_c
-      integer, dimension(nseg_f), intent(in) :: keyv_f
-      integer, dimension(2,nseg_c), intent(in) :: keyg_c
-      integer, dimension(2,nseg_f), intent(in) :: keyg_f
+      integer, dimension(nseg_c), intent(in) :: keyvloc_c,keyvglob_c
+      integer, dimension(nseg_f), intent(in) :: keyvloc_f,keyvglob_f
+      integer, dimension(2,nseg_c), intent(in) :: keygloc_c,keyglob_c
+      integer, dimension(2,nseg_f), intent(in) :: keygloc_f,keyglob_f
       real(wp), dimension(nvctr_c), intent(in) :: psi_c
       real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
       real(gp), dimension(3,nat), intent(in) :: rxyz
@@ -1050,7 +1057,15 @@ module io
          do iat=1,nat
             write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
          enddo
+         ! SM: I would prefer first first nseg and then nvctr... do this later dur to legacy problems
          write(unitwf,*) nvctr_c, nvctr_f
+         write(unitwf,*) nseg_c, nseg_f
+         do iseg=1,nseg_c
+             write(unitwf,*) keygloc_c(:,iseg), keyglob_c(:,iseg), keyvloc_c(iseg), keyvglob_c(iseg)
+         end do
+         do iseg=1,nseg_f
+             write(unitwf,*) keygloc_f(:,iseg), keyglob_f(:,iseg), keyvloc_f(iseg), keyvglob_f(iseg)
+         end do
       else
          write(unitwf) iorb,eval
          write(unitwf) hx,hy,hz
@@ -1063,6 +1078,13 @@ module io
             write(unitwf) (rxyz(j,iat),j=1,3)
          enddo
          write(unitwf) nvctr_c, nvctr_f
+         write(unitwf) nseg_c, nseg_f
+         do iseg=1,nseg_c
+             write(unitwf) keygloc_c(1:2,iseg), keyglob_c(1:2,iseg), keyvloc_c(iseg), keyvglob_c(iseg)
+         end do
+         do iseg=1,nseg_f
+             write(unitwf) keygloc_f(1:2,iseg), keyglob_f(1:2,iseg), keyvloc_f(iseg), keyvglob_f(iseg)
+         end do
       end if
     
       n1p1=n1+1
@@ -1070,9 +1092,9 @@ module io
     
       ! coarse part
       do iseg=1,nseg_c
-         jj=keyv_c(iseg)
-         j0=keyg_c(1,iseg)
-         j1=keyg_c(2,iseg)
+         jj=keyvloc_c(iseg)
+         j0=keygloc_c(1,iseg)
+         j1=keygloc_c(2,iseg)
          ii=j0-1
          i3=ii/np
          ii=ii-i3*np
@@ -1091,9 +1113,9 @@ module io
     
       ! fine part
       do iseg=1,nseg_f
-         jj=keyv_f(iseg)
-         j0=keyg_f(1,iseg)
-         j1=keyg_f(2,iseg)
+         jj=keyvloc_f(iseg)
+         j0=keygloc_f(1,iseg)
+         j1=keygloc_f(2,iseg)
          ii=j0-1
          i3=ii/np
          ii=ii-i3*np
@@ -1394,7 +1416,10 @@ module io
 
     subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
            & ns_old1, ns_old2, ns_old3, hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &
-           & confPotOrder, confPotprefac, nvctr_c_old, nvctr_f_old, nat, rxyz_old)
+           & confPotOrder, confPotprefac, &
+           & nvctr_c, nvctr_f, nseg_c, nseg_f, &
+           & keygloc, keyglob, keyvloc, keyvglob, &
+           & nat, rxyz_old)
         use module_base
         use module_types
         !use internal_io
@@ -1415,10 +1440,13 @@ module io
         integer, intent(out) :: confPotOrder
         real(gp), intent(out) :: confPotprefac
         ! Optional arguments
-        integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
-        integer, intent(in), optional :: nat
-        real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-    
+        integer,intent(out),optional :: nseg_c, nvctr_c, nseg_f, nvctr_f
+        integer,dimension(:,:),pointer,intent(out),optional :: keygloc, keyglob
+        integer,dimension(:),pointer,intent(out),optional :: keyvloc, keyvglob
+        integer,intent(in),optional :: nat
+        real(gp),dimension(:,:),intent(out),optional :: rxyz_old
+        integer :: nseg_c_, nvctr_c_, nseg_f_, nvctr_f_ , iseg
+        integer,dimension(6) :: idummy
         integer :: i, iat, i_stat, nat_
         real(gp) :: rxyz(3)
     
@@ -1457,12 +1485,30 @@ module io
                  if (i_stat /= 0) return
               enddo
            end if
-           if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-              read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
+           if (present(nvctr_c) .and. present(nvctr_f)) then
+              read(unitwf,*,iostat=i_stat) nvctr_c, nvctr_f
               if (i_stat /= 0) return
            else
-              read(unitwf,*,iostat=i_stat) i, iat
-              if (i_stat /= 0) return
+              read(unitwf,*,iostat=i_stat) nvctr_c_, nvctr_f_
+           end if
+           if (present(nseg_c) .and. present(nseg_f) .and. &
+               present(keygloc) .and. present(keyglob) .and. &
+               present(keyvloc) .and. present(keyvglob)) then
+              read(unitwf,*,iostat=i_stat) nseg_c, nseg_f
+              keygloc = f_malloc_ptr((/2,nseg_c+nseg_f/),id='keygloc')
+              keyglob = f_malloc_ptr((/2,nseg_c+nseg_f/),id='keyglob')
+              keyvloc = f_malloc_ptr(nseg_c+nseg_f,id='keyvloc')
+              keyvglob = f_malloc_ptr(nseg_c+nseg_f,id='keyvglob')
+              do iseg=1,nseg_c+nseg_f
+                 read(unitwf,*,iostat=i_stat) keygloc(1:2,iseg), keyglob(1:2,iseg), keyvloc(iseg), keyvglob(iseg)
+                 if (i_stat /= 0) return
+              end do
+           else
+              read(unitwf,*,iostat=i_stat) nseg_c_, nseg_f_
+              do iseg=1,nseg_c_+nseg_f_
+                 read(unitwf,*,iostat=i_stat) idummy(1:6)
+                 if (i_stat /= 0) return
+              end do
            end if
         else
            read(unitwf,iostat=i_stat) iorb_old,eval
@@ -1495,12 +1541,30 @@ module io
                  if (i_stat /= 0) return
               enddo
            end if
-           if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-              read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
+           if (present(nvctr_c) .and. present(nvctr_f)) then
+              read(unitwf,iostat=i_stat) nvctr_c, nvctr_f
               if (i_stat /= 0) return
            else
-              read(unitwf,iostat=i_stat) i, iat
-              if (i_stat /= 0) return
+              read(unitwf,iostat=i_stat) nvctr_c_, nvctr_f_
+           end if
+           if (present(nseg_c) .and. present(nseg_f) .and. &
+               present(keygloc) .and. present(keyglob) .and. &
+               present(keyvloc) .and. present(keyvglob)) then
+              read(unitwf,*,iostat=i_stat) nseg_c, nseg_f
+              keygloc = f_malloc_ptr((/2,nseg_c+nseg_f/),id='keygloc')
+              keyglob = f_malloc_ptr((/2,nseg_c+nseg_f/),id='keyglob')
+              keyvloc = f_malloc_ptr(nseg_c+nseg_f,id='keyvloc')
+              keyvglob = f_malloc_ptr(nseg_c+nseg_f,id='keyvglob')
+              do iseg=1,nseg_c+nseg_f
+                 read(unitwf,*,iostat=i_stat) keygloc(1:2,iseg), keyglob(1:2,iseg), keyvloc(iseg), keyvglob(iseg)
+                 if (i_stat /= 0) return
+              end do
+           else
+              read(unitwf,*,iostat=i_stat) nseg_c_, nseg_f_
+              do iseg=1,nseg_c_+nseg_f_
+                 read(unitwf,*,iostat=i_stat) idummy(1:6)
+                 if (i_stat /= 0) return
+              end do
            end if
         end if
         lstat = .true.
@@ -2011,6 +2075,7 @@ module io
       real(kind=8),dimension(:),pointer :: ham_large, tmp_large
       real(kind=8) :: max_error, mean_error
       integer, dimension(1) :: power
+      character(len=128) :: sparse_format
     
       call f_routine(id='write_linear_matrices')
 
@@ -2020,11 +2085,13 @@ module io
       unitm=99
       binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
 
+      call get_sparse_matrix_format(iformat, sparse_format)
+
       if (write_sparse) then
           call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
-               at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%iatype, &
+               at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%shift, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
-               tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.bin'))
+               tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.dat'))
 
       end if
     
@@ -2034,8 +2101,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse'))
       end if
     
     
@@ -2045,8 +2112,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse')
       end if
     
     
@@ -2056,8 +2123,8 @@ module io
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse')
       end if
     
     
@@ -2146,8 +2213,8 @@ module io
           end if
 
           if (write_sparse) then
-              call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
-                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+              call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if
@@ -2551,7 +2618,7 @@ module io
       !!phi=0.d0
       !call to_zero(gdim,phi(1))
       !call Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, glr, llr, lphi, phi)
-      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspinor, nspin, glr, llr, lphi, phi)
+      call Lpsi_to_global2(iproc, ldim, gdim, 1, nspin, glr, llr, lphi, phi)
       
       write(num,'(i6.6)') orbitalNumber
       filename='grid_'//trim(num)
@@ -2743,6 +2810,22 @@ module io
     
         end subroutine write_iter
     end subroutine write_energies
+
+
+   subroutine get_sparse_matrix_format(iformat, sparse_format)
+     use module_base
+     implicit none
+     integer,intent(in) :: iformat
+     character(len=*),intent(out) :: sparse_format
+
+     if (mod(iformat,10) == MATRIX_FORMAT_PLAIN) then
+         sparse_format = 'serial_text'
+     else if (mod(iformat,10) == MATRIX_FORMAT_MPI_NATIVE) then
+         sparse_format = 'parallel_mpi-native'
+     else
+         call f_err_throw("unsupported value for 'iformat'")
+     end if
+   end subroutine get_sparse_matrix_format
 
 
 end module io

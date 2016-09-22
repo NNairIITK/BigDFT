@@ -1303,10 +1303,10 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -0.2744702876850845 ]
-   LUMO energy                         :  [  4.3214612985896017E-002 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.3176849006709805 ]
-   HOMO-LUMO gap (eV)                  :  [  8.644646156729053 ]
+   HOMO energy                         : -0.2744702876850845
+   LUMO energy                         :  4.3214612985896017E-002
+   HOMO-LUMO gap (Ha)                  :  0.3176849006709805
+   HOMO-LUMO gap (eV)                  :  8.644646156729053
  Total charge                          :  7.999979543332E+00
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin

@@ -4,6 +4,10 @@
    rmult: [5.0, 7.0]
    inputpsiid: linear
    disablesym: Yes
+ lin_kernel:
+   delta_pnrm: -1.0
+ perf:
+   mixing_after_inputguess: 1 #to make the test pass...
  #perf:
  #  ef_interpol_det: 0.10E-19
  #  mixing_after_inputguess: 2

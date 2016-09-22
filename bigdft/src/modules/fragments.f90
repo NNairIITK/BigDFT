@@ -490,7 +490,7 @@ contains
 
        call Lpsi_to_global2(bigdft_mpi%iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
             tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-            1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind:), gpsi(indg:))
+            1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind:), gpsi(indg:))
 
        call daub_to_isf(tmb%lzd%glr, w, gpsi(indg), psir(indr))
 

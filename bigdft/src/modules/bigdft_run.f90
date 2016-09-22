@@ -2662,7 +2662,7 @@ subroutine run_objects_update(runObj, dict)
 END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also
-subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
+subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, mem)
   use module_base, only: gp,f_memcpy,f_enumerator,f_int
   use bigdft_run
   use module_types
@@ -2674,7 +2674,6 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   type(run_objects), intent(inout) :: runObj
   integer, intent(in) :: iproc, nproc
   real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: rxyz
-  real(gp), dimension(3), intent(out) :: shift
   type(memory_estimation), intent(out) :: mem
 
   integer :: input_wf_format
@@ -2693,7 +2692,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, &
+       & nlpsp, runObj%rst%KSwfn%comms, &
        & ref_frags)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&

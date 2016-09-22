@@ -45,6 +45,7 @@ program chess_toolbox
    !!use multipole_base, only: lmax
    use sparsematrix_io, only: write_linear_coefficients, read_linear_coefficients
    !!use bigdft_run, only: bigdft_init
+   use matrix_operations, only: matrix_for_orthonormal_basis
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
@@ -83,21 +84,22 @@ program chess_toolbox
    real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found, found_a_fragment, found_icol, found_irow
-   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large, KS_large
+   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat, mat, ovrlp_large, KS_large, kernel_ortho
    type(matrices),dimension(1) :: ovrlp_minus_one_half
    type(matrices),dimension(:,:),allocatable :: multipoles_matrices
    type(sparse_matrix) :: smat_s, smat_m, smat_l, smat
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
-   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot
    character(len=20),dimension(:),pointer :: atomnames
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
-   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt
+   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt, tracediff, totdiff
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
+   character(len=1024) :: outfile_base, outfile_extension, matrix_format
    ! Presumably well suited colorschemes from colorbrewer2.org
    character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
                                                               '#1f78b4', &
@@ -201,6 +203,8 @@ program chess_toolbox
          !!   exit loop_getargs
          else if (trim(tatonam)=='solve-eigensystem') then
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_file)
@@ -213,6 +217,8 @@ program chess_toolbox
             solve_eigensystem = .true.
             exit loop_getargs
          else if (trim(tatonam)=='pdos') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
@@ -234,6 +240,8 @@ program chess_toolbox
             convert_matrix_format = .true.
         else if (trim(tatonam)=='calculate-selected-eigenvalues') then
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
@@ -254,6 +262,8 @@ program chess_toolbox
             read(fscale_,fmt=*,iostat=ierr) fscale
             calculate_selected_eigenvalues = .true.
         else if (trim(tatonam)=='kernel-purity') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
@@ -295,15 +305,15 @@ program chess_toolbox
    !!        call yaml_mapping_close()
    !!    end if
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(overlap_file), &
    !!         iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
    !!         init_matmul=.true.)
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(kernel_file), &
    !!         iproc, nproc, mpiworld(), smat_l, kernel_mat, &
    !!         init_matmul=.true.)
 
-   !!    call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+   !!    call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(hamiltonian_file), &
    !!         iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
    !!         init_matmul=.true.)
 
@@ -397,12 +407,14 @@ program chess_toolbox
 
    if (solve_eigensystem) then
 
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
             !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
 
@@ -447,14 +459,14 @@ program chess_toolbox
 
    if (calculate_pdos) then
        iunit = 99
-       if (iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr, &
             eval=eval_ptr)
        call f_close(iunit)
 
-       if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)!, iatype=iatype, ntypes=ntypes, atomnames=atomnames, &
             !on_which_atom=on_which_atom)
@@ -465,8 +477,8 @@ program chess_toolbox
        call uncompress_matrix_distributed2(iproc, smat_s, DENSE_PARALLEL, &
             ovrlp_mat%matrix_compr, ovrlp_mat%matrix(1:,1:,1))
 
-       if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       !if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
        hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_PARALLEL, id='hamiltonian_mat%matrix')
@@ -729,18 +741,34 @@ program chess_toolbox
            iconv = 2
        case ('bigdft_to_dense')
            iconv = 3
+       case ('binary_to_bigdft')
+           iconv = 4
+       case ('bigdft_to_binary')
+           iconv = 5
        case default
-           call f_err_throw("wrong value for conversion; possible are 'bigdft_to_ccs' and 'ccs_to_bigdft'")
+           call f_err_throw("wrong value for conversion; possible are &
+               &'bigdft_to_ccs',&
+               &'ccs_to_bigdft',&
+               &'bigdft_to_dense',&
+               &'bigdft_to_binary',&
+               &'binary_to_bigdft'")
        end select
 
        select case (iconv)
-       case (1,3)
-           call sparse_matrix_and_matrices_init_from_file_bigdft(trim(infile), &
+       case (1,3,5)
+           !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
+           call sparse_matrix_and_matrices_init_from_file_bigdft('serial_text', trim(infile), &
                 iproc, nproc, mpiworld(), &
                 smat, mat, init_matmul=.false.)
        case (2)
+           !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
            call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
                 mpiworld(), smat, mat, init_matmul=.false.)
+       case(4)
+           !if (iproc==0) call yaml_comment('Reading from file '//trim(infile),hfill='~')
+           call sparse_matrix_and_matrices_init_from_file_bigdft('parallel_mpi-native', trim(infile), &
+                iproc, nproc, mpiworld(), &
+                smat, mat, init_matmul=.false.)
        end select
        select case (iconv)
        case (1)
@@ -750,11 +778,30 @@ program chess_toolbox
            if (iproc==0) call ccs_matrix_write(trim(outfile), smat, row_ind, col_ptr, mat)
            call f_free_ptr(row_ind)
            call f_free_ptr(col_ptr)
-       case (2)
-           call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
-                mpiworld(), smat, mat, init_matmul=.false.)
-           call write_sparse_matrix(iproc, nproc, mpiworld(), &
-                smat, mat, trim(outfile))
+       case (2,4,5)
+           !!call sparse_matrix_and_matrices_init_from_file_ccs(trim(infile), iproc, nproc, &
+           !!     mpiworld(), smat, mat, init_matmul=.false.)
+           if (len(outfile)>1024) then
+               call f_err_throw('filename is too long')
+           end if
+
+           index_dot = index(outfile,'.',back=.true.)
+           outfile_base = outfile(1:index_dot-1)
+           outfile_extension = outfile(index_dot:)
+           select case(iconv)
+           case (2,4)
+               if (trim(outfile_extension)/='.txt') then
+                   call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
+               end if
+               call write_sparse_matrix('serial_text', iproc, nproc, mpiworld(), &
+                    smat, mat, trim(outfile_base))
+           case (5)
+               if (trim(outfile_extension)/='.mpi') then
+                   call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
+               end if
+               call write_sparse_matrix('parallel_mpi-native', iproc, nproc, mpiworld(), &
+                    smat, mat, trim(outfile_base))
+           end select
        case (3)
            call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
 
@@ -767,13 +814,13 @@ program chess_toolbox
 
    if (calculate_selected_eigenvalues) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(hamiltonian_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
        call matrices_init(smat_l, ovrlp_minus_one_half(1))
@@ -836,10 +883,10 @@ program chess_toolbox
 
    if (kernel_purity) then
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(overlap_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(trim(kernel_file), &
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
             iproc, nproc, mpiworld(), smat_l, kernel_mat, &
             init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 
@@ -858,6 +905,13 @@ program chess_toolbox
            read(iunit,*) fragment_atomnames(iat)
        end do
        call f_close(iunit)
+
+       ! Calculate K'=S^1/2*K*S^1/2
+       kernel_ortho = matrices_null()
+       kernel_ortho%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_ortho%matrix_compr')
+       call matrix_for_orthonormal_basis(iproc, nproc, mpiworld(), &
+            1020, smat_s, smat_l, &
+            ovrlp_mat, kernel_mat, 'plus', kernel_ortho%matrix_compr)
 
 
        ovrlp_large = matrices_null()
@@ -946,18 +1000,25 @@ program chess_toolbox
                 kernel_fragment(1,1), nfvctr_frag, 0.d0, ksk_fragment(1,1), nfvctr_frag)
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
+           tracediff = 0.0_mp
            do i=1,nfvctr_frag
                do j=1,nfvctr_frag
-                   tt = abs(kernel_fragment(j,i)-ksk_fragment(j,i))
-                   maxdiff = max(maxdiff,tt)
-                   meandiff = meandiff + tt
+                   tt = kernel_fragment(j,i)-ksk_fragment(j,i)
+                   maxdiff = max(maxdiff,abs(tt))
+                   meandiff = meandiff + abs(tt)
+                   if (i==j) then
+                       tracediff = tracediff + tt
+                   end if
                end do
            end do
+           totdiff = meandiff
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
            if (iproc==0) then
                call yaml_mapping_open('analyzing KSK-K')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('total deviation',totdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
            end if
 
@@ -970,19 +1031,54 @@ program chess_toolbox
 
            maxdiff = 0.0_mp
            meandiff = 0.0_mp
+           tracediff = 0.0_mp
            do i=1,nfvctr_frag
                do j=1,nfvctr_frag
-                   tt = abs(kernel_fragment(j,i)-tmpmat(j,i))
-                   maxdiff = max(maxdiff,tt)
-                   meandiff = meandiff + tt
+                   tt = kernel_fragment(j,i)-tmpmat(j,i)
+                   maxdiff = max(maxdiff,abs(tt))
+                   meandiff = meandiff + abs(tt)
+                   if (i==j) then
+                       tracediff = tracediff + tt
+                   end if
                end do
            end do
+           totdiff = meandiff
            meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
 
            if (iproc==0) then
                call yaml_mapping_open('analyzing (KS)^2-(KS)')
                call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('total deviation',totdiff,fmt='(es10.3)')
                call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_map('trace difference',tracediff,fmt='(es10.3)')
+               call yaml_mapping_close()
+           end if
+
+           call extract_fragment_submatrix(smmd, smat_l, kernel_ortho, nat_frag, nfvctr_frag, &
+                fragment_atom_id, fragment_supfun_id, kernel_fragment)
+           call gemm('n', 'n', nfvctr_frag, nfvctr_frag, nfvctr_frag, factor, kernel_fragment(1,1), nfvctr_frag, &
+                kernel_fragment(1,1), nfvctr_frag, 0.d0, tmpmat(1,1), nfvctr_frag)
+           maxdiff = 0.0_mp
+           meandiff = 0.0_mp
+           tracediff = 0.0_mp
+           do i=1,nfvctr_frag
+               do j=1,nfvctr_frag
+                   tt = kernel_fragment(j,i)-tmpmat(j,i)
+                   maxdiff = max(maxdiff,abs(tt))
+                   meandiff = meandiff + abs(tt)
+                   if (i==j) then
+                       tracediff = tracediff + tt
+                   end if
+               end do
+           end do
+           totdiff = meandiff
+           meandiff = meandiff/real(nfvctr_frag,kind=mp)**2
+           if (iproc==0) then
+               call yaml_mapping_open('analyzing (S^1/2KS^1/2)^2 - S^1/2KS^1/2')
+               call yaml_map('maximal deviation',maxdiff,fmt='(es10.3)')
+               call yaml_map('total deviation',totdiff,fmt='(es10.3)')
+               call yaml_map('average deviation',meandiff,fmt='(es10.3)')
+               call yaml_map('trace difference',tracediff,fmt='(es10.3)')
                call yaml_mapping_close()
            end if
 
@@ -1007,6 +1103,7 @@ program chess_toolbox
        call deallocate_matrices(kernel_mat)
        call deallocate_matrices(ovrlp_large)
        call deallocate_matrices(KS_large)
+       call deallocate_matrices(kernel_ortho)
        call f_free_str(len(fragment_atomnames),fragment_atomnames)
        call f_free(fragment_atom_id)
        call f_free(fragment_supfun_id)

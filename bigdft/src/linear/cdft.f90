@@ -707,8 +707,9 @@ subroutine calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,G
   allocate(confdatarrtmp(tmb%orbs%norbp))
   call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-  call small_to_large_locreg(bigdft_mpi%iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-       tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+  call small_to_large_locreg(bigdft_mpi%iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+       tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+       tmb%psi, tmb%ham_descr%psi)
 
   if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
 

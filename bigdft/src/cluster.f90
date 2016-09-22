@@ -23,7 +23,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        & XC_potential, communicate_density, copy_old_wavefunctions, &
        denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
-       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication
+       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication, &
+       writemywaves
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
@@ -97,7 +98,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !!type(DFT_wavefunction) :: tmb
   type(system_fragment), dimension(:), pointer :: ref_frags
   type(cdft_data) :: cdft
-  real(gp), dimension(3) :: shift
   real(dp), dimension(6) :: ewaldstr,xcstr
   real(gp), dimension(:,:), allocatable :: thetaphi,band_structure_eval,rxyz_tmp
   real(gp), dimension(:,:), pointer :: fdisp,fion,fpulay
@@ -249,7 +249,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      END SUBROUTINE direct_minimization
   end interface
   interface
-     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopotold,nlpsp,GPU,&
+     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
           energs,energy,fpulay,infocode,ref_frags,cdft, &
           fdisp, fion)
        use module_defs, only: gp,dp,wp
@@ -260,7 +260,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        integer,intent(in):: iproc, nproc
        type(atoms_data),intent(inout):: at
        type(input_variables),intent(in):: input
-       real(kind=8),dimension(3),intent(in) :: shift
        real(8),dimension(3,at%astruct%nat),intent(inout):: rxyz
        real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
        type(DFT_local_fields), intent(inout) :: denspot
@@ -388,18 +387,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   if(f_int(inputpsi) == INPUT_PSI_MEMORY_LINEAR) then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters,&
+         KSwfn%comms,ref_frags,denspot=denspot,locregcenters=locregcenters,&
          inwhichlocreg_old=tmb_old%orbs%inwhichlocreg,onwhichatom_old=tmb_old%orbs%onwhichatom,&
          norb_par_ref=tmb_old%orbs%norb_par, norbu_par_ref=tmb_old%orbs%norbu_par, norbd_par_ref=tmb_old%orbs%norbd_par)
   else if(inputpsi == 'INPUT_PSI_LINEAR_AO' .or. inputpsi == 'INPUT_PSI_DISK_LINEAR') then
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,.false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot=denspot,locregcenters=locregcenters)
+         KSwfn%comms,ref_frags,denspot=denspot,locregcenters=locregcenters)
   else
     call system_initialization(iproc,nproc,.true.,inputpsi,input_wf_format,&
          & .false.,in,atoms,rxyz,GPU%OCLconv,&
          KSwfn%orbs,tmb%npsidim_orbs,tmb%npsidim_comp,tmb%orbs,KSwfn%Lzd,tmb%Lzd,nlpsp,&
-         KSwfn%comms,shift,ref_frags,denspot=denspot)
+         KSwfn%comms,ref_frags,denspot=denspot)
   end if
 
   ! Ugly here to be moved elsewhere.
@@ -708,13 +707,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
        denspot%V_ext,denspot%pkernel,denspot%psoffset)
   !Calculate effective ionic potential, including counter ions if any.
-  call createEffectiveIonicPotential(iproc,(iproc == 0),in,atoms,rxyz,shift,&
+  call createEffectiveIonicPotential(iproc,(iproc == 0),in,atoms,rxyz,atoms%astruct%shift,&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,denspot%rho_ion,in%elecfield,denspot%psoffset)
   call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%mesh%ndims(1), 1,&
        denspot%dpbox%mesh%ndims(2), &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-       denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3), shift, verbosity=1, &
+       denspot%dpbox%mesh%hgrids(1),denspot%dpbox%mesh%hgrids(2),denspot%dpbox%mesh%hgrids(3), atoms%astruct%shift, verbosity=1, &
        ixc=in%ixc, lzd=tmb%lzd, pot=denspot%V_ext, &
        rxyz=rxyz, ixyz0=in%plot_mppot_axes, write_directory=trim(in%dir_output))
   call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
@@ -862,7 +861,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      ! Allocation of array for Pulay forces (only needed for linear version)
      fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
 
-     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,shift,&
+     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
           fdisp,fion)
 

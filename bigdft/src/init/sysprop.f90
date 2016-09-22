@@ -11,7 +11,7 @@
 !> Initialize the objects needed for the computation: basis sets, allocate required space
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,OCLconv,&
-     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
+     orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,&
      ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
      norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
@@ -44,7 +44,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(local_zone_descriptors), intent(inout) :: Lzd, Lzd_lin
   type(DFT_PSP_projectors), intent(out) :: nlpsp
   type(comms_cubic), intent(out) :: comms
-  real(gp), dimension(3), intent(out) :: shift  !< shift on the initial positions
   !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(system_fragment), dimension(:), pointer :: ref_frags
   real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
@@ -84,13 +83,13 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Determine size alat of overall simulation cell and shift atom positions
   ! then calculate the size in units of the grid space
   call system_size(atoms,rxyz,in%crmult,in%frmult,&
-       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),OCLconv,Lzd%Glr,shift)
+       Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),OCLconv,Lzd%Glr)
   if (iproc == 0 .and. dump) &
-       & call print_atoms_and_grid(Lzd%Glr, atoms, rxyz, shift, &
+       & call print_atoms_and_grid(Lzd%Glr, atoms, rxyz, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
   if (present(locregcenters)) then
       do iat=1,atoms%astruct%nat
-          locregcenters(1:3,iat)=locregcenters(1:3,iat)-shift(1:3)
+          locregcenters(1:3,iat)=locregcenters(1:3,iat)-atoms%astruct%shift(1:3)
           if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1+1)*lzd%hgrids(1) .or. &
               locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2+1)*lzd%hgrids(2) .or. &
               locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3+1)*lzd%hgrids(3)) then

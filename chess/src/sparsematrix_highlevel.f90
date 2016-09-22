@@ -204,13 +204,14 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_data_ccs
 
 
-    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat, &
+    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, mat, &
                init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
 
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
@@ -239,8 +240,14 @@ module sparsematrix_highlevel
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
 
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
+          call f_err_throw("wrong value of 'mode'")
+      end if
+
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+      ! This is necessary to get the values in val, even though the matrix 
+      ! is then read once again in sparse_matrix_init_from_file_bigdft
+      call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
@@ -252,7 +259,7 @@ module sparsematrix_highlevel
           if (.not.present(filename_mult)) then
               call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
           end if
-          !call sparse_matrix_init_from_file_bigdft(filename_mult, iproc, nproc, comm, smat_mult, init_matmul=.false.)
+          !call sparse_matrix_init_from_file_bigdft(mode, filename_mult, iproc, nproc, comm, smat_mult, init_matmul=.false.)
       end if
 
 
@@ -261,9 +268,9 @@ module sparsematrix_highlevel
       !!     init_matmul=init_matmul_)!, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
 
       if (init_matmul_) then
-          call sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat, init_matmul_, filename_mult)
+          call sparse_matrix_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, init_matmul_, filename_mult)
       else
-          call sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat, init_matmul_)
+          call sparse_matrix_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, init_matmul_)
       end if
 
       ! Generate the matrices type
@@ -280,12 +287,14 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
 
 
-    recursive subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat, init_matmul, filename_mult)
+    recursive subroutine sparse_matrix_init_from_file_bigdft(mode, filename, iproc, nproc, comm, &
+                         smat, init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
 
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
@@ -311,14 +320,18 @@ module sparsematrix_highlevel
           init_matmul_ = .false.
       end if
 
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
+          call f_err_throw("wrong value of 'mode'")
+      end if
+
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+      call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
       if (init_matmul_) then
           if (.not.present(filename_mult)) then
               call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
           end if
-          call sparse_matrix_init_from_file_bigdft(filename_mult, iproc, nproc, comm, smat_mult, init_matmul=.false.)
+          call sparse_matrix_init_from_file_bigdft(mode, filename_mult, iproc, nproc, comm, smat_mult, init_matmul=.false.)
       end if
 
       ! Create the sparse_matrix structure
@@ -342,11 +355,12 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_file_bigdft
 
 
-    subroutine matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat)
+    subroutine matrices_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, mat)
       use sparsematrix_io, only: read_sparse_matrix
       implicit none
     
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(in) :: smat
@@ -359,9 +373,13 @@ module sparsematrix_highlevel
       real(kind=mp),dimension(:),pointer :: val
     
       call f_routine(id='matrices_init_from_file_bigdft')
+
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
+          call f_err_throw("wrong value of 'mode'")
+      end if
     
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+      call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
       ! Check that it is consistent with the provided sparse matrix type
       if (nspin/=smat%nspin) then
@@ -419,7 +437,7 @@ module sparsematrix_highlevel
 
       smmd = sparse_matrix_metadata_null()
       call read_sparse_matrix_metadata(filename, smmd%nfvctr, smmd%nat, smmd%ntypes, &
-           smmd%units, smmd%geocode, smmd%cell_dim, smmd%nzatom, smmd%nelpsp, &
+           smmd%units, smmd%geocode, smmd%cell_dim, smmd%shift, smmd%nzatom, smmd%nelpsp, &
            smmd%atomnames, smmd%iatype, smmd%rxyz, smmd%on_which_atom)
 
     end subroutine sparse_matrix_metadata_init_from_file
