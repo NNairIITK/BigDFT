@@ -516,7 +516,7 @@ module sparsematrix
           !$omp shared(smat, lmat, issegstartx, issegendx, idir, icheck, isshift, ilshift, isoffset_tg, iloffset_tg) &
           !$omp shared(smat_in, lmat_in, smat_out, lmat_out) &
           !$omp private(isseg, isstart, isend, ilstart, ilend, iostart, ioend) &
-          !$omp private(isoffset, iloffset, iscostart, ilcostart, ilength) &
+          !$omp private(isoffset, iloffset, iscostart, ilcostart, ilength,ilseg,i) &
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=issegstartx,issegendx

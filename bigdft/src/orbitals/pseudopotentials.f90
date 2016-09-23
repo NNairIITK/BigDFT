@@ -334,6 +334,7 @@ module pseudopotentials
 
     subroutine update_psp_dict(dict,type)
       use yaml_output, only: yaml_warning
+      use yaml_strings
       implicit none
       character(len=*), intent(in) :: type
       type(dictionary), pointer :: dict
@@ -356,13 +357,12 @@ module pseudopotentials
             !Read the PSP file and merge to dict
             if (trim(str) /= TYPE_LIST) then
                call psp_file_merge_to_dict(dict, key, filename = trim(str))
+               if (PSPXC_KEY .notin. tmp) &
+                    call yaml_warning("Pseudopotential file '"+str+ &
+                    "' not found. Fallback to file '"+key+&
+                    "' or hard-coded pseudopotential.")
             else
                call psp_file_merge_to_dict(dict, key, lstring = dict // key)
-            end if
-            if (PSPXC_KEY .notin. tmp) then
-               call yaml_warning("Pseudopotential file '" // trim(str) // &
-                    "' not found. Fallback to file '" // trim(key) // &
-                    "' or hard-coded pseudopotential.")
             end if
          end if
          exists = PSPXC_KEY .in. dict // key

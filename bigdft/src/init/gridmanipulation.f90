@@ -15,6 +15,7 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
    use module_base
    use module_types
    use yaml_strings, only: yaml_toa
+   use locregs
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
@@ -233,7 +234,6 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
       nfl3=n3/2
       nfu3=n3/2
    end if
-
    !assign the values
    Glr%geocode=atoms%astruct%geocode
    Glr%d%n1  =n1  

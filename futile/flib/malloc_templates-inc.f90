@@ -718,20 +718,25 @@ subroutine d1_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   !local variables
   include 'allocate-profile-inc.f90' 
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
 end subroutine d1_ptr
 
-subroutine d1_ptr_free(array)
+subroutine d1_ptr_free(array,shared)
   use metadata_interfaces, metadata_address => getdp1ptr
   implicit none
   double precision, dimension(:), pointer, intent(inout) :: array
+  logical, intent(in), optional :: shared
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
+  include 'deallocate-simgrid-inc.f90' 
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d1_ptr_free
@@ -779,20 +784,25 @@ subroutine d2_ptr(array,m)
   use metadata_interfaces, metadata_address => getdp2ptr
   implicit none
   type(malloc_information_ptr), intent(in) :: m
+  double precision :: d
+  type(c_ptr) :: p
   double precision, dimension(:,:), pointer, intent(inout) :: array
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
 end subroutine d2_ptr
 
-subroutine d2_ptr_free(array)
+subroutine d2_ptr_free(array,shared)
   use metadata_interfaces, metadata_address => getdp2ptr
   implicit none
   double precision, dimension(:,:), pointer, intent(inout) :: array
+  logical, intent(in), optional :: shared
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
+  include 'deallocate-simgrid-inc.f90' 
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d2_ptr_free
@@ -825,20 +835,25 @@ subroutine d3_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
 end subroutine d3_ptr
 
-subroutine d3_ptr_free(array)
+subroutine d3_ptr_free(array, shared)
   use metadata_interfaces, metadata_address => getdp3ptr
   implicit none
   double precision, dimension(:,:,:), pointer, intent(inout) :: array
+  logical, intent(in), optional :: shared
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
+  include 'deallocate-simgrid-inc.f90' 
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d3_ptr_free
@@ -916,20 +931,25 @@ subroutine d4_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
 end subroutine d4_ptr
 
-subroutine d4_ptr_free(array)
+subroutine d4_ptr_free(array,shared)
   use metadata_interfaces, metadata_address => getdp4ptr
   implicit none
   double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
+  logical, intent(in), optional :: shared
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
+  include 'deallocate-simgrid-inc.f90' 
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d4_ptr_free
@@ -939,8 +959,11 @@ subroutine d5_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
@@ -948,12 +971,14 @@ subroutine d5_ptr(array,m)
   include 'allocate-inc.f90'
 end subroutine d5_ptr
 
-subroutine d5_ptr_free(array)
+subroutine d5_ptr_free(array,shared)
   use metadata_interfaces, metadata_address => getdp5ptr
   implicit none
   double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
+  logical, intent(in), optional :: shared
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
+  include 'deallocate-simgrid-inc.f90' 
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d5_ptr_free
@@ -963,8 +988,11 @@ subroutine d6_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
@@ -972,12 +1000,14 @@ subroutine d6_ptr(array,m)
   include 'allocate-inc.f90'
 end subroutine d6_ptr
 
-subroutine d6_ptr_free(array)
+subroutine d6_ptr_free(array,shared)
   use metadata_interfaces, metadata_address => getdp6ptr
   implicit none
   double precision, dimension(:,:,:,:,:,:), pointer, intent(inout) :: array
+  logical, intent(in), optional :: shared
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
+  include 'deallocate-simgrid-inc.f90' 
   include 'deallocate-inc.f90'
   nullify(array)
 end subroutine d6_ptr_free

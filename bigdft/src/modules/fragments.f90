@@ -190,12 +190,13 @@ contains
           do jtyp=1,astruct%ntypes
              if (astruct%atomnames(jtyp)==frag%astruct_env%atomnames(ityp)) exit
           end do
-          if (jtyp==astruct%ntypes+1) then
+          ! if it's a ghost atom 'X' then we don't expect it to be in full structure
+          if (jtyp==astruct%ntypes+1 .and. (trim(frag%astruct_env%atomnames(ityp))/='X')) then
              print*, 'Error in fragment_init_orbitals, atom type ',frag%astruct_env%atomnames(ityp),&
                   ' does not exist in full structure'
              stop
           end if
-          frag%nbasis_env=frag%nbasis_env+input%lin%norbsPerType(jtyp)
+          if (trim(frag%astruct_env%atomnames(ityp))/='X') frag%nbasis_env=frag%nbasis_env+input%lin%norbsPerType(jtyp)
        end do
 
     else
@@ -311,7 +312,7 @@ contains
        do jtyp=1,astruct_full%ntypes
           if (astruct_full%atomnames(jtyp)==astruct%atomnames(ityp)) exit
        end do
-       if (jtyp==astruct_full%ntypes+1) then
+       if (jtyp==astruct_full%ntypes+1 .and. trim(astruct%atomnames(ityp))/='X') then
           print*, 'Error in fragment_init_orbitals, atom type ',astruct%atomnames(ityp),' does not exist in full structure'
           stop
        end if

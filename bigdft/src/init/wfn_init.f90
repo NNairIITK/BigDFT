@@ -433,7 +433,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         end do
         
         !correct the occupation numbers wrt fermi level
-        call evaltoocc(iproc,nproc,.false.,Tel,orbse,occopt)
+        call evaltoocc(iproc,nproc,.false.,Tel,orbse,occopt,norbu=orbs%norbu,norbd=orbs%norbd)
 
      end if
 

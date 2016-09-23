@@ -7,7 +7,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  logical, intent(in), optional :: profile
+  logical, intent(in), optional :: profile, shared
   character(len=*), intent(in), optional :: id,routine_id
   !local variables
   !integer(f_integer) :: lgt
@@ -41,3 +41,6 @@
   end if
 
   if(present(profile)) m%profile=profile
+
+  if(present(shared)) m%shared=shared
+

@@ -141,6 +141,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
         at,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,rxyz,in%nspin,&
         VTwfn%psi, max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp))
 
+   if (bigdft_mpi%nproc > 1) call mpiallred(Vtwfn%orbs%eval,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
    !if(iproc==0) call yaml_map('Orthogonality to occupied psi',.true.)
    !if(iproc==0) write(*,'(1x,a)',advance="no") "Orthogonality to occupied psi..."
 
@@ -1490,7 +1492,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    mask=f_malloc(ob%orbs%norbp,id='mask')
    chosen=.false.
    binary=.false.
-   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0)
+   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0,&
+        id='Orbital restart')
    read_loop: do while(ket_next(it))
       mask(it%iorbp)=.false.
       !first check if the file of the virtual wavefunction is present
