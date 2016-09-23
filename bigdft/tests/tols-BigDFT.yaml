@@ -1546,6 +1546,8 @@ O2spin_diag:
  Force Norm (Hartree/Bohr): 1.7e-6
  Maxdiff for transpose (checksum): 5.9e-11
  delta: 1.1e-10
+ Fermi Energy: 1.8e-09
+ Suggested Fermi Level: 1.8e-09
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7

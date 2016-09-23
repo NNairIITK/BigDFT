@@ -48,7 +48,7 @@
      nbasis: 9
      ao_confinement: 2.2e-2
      confinement: 2.2e-2
-     rloc: 5.5
+     rloc: 6.0
      rloc_kernel: 8.0
      rloc_kernel_foe: 15.0
  ig_occupation:
