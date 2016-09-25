@@ -3080,127 +3080,187 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   
   ! Local variables
   type(foe_data) :: foe_obj
-  real(kind=8) :: dq, ebs, tt
+  real(kind=8) :: dq, ebs, tt, qq
   real(kind=8) :: e_homo, e_lumo
-  integer :: ispin, norder_taylor, ind, iorb, norb, ntmb
+  integer :: ispin, norder_taylor, ind, iorb, norb, ntmb, iqq, iispin, jspin
   type(matrices),dimension(2) :: kernel
-  logical,dimension(input%nspin) :: calculation_possible
+  logical :: calculation_possible, calculation_possible_all
+  integer,dimension(input%nspin) :: ntmb_spin
+  real(kind=8),dimension(input%nspin) :: e_homo_spin, e_lumo_spin
+  logical,dimension(input%nspin) :: calculate_spin_channels
 
   if (iproc==0) call yaml_comment('FOE calculation for HOMO-LUMO analysis',hfill='=')
 
   ! Check whether the gap calculation is possible.
   ! This is the case if there are more support functions than occupied orbitals.
   if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
-  calculation_possible(1:input%nspin) = .true.
+  calculation_possible = .true.
+  calculation_possible_all = .true.
   do ispin=1,input%nspin
-      if (ispin==1) then
-          norb = orbs_KS%norbu
-          ntmb = tmb%orbs%norbu
-      else if (ispin==2) then
-          norb = orbs_KS%norbd
-          ntmb = tmb%orbs%norbd
-      end if
-      if (ntmb<=norb) then
-          calculation_possible(ispin) = .false.
-      end if
-      if (iproc==0) then
-          call yaml_mapping_open('Checking individual spin component')
-          call yaml_map('ispin',ispin)
-          call yaml_map('norb',norb)
-          call yaml_map('ntmb',ntmb)
-          call yaml_map('Calculation possible',calculation_possible(ispin))
-          call yaml_mapping_close()
-      end if
-  end do
-  if (iproc==0) then
-      call yaml_map('Calculation possible',all(calculation_possible))
-      call yaml_mapping_close()
-  end if
-                      
-  if (all(calculation_possible)) then
-
-      ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
-      ! systems of one half electron for open shell systems.
-      !!if (input%nspin==1) then
-          dq = 1.d0
-      !!else if (input%nspin==2) then
-      !!    dq = 0.5d0
+      !!if (ispin==1) then
+      !!    norb = orbs_KS%norbu
+      !!    ntmb = tmb%orbs%norbu
+      !!else if (ispin==2) then
+      !!    norb = orbs_KS%norbd
+      !!    ntmb = tmb%orbs%norbd
       !!end if
-
-      ! determine the HOMO
-      if (iproc==0) call yaml_mapping_open('calculate HOMO kernel')
-      kernel(1) = matrices_null()
-      kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
-      foe_obj = foe_data_null()
-      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
       !!do ispin=1,input%nspin
-      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)-dq,ispin)
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)-dq,1)
+          !!qq_spin(ispin) = 0.d0
+          qq = 0.d0
+          if (ispin==1) then
+              !!ntmb_spin(ispin) = tmb%orbs%norbu
+              ntmb = tmb%orbs%norbu
+              do iorb=1,orbs_KS%norbu
+                  !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
+                  qq = qq + orbs_KS%occup(iorb)
+              end do
+          else if (ispin==2) then
+              !ntmb_spin(ispin) = tmb%orbs%norbd
+              ntmb = tmb%orbs%norbd
+              do iorb=orbs_KS%norbu+1,orbs_KS%norbu+orbs_KS%norbd
+                  !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
+                  qq = qq + orbs_KS%occup(iorb)
+              end do
+          end if
       !!end do
-      call foe_data_set_real(foe_obj,"fscale",1.d-2)
-      norder_taylor = input%lin%order_taylor
-      !call fermi_operator_expansion_new(iproc, nproc, &
-      !     ebs, &
-      !     .true., 2, &
-      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
-      call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
-      !call fermi_operator_expansion(iproc, nproc, &
-      !     ebs, norder_taylor, input%lin%max_inversion_error, &
-      !     .true., 2, &
-      !     'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
-      !do ispin=1,input%nspin
-          !e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
-          e_homo = foe_data_get_real(foe_obj,"ef",1)
-      !end do
-      call foe_data_deallocate(foe_obj)
-      if (iproc==0) call yaml_mapping_close()
-
-      ! determine the LUMO
-      if (iproc==0) call yaml_mapping_open('calculate LUMO kernel')
-      kernel(2) = matrices_null()
-      kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
-      foe_obj = foe_data_null()
-      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
-      !!do ispin=1,input%nspin
-      !!    call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)+dq,ispin)
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+dq,1)
-      !!end do
-      call foe_data_set_real(foe_obj,"fscale",1.d-2)
-      norder_taylor = input%lin%order_taylor
-      !call fermi_operator_expansion_new(iproc, nproc, &
-      !     ebs, &
-      !     .true., 2, &
-      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
-      call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
-      !call fermi_operator_expansion(iproc, nproc, &
-      !     ebs, norder_taylor, input%lin%max_inversion_error, &
-      !     .true., 2, &
-      !     'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
-      !do ispin=1,input%nspin
-          !e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
-          e_lumo = foe_data_get_real(foe_obj,"ef",1)
-      !end do
-      call foe_data_deallocate(foe_obj)
-      if (iproc==0) call yaml_mapping_close()
-
+      !!iispin = maxloc(qq_spin,1)
+      !!ntmb = ntmb_spin(iispin)
+      !!qq = qq_spin(iispin)
+      !!if (input%nspin==1) then
+      !!    if (2*ntmb<=qq) then
+      !!        calculation_possible = .false.
+      !!    end if
+      !!else if (input%nspin==2) then
+          if (ntmb<=qq) then
+              calculation_possible = .false.
+          end if
+      !!end if
       if (iproc==0) then
-          call yaml_mapping_open('HOMO-LUMO analysis')
-          call yaml_map('HOMO energy',e_homo)
-          call yaml_map('LUMO energy',e_lumo)
-          call yaml_map('HOMO-LUMO gap (Ha)',e_lumo-e_homo)
-          call yaml_map('HOMO-LUMO gap (eV)',(e_lumo-e_homo)*Ha_eV)
+          !!call yaml_mapping_open('Checking individual spin component')
+          !!call yaml_map('ispin',ispin)
+          !call yaml_map('spin charges',qq_spin)
+          call yaml_map('spin channel',ispin)
+          call yaml_map('charge for calculation',qq)
+          call yaml_map('ntmb',ntmb)
+          call yaml_map('Calculation possible',calculation_possible)
+          !!call yaml_mapping_close()
+      end if
+      !end do
+      if (iproc==0) then
+          !!call yaml_map('Calculation possible',all(calculation_possible))
           call yaml_mapping_close()
       end if
+                          
+      if (calculation_possible) then
+
+          do jspin=1,input%nspin
+              calculate_spin_channels(jspin) = (jspin==ispin)
+          end do
+
+          ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
+          ! systems of one half electron for open shell systems.
+          if (input%nspin==1) then
+              dq = 1.d0
+          else if (input%nspin==2) then
+              dq = 0.5d0
+          end if
+
+          ! determine the HOMO
+          kernel(1) = matrices_null()
+          kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
+          foe_obj = foe_data_null()
+          call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
+
+          ! Round up the target charge (required for systems with non-integer charge)
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+          !!qq = foe_data_get_real(foe_obj,"charge",1)
+          iqq = nint(qq)
+          if (real(iqq,kind=8)<qq) then
+              qq = real(iqq+1,kind=8)
+          else
+              qq = real(iqq,kind=8)
+          end if
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)-dq,1)
+          call foe_data_set_real(foe_obj,"fscale",1.d-2)
+          norder_taylor = input%lin%order_taylor
+          !call fermi_operator_expansion_new(iproc, nproc, &
+          !     ebs, &
+          !     .true., 2, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+          if (iproc==0) then
+              call yaml_mapping_open('calculate HOMO kernel')
+              call yaml_map('target charge',foe_data_get_real(foe_obj,"charge",1))
+          end if
+          call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+               foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+               calculate_spin_channels=calculate_spin_channels)
+          !call fermi_operator_expansion(iproc, nproc, &
+          !     ebs, norder_taylor, input%lin%max_inversion_error, &
+          !     .true., 2, &
+          !     'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+          !do ispin=1,input%nspin
+              !e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
+              e_homo = foe_data_get_real(foe_obj,"ef",1)
+          !end do
+          call foe_data_deallocate(foe_obj)
+          if (iproc==0) call yaml_mapping_close()
+
+          ! determine the LUMO
+          kernel(2) = matrices_null()
+          kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
+          foe_obj = foe_data_null()
+          call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
+
+          ! Round up the target charge (required for systems with non-integer charge)
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+          !!qq = foe_data_get_real(foe_obj,"charge",1)
+          iqq = nint(qq)
+          if (real(iqq,kind=8)<qq) then
+              qq = real(iqq+1,kind=8)
+          else
+              qq = real(iqq,kind=8)
+          end if
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+dq,1)
+          call foe_data_set_real(foe_obj,"fscale",1.d-2)
+          norder_taylor = input%lin%order_taylor
+          !call fermi_operator_expansion_new(iproc, nproc, &
+          !     ebs, &
+          !     .true., 2, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+          if (iproc==0) then
+              call yaml_mapping_open('calculate LUMO kernel')
+              call yaml_map('target charge',foe_data_get_real(foe_obj,"charge",1))
+          end if
+          call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+               foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+               calculate_spin_channels=calculate_spin_channels)
+          !call fermi_operator_expansion(iproc, nproc, &
+          !     ebs, norder_taylor, input%lin%max_inversion_error, &
+          !     .true., 2, &
+          !     'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+          !do ispin=1,input%nspin
+              !e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
+              e_lumo = foe_data_get_real(foe_obj,"ef",1)
+          !end do
+          call foe_data_deallocate(foe_obj)
+          if (iproc==0) call yaml_mapping_close()
+
+          e_homo_spin(ispin) = e_homo
+          e_lumo_spin(ispin) = e_lumo
+
+
 
       !!if (iproc==0) then
       !!    tt = sqrt(kernel(2)%matrix_compr(1)-kernel(1)%matrix_compr(1))
@@ -3212,6 +3272,29 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call deallocate_matrices(kernel(1))
       call deallocate_matrices(kernel(2))
 
+      else
+          calculation_possible_all = .false.
+      end if
+  end do
+
+  if (calculation_possible_all) then
+      if (iproc==0) then
+          call yaml_mapping_open('HOMO-LUMO analysis')
+          do ispin=1,input%nspin
+              if (ispin==1) then
+                  call yaml_mapping_open('spin channel up')
+              else
+                  call yaml_mapping_open('spin channel down')
+              end if
+              call yaml_map('spin_channel',ispin)
+              call yaml_map('HOMO energy',e_homo_spin(ispin))
+              call yaml_map('LUMO energy',e_lumo_spin(ispin))
+              call yaml_map('HOMO-LUMO gap (Ha)',e_lumo_spin(ispin)-e_homo_spin(ispin))
+              call yaml_map('HOMO-LUMO gap (eV)',(e_lumo_spin(ispin)-e_homo_spin(ispin))*Ha_eV)
+              call yaml_mapping_close()
+          end do
+          call yaml_mapping_close()
+      end if
   end if
 
 end subroutine calculate_gap_FOE

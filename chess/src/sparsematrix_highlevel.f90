@@ -726,7 +726,8 @@ module sparsematrix_highlevel
 
     subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, ice_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
-               calculate_minusonehalf, foe_verbosity, symmetrize_kernel, calculate_energy_density_kernel, energy_kernel)
+               calculate_minusonehalf, foe_verbosity, symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels, &
+               energy_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
       implicit none
@@ -742,10 +743,12 @@ module sparsematrix_highlevel
       logical,intent(in),optional :: calculate_minusonehalf, symmetrize_kernel, calculate_energy_density_kernel
       integer,intent(in),optional :: foe_verbosity
       type(matrices),intent(inout),optional :: energy_kernel
+      logical,dimension(smat_k%nspin),intent(in),optional :: calculate_spin_channels
 
       ! Local variables
       logical :: calculate_minusonehalf_, symmetrize_kernel_, calculate_energy_density_kernel_
       integer :: foe_verbosity_
+      logical,dimension(smat_k%nspin) :: calculate_spin_channels_
 
       call f_routine(id='matrix_fermi_operator_expansion')
 
@@ -757,6 +760,8 @@ module sparsematrix_highlevel
       if (present(symmetrize_kernel)) symmetrize_kernel_ = symmetrize_kernel
       calculate_energy_density_kernel_ = .false.
       if (present(calculate_energy_density_kernel)) calculate_energy_density_kernel_ = calculate_energy_density_kernel
+      calculate_spin_channels_(:) = .true.
+      if (present(calculate_spin_channels)) calculate_spin_channels_(:) = calculate_spin_channels
 
       ! Check the optional arguments
       if (calculate_energy_density_kernel_) then
@@ -807,13 +812,13 @@ module sparsematrix_highlevel
                ebs, &
                calculate_minusonehalf_, foe_verbosity_, &
                smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
-               symmetrize_kernel_, calculate_energy_density_kernel_, energy_kernel_=energy_kernel)
+               symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_, energy_kernel_=energy_kernel)
       else
           call fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
                calculate_minusonehalf_, foe_verbosity_, &
                smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
-               symmetrize_kernel_, calculate_energy_density_kernel_)
+               symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_)
       end if
 
       call f_release_routine()

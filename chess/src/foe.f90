@@ -37,7 +37,7 @@ module foe
                ebs, &
                calculate_minusonehalf, foe_verbosity, &
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, ice_obj, &
-               symmetrize_kernel, calculate_energy_density_kernel, energy_kernel_)
+               symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels,  energy_kernel_)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse_matrix_product, symmetrize_matrix, max_asymmetry_of_matrix
@@ -63,6 +63,7 @@ module foe
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
       type(matrices),intent(inout) :: kernel_
       type(foe_data),intent(inout) :: foe_obj, ice_obj
+      logical,dimension(smatl%nspin),intent(in) :: calculate_spin_channels
       type(matrices),intent(inout),optional :: energy_kernel_
 
       ! Local variables
@@ -146,7 +147,7 @@ module foe
       !!fermip_check = f_malloc((/smatl%nfvctr,smatl%smmm%nfvctrp/),id='fermip_check')
       fermi_check_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
       kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
-      sumn_allspins = f_malloc(smatl%nspin,id='sumn_allspins')
+      sumn_allspins = f_malloc0(smatl%nspin,id='sumn_allspins')
 
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
       !!fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
@@ -291,7 +292,7 @@ module foe
                   end if
 
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-                       foe_verbosity, 'test', smatl, 1, foe_obj, kernel_)
+                       foe_verbosity, 'test', smatl, 1, foe_obj, kernel_, calculate_spin_channels)
 
                   npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
                   cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
@@ -311,8 +312,10 @@ module foe
                   ebsp_allspins = 0.0_mp
                   ebs_check_allspins = 0.0_mp
 
+
                   spin_loop: do ispin=1,smatl%nspin
 
+                      if (.not.(calculate_spin_channels(ispin))) cycle
 
                       !fscale_new = fscale_newx
                       !call foe_data_set_real(foe_obj,"fscale",fscale_new)
@@ -739,9 +742,11 @@ module foe
       real(mp),dimension(:,:,:),pointer :: chebyshev_polynomials
       real(mp),dimension(:),allocatable :: hamscal_compr
       type(f_progress_bar) :: bar
+      logical,dimension(smatl%nspin) :: calculate_spin_channels
 
       call f_routine(id='get_selected_eigenvalues')
 
+      calculate_spin_channels = .true.
 
       kernel = matrices_null()
       kernel%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
@@ -805,7 +810,7 @@ module foe
           !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
           !!     foe_data_get_real(foe_obj,"ef_interpol_det"), 0) !foe_verbosity)
           call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-               0, 'test', smatl, ispin, foe_obj, kernel)
+               0, 'test', smatl, ispin, foe_obj, kernel, calculate_spin_channels)
           eval(iev) = foe_data_get_real(foe_obj,"ef",ispin)
           !call retransform_ext(iproc, nproc, smatl, &
           !     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(1)%matrix_compr(ilshift+1:))
