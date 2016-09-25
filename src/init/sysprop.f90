@@ -1365,6 +1365,7 @@ pure function radii_UFF(at) result(r)
    select case(trim(at))
    case('H')
     r=2.886d0  
+    !r=2.4d0  
    case('He')
     r=2.362d0
    case('Li')
@@ -1408,6 +1409,7 @@ pure function radii_UFF(at) result(r)
     r=3.295d0 
    case('Ti')
     r=3.175d0 
+    !r=4.00d0 
    case('V')
     r=3.144d0 
    case('Cr')
@@ -1457,7 +1459,8 @@ pure function radii_UFF(at) result(r)
    case('Pd') !(+2)
     r=2.899d0  
    case('Ag') !(+1)
-    r=3.148d0
+    r=3.148d0 !UFF
+    !r=3.44d0
    case('Cd') !(+2)
     r=2.848d0 
    case('In')
@@ -1520,6 +1523,7 @@ pure function radii_UFF(at) result(r)
     r=2.840d0 
    case('Pt')
     r=2.754d0 
+    !r=3.50d0 
    case('Au')
     r=3.293d0 
    case('Hg')
@@ -1571,6 +1575,7 @@ pure function radii_UFF(at) result(r)
    case('Lw') !(+3)
     r=3.236d0 
    case default
+    r=6.0d0
     !call f_err_throw('UFF setup. For rigid cavity a radius should be fixed for each atom type')
    end select
 

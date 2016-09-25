@@ -1428,7 +1428,6 @@ contains
     IntSur=IntSur*product(kernel%hgrids)/epsm1
     IntVol=IntVol*product(kernel%hgrids)/epsm1
 
-
   end subroutine build_cavity_from_rho
 
 
