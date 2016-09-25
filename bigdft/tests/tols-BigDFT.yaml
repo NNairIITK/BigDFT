@@ -1531,6 +1531,8 @@ O2spin_diag:
  Clean forces norm (Ha/Bohr): 3.09e-6
  Raw forces norm (Ha/Bohr): 2.51e-6
  Orbitals: 2.9e-7
+ EBS: 1.4e-10
+ EBS higher temperature: 1.4e-10
  EH: 1.9e-6
  EXC: 3.5e-7
  Ekin: 2.3e-6
@@ -1548,6 +1550,10 @@ O2spin_diag:
  delta: 1.1e-10
  Fermi Energy: 1.8e-09
  Suggested Fermi Level: 1.8e-09
+ HOMO energy: 2.6e-11
+ LUMO energy: 2.0e-11
+ HOMO-LUMO gap (Ha): 4.6e-11
+ HOMO-LUMO gap (eV): 1.3e-09
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7

@@ -1915,13 +1915,12 @@
  }
   #================================================== FOE calculation for HOMO-LUMO analysis
  Check possibility to calculate the gap:
-   Checking individual spin component:
-     ispin                             :  1
-     norb                              :  4
-     ntmb                              :  6
-     Calculation possible              :  Yes
+   spin channel                        :  1
+   charge for calculation              :  8.0
+   ntmb                                :  6
    Calculation possible                :  Yes
  calculate HOMO kernel:
+   target charge                       :  7.0
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2:
      Can take from memory              :  No
@@ -1973,6 +1972,7 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
+   target charge                       :  9.0
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2:
      Can take from memory              :  No
@@ -2034,10 +2034,12 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         : -0.2364521830517319
-   LUMO energy                         :  0.3568623056984395
-   HOMO-LUMO gap (Ha)                  :  0.5933144887501713
-   HOMO-LUMO gap (eV)                  :  16.14490900912481
+   spin channel up:
+     spin_channel                      :  1
+     HOMO energy                       : -0.236452183054565
+     LUMO energy                       :  0.3568623056982155
+     HOMO-LUMO gap (Ha)                :  0.5933144887527806
+     HOMO-LUMO gap (eV)                :  16.14490900919581
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:

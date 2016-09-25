@@ -3093,10 +3093,13 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
 
   ! Check whether the gap calculation is possible.
   ! This is the case if there are more support functions than occupied orbitals.
-  if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
+  !if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
   calculation_possible = .true.
   calculation_possible_all = .true.
   do ispin=1,input%nspin
+
+      if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
+
       !!if (ispin==1) then
       !!    norb = orbs_KS%norbu
       !!    ntmb = tmb%orbs%norbu
@@ -3126,15 +3129,15 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !!iispin = maxloc(qq_spin,1)
       !!ntmb = ntmb_spin(iispin)
       !!qq = qq_spin(iispin)
-      !!if (input%nspin==1) then
-      !!    if (2*ntmb<=qq) then
-      !!        calculation_possible = .false.
-      !!    end if
-      !!else if (input%nspin==2) then
+      if (input%nspin==1) then
+          if (2*ntmb<=qq) then
+              calculation_possible = .false.
+          end if
+      else if (input%nspin==2) then
           if (ntmb<=qq) then
               calculation_possible = .false.
           end if
-      !!end if
+      end if
       if (iproc==0) then
           !!call yaml_mapping_open('Checking individual spin component')
           !!call yaml_map('ispin',ispin)

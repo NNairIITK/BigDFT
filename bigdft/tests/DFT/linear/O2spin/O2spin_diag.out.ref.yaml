@@ -1522,17 +1522,512 @@
  }
   #================================================== FOE calculation for HOMO-LUMO analysis
  Check possibility to calculate the gap:
-   Checking individual spin component:
-     ispin                             :  1
-     norb                              :  8
-     ntmb                              :  8
-     Calculation possible              :  No
-   Checking individual spin component:
-     ispin                             :  2
-     norb                              :  8
-     ntmb                              :  8
-     Calculation possible              :  No
-   Calculation possible                :  No
+   spin channel                        :  1
+   charge for calculation              :  7.0
+   ntmb                                :  8
+   Calculation possible                :  Yes
+ calculate HOMO kernel:
+   target charge                       :  6.5
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
+   S^-1/2:
+     Can take from memory              :  No
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
+   exp accur:  [  5.35E-14 ], up: {penalty:  2.1E-15, ok:  [  Yes,  Yes ]}, down: {
+ penalty:  2.1E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  5.35E-14 ]}
+   Kernel calculation:
+   -  #----------------------------------------------------------------- ispin: 1, itemp: 1
+     decay length of error function    :  1.000E-02
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
+ penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
+     -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
+ penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+     -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
+ penalty: -5.4E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  680, bounds:  [  0.50,  1.50 ], exp accur:  [  9.74E-06 ]}
+     determine Fermi energy:
+     -  { #---------------------------------------------------------------------- it FOE: 1
+ eF: -1.000000E-01, spin occupations:  [  7.0000032E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000032E+00, D Tr(K):  5.00E-01, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 2
+ eF: -2.000000E-01, spin occupations:  [  7.0000027E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000027E+00, D Tr(K):  5.00E-01, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 3
+ eF: -3.100000E-01, spin occupations:  [  5.0000147E+00,  0.0000000E+00 ], 
+ Tr(K):  5.0000147E+00, D Tr(K): -1.50E+00, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 4
+ eF:  1.000000E-01, spin occupations:  [  7.0000005E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000005E+00, D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 5
+ eF: -5.375041E-02, spin occupations:  [  6.9999998E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999998E+00, D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 6
+ eF: -1.498442E-01, spin occupations:  [  6.9999972E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999972E+00, D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 7
+ eF: -2.099027E-01, spin occupations:  [  6.9999939E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999939E+00, D Tr(K):  5.00E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 8
+ eF: -1.150402E+01, spin occupations:  [  0.0E+00,  0.0000000E+00 ], Tr(K):  0.0000000E+00, 
+                             D Tr(K): -6.50E+00, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 9
+ eF: -3.436790E+00, spin occupations:  [  0.0E+00,  0.0000000E+00 ], Tr(K):  0.0000000E+00, 
+                             D Tr(K): -6.50E+00, new eF: bisection/secant}
+     -  { #--------------------------------------------------------------------- it FOE: 10
+ eF: -1.131869E+00, spin occupations:  [  1.0E+00,  0.0000000E+00 ], Tr(K):  1.0000000E+00, 
+                             D Tr(K): -5.50E+00, new eF: bisection/secant}
+     -  { #--------------------------------------------------------------------- it FOE: 11
+ eF: -4.788091E-01, spin occupations:  [  5.0000025E+00,  0.0000000E+00 ], 
+ Tr(K):  5.0000025E+00, D Tr(K): -1.50E+00, new eF: bisection/secant}
+     -  { #--------------------------------------------------------------------- it FOE: 12
+ eF: -3.107424E-01, spin occupations:  [  5.0000188E+00,  0.0000000E+00 ], 
+ Tr(K):  5.0000188E+00, D Tr(K): -1.50E+00, new eF: bisection/secant}
+     -  { #--------------------------------------------------------------------- it FOE: 13
+ eF: -2.477176E-01, spin occupations:  [  6.9999545E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999545E+00, D Tr(K):  5.00E-01, new eF: cubic interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 14
+ eF: -2.600599E-01, spin occupations:  [  6.9754551E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9754551E+00, D Tr(K):  4.75E-01, new eF: cubic interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 15
+ eF: -2.797909E-01, spin occupations:  [  5.5878785E+00,  0.0000000E+00 ], 
+ Tr(K):  5.5878785E+00, D Tr(K): -9.12E-01, new eF: cubic interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 16
+ eF: -2.683072E-01, spin occupations:  [  6.7208134E+00,  0.0000000E+00 ], 
+ Tr(K):  6.7208134E+00, D Tr(K):  2.21E-01, new eF: cubic interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 17
+ eF: -2.717083E-01, spin occupations:  [  6.4522174E+00,  0.0000000E+00 ], 
+ Tr(K):  6.4522174E+00, D Tr(K): -4.78E-02, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 18
+ eF: -2.711032E-01, spin occupations:  [  6.507707E+00,  0.0000000E+00 ], 
+ Tr(K):  6.5077070E+00, D Tr(K):  7.71E-03, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 19
+ eF: -2.711873E-01, spin occupations:  [  6.5001844E+00,  0.0000000E+00 ], 
+ Tr(K):  6.5001844E+00, D Tr(K):  1.84E-04, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 20
+ eF: -2.711893E-01, spin occupations:  [  6.4999992E+00,  0.0000000E+00 ], 
+ Tr(K):  6.4999992E+00, D Tr(K): -7.63E-07, new eF: linear interpol}
+     summary: {nit:  20, eF: -2.711893E-01, Tr(K):  6.4999992E+00, D Tr(K): -7.63E-07}
+     Asymmetry of kernel               :  2.22E-15
+     symmetrize_kernel                 :  Yes
+     EBS                               : -3.985177028954E+00
+     EBS higher temperature            : -3.960478739085E+00
+     difference                        :  2.469828986975E-02
+     relative difference               :  6.197538952549E-03
+     trace(KS)                         :  [  6.499999237393268,  0.0 ]
+     modify error function decay length: decrease
+     need to repeat with sharper decay (new):  Yes
+   -  #----------------------------------------------------------------- ispin: 1, itemp: 2
+     decay length of error function    :  5.000E-03
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  1350, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.77E-06 ], up: {
+ penalty: -3.0E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -4.4E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  1350, bounds:  [  0.50,  1.50 ], exp accur:  [  9.77E-06 ]}
+     determine Fermi energy:
+     -  { #---------------------------------------------------------------------- it FOE: 1
+ eF: -3.691993E-01, spin occupations:  [  4.9999997E+00,  0.0000000E+00 ], 
+ Tr(K):  4.9999997E+00, D Tr(K): -1.50E+00, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 2
+ eF: -1.731793E-01, spin occupations:  [  6.9999994E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999994E+00, D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 3
+ eF: -2.466868E-01, spin occupations:  [  6.9999986E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999986E+00, D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 4
+ eF: -2.926289E-01, spin occupations:  [  4.9999954E+00,  0.0000000E+00 ], 
+ Tr(K):  4.9999954E+00, D Tr(K): -1.50E+00, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 5
+ eF: -2.639151E-01, spin occupations:  [  6.9993289E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9993289E+00, D Tr(K):  4.99E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 6
+ eF: -2.766194E-01, spin occupations:  [  5.8517652E+00,  0.0000000E+00 ], 
+ Tr(K):  5.8517652E+00, D Tr(K): -6.48E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 7
+ eF: -2.698193E-01, spin occupations:  [  6.9175028E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9175028E+00, D Tr(K):  4.18E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 8
+ eF: -2.729436E-01, spin occupations:  [  6.6062556E+00,  0.0000000E+00 ], 
+ Tr(K):  6.6062556E+00, D Tr(K):  1.06E-01, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 9
+ eF: -2.740102E-01, spin occupations:  [  6.4184574E+00,  0.0000000E+00 ], 
+ Tr(K):  6.4184574E+00, D Tr(K): -8.15E-02, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 10
+ eF: -2.735470E-01, spin occupations:  [  6.5048496E+00,  0.0000000E+00 ], 
+ Tr(K):  6.5048496E+00, D Tr(K):  4.85E-03, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 11
+ eF: -2.735730E-01, spin occupations:  [  6.5001883E+00,  0.0000000E+00 ], 
+ Tr(K):  6.5001883E+00, D Tr(K):  1.88E-04, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 12
+ eF: -2.735741E-01, spin occupations:  [  6.4999995E+00,  0.0000000E+00 ], 
+ Tr(K):  6.4999995E+00, D Tr(K): -4.88E-07, new eF: linear interpol}
+     summary: {nit:  12, eF: -2.735741E-01, Tr(K):  6.4999995E+00, D Tr(K): -4.88E-07}
+     Asymmetry of kernel               :  1.94E-15
+     symmetrize_kernel                 :  Yes
+     EBS                               : -3.985177530046E+00
+     EBS higher temperature            : -3.960478354139E+00
+     difference                        :  2.469917590778E-02
+     relative difference               :  6.197760506669E-03
+     trace(KS)                         :  [  6.499999511713816,  0.0 ]
+     modify error function decay length: decrease
+     fscale reached lower limit; reset to:  5.0000000000000001E-003
+     need to repeat with sharper decay (new):  Yes
+     limit reached, exit loop          :  Yes
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
+ calculate LUMO kernel:
+   target charge                       :  7.5
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
+   S^-1/2:
+     Can take from memory              :  No
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
+   exp accur:  [  5.35E-14 ], up: {penalty:  2.1E-15, ok:  [  Yes,  Yes ]}, down: {
+ penalty:  2.1E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  5.35E-14 ]}
+   Kernel calculation:
+   -  #----------------------------------------------------------------- ispin: 1, itemp: 1
+     decay length of error function    :  1.000E-02
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
+ penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
+     -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
+ penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+     -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
+ penalty: -5.4E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  680, bounds:  [  0.50,  1.50 ], exp accur:  [  9.74E-06 ]}
+     determine Fermi energy:
+     -  { #---------------------------------------------------------------------- it FOE: 1
+ eF: -1.000000E-01, spin occupations:  [  7.0000032E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000032E+00, D Tr(K): -5.00E-01, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 2
+ eF:  1.000000E-01, spin occupations:  [  7.0000005E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000005E+00, D Tr(K): -5.00E-01, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 3
+ eF:  1.900000E-01, spin occupations:  [  7.0000016E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000016E+00, D Tr(K): -5.00E-01, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 4
+ eF:  2.890000E-01, spin occupations:  [  8.0000007E+00,  0.0000000E+00 ], 
+ Tr(K):  8.0000007E+00, D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 5
+ eF:  9.449961E-02, spin occupations:  [  6.9999995E+00,  0.0000000E+00 ], 
+ Tr(K):  6.9999995E+00, D Tr(K): -5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 6
+ eF:  1.917498E-01, spin occupations:  [  7.000005E+00,  0.0000000E+00 ], 
+ Tr(K):  7.0000050E+00, D Tr(K): -5.00E-01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 7
+ eF:  2.403748E-01, spin occupations:  [  7.9937952E+00,  0.0000000E+00 ], 
+ Tr(K):  7.9937952E+00, D Tr(K):  4.94E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 8
+ eF:  2.140758E-01, spin occupations:  [  7.1114271E+00,  0.0000000E+00 ], 
+ Tr(K):  7.1114271E+00, D Tr(K): -3.89E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 9
+ eF:  2.293137E-01, spin occupations:  [  7.8253634E+00,  0.0000000E+00 ], 
+ Tr(K):  7.8253634E+00, D Tr(K):  3.25E-01, new eF: cubic interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 10
+ eF:  2.219667E-01, spin occupations:  [  7.4589678E+00,  0.0000000E+00 ], 
+ Tr(K):  7.4589678E+00, D Tr(K): -4.10E-02, new eF: cubic interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 11
+ eF:  2.227518E-01, spin occupations:  [  7.5031903E+00,  0.0000000E+00 ], 
+ Tr(K):  7.5031903E+00, D Tr(K):  3.19E-03, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 12
+ eF:  2.226952E-01, spin occupations:  [  7.4999948E+00,  0.0000000E+00 ], 
+ Tr(K):  7.4999948E+00, D Tr(K): -5.22E-06, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 13
+ eF:  2.226953E-01, spin occupations:  [  7.5E+00,  0.0000000E+00 ], Tr(K):  7.5000000E+00, 
+                             D Tr(K):  5.36E-11, new eF: linear interpol}
+     summary: {nit:  13, eF:  2.226953E-01, Tr(K):  7.5000000E+00, D Tr(K):  5.36E-11}
+     Asymmetry of kernel               :  8.88E-16
+     symmetrize_kernel                 :  Yes
+     EBS                               : -4.011808850497E+00
+     EBS higher temperature            : -4.011809109414E+00
+     difference                        : -2.589177219292E-07
+     relative difference               :  6.453889793308E-08
+     trace(KS)                         :  [  7.500000000053705,  0.0 ]
+     modify error function decay length: increase
+     need to repeat with sharper decay (new):  No
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
+ Check possibility to calculate the gap:
+   spin channel                          :  2
+   charge for calculation                :  5.0
+   ntmb                                  :  8
+   Calculation possible                  :  Yes
+ calculate HOMO kernel:
+   target charge                        :  4.5
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
+   S^-1/2:
+     Can take from memory               :  No
+     beta for penaltyfunction           : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  100, scale:  1.00E+00, bounds:  [  0.556,  1.350 ], 
+   exp accur:  [  2.44E-14 ], up: {penalty:  6.6E-09, ok:  [  Yes,  Yes ]}, down: {
+  penalty:  6.6E-09, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  100, bounds:  [  0.556,  1.350 ], exp accur:  [  2.44E-14 ]}
+   Kernel calculation:
+   -  #------------------------------------------------------------------ ispin: 1, itemp: 1
+     decay length of error function     :  1.000E-02
+     beta for penaltyfunction           : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
+  penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
+     -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
+  penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+     -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
+  penalty: -5.3E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  680, bounds:  [  0.56,  1.35 ], exp accur:  [  9.74E-06 ]}
+     determine Fermi energy:
+     -  { #----------------------------------------------------------------------- it FOE: 1
+  eF: -1.000000E-01, spin occupations:  [  0.0E+00,  7.0000138E+00 ], Tr(K):  7.0000138E+00, 
+                              D Tr(K):  2.50E+00, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 2
+  eF: -2.000000E-01, spin occupations:  [  0.0E+00,  5.0000084E+00 ], Tr(K):  5.0000084E+00, 
+                              D Tr(K):  5.00E-01, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 3
+  eF: -3.100000E-01, spin occupations:  [  0.0E+00,  5.0000115E+00 ], Tr(K):  5.0000115E+00, 
+                              D Tr(K):  5.00E-01, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 4
+  eF: -4.310000E-01, spin occupations:  [  0.0E+00,  4.7823164E+00 ], Tr(K):  4.7823164E+00, 
+                              D Tr(K):  2.82E-01, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 5
+  eF: -5.641000E-01, spin occupations:  [  0.0E+00,  2.0000014E+00 ], Tr(K):  2.0000014E+00, 
+                              D Tr(K): -2.50E+00, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 6
+  eF:  1.000000E-01, spin occupations:  [  0.0E+00,  7.0000004E+00 ], Tr(K):  7.0000004E+00, 
+                              D Tr(K):  2.50E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 7
+  eF: -2.320501E-01, spin occupations:  [  0.0E+00,  5.0000139E+00 ], Tr(K):  5.0000139E+00, 
+                              D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 8
+  eF: -3.427340E-01, spin occupations:  [  0.0E+00,  5.0000103E+00 ], Tr(K):  5.0000103E+00, 
+                              D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 9
+  eF: -4.165230E-01, spin occupations:  [  0.0E+00,  4.9989501E+00 ], Tr(K):  4.9989501E+00, 
+                              D Tr(K):  4.99E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 10
+  eF: -6.056985E-01, spin occupations:  [  0.0E+00,  2.0000011E+00 ], Tr(K):  2.0000011E+00, 
+                              D Tr(K): -2.50E+00, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 11
+  eF: -4.795539E-01, spin occupations:  [  0.0E+00,  2.8347585E+00 ], Tr(K):  2.8347585E+00, 
+                              D Tr(K): -1.67E+00, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 12
+  eF: -4.395466E-01, spin occupations:  [  0.0E+00,  4.0191499E+00 ], Tr(K):  4.0191499E+00, 
+                              D Tr(K): -4.81E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 13
+  eF: -4.275513E-01, spin occupations:  [  0.0E+00,  4.9146276E+00 ], Tr(K):  4.9146276E+00, 
+                              D Tr(K):  4.15E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 14
+  eF: -4.326081E-01, spin occupations:  [  0.0E+00,  4.6852306E+00 ], Tr(K):  4.6852306E+00, 
+                              D Tr(K):  1.85E-01, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 15
+  eF: -4.349189E-01, spin occupations:  [  0.0E+00,  4.5024994E+00 ], Tr(K):  4.5024994E+00, 
+                              D Tr(K):  2.50E-03, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 16
+  eF: -4.349505E-01, spin occupations:  [  0.0E+00,  4.4996616E+00 ], Tr(K):  4.4996616E+00, 
+                              D Tr(K): -3.38E-04, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 17
+  eF: -4.349467E-01, spin occupations:  [  0.0E+00,  4.5000004E+00 ], Tr(K):  4.5000004E+00, 
+                              D Tr(K):  4.50E-07, new eF: linear interpol}
+     summary: {nit:  17, eF: -4.349467E-01, Tr(K):  4.5000004E+00, D Tr(K):  4.50E-07}
+     Asymmetry of kernel                :  6.9366640837179291E-310
+     symmetrize_kernel                  :  Yes
+     EBS                                : -3.044190214259E+00
+     EBS higher temperature             : -3.265145962163E+00
+     difference                         : -2.209557479036E-01
+     relative difference                :  7.258276663155E-02
+     trace(KS)                          :  [  0.0,  4.500000449968789 ]
+     modify error function decay length : decrease
+     need to repeat with sharper decay (new):  Yes
+   -  #------------------------------------------------------------------ ispin: 1, itemp: 2
+     decay length of error function     :  5.000E-03
+     beta for penaltyfunction           : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  1330, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.49E-06 ], up: {
+  penalty:  2.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -3.2E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  1330, bounds:  [  0.56,  1.35 ], exp accur:  [  9.49E-06 ]}
+     determine Fermi energy:
+     -  { #----------------------------------------------------------------------- it FOE: 1
+  eF: -5.535388E-01, spin occupations:  [  0.0E+00,  2.0000037E+00 ], Tr(K):  2.0000037E+00, 
+                              D Tr(K): -2.50E+00, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 2
+  eF: -3.163546E-01, spin occupations:  [  0.0E+00,  4.9999999E+00 ], Tr(K):  4.9999999E+00, 
+                              D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 3
+  eF: -3.954161E-01, spin occupations:  [  0.0E+00,  4.9999925E+00 ], Tr(K):  4.9999925E+00, 
+                              D Tr(K):  5.00E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 4
+  eF: -4.481235E-01, spin occupations:  [  0.0E+00,  3.0174226E+00 ], Tr(K):  3.0174226E+00, 
+                              D Tr(K): -1.48E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 5
+  eF: -4.152392E-01, spin occupations:  [  0.0E+00,  5.0000103E+00 ], Tr(K):  5.0000103E+00, 
+                              D Tr(K):  5.00E-01, new eF: cubic interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 6
+  eF: -4.299322E-01, spin occupations:  [  0.0E+00,  4.9943478E+00 ], Tr(K):  4.9943478E+00, 
+                              D Tr(K):  4.94E-01, new eF: cubic interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 7
+  eF: -4.380244E-01, spin occupations:  [  0.0E+00,  4.3677313E+00 ], Tr(K):  4.3677313E+00, 
+                              D Tr(K): -1.32E-01, new eF: cubic interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 8
+  eF: -4.366885E-01, spin occupations:  [  0.0E+00,  4.6082321E+00 ], Tr(K):  4.6082321E+00, 
+                              D Tr(K):  1.08E-01, new eF: linear interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 9
+  eF: -4.372897E-01, spin occupations:  [  0.0E+00,  4.5075163E+00 ], Tr(K):  4.5075163E+00, 
+                              D Tr(K):  7.52E-03, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 10
+  eF: -4.373345E-01, spin occupations:  [  0.0E+00,  4.4994806E+00 ], Tr(K):  4.4994806E+00, 
+                              D Tr(K): -5.19E-04, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 11
+  eF: -4.373316E-01, spin occupations:  [  0.0E+00,  4.5000021E+00 ], Tr(K):  4.5000021E+00, 
+                              D Tr(K):  2.09E-06, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 12
+  eF: -4.373316E-01, spin occupations:  [  0.0E+00,  4.5000000E+00 ], Tr(K):  4.5000000E+00, 
+                              D Tr(K):  5.77E-10, new eF: linear interpol}
+     summary: {nit:  12, eF: -4.373316E-01, Tr(K):  4.5000000E+00, D Tr(K):  5.77E-10}
+     Asymmetry of kernel                :  6.9366640837179291E-310
+     symmetrize_kernel                  :  Yes
+     EBS                                : -3.044189909457E+00
+     EBS higher temperature             : -3.265126623609E+00
+     difference                         : -2.209367141525E-01
+     relative difference                :  7.257652141417E-02
+     trace(KS)                          :  [  0.0,  4.50000000057708 ]
+     modify error function decay length : decrease
+     fscale reached lower limit; reset to:  5.0000000000000001E-003
+     need to repeat with sharper decay (new):  Yes
+     limit reached, exit loop           :  Yes
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
+ calculate LUMO kernel:
+   target charge                        :  5.5
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
+   S^-1/2:
+     Can take from memory               :  No
+     beta for penaltyfunction           : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  80, scale:  1.00E+00, bounds:  [  0.617,  1.215 ], exp accur:  [  1.75E-14 ], up: {
+  penalty: -1.2E-07, ok:  [  Yes,  Yes ]}, down: {penalty: -1.2E-07, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  80, bounds:  [  0.617,  1.215 ], exp accur:  [  1.75E-14 ]}
+   Kernel calculation:
+   -  #------------------------------------------------------------------ ispin: 1, itemp: 1
+     decay length of error function     :  1.000E-02
+     beta for penaltyfunction           : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
+  penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
+     -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
+  penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+     -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
+  penalty: -5.3E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  680, bounds:  [  0.62,  1.22 ], exp accur:  [  9.74E-06 ]}
+     determine Fermi energy:
+     -  { #----------------------------------------------------------------------- it FOE: 1
+  eF: -1.000000E-01, spin occupations:  [  0.0E+00,  7.0000138E+00 ], Tr(K):  7.0000138E+00, 
+                              D Tr(K):  1.50E+00, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 2
+  eF: -2.000000E-01, spin occupations:  [  0.0E+00,  5.0000084E+00 ], Tr(K):  5.0000084E+00, 
+                              D Tr(K): -5.00E-01, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 3
+  eF:  1.000000E-01, spin occupations:  [  0.0E+00,  7.0000004E+00 ], Tr(K):  7.0000004E+00, 
+                              D Tr(K):  1.50E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 4
+  eF: -8.750048E-02, spin occupations:  [  0.0E+00,  7.0000055E+00 ], Tr(K):  7.0000055E+00, 
+                              D Tr(K):  1.50E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 5
+  eF: -1.578129E-01, spin occupations:  [  0.0E+00,  5.0146244E+00 ], Tr(K):  5.0146244E+00, 
+                              D Tr(K): -4.85E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 6
+  eF: -1.316400E-01, spin occupations:  [  0.0E+00,  6.7924226E+00 ], Tr(K):  6.7924226E+00, 
+                              D Tr(K):  1.29E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 7
+  eF: -1.476968E-01, spin occupations:  [  0.0E+00,  5.3121974E+00 ], Tr(K):  5.3121974E+00, 
+                              D Tr(K): -1.88E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 8
+  eF: -1.426640E-01, spin occupations:  [  0.0E+00,  5.7650950E+00 ], Tr(K):  5.7650950E+00, 
+                              D Tr(K):  2.65E-01, new eF: cubic interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 9
+  eF: -1.454566E-01, spin occupations:  [  0.0E+00,  5.4878457E+00 ], Tr(K):  5.4878457E+00, 
+                              D Tr(K): -1.22E-02, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 10
+  eF: -1.453341E-01, spin occupations:  [  0.0E+00,  5.4987719E+00 ], Tr(K):  5.4987719E+00, 
+                              D Tr(K): -1.23E-03, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 11
+  eF: -1.453204E-01, spin occupations:  [  0.0E+00,  5.5000081E+00 ], Tr(K):  5.5000081E+00, 
+                              D Tr(K):  8.07E-06, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 12
+  eF: -1.453205E-01, spin occupations:  [  0.0E+00,  5.5000000E+00 ], Tr(K):  5.5000000E+00, 
+                              D Tr(K): -5.27E-09, new eF: linear interpol}
+     summary: {nit:  12, eF: -1.453205E-01, Tr(K):  5.5000000E+00, D Tr(K): -5.27E-09}
+     Asymmetry of kernel                :  6.9366640837179291E-310
+     symmetrize_kernel                  :  Yes
+     EBS                                : -3.334323380144E+00
+     EBS higher temperature             : -3.733469736701E+00
+     difference                         : -3.991463565568E-01
+     relative difference                :  1.197083519054E-01
+     trace(KS)                          :  [  0.0,  5.499999994733333 ]
+     modify error function decay length : decrease
+     need to repeat with sharper decay (new):  Yes
+   -  #------------------------------------------------------------------ ispin: 1, itemp: 2
+     decay length of error function     :  5.000E-03
+     beta for penaltyfunction           : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  1380, bounds:  [ -1.440,  1.000 ], exp accur:  [  7.65E-06 ], up: {
+  penalty:  3.7E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -1.9E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  1380, bounds:  [  0.62,  1.22 ], exp accur:  [  7.65E-06 ]}
+     determine Fermi energy:
+     -  { #----------------------------------------------------------------------- it FOE: 1
+  eF: -2.344205E-01, spin occupations:  [  0.0E+00,  5.0000015E+00 ], Tr(K):  5.0000015E+00, 
+                              D Tr(K): -5.00E-01, new eF: bisec bounds}
+     -  { #----------------------------------------------------------------------- it FOE: 2
+  eF: -5.622047E-02, spin occupations:  [  0.0E+00,  6.9999988E+00 ], Tr(K):  6.9999988E+00, 
+                              D Tr(K):  1.50E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 3
+  eF: -1.675955E-01, spin occupations:  [  0.0E+00,  5.0000048E+00 ], Tr(K):  5.0000048E+00, 
+                              D Tr(K): -5.00E-01, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 4
+  eF: -1.258300E-01, spin occupations:  [  0.0E+00,  6.9999719E+00 ], Tr(K):  6.9999719E+00, 
+                              D Tr(K):  1.50E+00, new eF: bisection/secant}
+     -  { #----------------------------------------------------------------------- it FOE: 5
+  eF: -1.519334E-01, spin occupations:  [  0.0E+00,  5.0012908E+00 ], Tr(K):  5.0012908E+00, 
+                              D Tr(K): -4.99E-01, new eF: cubic interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 6
+  eF: -1.429076E-01, spin occupations:  [  0.0E+00,  5.5050400E+00 ], Tr(K):  5.5050400E+00, 
+                              D Tr(K):  5.04E-03, new eF: cubic interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 7
+  eF: -1.429791E-01, spin occupations:  [  0.0E+00,  5.4922123E+00 ], Tr(K):  5.4922123E+00, 
+                              D Tr(K): -7.79E-03, new eF: linear interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 8
+  eF: -1.429357E-01, spin occupations:  [  0.0E+00,  5.4999791E+00 ], Tr(K):  5.4999791E+00, 
+                              D Tr(K): -2.09E-05, new eF: linear interpol}
+     -  { #----------------------------------------------------------------------- it FOE: 9
+  eF: -1.429356E-01, spin occupations:  [  0.0E+00,  5.5000001E+00 ], Tr(K):  5.5000001E+00, 
+                              D Tr(K):  8.75E-08, new eF: linear interpol}
+     summary: {nit:  9, eF: -1.429356E-01, Tr(K):  5.5000001E+00, D Tr(K):  8.75E-08}
+     Asymmetry of kernel                :  6.9366640837179291E-310
+     symmetrize_kernel                  :  Yes
+     EBS                                : -3.334324075138E+00
+     EBS higher temperature             : -3.733472749299E+00
+     difference                         : -3.991486741608E-01
+     relative difference                :  1.197090220285E-01
+     trace(KS)                          :  [  0.0,  5.500000087473577 ]
+     modify error function decay length : decrease
+     fscale reached lower limit; reset to:  5.0000000000000001E-003
+     need to repeat with sharper decay (new):  Yes
+     limit reached, exit loop           :  Yes
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
+ HOMO-LUMO analysis:
+   spin channel up:
+     spin_channel                       :  1
+     HOMO energy                        : -0.2735740913248587
+     LUMO energy                        :  0.2226952625780867
+     HOMO-LUMO gap (Ha)                 :  0.4962693539029454
+     HOMO-LUMO gap (eV)                 :  13.50417647756777
+   spin channel down:
+     spin_channel                       :  2
+     HOMO energy                        : -0.4373316407842841
+     LUMO energy                        : -0.1429355950434804
+     HOMO-LUMO gap (Ha)                 :  0.2943960457408037
+     HOMO-LUMO gap (eV)                 :  8.010924157850422
  Total charge                          :  1.199999936184E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

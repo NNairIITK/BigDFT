@@ -2487,13 +2487,12 @@
  }
   #================================================== FOE calculation for HOMO-LUMO analysis
  Check possibility to calculate the gap:
-   Checking individual spin component:
-     ispin                             :  1
-     norb                              :  361
-     ntmb                              :  722
-     Calculation possible              :  Yes
+   spin channel                        :  1
+   charge for calculation              :  722.0
+   ntmb                                :  722
    Calculation possible                :  Yes
  calculate HOMO kernel:
+   target charge                       :  721.0
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2:
      Can take from memory              :  No
@@ -2571,6 +2570,7 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
+   target charge                       :  723.0
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
    S^-1/2:
      Can take from memory              :  No
@@ -2684,10 +2684,12 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  1.32506118397725
-   LUMO energy                         :  1.343041420251303
-   HOMO-LUMO gap (Ha)                  :  1.7980236274053762E-002
-   HOMO-LUMO gap (eV)                  :  0.4892671325432543
+   spin channel up:
+     spin_channel                      :  1
+     HOMO energy                       :  1.325061183977251
+     LUMO energy                       :  1.343041420251306
+     HOMO-LUMO gap (Ha)                :  1.7980236274054651E-002
+     HOMO-LUMO gap (eV)                :  0.4892671325432784
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
