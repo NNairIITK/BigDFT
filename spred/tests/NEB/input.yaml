@@ -1,0 +1,12 @@
+geopt:
+   method                            : NEB
+   climbing                          : No
+   extrema_opt                       : No
+   neb_method                        : quick-min
+   springs_k                         : [0.05, 0.1]
+   betax                             : 0.8
+   ncount_cluster_x                  : 2
+   fix_tol                           : 1.0E-004
+   forcemax                          : 0.05
+   nimg                              : 5
+

@@ -1,0 +1,13 @@
+jhbuild/
+jhbuild.py
+bigdft.modules
+gnome.modules
+rcfiles/
+m4/
+libABINIT.patch
+libffi-toolexeclibdir.patch
+wannier90-2.0.0.patch
+distfiles
+Installer.py
+INSTALL
+README

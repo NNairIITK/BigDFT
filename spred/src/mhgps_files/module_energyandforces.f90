@@ -26,10 +26,14 @@ contains
 subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,epot,infocode)
     !IMPORTANT:
     !receives distances in Bohr
-    use module_base
-    use yaml_output
+    !use module_base
+    !use yaml_output
     use module_mhgps_state
     use bigdft_run
+    use module_defs, only: gp
+    use module_base, only: bigdft_mpi
+    use dynamic_memory
+    use yaml_output, only: yaml_warning
     implicit none
     !parameters
     type(mhgps_state), intent(inout) :: mhgpsst

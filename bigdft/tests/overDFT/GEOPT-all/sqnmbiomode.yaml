@@ -1,0 +1,13 @@
+ geopt:
+   method: SQNM
+   biomode: yes
+   ncount_cluster_x: 10
+   frac_fluct: 0.0
+   forcemax: 1.E-2
+   betax: 3.0
+   beta_stretchx: 0.15
+   nhistx: 15
+   cutoffratio: 1e-4
+   steepthresh: 1.0
+   trustr: 0.5
+   maxrise: 1e-6
