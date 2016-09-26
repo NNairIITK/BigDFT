@@ -15,10 +15,10 @@ endif
 
 if USE_SIMGRID_SHARED_ALLOCS
 SIMGRID_SHARED_SOURCE = simgrid_shared.f90 #nvtx.f90
-SIMGRID_SHARED_DEP = smpi_shared.o
+SIMGRID_SHARED_DEP = simgrid_shared.o
 else
 SIMGRID_SHARED_SOURCE = simgrid_shared_fake.f90
-SIMGRID_SHARED_DEP = smpi_shared_fake.o
+SIMGRID_SHARED_DEP = simgrid_shared_fake.o
 endif
 
 # Module files.
@@ -47,7 +47,7 @@ getarg_files =
 else
 getarg_files = get_command_argument_fake.f90
 endif
-libflib_a_SOURCES = utils.c utilsadd.c f_plugin.c \
+libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
 	f_enums.f90 f_precisions.f90 \
@@ -56,7 +56,7 @@ libflib_a_SOURCES = utils.c utilsadd.c f_plugin.c \
 	razero.f90 getadd.f90 time.f90 \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
-	f_ternary.f90 f_bind.f90 f_objects.f90 fpython.f90 \
+	f_ternary.f90 f_objects.f90 fpython.f90 \
 	$(flush_files) $(getarg_files) $(CUDA_PROF) $(SIMGRID_SHARED_SOURCE) $(CUDA_SOURCES)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -112,9 +112,9 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_JMP.@MODULE_EXT \
 	TIME_PROFILING.@MODULE_EXT@ \
 	F_TERNARY.@MODULE_EXT@ \
-	MODULE_F_BIND.@MODULE_EXT@ \
 	MODULE_F_OBJECTS.@MODULE_EXT@ \
 	F_PYTHON.@MODULE_EXT@ \
+	SMPI_SHARED.@MODULE_EXT@ \
 	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
 else
 modules = yaml_strings.@MODULE_EXT@ \
@@ -136,12 +136,12 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_refcnts.@MODULE_EXT@ \
 	f_trees.@MODULE_EXT@ \
 	f_ternary.@MODULE_EXT@ \
-	module_f_bind.@MODULE_EXT@ \
 	module_f_objects.@MODULE_EXT@ \
 	f_python.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
 	f_jmp.@MODULE_EXT@ \
+	smpi_shared.@MODULE_EXT@ \
 	module_razero.@MODULE_EXT@ $(CUDA_MODS)
 endif
 
@@ -163,7 +163,6 @@ NVCC_FLAGS = @NVCC_FLAGS@
 $(modules): $(libflib_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
 f_enums.o: yaml_strings.o
-f_bind.o: f_precisions.o
 f_objects.o: f_precisions.o dictionaries.o yaml_output.o
 f_ternary.o: f_precisions.o yaml_strings.o
 dictionaries_base.o: yaml_strings.o

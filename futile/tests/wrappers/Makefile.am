@@ -3,9 +3,10 @@ EXTRA_DIST = \
 	example.f90 \
 	mpi_check.f90 \
 	mpi_layer.f90 \
-	op2p_check.f90
+	op2p_check.f90 \
+	linalg_check.f90
 
-check_PROGRAMS = op2p_check
+check_PROGRAMS = op2p_check linalg_check
 
 check: op2p_check.report.yaml $(check_PROGRAMS)
 
@@ -25,12 +26,16 @@ AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
 endif
 
 op2p_check_SOURCES = op2p_check.f90
-op2p_check_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
+op2p_check_LDADD = @LIB_FUTILE_LIBS@
+
+linalg_check_SOURCES = linalg_check.f90
+linalg_check_LDADD = @LIB_FUTILE_LIBS@
+
 
 mpi_check_SOURCES = mpi_check.f90
-mpi_check_LDADD = $(bigdft_library)
+mpi_check_LDADD =  @LIB_FUTILE_LIBS@
 
-op2p_check.o: $(top_builddir)/wrappers/libwrappers.a
+op2p_check.o linalg_check.o: $(top_builddir)/wrappers/libwrappers.a
 
 op2p_check.out.yaml: op2p_check
 	$(run_parallel) ./op2p_check -o [10,10,10,10] -n 100 > $@

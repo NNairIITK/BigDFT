@@ -73,6 +73,13 @@ module bigdft_run
      integer(kind = 8) :: c_obj !< Pointer to a C wrapper
   end type run_objects
 
+  !> Public signals for run_objects type.
+  character(len = *), parameter, public :: RUN_OBJECTS_TYPE = "run_objects"
+  character(len = *), parameter, public :: INIT_SIG = "init"
+  character(len = *), parameter, public :: DESTROY_SIG = "destroy"
+  character(len = *), parameter, public :: PRE_SCF_SIG = "pre"
+  character(len = *), parameter, public :: POST_SCF_SIG = "post"
+
   !> Used to store results of a DFT calculation.
   type, public :: state_properties
      real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
@@ -90,9 +97,11 @@ module bigdft_run
   public :: nullify_run_objects
   public :: run_objects_associate,bigdft_set_rxyz,section_extract
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
-  public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
-  public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
-  public :: nullify_MM_restart_objects
+  public :: run_objects_init,run_objects_update
+  public :: bigdft_init,bigdft_command_line_options,bigdft_nruns
+  !public :: init_QM_restart_objects,init_MM_restart_objects,nullify_QM_restart_objects
+  public :: set_run_objects
+  !public :: nullify_MM_restart_objects
   public :: bigdft_nat,bigdft_state,free_run_objects
   public :: release_run_objects,bigdft_get_cell,bigdft_get_cell_ptr,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units
@@ -168,6 +177,7 @@ contains
   subroutine init_MM_restart_objects(mm_rst,inputs,astruct,run_mode)
     use f_utils
     use dynamic_memory
+    use f_refcnts
     use public_enums
     use module_atoms
     use module_morse_bulk
@@ -283,9 +293,8 @@ contains
        !@todo SW is missing the rescalling here.
        call init_potential_SW(astruct%nat, astruct%ntypes, inputs%sw_factor)
     case default
-       call nullify_MM_restart_objects(mm_rst)
-       !create reference counter
-       mm_rst%refcnt=f_ref_new('mm_rst')
+       if (.not. f_associated(mm_rst%refcnt)) &
+            mm_rst%refcnt=f_ref_new('mm_rst')
     end select
 
     mm_rst%run_mode=run_mode
@@ -853,14 +862,14 @@ contains
   subroutine run_objects_type_init()
     use module_f_objects, only: f_object_new_, f_object_add_signal
 
-    call f_object_new_("run_objects")
-    call f_object_add_method("run_objects", "nat", bigdft_nat_bind, 1)
+    call f_object_new_(RUN_OBJECTS_TYPE)
+    call f_object_add_method(RUN_OBJECTS_TYPE, "nat", bigdft_nat_bind, 1)
 
-    call f_object_add_signal("run_objects", "init", 1)
-    call f_object_add_signal("run_objects", "pre", 1)
-    call f_object_add_signal("run_objects", "post", 2)
-    call f_object_add_signal("run_objects", "join", 3)
-    call f_object_add_signal("run_objects", "destroy", 1)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, INIT_SIG, 1)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, PRE_SCF_SIG, 1)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, POST_SCF_SIG, 2)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, "join", 3)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, DESTROY_SIG, 1)
 
     call f_object_new_("state_properties")
     call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
@@ -968,9 +977,9 @@ contains
     ! Fortran release ownership
     release = .true.
 
-    if (.not. f_object_has_signal("run_objects", "destroy")) &
+    if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, DESTROY_SIG)) &
          & call run_objects_type_init()
-    if (f_object_signal_prepare("run_objects", "destroy", sig)) then
+    if (f_object_signal_prepare(RUN_OBJECTS_TYPE, DESTROY_SIG, sig)) then
        call f_object_signal_add_arg(sig, runObj)
        call f_object_signal_emit(sig)
     end if
@@ -1026,15 +1035,9 @@ contains
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
-    use public_keys, only: PY_HOOKS, PLUGINS
     use dictionaries
-    use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
-
-    type(dictionary), pointer :: iter
-    character(len = 256) :: mess
-    integer :: ierr
 
     call f_routine(id='set_run_objects')
 
@@ -1063,24 +1066,6 @@ contains
     runObj%add_coulomb_force = runObj%inputs%add_coulomb_force
     if (runObj%run_mode == QM_RUN_MODE .or. runObj%run_mode == MULTI_RUN_MODE) then
        call f_enum_attr(runObj%run_mode, RUN_MODE_CREATE_DOCUMENT)
-    end if
-
-    ! Save the python additional code
-    if (PY_HOOKS .in. runObj%user_inputs) then
-       call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
-    end if
-
-    ! Load plugins if any.
-    if (PLUGINS .in. runObj%user_inputs) then
-       iter => dict_iter(runObj%user_inputs // PLUGINS)
-       do while (associated(iter))
-          call plugin_load(trim(dict_key(iter)), ierr)
-          if (ierr /= 0) then
-             call plugin_error(mess)
-             call yaml_warning(trim(mess))
-          end if
-          iter => dict_next(iter)
-       end do
     end if
 
     call f_release_routine()
@@ -1131,7 +1116,7 @@ contains
   !> Currently, set_run_objects() is not set recursively.
   !! This routine, handle a subpar of it for sections.
   subroutine set_section_objects(runObj)
-    use module_base, only: bigdft_mpi
+    use module_base, only: bigdft_mpi,mpibarrier
     use module_interfaces, only: atoms_new, inputs_new
     use module_atoms, only: atomic_structure, astruct_at_from_dict, &
          & astruct_merge_to_dict, deallocate_atomic_structure
@@ -1148,6 +1133,7 @@ contains
     type(dictionary), pointer :: sect
     type(atomic_structure) :: asub
 
+    call f_routine(id='set_section_objects')
     if (associated(runObj%sections)) then
        do i = 1, size(runObj%sections)
           call release_run_objects(runObj%sections(i))
@@ -1155,12 +1141,14 @@ contains
        deallocate(runObj%sections)
        nullify(runObj%sections)
     end if
-
     if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
          & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
-    if (ln == 0) return
+    if (ln == 0) then
+       call f_release_routine()
+       return
+    end if
 
     runObj%inputs%multi_buf = f_malloc_ptr(ln, id = "in%multi_buf")
     runObj%inputs%multi_buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
@@ -1171,6 +1159,7 @@ contains
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
        i = dict_item(sect) + 1
+
        call nullify_run_objects(runObj%sections(i))
        ! We just do a shallow copy here, because we don't need to store the input dictionary.
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
@@ -1200,6 +1189,9 @@ contains
 
        sect => dict_next(sect)
     end do
+
+    call f_release_routine()
+
   end subroutine set_section_objects
 
   !> Read all input files and create the objects to run BigDFT
@@ -1211,6 +1203,7 @@ contains
     use yaml_output
     use dynamic_memory
     use module_f_objects
+    use public_keys, only: PY_HOOKS, PLUGINS
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -1231,13 +1224,15 @@ contains
     type(run_objects), intent(in), optional :: source
     !local variables
     logical :: dict_from_files
-    integer :: i
+    integer :: i, ierr
     character(len=max_field_length) :: radical, posinp_id
     type(signal_ctx) :: sig
+    type(dictionary), pointer :: iter
+    character(len = 256) :: mess
 
     call f_routine(id='run_objects_init')
 
-    if (.not. f_object_has_signal("run_objects", "init")) &
+    if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, INIT_SIG)) &
          & call run_objects_type_init()
 
     call nullify_run_objects(runObj)
@@ -1262,7 +1257,28 @@ contains
        ! Create sections if any.
        call set_section_objects(runObj)
 
+       ! Save the python additional code
+       if (PY_HOOKS .in. runObj%user_inputs) then
+          call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
+       end if
+
+       ! Load plugins if any.
+       if (PLUGINS .in. runObj%user_inputs) then
+          iter => dict_iter(runObj%user_inputs // PLUGINS)
+          do while (associated(iter))
+             call plugin_reset_arg()
+             call plugin_add_arg(runObj)
+             call plugin_load(trim(dict_key(iter)), ierr)
+             if (ierr /= 0) then
+                call plugin_error(mess)
+                call yaml_warning(trim(mess))
+             end if
+             iter => dict_next(iter)
+          end do
+       end if
+
        !the user input is not needed anymore
+       if (USE_FILES .in. runObj%user_inputs) dict_from_files = runObj%user_inputs // USE_FILES
        if (dict_from_files) call dict_free(runObj%user_inputs)
 
        !decide what to do with restart
@@ -1278,7 +1294,7 @@ contains
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
        end if
 
-       if (f_object_signal_prepare("run_objects", "init", sig)) then
+       if (f_object_signal_prepare(RUN_OBJECTS_TYPE, INIT_SIG, sig)) then
           call f_object_signal_add_arg(sig, runObj)
           call f_object_signal_emit(sig)
        end if
@@ -1299,6 +1315,82 @@ contains
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
+  
+  subroutine run_objects_update(runObj, dict)
+    use module_base, only: bigdft_mpi
+    use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
+    use yaml_output
+    use module_input_dicts, only: create_log_file
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    type(dictionary), pointer :: dict
+    !local variables
+    type(dictionary), pointer :: item
+    logical :: dict_from_files
+    integer :: i,count
+
+    if (associated(runObj%user_inputs)) then
+       item => dict_iter(dict)
+       do while (associated(item))
+          if (index(dict_key(item),'psppar') == 1) then
+             call dict_copy(runObj%user_inputs//trim(dict_key(item)),item)
+          end if
+          item => dict_next(item)
+       end do
+    end if
+
+    ! We merge the previous dictionary with new entries.
+    call dict_update(runObj%user_inputs, dict)
+
+    call create_log_file(runObj%user_inputs,dict_from_files)
+
+    ! Parse new dictionary.
+    call set_run_objects(runObj)
+    ! Create sections if any.
+    call set_section_objects(runObj)
+
+!!$    !init and update the restart objects
+!!$    if (associated(runObj%rst)) then
+!!$       call f_unref(runObj%rst%refcnt,count=count)
+!!$       if (count==0) then
+!!$          call free_QM_restart_objects(runObj%rst)
+!!$       else
+!!$          nullify(runObj%rst)
+!!$       end if
+!!$    else
+!!$       allocate(runObj%rst)
+!!$    end if
+!!$    call nullify_QM_restart_objects(runObj%rst)
+    if(.not. associated(runObj%rst)) then
+       allocate(runObj%rst)
+       call nullify_QM_restart_objects(runObj%rst)
+    end if
+    call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
+         runObj%rst)
+!!$    if (associated(runObj%mm_rst)) then
+!!$       call f_unref(runObj%mm_rst%refcnt,count=count)
+!!$       if (count==0) then
+!!$          call free_MM_restart_objects(runObj%mm_rst)
+!!$       else
+!!$          nullify(runObj%mm_rst)
+!!$       end if
+!!$    else
+!!$       allocate(runObj%mm_rst)
+!!$    end if
+!!$    !call free_MM_restart_objects(runObj%mm_rst)
+!!$    call nullify_MM_restart_objects(runObj%mm_rst)
+    if (.not. associated(runObj%mm_rst)) then
+       allocate(runObj%mm_rst)
+       call nullify_MM_restart_objects(runObj%mm_rst)
+    end if
+    call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
+
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call init_restart_objects(runObj%sections(i), bigdft_mpi%iproc)
+       end do
+    end if
+  END SUBROUTINE run_objects_update
 
   subroutine associate_restart_objects(runObj, rst, mm_rst)
     use f_refcnts
@@ -1770,9 +1862,9 @@ contains
     end if
 
     ! Run any pre hook
-    if (.not. f_object_has_signal("run_objects", "pre")) &
+    if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, PRE_SCF_SIG)) &
          & call run_objects_type_init()
-    if (f_object_signal_prepare("run_objects", "pre", sig)) then
+    if (f_object_signal_prepare(RUN_OBJECTS_TYPE, PRE_SCF_SIG, sig)) then
        call f_object_signal_add_arg(sig, runObj)
        call f_object_signal_emit(sig)
     end if
@@ -1882,7 +1974,7 @@ contains
     call broadcast_state_properties(outs)
 
     ! Run any hook post run.
-    if (f_object_signal_prepare("run_objects", "post", sig)) then
+    if (f_object_signal_prepare(RUN_OBJECTS_TYPE, POST_SCF_SIG, sig)) then
        call f_object_signal_add_arg(sig, runObj)
        call f_object_signal_add_arg(sig, outs)
        call f_object_signal_emit(sig)
@@ -2600,7 +2692,6 @@ contains
 !!$    end select
   end subroutine bigdft_set_input_policy
 
-
 end module bigdft_run
 
 !external wrapper temporary to make the code compiling with wrappers
@@ -2624,42 +2715,15 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   !call dict_free(run_dict) In this case the run_dict has not to be freed
 END SUBROUTINE run_objects_init_from_run_name
 
-subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi
-  use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
-  use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
-  use yaml_output
-  use module_input_dicts, only: create_log_file
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  type(dictionary), pointer :: dict
-  !local variables
-  type(dictionary), pointer :: item
-  logical :: dict_from_files
+subroutine run_objects_update_bind(runObj, dict)
+    use bigdft_run, only: run_objects_update, run_objects
+    use dictionaries, only: dictionary
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    type(dictionary), pointer :: dict
 
-  if (associated(runObj%user_inputs)) then
-     item => dict_iter(dict)
-     do while (associated(item))
-        if (index(dict_key(item),'psppar') == 1) then
-           call dict_copy(runObj%user_inputs//trim(dict_key(item)),item)
-        end if
-        item => dict_next(item)
-     end do
-  end if
-
-  ! We merge the previous dictionary with new entries.
-  call dict_update(runObj%user_inputs, dict)
-
-  call create_log_file(runObj%user_inputs,dict_from_files)
-
-  ! Parse new dictionary.
-  call set_run_objects(runObj)
-
-  !init and update the restart objects
-  call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
-       runObj%rst)
-  call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
-END SUBROUTINE run_objects_update
+    call run_objects_update(runObj, dict)
+END SUBROUTINE run_objects_update_bind
 
 !> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, mem)

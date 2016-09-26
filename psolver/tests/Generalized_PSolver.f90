@@ -7233,7 +7233,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   use dynamic_memory
   use yaml_output
   use f_utils
-  use numerics, only: safe_exp
+  use box
+  use numerics, only: safe_exp,oneofourpi
 
   implicit none
   integer, intent(in) :: n01
@@ -7264,6 +7265,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8) :: PB_charge
   !local variables
+  logical, parameter :: old=.false.
   real(kind=8), parameter :: valuebc=1.d-15
   real(kind=8), dimension(3) :: rv,shift,sh
   real(kind=8), dimension(6) :: plandist
@@ -7272,6 +7274,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   real(kind=8), dimension(:,:), allocatable :: rxyz
   logical :: perx,pery,perz
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,nn
+  type(cell) :: mesh
+  type(box_iterator) :: bit
 
   density1=f_malloc([n01,n02,n03,nspden],id='density1')
   density2=f_malloc([n01,n02,n03,nspden],id='density2')
@@ -7675,151 +7679,178 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   potential(:,:,:)=0.d0
   potential1(:,:,:)=0.d0
   offset=0.d0
-
+  
   do iat=1,nat
-   nn=n01/2+1
-   !gaussian function for the potential.
-   sump=0.d0
-   do i3=1,n03
-    x3=hz*(i3-1-nbl3)
-    !x3 = hz*real(i3-n03/2,kind=8)
-    do i2=1,n02
-     x2 = hy*(i2-1-nbl2)
-     !x2 = hy*real(i2-n02/2,kind=8)
-     do i1=1,n01
-      x1 = hx*(i1-1-nbl1)
-      !x1 = hx*real(i1-n01/2,kind=8)
-      r2=(x1-rxyz(1,iat))**2+(x2-rxyz(2,iat))**2+(x3-rxyz(3,iat))**2
-      !r2 = x1*x1+x2*x2+x3*x3
-!      potential(i1,i2,i3) = 1.d0/real(nspden,kind=8)*max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
-      potential1(i1,i2,i3) = factor*safe_exp(-0.5d0*r2/(sigma**2))
-      potential(i1,i2,i3) = potential(i1,i2,i3) + potential1(i1,i2,i3)
-      sump=sump+potential(i1,i2,i3)
-      offset=offset+potential(i1,i2,i3)
-!      if (i1.eq.nn.and.i2.eq.nn.and.i3.eq.nn) then
-!       write(*,*)i1,i2,i3
-!       write(*,*)x1,x2,x3,rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),potential(i1,i2,i3)
-!      end if
-     end do
-    end do
-   end do
+     nn=n01/2+1
+     !gaussian function for the potential.
+     sump=0.d0
+     if (old) then
+        do i3=1,n03
+           x3=hz*(i3-1-nbl3)
+           !x3 = hz*real(i3-n03/2,kind=8)
+           do i2=1,n02
+              x2 = hy*(i2-1-nbl2)
+              !x2 = hy*real(i2-n02/2,kind=8)
+              do i1=1,n01
+                 x1 = hx*(i1-1-nbl1)
+                 !x1 = hx*real(i1-n01/2,kind=8)
+                 r2=(x1-rxyz(1,iat))**2+(x2-rxyz(2,iat))**2+(x3-rxyz(3,iat))**2
+                 !r2 = x1*x1+x2*x2+x3*x3
+                 !      potential(i1,i2,i3) = 1.d0/real(nspden,kind=8)*max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
+                 potential1(i1,i2,i3) = factor*safe_exp(-0.5d0*r2/(sigma**2))
+                 potential(i1,i2,i3) = potential(i1,i2,i3) + potential1(i1,i2,i3)
+                 sump=sump+potential(i1,i2,i3)
+                 offset=offset+potential(i1,i2,i3)
+                 !      if (i1.eq.nn.and.i2.eq.nn.and.i3.eq.nn) then
+                 !       write(*,*)i1,i2,i3
+                 !       write(*,*)x1,x2,x3,rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),potential(i1,i2,i3)
+                 !      end if
+              end do
+           end do
+        end do
+        offset=offset*hx*hy*hz
+        if (iproc == 0) call yaml_map('offset',offset)
+        switch=0.0d0
+        if (lin_PB) then
+           switch=1.0d0
+        end if
 
-   offset=offset*hx*hy*hz
-   if (iproc == 0) call yaml_map('offset',offset)
-   switch=0.0d0
-   if (lin_PB) then
-    switch=1.0d0
-   end if
+        sumd=0.d0
+        !analitic density calculation.
+        do i3=1,n03
+           x3=hz*(i3-1-nbl3)
+           !x3 = hz*real(i3-n03/2,kind=8)
+           r_v(3)=x3-rxyz(3,iat)
+           do i2=1,n02
+              x2 = hy*(i2-1-nbl2)
+              !x2 = hy*real(i2-n02/2,kind=8)
+              r_v(2)=x2-rxyz(2,iat)
+              do i1=1,n01
+                 x1 = hx*(i1-1-nbl1)
+                 !x1 = hx*real(i1-n01/2,kind=8)
+                 r_v(1)=x1-rxyz(1,iat)
+                 r2=(x1-rxyz(1,iat))**2+(x2-rxyz(2,iat))**2+(x3-rxyz(3,iat))**2
+                 !r2 = x1*x1+x2*x2+x3*x3
+                 k1=0.d0
+                 do i=1,3
+                    k1 = k1 + dlogeps(i,i1,i2,i3)*potential1(i1,i2,i3)*(-r_v(i)/(sigma**2))
+                 end do
+                 k2 = potential1(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
+                 do i=1,nspden
+                    !        density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
+                    !                             -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential(i1,i2,i3))
+                    dens = (-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
+                         -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential1(i1,i2,i3))
+                    !                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*potential(i1,i2,i3))
+                    !                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*potential(i1,i2,i3))
+                    !                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*potential(i1,i2,i3)
+                    !                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(potential(i1,i2,i3)**2)
+                    density(i1,i2,i3,i) = density(i1,i2,i3,i) + dens
+                    sumd=sumd+density(i1,i2,i3,i)
+                 end do
+              end do
+           end do
+        end do
+     else
+        switch=0.0d0
+        if (lin_PB) switch=1.0d0
 
-    sumd=0.d0
-    !analitic density calculation.
-    do i3=1,n03
-     x3=hz*(i3-1-nbl3)
-     !x3 = hz*real(i3-n03/2,kind=8)
-     r_v(3)=x3-rxyz(3,iat)
-     do i2=1,n02
-      x2 = hy*(i2-1-nbl2)
-      !x2 = hy*real(i2-n02/2,kind=8)
-      r_v(2)=x2-rxyz(2,iat)
-      do i1=1,n01
-       x1 = hx*(i1-1-nbl1)
-       !x1 = hx*real(i1-n01/2,kind=8)
-       r_v(1)=x1-rxyz(1,iat)
-       r2=(x1-rxyz(1,iat))**2+(x2-rxyz(2,iat))**2+(x3-rxyz(3,iat))**2
-       !r2 = x1*x1+x2*x2+x3*x3
-       k1=0.d0
-       do i=1,3
-        k1 = k1 + dlogeps(i,i1,i2,i3)*potential1(i1,i2,i3)*(-r_v(i)/(sigma**2))
-       end do
-       k2 = potential1(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
-       do i=1,nspden
-!        density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
-!                             -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential(i1,i2,i3))
-        dens = (-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
-                -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential1(i1,i2,i3))
-!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*potential(i1,i2,i3))
-!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*potential(i1,i2,i3))
-!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*potential(i1,i2,i3)
-!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(potential(i1,i2,i3)**2)
-        density(i1,i2,i3,i) = density(i1,i2,i3,i) + dens
-        sumd=sumd+density(i1,i2,i3,i)
-       end do
-      end do
-     end do
-    end do
+        mesh=cell_new(geocode,[n01,n02,n03],[hx,hy,hz])
+
+        sumd=0.d0
+        bit=box_iter(mesh,origin=rxyz(:,iat))
+        do while(box_next_point(bit))
+           r2=square(mesh,bit%rxyz)
+           potential1(bit%i,bit%j,bit%k) = factor*safe_exp(-0.5d0*r2/(sigma**2))
+           potential(bit%i,bit%j,bit%k) = potential(bit%i,bit%j,bit%k) + potential1(bit%i,bit%j,bit%k)
+           sump=sump+potential(bit%i,bit%j,bit%k)
+           offset=offset+potential(bit%i,bit%j,bit%k)
+           k1=dotp(mesh,dlogeps(:,bit%i,bit%j,bit%k),bit%rxyz)
+           k1=-potential1(bit%i,bit%j,bit%k)*k1/(sigma**2)
+           k2 = potential1(bit%i,bit%j,bit%k)*(r2/(sigma**2)-3.d0)/(sigma**2)
+           dens = (-oneofourpi)*eps(bit%i,bit%j,bit%k)*(k1+k2)&
+                -switch*((eps(bit%i,bit%j,bit%k)-1.0d0)/(eps0-1.0d0))*PB_charge(potential1(bit%i,bit%j,bit%k))
+           do i=1,nspden
+              density(bit%i,bit%j,bit%k,i) = density(bit%i,bit%j,bit%k,i) + dens
+              sumd=sumd+density(bit%i,bit%j,bit%k,i)
+           end do
+        end do
+        offset=offset*mesh%volume_element!hx*hy*hz
+        if (iproc == 0) call yaml_map('offset',offset)
+     end if
 
   end do ! loop iat over atoms
-  
+
   call f_free(rxyz)
 
- else if (SetEps.eq.18) then
+else if (SetEps.eq.18) then
 
-! Set initial potential as gaussian and density as the correct Generalized
-! Laplace operator. It works with a gaussian epsilon.
+   ! Set initial potential as gaussian and density as the correct Generalized
+   ! Laplace operator. It works with a gaussian epsilon.
 
   offset=0.d0
   sigma = 0.05d0*acell
   x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-print *,'we should be here for old analytical functions'
-         !Normalization
-         factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
-         !gaussian function for the potential.
-         sump=0.d0
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2,kind=8)
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2,kind=8)
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2,kind=8)
-!                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
-                  r2 = x1*x1+x2*x2+x3*x3
-                  potential(i1,i2,i3) = 1.d0/real(nspden,kind=8)*max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
-                  sump=sump+potential(i1,i2,i3)
-                  offset=offset+potential(i1,i2,i3)
-               end do
-            end do
-          end do
-      offset=offset*hx*hy*hz
+  print *,'we should be here for old analytical functions'
+  !Normalization
+  factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
+  !gaussian function for the potential.
+  sump=0.d0
+  do i3=1,n03
+     x3 = hz*real(i3-n03/2,kind=8)
+     do i2=1,n02
+        x2 = hy*real(i2-n02/2,kind=8)
+        do i1=1,n01
+           x1 = hx*real(i1-n01/2,kind=8)
+           !                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
+           r2 = x1*x1+x2*x2+x3*x3
+           potential(i1,i2,i3) = 1.d0/real(nspden,kind=8)*max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
+           sump=sump+potential(i1,i2,i3)
+           offset=offset+potential(i1,i2,i3)
+        end do
+     end do
+  end do
+  offset=offset*hx*hy*hz
 
-!      write(*,*)'offset',offset
+  !      write(*,*)'offset',offset
 
   switch=0.0d0
   if (lin_PB) then
-   switch=1.0d0
+     switch=1.0d0
   end if
 
-         sumd=0.d0
-         !analitic density calculation.
-         do i3=1,n03
-            x3 = hz*real(i3-n03/2,kind=8)
-            r_v(3)=x3
-            do i2=1,n02
-               x2 = hy*real(i2-n02/2,kind=8)
-               r_v(2)=x2
-               do i1=1,n01
-                  x1 = hx*real(i1-n01/2,kind=8)
-                  r_v(1)=x1
-!                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
-                  r2 = x1*x1+x2*x2+x3*x3
-                  k1=0.d0
-                  do i=1,3
-                   k1 = k1 + dlogeps(i,i1,i2,i3)*potential(i1,i2,i3)*(-r_v(i)/(sigma**2))
-                  end do
-                  k2 = potential(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
-                  do i=1,nspden
-                   density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
-                                 -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential(i1,i2,i3))
-!                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*potential(i1,i2,i3))
-!                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*potential(i1,i2,i3))
-!                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*potential(i1,i2,i3)
-!                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(potential(i1,i2,i3)**2)
-                   sumd=sumd+density(i1,i2,i3,i)
-                  end do
-               end do
-            end do
-         end do
+  sumd=0.d0
+  !analitic density calculation.
+  do i3=1,n03
+     x3 = hz*real(i3-n03/2,kind=8)
+     r_v(3)=x3
+     do i2=1,n02
+        x2 = hy*real(i2-n02/2,kind=8)
+        r_v(2)=x2
+        do i1=1,n01
+           x1 = hx*real(i1-n01/2,kind=8)
+           r_v(1)=x1
+           !                  r2=(x1-x0)*(x1-x0)+(x2-x0)*(x2-x0)+(x3)*(x3)
+           r2 = x1*x1+x2*x2+x3*x3
+           k1=0.d0
+           do i=1,3
+              k1 = k1 + dlogeps(i,i1,i2,i3)*potential(i1,i2,i3)*(-r_v(i)/(sigma**2))
+           end do
+           k2 = potential(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
+           do i=1,nspden
+              density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
+                   -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential(i1,i2,i3))
+              !                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*potential(i1,i2,i3))
+              !                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*potential(i1,i2,i3))
+              !                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*potential(i1,i2,i3)
+              !                                 +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(potential(i1,i2,i3)**2)
+              sumd=sumd+density(i1,i2,i3,i)
+           end do
+        end do
+     end do
+  end do
 
- end if
+end if
 
 !plot of the starting conditions
  unt=f_get_free_unit(21)
@@ -7849,22 +7880,38 @@ print *,'we should be here for old analytical functions'
 
  !calculate hartree energy
  einit=0.d0
- do i3=1,n03
-  do i2=1,n02
-   do i1=1,n01
-    einit= einit + density(i1,i2,i3,1)*potential(i1,i2,i3) 
-   end do
-  end do
+ if (.not. old) then
+ bit=box_iter(mesh)
+ do while(box_next_point(bit))
+    einit= einit+density(bit%i,bit%j,bit%k,1)*potential(bit%i,bit%j,bit%k) 
  end do
- einit=0.5*hx*hy*hz*einit
-
-   if (iproc ==0) then
-    call yaml_map('Total Charge',sumd*hx*hy*hz)
-    call yaml_map('Potential monopole',sump*hx*hy*hz)
+ einit=0.5*mesh%volume_element*einit
+ if (iproc ==0) then
+    call yaml_map('Total Charge',sumd*mesh%volume_element)
+    call yaml_map('Potential monopole',sump*mesh%volume_element)
     call yaml_map('Potential at the boundary 1 n02/2 1',&
-       potential(1,n02/2,1))
+         potential(1,n02/2,1))
     call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
+ end if
+
+ else
+    do i3=1,n03
+       do i2=1,n02
+          do i1=1,n01
+             einit= einit + density(i1,i2,i3,1)*potential(i1,i2,i3) 
+          end do
+       end do
+    end do
+    einit=0.5*hx*hy*hz*einit
+  if (iproc ==0) then
+     call yaml_map('Total Charge',sumd*hx*hy*hz)
+     call yaml_map('Potential monopole',sump*hx*hy*hz)
+     call yaml_map('Potential at the boundary 1 n02/2 1',&
+          potential(1,n02/2,1))
+     call yaml_map('Density at the boundary 1 n02/2 1',density(1,n02/2,1,1))
    end if
+
+ end if
   !write(*,*) 'charge sumd',sumd*hx*hy*hz,'potential sum',sump*hx*hy*hz
   !write(*,'(1x,a,1x,e14.7)')'Potential at the boundary 1 n02/2 1',poteantial(1,n02/2,1)
   !write(*,'(1x,a,1x,e14.7)')'Density at the boundary 1 n02/2 1',density(1,n02/2,1,1)
@@ -8723,6 +8770,7 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
   use yaml_output
   use f_utils
   use f_enums
+  use box
   implicit none
   integer, intent(in) :: natreal !< number of centres defining the cavity
   integer, intent(in) :: nspden
@@ -8743,6 +8791,7 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
+  logical, parameter :: old=.false.
   integer :: i,i1,i2,i3,iat,jat,ii,nat,j,k,l,px,py,pz
   real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
   real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr,value,valuemin
@@ -8760,6 +8809,8 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
   real(kind=8), dimension(:,:), allocatable :: rxyz
   logical :: perx,pery,perz
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,imin
+  type(cell) :: mesh
+  type(box_iterator) :: bit
 
   pi = 4.d0*datan(1.d0)
   r=0.d0
@@ -8886,122 +8937,225 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
      call yaml_map('radii',radii(iat))
      call yaml_map('rxyz',rxyz(:,iat))
     end do
-   end if
+ end if
 
-!------------------------------------------------------------------------------------------------------
-! Starting the cavity building for rxyztot atoms=real+image atoms (total natcurr) for periodic
-! and surface boundary conditions or atoms=real for free bc.
+ !------------------------------------------------------------------------------------------------------
+ ! Starting the cavity building for rxyztot atoms=real+image atoms (total natcurr) for periodic
+ ! and surface boundary conditions or atoms=real for free bc.
+ if (old) then
 
-  do i3=1,ndims(3)
-   z=hgrids(3)*(i3-1-nbl3)
-   !z=hgrids(3)*i3 !(i3-1) for 0 axis start.
-   v(3)=z
-   do i2=1,ndims(2)
-    y=hgrids(2)*(i2-1-nbl2)
-    !y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
-    v(2)=y
-    do i1=1,ndims(1)
-     x=hgrids(1)*(i1-1-nbl1)
-     !x=hgrids(1)*i1 !(i1-1) for 0 axis start.
-     v(1)=x
-     !choose the closest atom
-     do iat=1,nat
-      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
-      d=dsqrt(d2)
-!------------------------------------------------------------------
-! Loop over the atoms, we neeed to fill the vector
-! ep(iat) -> atom centered function from 0 (inside the cavity) to 1 outside
-! dep(i,iat) -> nabla of ep(iat)
-! ddep(iat) -> laplacian of ep(iat)
-      ! Using error function as ep(iat).
-      if (d2.eq.0.d0) then
-       d2=1.0d-30
-       ep(iat)=epsl(d,radii(iat),delta)
-       do i=1,3
-        dep(i,iat)=0.d0
+    do i3=1,ndims(3)
+       z=hgrids(3)*(i3-1-nbl3)
+       !z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+       v(3)=z
+       do i2=1,ndims(2)
+          y=hgrids(2)*(i2-1-nbl2)
+          !y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+          v(2)=y
+          do i1=1,ndims(1)
+             x=hgrids(1)*(i1-1-nbl1)
+             !x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+             v(1)=x
+             !choose the closest atom
+             do iat=1,nat
+                d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+!print *,'oldi,j,k',i1,i2,i3,d2,iat,v
+                d=dsqrt(d2)
+                !------------------------------------------------------------------
+                ! Loop over the atoms, we neeed to fill the vector
+                ! ep(iat) -> atom centered function from 0 (inside the cavity) to 1 outside
+                ! dep(i,iat) -> nabla of ep(iat)
+                ! ddep(iat) -> laplacian of ep(iat)
+                ! Using error function as ep(iat).
+                if (d2.eq.0.d0) then
+                   d2=1.0d-30
+                   ep(iat)=epsl(d,radii(iat),delta)
+                   do i=1,3
+                      dep(i,iat)=0.d0
+                   end do
+                   ddep(iat)=2.0d0/(delta**2)*d1eps(0.d0,radii(iat),delta)
+                else
+                   oneod=1.d0/d
+                   ep(iat)=epsl(d,radii(iat),delta)
+                   d1=d1eps(d,radii(iat),delta)
+                   coeff=2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+                   do i=1,3
+                      h=(v(i)-rxyz(i,iat))*oneod
+                      dep(i,iat) =d1*h
+                   end do
+                   ddep(iat)=d1*(2.d0*oneod-coeff)
+                end if
+
+                ! Using gaussian function as ep(iat).
+                !      ep(iat)=epgauss(d2,radii(iat),delta)
+                !      d1=d1epgauss(d2,radii(iat),delta)
+                !      do i=1,3
+                !        h=v(i)-rxyz(i,iat)
+                !       dep(i,iat)=d1*h
+                !      end do
+                !      ddep(iat)=d1*(3.d0-d2/(delta**2))
+
+                !------------------------------------------------------------------
+
+             end do
+
+             eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+             oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+             oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+             do i=1,3
+                deps(i)=0.d0
+                do jat=0,nat-1
+                   curr=dep(i,jat+1)
+                   do iat=1,nat-1
+                      curr=curr*ep(modulo(iat+jat,nat)+1)
+                   end do
+                   deps(i) = deps(i) + curr
+                end do
+                deps(i) = deps(i)*(epsilon0-1.d0)
+             end do
+
+             d12=0.d0
+             do i=1,3
+                dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+                d12 = d12 + deps(i)**2
+             end do
+
+             dd=0.d0
+             do jat=1,nat
+                curr=ddep(jat)
+                do iat=1,nat-1
+                   curr=curr*ep(modulo(iat+jat-1,nat)+1)
+                end do
+                dd = dd + curr
+             end do
+
+             do i=1,3
+                do iat=1,nat-1
+                   do jat=iat+1,nat
+                      curr=dep(i,iat)*dep(i,jat)
+                      do ii=1,nat
+                         if ((ii.eq.iat).or.(ii.eq.jat)) then
+                         else
+                            curr=curr*ep(ii)
+                         end if
+                      end do
+                      curr=curr*2.d0
+                      dd = dd + curr
+                   end do
+                end do
+             end do
+
+             dd=dd*(epsilon0-1.d0)
+             corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+          end do
        end do
-       ddep(iat)=2.0d0/(delta**2)*d1eps(0.d0,radii(iat),delta)
-      else
-       oneod=1.d0/d
-       ep(iat)=epsl(d,radii(iat),delta)
-       d1=d1eps(d,radii(iat),delta)
-       coeff=2.d0*((sqrt(d2)-radii(iat))/(delta**2))
-       do i=1,3
-        h=(v(i)-rxyz(i,iat))*oneod
-        dep(i,iat) =d1*h
-       end do
-       ddep(iat)=d1*(2.d0*oneod-coeff)
-      end if
+    end do
+ else
 
-      ! Using gaussian function as ep(iat).
-!      ep(iat)=epgauss(d2,radii(iat),delta)
-!      d1=d1epgauss(d2,radii(iat),delta)
-!      do i=1,3
-!        h=v(i)-rxyz(i,iat)
-!       dep(i,iat)=d1*h
-!      end do
-!      ddep(iat)=d1*(3.d0-d2/(delta**2))
-
-!------------------------------------------------------------------
-
-     end do
-
-     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
-     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
-     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
-
-     do i=1,3
-      deps(i)=0.d0
-      do jat=0,nat-1
-       curr=dep(i,jat+1)
-       do iat=1,nat-1
-        curr=curr*ep(modulo(iat+jat,nat)+1)
-       end do
-        deps(i) = deps(i) + curr
-      end do
-      deps(i) = deps(i)*(epsilon0-1.d0)
-     end do
-
-     d12=0.d0
-     do i=1,3
-      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
-      d12 = d12 + deps(i)**2
-     end do
-
-     dd=0.d0
-     do jat=1,nat
-      curr=ddep(jat)
-      do iat=1,nat-1
-       curr=curr*ep(modulo(iat+jat-1,nat)+1)
-      end do
-      dd = dd + curr
-     end do
-
-      do i=1,3
-       do iat=1,nat-1
-        do jat=iat+1,nat
-         curr=dep(i,iat)*dep(i,jat)
-         do ii=1,nat
-          if ((ii.eq.iat).or.(ii.eq.jat)) then
+    mesh=cell_new(geocode,ndims,hgrids) 
+    bit=box_iter(mesh)
+    do while(box_next_point(bit))
+       !choose the closest atom
+       do iat=1,nat
+          d2=square(mesh,bit%rxyz-rxyz(:,iat))
+!print *,'i,j,k',bit%i,bit%j,bit%k,d2,iat,bit%rxyz
+          d=dsqrt(d2)
+          !------------------------------------------------------------------
+          ! Loop over the atoms, we neeed to fill the vector
+          ! ep(iat) -> atom centered function from 0 (inside the cavity) to 1 outside
+          ! dep(i,iat) -> nabla of ep(iat)
+          ! ddep(iat) -> laplacian of ep(iat)
+          ! Using error function as ep(iat).
+          if (d2.eq.0.d0) then
+             d2=1.0d-30
+             ep(iat)=epsl(d,radii(iat),delta)
+             do i=1,3
+                dep(i,iat)=0.d0
+             end do
+             ddep(iat)=2.0d0/(delta**2)*d1eps(0.d0,radii(iat),delta)
           else
-           curr=curr*ep(ii)
+             oneod=1.d0/d
+             ep(iat)=epsl(d,radii(iat),delta)
+             d1=d1eps(d,radii(iat),delta)
+             coeff=2.d0*((d-radii(iat))/(delta**2))            
+             do i=1,3
+                h=(bit%rxyz(i)-rxyz(i,iat))*oneod
+                dep(i,iat) =d1*h
+             end do
+             ddep(iat)=d1*(2.d0*oneod-coeff)
           end if
-         end do
-         curr=curr*2.d0
-         dd = dd + curr
-        end do
-       end do
-      end do
 
-     dd=dd*(epsilon0-1.d0)
-     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+          ! Using gaussian function as ep(iat).
+          !      ep(iat)=epgauss(d2,radii(iat),delta)
+          !      d1=d1epgauss(d2,radii(iat),delta)
+          !      do i=1,3
+          !        h=v(i)-rxyz(i,iat)
+          !       dep(i,iat)=d1*h
+          !      end do
+          !      ddep(iat)=d1*(3.d0-d2/(delta**2))
+
+          !------------------------------------------------------------------
+
+       end do
+       eps(bit%i,bit%j,bit%k)=(epsilon0-1.d0)*product(ep)+1.d0
+       oneoeps(bit%i,bit%j,bit%k)=1.d0/eps(bit%i,bit%j,bit%k)
+       oneosqrteps(bit%i,bit%j,bit%k)=1.d0/dsqrt(eps(bit%i,bit%j,bit%k))
+
+       do i=1,3
+          deps(i)=0.d0
+          do jat=0,nat-1
+             curr=dep(i,jat+1)
+             do iat=1,nat-1
+                curr=curr*ep(modulo(iat+jat,nat)+1)
+             end do
+             deps(i) = deps(i) + curr
+          end do
+          deps(i) = deps(i)*(epsilon0-1.d0)
+       end do
+
+!       d12=0.d0
+       do i=1,3
+          dlogeps(i,bit%i,bit%j,bit%k)=deps(i)/eps(bit%i,bit%j,bit%k)
+!          d12 = d12 + deps(i)**2
+       end do
+
+       d12=square(mesh,deps)
+
+       dd=0.d0
+       do jat=1,nat
+          curr=ddep(jat)
+          do iat=1,nat-1
+             curr=curr*ep(modulo(iat+jat-1,nat)+1)
+          end do
+          dd = dd + curr
+       end do
+
+       do i=1,3
+          do iat=1,nat-1
+             do jat=iat+1,nat
+                curr=dep(i,iat)*dep(i,jat)
+                do ii=1,nat
+                   if ((ii.eq.iat).or.(ii.eq.jat)) then
+                   else
+                      curr=curr*ep(ii)
+                   end if
+                end do
+                curr=curr*2.d0
+                dd = dd + curr
+             end do
+          end do
+       end do
+
+       dd=dd*(epsilon0-1.d0)
+       corr(bit%i,bit%j,bit%k)=(-0.125d0/pi)*(0.5d0*d12/eps(bit%i,bit%j,bit%k)-dd)
 
     end do
-   end do
-  end do
 
-  call f_free(ep)
-  call f_free(ddep)
+ end if
+ call f_free(ep)
+ call f_free(ddep)
   call f_free(dep)
   call f_free(rxyz)
   call f_free(radii)

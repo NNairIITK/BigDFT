@@ -1559,13 +1559,13 @@ subroutine run_objects_new(runObj)
   call nullify_run_objects(intern)
   runObj => intern
 
-  ! Allocate persistent structures.
-  allocate(runObj%rst)
-  call nullify_QM_restart_objects(runObj%rst)
-
-  ! Allocate persistent structures.
-  allocate(runObj%mm_rst)
-  call nullify_MM_restart_objects(runObj%mm_rst)
+!!$  ! Allocate persistent structures.
+!!$  allocate(runObj%rst)
+!!$  call nullify_QM_restart_objects(runObj%rst)
+!!$
+!!$  ! Allocate persistent structures.
+!!$  allocate(runObj%mm_rst)
+!!$  call nullify_MM_restart_objects(runObj%mm_rst)
 END SUBROUTINE run_objects_new
 subroutine run_objects_copy(run, from)
   use bigdft_run

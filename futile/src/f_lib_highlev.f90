@@ -225,6 +225,7 @@ end module f_lib_package
 
 !> complete module of futile, to be used for high-level programs
 module futile
+  use f_precisions
   use yaml_strings
   use dictionaries
   use yaml_output

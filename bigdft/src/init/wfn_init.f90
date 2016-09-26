@@ -400,7 +400,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
            call vcopy(orbs%norbd,orbse%eval((ikpt-1)*orbse%norb+orbse%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
         end if
      end do
-
      if (iproc == 0 .and. verbose > 1) then
         call yaml_map('Diagonalized',.true.)
         call yaml_mapping_close()
@@ -469,7 +468,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         end do
         call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
-
      do ikptp=1,orbse%nkptsp
         ikpt=orbse%iskpts+ikptp!orbse%ikptsp(ikptp)
 
@@ -479,7 +477,6 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
         call build_eigenvectors(orbs%norbu,orbs%norbd,orbs%norb,norbtot,nvctrp,&
              natsceff,nspin,nspinor,orbs%nspinor,ndim_hamovr,norbgrp,hamovr(1,1,ikpt),&
              psi(ispsie:),psit(ispsi:),passmat(ispm))
-
         ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
         ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
         ispm=ispm+ncplx*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)
@@ -553,14 +550,15 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    !WARNING: here nspin=1 for nspinor=4
    if(nspinor == 1) then
       ncplx=1
-      elseif(nspinor == 2) then
+      ncomp=1
+   elseif(nspinor == 2) then
       ncplx=2
       ncomp=1
    else if (nspinor == 4) then
       ncplx=2
       ncomp=2
    end if
-
+   !print *,'initial',sum(psi),sum(hpsi)
    !calculate the overlap matrix for each group of the semicore atoms
    !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
    !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
@@ -569,22 +567,32 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins
       do i=1,natsc+1
          norbi=norbsc_arr(i,ispin)
-         if (nspinor ==1) then
-            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-               &   hpsi(1,iorbst),max(1,nvctrp),&
-               &   0.0_wp,hamovr(imatrst,1),norbi)
-            !here probably dsyrk can be used
-            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
-               &   psi(1,iorbst),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norbi)
-         else
-            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
-               &   max(1,ncomp*nvctrp),hpsi(1,iorbst),max(1,ncomp*nvctrp),&
-               &   (0.0_wp,0.0_wp),hamovr(imatrst,1),norbi)
-            !here probably zherk can be used
-            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
-               &   max(1,ncomp*nvctrp),psi(1,iorbst),max(1,ncomp*nvctrp),&
-               &   (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
-         end if
+         call subspace_matrix(.false.,psi(1,iorbst),hpsi(1,iorbst),&
+              nspinor,ncomp*nvctrp,norbi,hamovr(imatrst,1))
+         call subspace_matrix(.false.,psi(1,iorbst),psi(1,iorbst),&
+              nspinor,ncomp*nvctrp,norbi,hamovr(imatrst,2))
+
+!!$         if (nspinor ==1) then
+!!$            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+!!$               &   hpsi(1,iorbst),max(1,nvctrp),&
+!!$               &   0.0_wp,hamovr(imatrst,1),norbi)
+!!$            !here probably dsyrk can be used
+!!$            call gemm('T','N',norbi,norbi,nvctrp,1.0_wp,psi(1,iorbst),max(1,nvctrp),&
+!!$               &   psi(1,iorbst),max(1,nvctrp),0.0_wp,hamovr(imatrst,2),norbi)
+!!$
+!!$         else
+!!$            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+!!$               &   max(1,ncomp*nvctrp),hpsi(1,iorbst),max(1,ncomp*nvctrp),&
+!!$               &   (0.0_wp,0.0_wp),hamovr(imatrst,1),norbi)
+!!$            !here probably zherk can be used
+!!$            call c_gemm('C','N',norbi,norbi,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(1,iorbst),&
+!!$               &   max(1,ncomp*nvctrp),psi(1,iorbst),max(1,ncomp*nvctrp),&
+!!$               &   (0.0_wp,0.0_wp),hamovr(imatrst,2),norbi)
+!!$         end if
+
+!print *,'finalA',hamovr(:,1),ispin
+!print *,'finalB',hamovr(:,2),ispin
+
 !!$               open(17)
 !!$               open(18)
 !!$               print *,'ncplx,nspinor',ncplx,nspinor
@@ -853,6 +861,7 @@ subroutine build_eigenvectors(norbu,norbd,norb,norbe,nvctrp,natsc,nspin,nspinore
    imatrst=1
    ispsiv=1
    ispm=1
+
    do ispin=1,nspin
       norbsc=0
       do i=1,natsc

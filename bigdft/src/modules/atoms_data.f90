@@ -1555,10 +1555,12 @@ contains
     !! retrieve also other information like the energy and the forces if requested
     !! and presend in the dictionary
     subroutine astruct_set_from_dict(dict, astruct, comment)
+      use module_base, only: bigdft_mpi
       use module_defs, only: gp,  UNINITIALIZED
       use numerics, only: Bohr_Ang
       use dynamic_memory
       use dictionaries
+      use yaml_output, only: yaml_warning
       implicit none
       !Arguments
       type(dictionary), pointer :: dict !< dictionary of the input variables
@@ -1674,11 +1676,21 @@ contains
          call astruct_set_n_atoms(astruct,0)
       end if
 
-      if (has_key(dict, ASTRUCT_PROPERTIES)) then
+      if (ASTRUCT_PROPERTIES .in. dict) then
          pos => dict // ASTRUCT_PROPERTIES
-         if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
-         if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
-         if (has_key(pos, "source")) astruct%source = pos // "source"
+         if (("info" .in. pos) .and. present(comment)) comment = pos // "info"
+         if ("format" .in. pos) then
+            astruct%inputfile_format = pos // "format"
+         else
+            if (bigdft_mpi%iproc==0) &
+                 call yaml_warning('Format not specified in the posinp dictionary, assuming yaml')
+            astruct%inputfile_format='yaml'
+         end if
+         if ("source" .in. pos) astruct%source = pos // "source"
+      else
+         if (bigdft_mpi%iproc==0) &
+              call yaml_warning('Format not specified in the posinp dictionary, assuming yaml')
+         astruct%inputfile_format='yaml'
       end if
 
       call dict_free(types)
