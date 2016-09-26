@@ -33,20 +33,27 @@ psolver_library = $(top_builddir)/src/libPSolver-1.a @LIB_PSOLVER_DEPS@
 endif
 
 PS_Check_SOURCES = PS_Check.f90 functions.f90
-PS_Check_LDADD = $(psolver_library) @LINALG_LIBS@ #@LIB_FUTILE_LIBS@ 
+PS_Check_LDADD = $(psolver_library) @LINALG_LIBS@
 
 PS_Program_SOURCES = PS_Program.f90
-PS_Program_LDADD = $(psolver_library) @LINALG_LIBS@ #@LIB_FUTILE_LIBS@
+PS_Program_LDADD = $(psolver_library) @LINALG_LIBS@
 
 PS_Exercise_SOURCES = PS_Exercise.f90
-PS_Exercise_LDADD = $(psolver_library) @LINALG_LIBS@ #@LIB_FUTILE_LIBS@
+PS_Exercise_LDADD = $(psolver_library) @LINALG_LIBS@
 
 Generalized_PSolver_SOURCES = Generalized_PSolver.f90
-Generalized_PSolver_LDADD = $(psolver_library) @LINALG_LIBS@ #@LIB_FUTILE_LIBS@
+Generalized_PSolver_LDADD = $(psolver_library) @LINALG_LIBS@
 
 Fock_SOURCES = Fock.f90 functions.f90
-Fock_LDADD = $(psolver_library) @LINALG_LIBS@ #@LIB_FUTILE_LIBS@ @LINALG_LIBS@
+Fock_LDADD = $(psolver_library) @LINALG_LIBS@
 
+if BUILD_DYNAMIC_LIBS
+PS_Check_LDADD += @LIB_FUTILE_LIBS@
+PS_Program_LDADD += @LIB_FUTILE_LIBS@
+PS_Exercise_LDADD += @LIB_FUTILE_LIBS@
+Generalized_PSolver_LDADD += @LIB_FUTILE_LIBS@
+Fock_LDADD += @LIB_FUTILE_LIBS@
+endif
 
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml
 

@@ -316,6 +316,9 @@ AC_SUBST(docdir)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
+dnl links of files in the build directory
+AC_CONFIG_LINKS([src/python/BigDFT/scripts/CIFs:src/python/BigDFT/scripts/CIFs])
+
 dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
@@ -339,6 +342,7 @@ src/bindings/bigdft_cst.h
 src/geopt/Makefile
 src/python/Makefile
 src/python/BigDFT/Makefile
+src/python/BigDFT/scripts/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
 tests/Makefile
