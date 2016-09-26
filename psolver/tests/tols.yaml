@@ -24,6 +24,7 @@ Default tolerances:
 
 Keys to ignore:
   - Total No. of Taskgroups created
+  - taskgroup_size
   - Timings for root process
   - MPI tasks*
   - OpenMP threads per task
