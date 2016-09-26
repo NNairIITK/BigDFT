@@ -1841,7 +1841,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(in%linear == INPUT_IG_TMO) linflag = 2
 
            !if (opt%iter == 1) minres_gpe=denspot%pkernel%minres
-           !denspot%pkernel%minres=max(min(1.e-4_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
+           !denspot%pkernel%minres=max(min(1.e-6_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
 
            nlpsp%apply_gamma_target=((opt%scf .hasattr. 'MIXING') .and. opt%itrp <= in%occupancy_control_itermax) .or. &
                 (.not. (opt%scf .hasattr. 'MIXING') .and. opt%iter <= in%occupancy_control_itermax)
