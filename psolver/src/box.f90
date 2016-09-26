@@ -53,7 +53,7 @@ module box
 !!$  end interface box_iter
 
   public :: cell_r,cell_periodic_dims,distance,closest_r,square,cell_new,box_iter,box_next_point
-  public :: cell_geocode,box_next_x,box_next_y,box_next_z
+  public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp
 
 contains
 
@@ -71,8 +71,8 @@ contains
     boxit%ibox=0
     boxit%ibox(1)=-1
     boxit%nbox=-1 
-    boxit%oxyz=-1
-    boxit%rxyz=-1
+    boxit%oxyz=-1.0_dp
+    boxit%rxyz=-1.0_dp
     nullify(boxit%mesh)
     boxit%whole=.false.
   end subroutine nullify_box_iterator
@@ -94,6 +94,7 @@ contains
 
   !>define an iterator over the cell points
   function box_iter(mesh,nbox,origin,i3s,n3p,centered,cutoff) result(boxit)
+    use f_utils, only: f_zero
     implicit none
     type(cell), intent(in), target :: mesh
     !>when true the origin is placed at the center of the box, origin is ignored
@@ -106,7 +107,7 @@ contains
     integer, dimension(2,3), intent(in), optional :: nbox
     real(dp), intent(in), optional :: cutoff !< determine the box around the origin
     !> real coordinates of the origin in the reference frame of the 
-    !box (the first point has the 000 coordinate)
+    !! box (the first point has the 000 coordinate)
     real(dp), dimension(3), intent(in), optional :: origin
 
     type(box_iterator) :: boxit
@@ -116,6 +117,7 @@ contains
     !associate the mesh
     boxit%mesh => mesh
 
+    call f_zero(boxit%oxyz)
     if (present(origin)) boxit%oxyz=origin
     if (present(centered)) then
        if (centered) boxit%oxyz=0.5_dp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
@@ -646,10 +648,13 @@ contains
 
   end function closest_r
 
+  !> Calculates the square of the vector r in the cell defined by mesh
+  !! Takes into account the non-orthorhombicity of the box
   pure function square(mesh,v)
     implicit none
+    !> array of coordinate in the mesh reference frame
     real(gp), dimension(3), intent(in) :: v
-    type(cell), intent(in) :: mesh
+    type(cell), intent(in) :: mesh !<definition of the cell
     real(gp) :: square
 
     if (mesh%orthorhombic) then
@@ -657,5 +662,18 @@ contains
     end if
 
   end function square
+
+  pure function dotp(mesh,v1,v2)
+    implicit none
+    real(gp), dimension(3), intent(in) :: v1,v2
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: dotp
+
+    if (mesh%orthorhombic) then
+       dotp=v1(1)*v2(1)+v1(2)*v2(2)+v1(3)*v2(3)
+    end if
+
+  end function dotp
+
 
 end module box
