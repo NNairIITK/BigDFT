@@ -52,6 +52,14 @@ module box
 !!$     module procedure box_iter_c,box_iter_base
 !!$  end interface box_iter
 
+  interface dotp
+     module procedure dotp,dotp_add1,dotp_add2
+  end interface dotp
+
+  interface square
+     module procedure square,square_add
+  end interface square
+
   public :: cell_r,cell_periodic_dims,distance,closest_r,square,cell_new,box_iter,box_next_point
   public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp
 
@@ -663,6 +671,20 @@ contains
 
   end function square
 
+  function square_add(mesh,v_add) result(square)
+    implicit none
+    !> array of coordinate in the mesh reference frame
+    real(gp) :: v_add
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: square
+
+    if (mesh%orthorhombic) then
+       call dotp_external_ortho(v_add,v_add,square)
+    end if
+
+  end function square_add
+
+
   pure function dotp(mesh,v1,v2)
     implicit none
     real(gp), dimension(3), intent(in) :: v1,v2
@@ -675,5 +697,39 @@ contains
 
   end function dotp
 
+  function dotp_add2(mesh,v1,v2_add) result(dotp)
+    implicit none
+    real(gp), dimension(3), intent(in) :: v1
+    real(gp) :: v2_add !<intent in, cannot be declared as such
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: dotp
+
+    if (mesh%orthorhombic) then
+       call dotp_external_ortho(v1,v2_add,dotp)
+    end if
+
+  end function dotp_add2
+
+  function dotp_add1(mesh,v1_add,v2) result(dotp)
+    implicit none
+    real(gp), dimension(3), intent(in) :: v2
+    real(gp) :: v1_add !<intent in, cannot be declared as such
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: dotp
+
+    if (mesh%orthorhombic) then
+       call dotp_external_ortho(v1_add,v2,dotp)
+    end if
+
+  end function dotp_add1
 
 end module box
+
+subroutine dotp_external_ortho(v1,v2,dotp)  
+  use PSbase, only: gp
+  implicit none
+  real(gp), dimension(3), intent(in) :: v1,v2
+  real(gp), intent(out) :: dotp
+
+  dotp=v1(1)*v2(1)+v1(2)*v2(2)+v1(3)*v2(3)
+end subroutine dotp_external_ortho
