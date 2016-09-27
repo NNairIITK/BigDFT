@@ -27,13 +27,13 @@ AC_DEFUN([AX_LIBXC],
     done
     FCFLAGS="$FCFLAGS $ac_libxc_incdir"
   fi
-  AC_COMPILE_IFELSE([[program main
+  AC_COMPILE_IFELSE([AC_LANG_SOURCE([program main
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
 
   write(*,*) XC_FAMILY_GGA
-end program]], withlibxcmod=yes, withlibxcmod=no)
+end program])], withlibxcmod=yes, withlibxcmod=no)
   AC_MSG_RESULT($withlibxcmod)
   FCFLAGS=$FCFLAGS_SVG
 

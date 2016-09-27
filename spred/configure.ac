@@ -103,9 +103,6 @@ AX_LINALG()
 
 dnl Libraries
 AX_FLIB()
-if test "$ax_have_FUTILE" != "yes" ; then
-  AC_MSG_ERROR(["Cannot find Futile library."])
-fi
 
 dnl to be removed when MPI goes to flib.
 AX_PSOLVER() 
@@ -113,7 +110,7 @@ if test "$ax_have_PSOLVER" != "yes" ; then
   AC_MSG_ERROR(["Cannot find PSolver library."])
 fi
 AX_BIGDFT()
-if test "$ax_have_bigdft" != "yes" ; then
+if test "$ax_have_BIGDFT" != "yes" ; then
   AC_MSG_ERROR(["Cannot find BigDFT library."])
 fi
 
@@ -125,7 +122,7 @@ dnl Test libraries required for benching / testing.
 AX_PYYAML()
 
 dnl Agregate all the optional libs.
-LIB_SPRED_DEPS="$LIB_BIGDFT_LIBS $LIB_FUTILE_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
+LIB_SPRED_DEPS="$LIB_BIGDFT_LIBS $LIB_PSOLVER_LIBS $LIB_FUTILE_LIBS $LINALG_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIB_SPRED_DEPS)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])

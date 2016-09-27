@@ -11,7 +11,7 @@
 
 
 !> Calculate the Hartree potential by solving the Poisson equation 
-!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$@f
+!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
 !! from a given @f$\rho@f$, 
 !! for different boundary conditions an for different data distributions.
 !! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
