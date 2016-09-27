@@ -57,7 +57,7 @@ endif
 
 CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml
 
-PS_Check.out.yaml: PS_Check PS_Program PS_Exercise Generalized_PSolver
+PS_Check.out.yaml: PS_Check Generalized_PSolver
 	-$(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
 	-$(run_parallel) ./PS_Check -n [64,64,64] -g P >> PS_Check.out.yaml
 	-$(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
@@ -69,10 +69,29 @@ PS_Check.out.yaml: PS_Check PS_Program PS_Exercise Generalized_PSolver
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm tmp
 
-check: PS_Check.out.yaml PS_Check.ref.yaml tols.yaml
+PS_Basics.out.yaml: PS_Program PS_Exercise 
+	-$(run_parallel) ./PS_Program -n [57,48,63] -g F > $@
+	-$(run_parallel) ./PS_Program -n [64,64,64] -g P >> $@
+	-$(run_parallel) ./PS_Program -n [32,64,48] -g S >> $@
+	-$(run_parallel) ./PS_Program -n [32,64,48] -g W >> $@
+
+
+check: PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
+
+report: PS_Basics.report.yaml PS_Check.report.yaml
+	python $(pythondir)/report.py
+
+PS_Basics.report.yaml: PS_Basics.ref.yaml PS_Basics.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
-		-r $(srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(srcdir)/tols.yaml \
-	        --output PSolver.report.yaml
+		-r $< -d PS_Basics.out.yaml -t $(srcdir)/tols.yaml \
+	        --output $@
+
+PS_Check.report.yaml: PS_Check.ref.yaml PS_Check.out.yaml
+	python $(pythondir)/fldiff_yaml.py \
+		-r $< -d PS_Check.out.yaml -t $(srcdir)/tols.yaml \
+	        --output $@
+
+
 
 #	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
 #		PS_Check.out $(srcdir)/PS_Check.out.ref | tee fldiff.report

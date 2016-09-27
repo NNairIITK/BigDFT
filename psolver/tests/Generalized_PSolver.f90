@@ -4867,7 +4867,7 @@ subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigm
            potential(bit%i,bit%j,bit%k) = potential(bit%i,bit%j,bit%k) + potential1(bit%i,bit%j,bit%k)
            sump=sump+potential(bit%i,bit%j,bit%k)
            offset=offset+potential(bit%i,bit%j,bit%k)
-           k1=dotp(mesh,dlogeps(:,bit%i,bit%j,bit%k),bit%rxyz)
+           k1=dotp(mesh,dlogeps(1,bit%i,bit%j,bit%k),bit%rxyz)
            k1=-potential1(bit%i,bit%j,bit%k)*k1/(sigma**2)
            k2 = potential1(bit%i,bit%j,bit%k)*(r2/(sigma**2)-3.d0)/(sigma**2)
            dens = (-oneofourpi)*eps(bit%i,bit%j,bit%k)*(k1+k2)&
