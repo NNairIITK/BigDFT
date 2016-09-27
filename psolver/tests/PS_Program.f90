@@ -298,7 +298,6 @@ program PSolver_Program
 !!$     print *,'rhopot',rhopot(25,25,25)
 !!$     print *,'pot_ion',pot_ion(25,25,25)
 
-
      !apply the Poisson Solver (case with distributed potential)
      eexcu=0.0_gp
      vexcu=0.0_gp
