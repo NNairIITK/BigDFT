@@ -7,7 +7,7 @@ scrpdir= $(pythondir)/BigDFT/scripts
 EXTRA_DIST= CIFs/
 
 install-data-hook: CIFs
-	cp -rpL CIFs/ '$(DESTDIR)$(scrpdir)'
+	cp -rp $(srcdir)/CIFs/ '$(DESTDIR)$(scrpdir)'
 
 uninstall-local:
 	rm -rf '$(DESTDIR)$(scrpdir)'/CIFs
