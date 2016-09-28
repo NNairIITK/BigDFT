@@ -304,15 +304,15 @@ program PSolver_Program
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
           density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
 
-     ! i2=n02/2
-     ! do i3=1,n03
-     !    do i1=1,n01
-     !       j1=n01/2+1-abs(n01/2+1-i1)
-     !       j2=n02/2+1-abs(n02/2+1-i2)
-     !       j3=n03/2+1-abs(n03/2+1-i3)
-     !       write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
-     !    end do
-     ! end do
+      i2=n02/2
+      do i3=1,n03
+         do i1=1,n01
+            j1=n01/2+1-abs(n01/2+1-i1)
+            j2=n02/2+1-abs(n02/2+1-i2)
+            j3=n03/2+1-abs(n03/2+1-i3)
+            write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
+         end do
+      end do
 
 
      !offset, used only for the periodic solver case
@@ -375,7 +375,7 @@ program PSolver_Program
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(111,*) i1*hx,i2*hy,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+           write(111,'(2(1x,I8),3(1x,e22.15))') i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
            !write(111,*) i1*hx+hy*i2*dcos(alpha)+i3*hz*dcos(beta), &
            !     i2*hy*dsin(alpha)+i3*hz*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha), &
            !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
@@ -390,7 +390,7 @@ program PSolver_Program
               !j1=n01/2+1-abs(n01/2+1-i1)
               !j2=n02/2+1-abs(n02/2+1-i2)
               !j3=n03/2+1-abs(n03/2+1-i3)
-              write(112,*)i1*hx,i2*hy,i3*hz,rhopot(i1,i2,i3),potential(i1,i2,i3),&
+              write(112,'(3(1x,I8),3(1x,e22.15))')i1,i2,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),&
                    density(i1,i2,i3)
            end do
         !end do
@@ -874,7 +874,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(200,'(2(1x,I8),2(1x,e22.15))') i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
