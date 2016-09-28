@@ -367,6 +367,7 @@ contains
     k%max_iter=0
     k%PI_eta=0.0_dp
     k%minres=0.0_dp
+    k%minres_PB=0.0_dp
     nullify(k%counts)
     nullify(k%displs)
   end function pkernel_null
