@@ -341,10 +341,11 @@ END SUBROUTINE fourtrans
 !! @warning Beware of the fact that the nonperiodic direction is y!
 !! SYNOPSIS
 subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
-     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)!,n3pr2,n3pr1)
+     h1,h2,h3,itype_scf,karray,mu0_screening,alpha)!,beta,gamma)!,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use wrapper_mpi
   use dynamic_memory
+  use f_utils, only: f_zero
   implicit none
   include 'perfdata.inc'
   
@@ -358,7 +359,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   integer, intent(in) :: mpi_comm,inplane_comm!n3pr1,n3pr2
   real(dp), intent(in) :: h1,h2,h3         !< Mesh steps in the three dimensions
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< Output array
-  real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
+  real(dp), intent(in) :: mu0_screening,alpha!,beta,gamma
   
   !Local variables 
   character(len=*), parameter :: subname='Surfaces_Kernel'
@@ -383,8 +384,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !metric for monoclinic lattices
-  real(dp), dimension(3,3) :: gu
-  real(dp) :: detg
+  real(dp), dimension(2,2) :: gus
+  real(dp) :: oneodetg
 
   !coefficients for the polynomial interpolation
   real(dp), dimension(9,8) :: cpol
@@ -504,34 +505,47 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   pi=4._dp*datan(1._dp)
 
   !monoclinic cell
-  detg = dsin(alpha)**2
-  !
-  !contravariant metric
-  gu(1,1) = 1.0_dp/detg
-  gu(1,2) = -dcos(alpha)/detg
-  gu(1,3) = 0.0_dp
-  gu(2,2) = 1.0_dp/detg
-  gu(2,3) = 0.0_dp
-  gu(3,3) = 1.0_dp
-  !
-  gu(2,1) = gu(1,2)
-  gu(3,1) = gu(1,3)
-  gu(3,2) = gu(2,3)
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  oneodetg = 1.0_dp/dsin(alpha)**2
 
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+  call f_zero(gus)
+  gus(1,1)=oneodetg
+  gus(2,1)=-cos(alpha)*oneodetg
+  gus(1,2)=-cos(alpha)*oneodetg
+  gus(2,2)=oneodetg
+
+!!$  gus(1,1)=1.0_dp
+!!$  gus(2,1)=cos(alpha)
+!!$  gus(1,2)=cos(alpha)
+!!$  gus(2,2)=1.0_dp
+
+
   !
-  !contravariant metric
-  gu(1,1) = (dsin(gamma)**2)/detg
-  gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
-  gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
-  gu(2,2) = (dsin(beta)**2)/detg
-  gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
-  gu(3,3) = (dsin(alpha)**2)/detg
+!!$  !contravariant metric
+!!$  gu(1,1) = 1.0_dp/detg
+!!$  gu(1,2) = -dcos(alpha)/detg
+!!$  gu(1,3) = 0.0_dp
+!!$  gu(2,2) = 1.0_dp/detg
+!!$  gu(2,3) = 0.0_dp
+!!$  gu(3,3) = 1.0_dp
+!!$  !
+!!$  gu(2,1) = gu(1,2)
+!!$  gu(3,1) = gu(1,3)
+!!$  gu(3,2) = gu(2,3)
+!!$  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!$
+!!$  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
   !
-  gu(2,1) = gu(1,2)
-  gu(3,1) = gu(1,3)
-  gu(3,2) = gu(2,3)
+!!$  !contravariant metric
+!!$  gu(1,1) = (dsin(gamma)**2)/detg
+!!$  gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
+!!$  gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
+!!$  gu(2,2) = (dsin(beta)**2)/detg
+!!$  gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
+!!$  gu(3,3) = (dsin(alpha)**2)/detg
+!!$  !
+!!$  gu(2,1) = gu(1,2)
+!!$  gu(3,1) = gu(1,3)
+!!$  gu(3,2) = gu(2,3)
 
   !print *,'METRIC',gu
 
@@ -653,7 +667,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
         !old:
         !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)
         !new:
-        mu1 = 2._dp*pi*sqrt(gu(1,1)*(ponx/h1)**2+gu(2,2)*(pony/h2)**2+2.0_dp*gu(1,2)*(ponx/h1)*(pony/h2))
+        mu1 = 2._dp*pi*sqrt(gus(1,1)*(ponx/h1)**2+gus(2,2)*(pony/h2)**2+2.0_dp*gus(1,2)*(ponx/h1)*(pony/h2))
         mu1 = h3*sqrt(mu1**2+mu0_screening**2)
         !acerioni
 

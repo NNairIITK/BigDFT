@@ -302,17 +302,17 @@ program PSolver_Program
      pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
+          density,potential,rhopot,pot_ion,mu0,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
 
-     ! i2=n02/2
-     ! do i3=1,n03
-     !    do i1=1,n01
-     !       j1=n01/2+1-abs(n01/2+1-i1)
-     !       j2=n02/2+1-abs(n02/2+1-i2)
-     !       j3=n03/2+1-abs(n03/2+1-i3)
-     !       write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
-     !    end do
-     ! end do
+      i2=n02/2
+      do i3=1,n03
+         do i1=1,n01
+            j1=n01/2+1-abs(n01/2+1-i1)
+            j2=n02/2+1-abs(n02/2+1-i2)
+            j3=n03/2+1-abs(n03/2+1-i3)
+            write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
+         end do
+      end do
 
 
      !offset, used only for the periodic solver case
@@ -368,7 +368,7 @@ program PSolver_Program
 !!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
 
      !print *,'potential integral',sum(density)
-     call yaml_map('potential integral',sum(density))
+     call yaml_map('potential integral',sum(density)*hx*hy*hx*sqrt(detg))
 
      i3=n03/2
      do i2=1,n02
@@ -376,7 +376,7 @@ program PSolver_Program
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(111,*) i1*hx,i2*hy,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+           write(111,'(2(1x,i6),3(1x,1pe25.16e3))') i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
            !write(111,*) i1*hx+hy*i2*dcos(alpha)+i3*hz*dcos(beta), &
            !     i2*hy*dsin(alpha)+i3*hz*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha), &
            !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
@@ -391,8 +391,7 @@ program PSolver_Program
               !j1=n01/2+1-abs(n01/2+1-i1)
               !j2=n02/2+1-abs(n02/2+1-i2)
               !j3=n03/2+1-abs(n03/2+1-i3)
-              write(112,*)i1*hx,i2*hy,i3*hz,rhopot(i1,i2,i3),potential(i1,i2,i3),&
-                   density(i1,i2,i3)
+              write(112,'(2(1x,i6),3(1x,1pe25.16e3))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
            end do
         !end do
      end do
@@ -608,6 +607,7 @@ end subroutine compare
 !! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,ixc
@@ -657,7 +657,13 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   gu(2,1) = gu(1,2)
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
+
+  gu=gd !test
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  call yaml_map('Angles',[alpha,beta,gamma]*180.0_dp*oneopi)
+  call yaml_map('Contravariant Metric',gu)
 
   if (ixc==0) denval=0.d0
 
@@ -792,7 +798,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=FUNC_EXP_COSINE
+     ifx=FUNC_COSINE!FUNC_EXP_COSINE
      ifz=FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
@@ -1266,6 +1272,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      potion_fac=1.d0
   end if
 
+  print *,'denval',denval
   rhopot(:,:,:) = density(:,:,:) + denval
      do i3=1,n03
         do i2=1,n02

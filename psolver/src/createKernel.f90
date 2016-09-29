@@ -374,7 +374,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
           kernel%mpi_env%mpi_comm,kernel%inplane_mpi%mpi_comm,&
           n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
-          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)!,n3pr2,n3pr1)
+          kernel%itype_scf,kernel%kernel,mu0t,alphat)!,betat,gammat)!,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2

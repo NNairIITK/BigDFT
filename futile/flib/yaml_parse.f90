@@ -446,7 +446,7 @@ contains
         type(dictionary), pointer :: opt_iter
 
         nullify(dict)
-
+        found=.false.
         call get_cmd(icommands,command)
         icommands=icommands+1
         !search for the long key value

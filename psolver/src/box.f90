@@ -43,6 +43,7 @@ module box
      integer, dimension(2,3) :: nbox 
      real(dp), dimension(3) :: oxyz !<origin of the coordinate system
      real(dp), dimension(3) :: rxyz !<coordinates of the grid point
+     real(dp), dimension(3) :: tmp !< size 3 array buffer to avoid the creation of temporary arrays
      logical :: whole !<to assess if we run over the entire box or not (no check over the internal point)
      !>reference mesh from which it starts
      type(cell), pointer :: mesh
