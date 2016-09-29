@@ -223,14 +223,14 @@ module PStypes
 
   !> define the energy terms for the Poisson Operator and Generalized applications
   type, public :: PSolver_energies
-     !> hartree energy, defined as the @f$\int \rho(\mathbf{r}) V(\mathbf{r}) \mathrm d r $ @f, with @f$\rho$@f being the 
-     !! input density and @f$V@f the potential defined by this density
+     !> hartree energy, defined as the @f$\int \rho(\mathbf{r}) V(\mathbf{r}) \mathrm d r @f$, with @f$\rho@f$ being the 
+     !! input density and @f$V@f$ the potential defined by this density
      !! in the case when rho_ion is passed, the electrostatic contribution is only filled
      real(gp) :: hartree 
-     !> electrostatic energy, defined as the hartree energy but with @f$\rho$@f and @f$V$@f coming from @f$\rho + \rho_\text{ion}$$f
+     !> electrostatic energy, defined as the hartree energy but with @f$\rho@f$ and @f$V@f$ coming from @f$\rho + \rho_{ion}@f$
      !! the hartree energy can be obtained by subtraction with the potential energy terms
      real(gp) :: elec 
-     !> Energetic term coming from the @f$\int \rho V_extra$@f, in the case of a @f$\rho$@f-dependent cavity.
+     !> Energetic term coming from the @f$\int \rho V_extra@f$, in the case of a @f$\rho@f$-dependent cavity.
      !! clearly this term is calculated only if the potential is corrected. When the cavity is fixed, the eVextra is zero.
      real(gp) :: eVextra
      !> surface and volume term
