@@ -26,6 +26,10 @@ module SPREDtypes
     type(f_enumerator) :: fp_method
     integer :: fp_natx_sphere       !< number of atoms in each sphere (for periodic fingerprint)
     integer :: fp_angmom       !< angular momentum of gaussian orbitals for overlap matrix fingerprints (both periodic and free BC)
+
+
+    !>global input variables
+    integer :: glbl_nwrite
   end type SPRED_inputs
 
   public :: SPRED_read_uinp
@@ -271,7 +275,15 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+    case(GLBL_VARIABLES)
+       select case (trim(dict_key(val)))
+       case(GLBL_NWRITE)
+          inputs%glbl_nwrite=val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
     case DEFAULT
+          call yaml_warning("unknown input section '" // trim(level) // "'")
     end select
   END SUBROUTINE SPRED_input_fill
 

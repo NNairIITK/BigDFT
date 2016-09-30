@@ -27,7 +27,6 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
-  integer, parameter :: nwrite=1 !write interval
   real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.05d0,beta_N=1.d0/1.05d0
   real(kind=8), parameter :: alpha_A=1.d0/1.05d0,alpha_R=1.05d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
@@ -695,7 +694,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
       ! write intermediate results
 
       if (bigdft_mpi%iproc == 0) then
-         if(mod(nlmin,nwrite)==0)then
+         if(mod(nlmin,spredinputs%glbl_nwrite)==0)then
          call yaml_comment('(MH) WINTER')
          call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
                                  nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&

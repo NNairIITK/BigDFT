@@ -16,6 +16,8 @@ module SPRED_public_keys
     character(len = *), parameter :: FP_METHOD = "fpmethod"
     character(len = *), parameter :: FP_NATX_SPHERE = "natx_sphere"
     character(len = *), parameter :: FP_ANGMOM = "angmom"
+  character(len = *), parameter :: GLBL_VARIABLES = "global"
+    character(len = *), parameter :: GLBL_NWRITE = "nwrite"
 end module SPRED_public_keys
 
 !>module identifying constants that have to be used as enumerators

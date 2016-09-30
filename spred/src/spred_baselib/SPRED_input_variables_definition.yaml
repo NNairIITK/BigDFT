@@ -58,3 +58,8 @@
        - OMP
        - OMPOLD
        - OMSOLD
+ global:
+   DESCRIPTION: Parameters for the global code (Minima Hopping)
+   nwrite:
+     COMMENT: rewriting frequency of poslows, enarr, idarr, ... 
+     default: 1

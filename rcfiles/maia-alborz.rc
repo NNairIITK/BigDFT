@@ -7,9 +7,9 @@ conditions.add("testing")
 modules = ['spred',]
 #example of the potentialities of the python syntax in this file
 def env_configuration():
-    return """"FC=mpif90" "CFLAGS=-lstdc++" "FCFLAGS=-O2 -openmp -I${MKLROOT}/include" "--with-ext-linalg=-L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" "CC=icc" "CXX=icpc" "F77=ifort" """
+    return """"FC=mpif90" "CFLAGS=-lstdc++" "FCFLAGS=-C -g -traceback -openmp -I${MKLROOT}/include" "--with-ext-linalg=-L${MKLROOT}/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" "CC=icc" "CXX=icpc" "F77=ifort" """
 def shrt_configuration():
-    return """"FC=ifort" "CFLAGS=-lstdc++" "FCFLAGS=-O2" "CC=icc" "CXX=icpc" "F77=ifort" """
+    return """"FC=ifort" "CFLAGS=-lstdc++" "FCFLAGS=-C -g -traceback" "CC=icc" "CXX=icpc" "F77=ifort" """
 
 import os
 os.environ['ALBORZHOME']='/kernph/schaba00/Alborz'
