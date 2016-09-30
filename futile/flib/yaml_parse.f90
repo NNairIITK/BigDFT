@@ -446,7 +446,7 @@ contains
         type(dictionary), pointer :: opt_iter
 
         nullify(dict)
-
+        found=.false.
         call get_cmd(icommands,command)
         icommands=icommands+1
         !search for the long key value
@@ -889,6 +889,7 @@ contains
     
     !extract the first document
     dict => loaded_string .pop. 0
+
     call dict_free(loaded_string)
 
     if (present(key)) then !to be defined better

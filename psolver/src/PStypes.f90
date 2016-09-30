@@ -35,6 +35,8 @@ module PStypes
   character(len=*), parameter :: ALPHAS_KEY              = 'alphaS' 
   character(len=*), parameter :: BETAV_KEY               = 'betaV' 
   character(len=*), parameter :: GPS_ALGORITHM           = 'gps_algorithm'
+  character(len=*), parameter :: RADII_SET               = 'radii_set'
+  character(len=*), parameter :: ATOMIC_RADII            = 'atomic_radii'
   character(len=*), parameter :: PI_ETA                  = 'pi_eta' 
   character(len=*), parameter :: INPUT_GUESS             = 'input_guess' 
   character(len=*), parameter :: FD_ORDER                = 'fd_order' 
@@ -55,6 +57,9 @@ module PStypes
   character(len=*), parameter :: OUTPUT                  = 'output' 
   character(len=*), parameter :: DICT_COMPLETED          = '__dict_has_been_checked__'//ATTRS
 
+  integer, parameter :: RADII_PAULING_ID = 1
+  integer, parameter :: RADII_BONDI_ID = 2
+  integer, parameter :: RADII_UFF_ID = 3
   
   !>Defines the internal information for application of the FFT between the kernel and the 
   !!density
@@ -206,6 +211,10 @@ module PStypes
      !parameters for the iterative methods
      !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
      integer :: nord
+     !> default set of radii for the rigid cavity
+     integer :: radii_set
+     !> dictionary of the atom species radii defined by the user
+     type(dictionary), pointer :: radii_dict
      integer :: max_iter !< maximum number of convergence iterations
      real(dp) :: minres !< convergence criterion for the iteration
      real(dp) :: PI_eta !<parameter for the update of PI iteration
@@ -243,7 +252,7 @@ module PStypes
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
   public :: ps_allocate_lowlevel_workarrays,PSolver_options_null,PS_input_dict
   public :: release_PS_potential,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
-  public :: ps_soft_PCM_forces
+  public :: ps_soft_PCM_forces,pkernel_get_radius
 
 contains
 
@@ -367,6 +376,8 @@ contains
     k%max_iter=0
     k%PI_eta=0.0_dp
     k%minres=0.0_dp
+    k%radii_set=0
+    nullify(k%radii_dict)
     nullify(k%counts)
     nullify(k%displs)
   end function pkernel_null
@@ -443,9 +454,11 @@ contains
   !> Free memory used by the kernel operation
   !! @ingroup PSOLVER
   subroutine pkernel_free(kernel)
+    use dictionaries, only: dict_free
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
     integer :: i_stat
+    call dict_free(kernel%radii_dict)
     call f_free_ptr(kernel%kernel)
     call f_free_ptr(kernel%counts)
     call f_free_ptr(kernel%displs)
@@ -760,6 +773,18 @@ contains
           case('PCG')
              call f_enum_update(dest=k%method,src=PS_PCG_ENUM)
           end select
+       case(RADII_SET)
+          strn=val
+          select case(trim(strn))
+          case('UFF')
+             k%radii_set=RADII_UFF_ID
+          case('Pauling')
+             k%radii_set=RADII_PAULING_ID
+          case('Bondi')
+             k%radii_set=RADII_BONDI_ID
+          end select
+       case(ATOMIC_RADII)
+          if (dict_size(val) > 0) call dict_copy(k%radii_dict,val)
        case (PI_ETA)
           k%PI_eta=val
        case (INPUT_GUESS)
@@ -915,10 +940,11 @@ contains
 
   !> this is useful to deallocate useless space and to 
   !! also perform extra treatment for the inputguess
-  subroutine PS_release_lowlevel_workarrays(kernel)
+  subroutine PS_release_lowlevel_workarrays(kernel,keep_rhopol)
     use wrapper_linalg, only: axpy
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
+    logical, intent(in) :: keep_rhopol
 
     select case(trim(str(kernel%method)))
     case('PCG')
@@ -926,10 +952,10 @@ contains
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
-       call f_free_ptr(kernel%w%rho_pol) 
+       if (.not. keep_rhopol) call f_free_ptr(kernel%w%rho_pol) 
     case('PI')
        call f_free_ptr(kernel%w%rho)
-       call f_free_ptr(kernel%w%rho_pol)
+       if (.not. keep_rhopol) call f_free_ptr(kernel%w%rho_pol)
     end select
 
     call f_free_ptr(kernel%w%rho_pb)
@@ -940,7 +966,7 @@ contains
   !! their allocation depends on the treatment which we are going to
   !! apply
   subroutine PS_allocate_cavity_workarrays(n1,n23,ndims,method,w)
-    use psolver_environment, only: PS_SCCS_ENUM
+    use psolver_environment, only: PS_SCCS_ENUM,PS_PB_NONE_ENUM
     use dynamic_memory
     implicit none
     integer, intent(in) :: n1,n23
@@ -964,7 +990,8 @@ contains
        !w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
     end select
 
-    w%rho_ions=f_malloc_ptr([n1,n23],id='rho_ions')
+   if (.not. (method .hasattr. PS_PB_NONE_ENUM))&
+        w%rho_ions=f_malloc_ptr([n1,n23],id='rho_ions')
 
    end subroutine PS_allocate_cavity_workarrays
 
@@ -1009,6 +1036,38 @@ contains
     end if
 
   end subroutine pkernel_allocate_cavity
+
+
+  !> set the array radii on the basis of the information provided by the user
+  function pkernel_get_radius(kernel,atname) result(radius)
+    use numerics, only: Bohr_Ang
+    use psolver_environment
+    implicit none
+    !> Poisson Solver kernel
+    type(coulomb_operator), intent(inout) :: kernel
+    !> name of the atom 
+    character(len=*), intent(in) :: atname
+    !> radii of each of the atom types, calculated on the basis of the input values
+    real(dp)  :: radius
+    !local variables
+    integer :: i
+    real(dp) :: fact
+
+    if (atname .in. kernel%radii_dict) then
+       radius=kernel%radii_dict//atname
+    else
+       fact=kernel%cavity%fact_rigid
+       select case (kernel%radii_set)
+       case(RADII_PAULING_ID)
+          radius = fact*radii_Pau(atname)/Bohr_Ang
+       case(RADII_BONDI_ID)
+          radius = fact*radii_Bondi(atname)/Bohr_Ang
+       case(RADII_UFF_ID)
+          radius = fact*radii_UFF(atname)/Bohr_Ang
+       end select
+    end if
+
+  end function pkernel_get_radius
 
   !> set the epsilon in the pkernel structure as a function of the seteps variable.
   !! This routine has to be called each time the dielectric function has to be set
