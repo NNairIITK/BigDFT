@@ -36,6 +36,7 @@ module PStypes
   character(len=*), parameter :: BETAV_KEY               = 'betaV' 
   character(len=*), parameter :: GPS_ALGORITHM           = 'gps_algorithm'
   character(len=*), parameter :: RADII_SET               = 'radii_set'
+  character(len=*), parameter :: ATOMIC_RADII            = 'atomic_radii'
   character(len=*), parameter :: PI_ETA                  = 'pi_eta' 
   character(len=*), parameter :: INPUT_GUESS             = 'input_guess' 
   character(len=*), parameter :: FD_ORDER                = 'fd_order' 
@@ -212,6 +213,8 @@ module PStypes
      integer :: nord
      !> default set of radii for the rigid cavity
      integer :: radii_set
+     !> dictionary of the atom species radii defined by the user
+     type(dictionary), pointer :: radii_dict
      integer :: max_iter !< maximum number of convergence iterations
      real(dp) :: minres !< convergence criterion for the iteration
      real(dp) :: PI_eta !<parameter for the update of PI iteration
@@ -374,6 +377,7 @@ contains
     k%PI_eta=0.0_dp
     k%minres=0.0_dp
     k%radii_set=0
+    nullify(k%radii_dict)
     nullify(k%counts)
     nullify(k%displs)
   end function pkernel_null
@@ -450,9 +454,11 @@ contains
   !> Free memory used by the kernel operation
   !! @ingroup PSOLVER
   subroutine pkernel_free(kernel)
+    use dictionaries, only: dict_free
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
     integer :: i_stat
+    call dict_free(kernel%radii_dict)
     call f_free_ptr(kernel%kernel)
     call f_free_ptr(kernel%counts)
     call f_free_ptr(kernel%displs)
@@ -777,6 +783,8 @@ contains
           case('Bondi')
              k%radii_set=RADII_BONDI_ID
           end select
+       case(ATOMIC_RADII)
+          if (dict_size(val) > 0) call dict_copy(k%radii_dict,val)
        case (PI_ETA)
           k%PI_eta=val
        case (INPUT_GUESS)
@@ -1045,15 +1053,19 @@ contains
     integer :: i
     real(dp) :: fact
 
-    fact=kernel%cavity%fact_rigid
-    select case (kernel%radii_set)
-    case(RADII_PAULING_ID)
-       radius = fact*radii_Pau(atname)/Bohr_Ang
-    case(RADII_BONDI_ID)
-       radius = fact*radii_Bondi(atname)/Bohr_Ang
-    case(RADII_UFF_ID)
-       radius = fact*radii_UFF(atname)/Bohr_Ang
-    end select
+    if (atname .in. kernel%radii_dict) then
+       radius=kernel%radii_dict//atname
+    else
+       fact=kernel%cavity%fact_rigid
+       select case (kernel%radii_set)
+       case(RADII_PAULING_ID)
+          radius = fact*radii_Pau(atname)/Bohr_Ang
+       case(RADII_BONDI_ID)
+          radius = fact*radii_Bondi(atname)/Bohr_Ang
+       case(RADII_UFF_ID)
+          radius = fact*radii_UFF(atname)/Bohr_Ang
+       end select
+    end if
 
   end function pkernel_get_radius
 

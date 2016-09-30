@@ -82,6 +82,12 @@
     CONDITION:
       MASTER_KEY: cavity
       WHEN: [rigid]
+  atomic_radii:
+    COMMENT: Mapping of the radii that have to be used for each atomic species
+    default: 0
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN: [rigid]
   delta: 
     COMMENT: Amplitude of the transition region in the rigid cavity (AU)
     default: 2.0
