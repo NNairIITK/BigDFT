@@ -72,6 +72,16 @@
     CONDITION:
       MASTER_KEY: cavity
       WHEN: [sccs]
+  radii_set:
+    COMMENT: Set of vdW radii used by defauly in the setter function
+    default: UFF
+    EXCLUSIVE:
+      UFF: Unified Force Field
+      Bondi: Bondi collection
+      Pauling: Pauling collection
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN: [rigid]
   delta: 
     COMMENT: Amplitude of the transition region in the rigid cavity (AU)
     default: 2.0

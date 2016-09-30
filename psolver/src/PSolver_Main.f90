@@ -54,7 +54,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   real(dp), intent(out), optional :: ehartree
   !local variables
   real(dp), parameter :: max_ratioex_PB = 1.0d2
-  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver,poisson_boltzmann,calc_nabla2pot
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg
+  logical :: cudasolver,poisson_boltzmann,calc_nabla2pot,needmem
   integer :: i3start,n1,n23,i3s,i23s,i23sd2,i3sd2,i_PB,i3s_pot_pb
   real(dp) :: IntSur,IntVol,e_static,norm_nonvac,ehartreeLOC,res_PB
   type(PSolver_energies) :: energs
@@ -255,19 +256,15 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   end if
 
   !this part is not important now, to be fixed later
-!!$  if (plot_cavity) then
-!!$     if (kernel%method == PS_PCG_ENUM) then
-!!$        if (kernel%opt%datacode == 'D') then 
-!!$           call PS_gather(src=rhov,dest=rhopot_full,kernel=kernel)
-!!$           call polarization_charge(kernel%geocode,kernel%ndims,kernel%hgrids,kernel%nord,&
-!!$                rhopot_full,pot,nabla_pot,rho_pol)
-!!$        else
-!!$           call polarization_charge(kernel%geocode,kernel%ndims,kernel%hgrids,kernel%nord,&
-!!$                rhopot,pot,nabla_pot,rho_pol)
-!!$        end if
-!!$     else if (kernel%method == PS_PI_ENUM) then
-!!$        call PS_gather(kernel%w%rho_pol,kernel)
-!!$  end if
+  if (plot_cavity) then
+     if (kernel%method == PS_PCG_ENUM) then
+        needmem=.not. allocated(rhopot_full)
+        if (needmem) rhopot_full=f_malloc(kernel%ndims,id='rhopot_full')
+        call PS_gather(src=kernel%w%pot,dest=rhopot_full,kernel=kernel)
+        call polarization_charge(kernel,rhopot_full,rhov(1,1,i3s))
+        if (needmem) call f_free(rhopot_full)
+     end if
+  end if
      
 !!$  !here we should extract the information on the cavity
 !!$  !--------------------------------------
@@ -275,7 +272,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
 !!$  call pol_charge(kernel,pot_full,rho,kernel%w%pot)
 !!$  !--------------------------------------
 
-   call PS_release_lowlevel_workarrays(kernel)
+   call PS_release_lowlevel_workarrays(kernel,keep_rhopol=plot_cavity)
 
   !the external ionic potential is referenced if present
   if (sum_pi) then
@@ -977,6 +974,51 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   call yaml_mapping_close()
 end subroutine EPS_iter_output
 
+!> Plot in different files the available information related to the coulomb operator.
+!! The results is adapted to the actual setup of the calculation.
+subroutine PS_dump_coulomb_operator(kernel,prefix)
+  use IObox
+  use yaml_output
+  implicit none
+  type(coulomb_operator), intent(in) :: kernel
+  character(len=*), intent(in) :: prefix
+  !local variables
+  logical :: master
+  real(dp), dimension(:,:,:), allocatable :: global_arr
+
+  master=kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
+
+  !if available plot the dielectric function
+  if (kernel%method /= 'VAC') then
+     if (master) call yaml_map('Writing dielectric cavity in file','dielectric_cavity')
+     global_arr = f_malloc(kernel%ndims,id='global_arr')
+     call PS_gather(src=kernel%w%eps,dest=global_arr,kernel=kernel)
+     if (kernel%method .hasattr. PS_RIGID_ENUM) then
+        !we might add the atoms in the case of a rigid cavity, they are in
+        call dump_field(trim(prefix)//'dielectric_cavity',&
+             kernel%geocode,kernel%ndims,kernel%hgrids,1,&
+             global_arr,rxyz=kernel%w%rxyz)
+     else
+        !charge dependent case
+        call dump_field(trim(prefix)//'dielectric_cavity',&
+             kernel%geocode,kernel%ndims,kernel%hgrids,1,global_arr)
+     end if
+     !now check if the polarization charge is available
+     if (associated(kernel%w%rho_pol)) then
+        call PS_gather(src=kernel%w%rho_pol,dest=global_arr,kernel=kernel)
+        call dump_field(trim(prefix)//'polarization_charge',&
+             kernel%geocode,kernel%ndims,kernel%hgrids,1,global_arr)
+     end if
+     !now check if the ionic charge of the Poisson boltzmann charge is available
+     if (associated(kernel%w%rho_ions)) then
+        call PS_gather(src=kernel%w%rho_ions,dest=global_arr,kernel=kernel)
+        call dump_field(trim(prefix)//'solvent_density',&
+             kernel%geocode,kernel%ndims,kernel%hgrids,1,global_arr)
+     end if
+     call f_free(global_arr)
+  end if
+  
+end subroutine PS_dump_coulomb_operator
 
 !> Calculate the dimensions needed for the allocation of the arrays 
 !! related to the Poisson Solver

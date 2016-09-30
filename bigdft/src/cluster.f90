@@ -2253,7 +2253,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rho_work(1),dest=denspot%pot_work(1))
      !the ionic denisty is given in the case of the embedded solver
      call PS_set_options(denspot%pkernel,calculate_strten=.true.,&
-          final_call=denspot%pkernel%method .hasattr. 'rigid')
+          final_call=denspot%pkernel%method .hasattr. 'rigid',&
+          cavity_info=output_denspot /= ENUM_EMPTY)
      if (denspot%pkernel%method /= 'VAC') then
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies,rho_ion=denspot%rho_ion)
         !here the ionic forces can be corrected with the value coming from the cavity
@@ -2323,22 +2324,18 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      else
          call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
               atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
-     end if
+      end if
 !---------------------------------------------------
-! giuseppe fisicaro dielectric cavity
-     if (denspot%pkernel%method /= 'VAC') then
-!!$        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
+!!$! giuseppe fisicaro dielectric cavity
+!!$     if (denspot%pkernel%method /= 'VAC') then
+!!$        !this will have to be replaced by a routine which plots the pkernel information
+!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+        
+!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+!!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
+!!$     end if
 
-!this one should be plotted otherwise as the array is now deallocated
-!!$        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-!!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
-
-        !this will have to be replaced by a routine which plots the pkernel information
-        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
-!!$        
-        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
-     end if
+     call PS_dump_coulomb_operator(denspot%pkernel,trim(dir_output))
 !---------------------------------------------------
 
      ! SM: the check whether denspot%dpbox%n3d>0 might lead to deadlocks (plot_density contains

@@ -101,7 +101,6 @@ program PSolver_Program
   nproc=1
 
   nullify(dict)
-  call dict_init(options)
   call yaml_argparse(options,inputs)
   call yaml_map('Commandline options provided',options)
   ndims=options//'ndim'
@@ -533,7 +532,6 @@ program PSolver_Program
 
   call mpifinalize()
   call f_lib_finalize()
-
 
 
 contains

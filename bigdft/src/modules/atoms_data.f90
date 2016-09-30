@@ -22,7 +22,7 @@ module module_atoms
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
        & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, &
        & ASTRUCT_ATT_RXYZ_INT_1, ASTRUCT_ATT_RXYZ_INT_2, &
-       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE
+       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE, ASTRUCT_ATT_CAVRAD
   use dictionaries, only: dictionary
   use f_trees, only: f_tree
   use f_blas, only: f_matrix,f_matrix_allocate_ptr
@@ -1264,7 +1264,7 @@ contains
 
 
     subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, &
-               ixyz, ixyz_add, rxyz_int, rxyz_int_add, mode)
+               ixyz, ixyz_add, rxyz_int, rxyz_int_add, cavity_radius,mode)
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
@@ -1281,6 +1281,7 @@ contains
       real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
       real(gp), dimension(3), intent(out), optional :: rxyz_int !< Internal coordinates.
       real(gp), intent(out), optional :: rxyz_int_add !< Internal coordinates address.
+      real(gp), intent(out), optional :: cavity_radius !< radius of the cavity
       character(len = max_field_length), intent(out), optional :: mode !< QM/MM treatment.
 
       type(dictionary), pointer :: atData
@@ -1298,6 +1299,7 @@ contains
       if (present(igspin))  igspin = 0
       if (present(igchrg))  igchrg = 0
       if (present(mode)) write(mode, "(A)") ""
+      if (present(cavity_radius)) cavity_radius=UNINITIALIZED(cavity_radius)
 
       atData => dict_iter(dict)
       do while(associated(atData))
@@ -1357,6 +1359,8 @@ contains
                rcoord_int(3) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
+         case(ASTRUCT_ATT_CAVRAD)
+            if (present(cavity_radius)) cavity_radius= atData
          case default
             if (dict_len(atData) == 3) then
                if (present(symbol)) symbol = str

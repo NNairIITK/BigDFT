@@ -889,6 +889,7 @@ contains
     
     !extract the first document
     dict => loaded_string .pop. 0
+
     call dict_free(loaded_string)
 
     if (present(key)) then !to be defined better
