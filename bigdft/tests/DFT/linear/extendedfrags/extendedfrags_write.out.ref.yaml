@@ -3460,20 +3460,6 @@
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
  -  {Process:  0, Timing:  [  6.4E-02,  5.700E-02 ]}
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1010
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  70, scale:  1.00E+00, bounds:  [  0.692,  1.085 ], exp accur:  [  1.58E-14 ], 
-   penalty: -7.2E+03,                  ok:  [  Yes,  No ]}
-   -  {npl:  80, scale:  5.00E-01, bounds:  [  0.692,  1.301 ], exp accur:  [  1.6E-14 ], 
-   penalty:  9.9E+06,                  ok:  [  No,  Yes ]}
-   -  {npl:  90, scale:  1.00E+00, bounds:  [  0.576,  1.301 ], exp accur:  [  2.31E-14 ], 
-   penalty:  2.0E-08,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  90, bounds:  [  0.576,  1.301 ], exp accur:  [  2.31E-14 ]}
  Total charge                          :  3.199999931316E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

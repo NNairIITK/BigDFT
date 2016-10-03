@@ -169,24 +169,6 @@ end function pkernel_init_old
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !! calculating the convolution with the kernel expressed in the interpolating scaling
 !! function basis. The kernel pointer is unallocated on input, allocated on output.
-!! SYNOPSIS
-!!    @param iproc,nproc number of process, number of processes
-!!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
-!!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
-!!    @param hx,hy,hz grid spacings. For the isolated BC case for the moment they are supposed to
-!!                    be equal in the three directions
-!!    @param kernel   pointer for the kernel FFT. Unallocated on input, allocated on output.
-!!                    Its dimensions are equivalent to the region of the FFT space for which the
-!!                    kernel is injective. This will divide by two each direction,
-!!                    since the kernel for the zero-padded convolution is real and symmetric.
-!!    @param gpu      tag for CUDA gpu   0: CUDA GPU is disabled
-!!
-!! @warning
-!!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
-!!    must be declared as pointer in input of this routine.
-!!    To avoid that, one can properly define the kernel dimensions by adding
-!!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
-!!    declaration.
 !! @ingroup PSOLVER
 subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !optional arguments
   use yaml_output
@@ -374,7 +356,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
           kernel%mpi_env%mpi_comm,kernel%inplane_mpi%mpi_comm,&
           n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
-          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)!,n3pr2,n3pr1)
+          kernel%itype_scf,kernel%kernel,mu0t,alphat)!,betat,gammat)!,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2

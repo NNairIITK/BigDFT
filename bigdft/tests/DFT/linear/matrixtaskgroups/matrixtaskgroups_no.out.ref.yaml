@@ -2684,10 +2684,10 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [  1.32506118397725 ]
-   LUMO energy                         :  [  1.343041420251303 ]
-   HOMO-LUMO gap (Ha)                  :  [  1.7980236274053762E-002 ]
-   HOMO-LUMO gap (eV)                  :  [  0.4892671325432543 ]
+   HOMO energy                         :  1.32506118397725
+   LUMO energy                         :  1.343041420251303
+   HOMO-LUMO gap (Ha)                  :  1.7980236274053762E-002
+   HOMO-LUMO gap (eV)                  :  0.4892671325432543
  Gross support functions moments:
    Orthonormalization                  : on-site
    Multipole coefficients:
@@ -12976,20 +12976,6 @@
      -  {Thr:  1.0E-04, Ext. Vol. %:  90.1, int(V):  9.507E+02, Err %:  56.3, 
     int(rho):  1.500E-05}
   #========================================================== Atomic multipole analysis done
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  50, scale:  1.00E+00, bounds:  [  0.762,  0.984 ], exp accur:  [  9.77E-15 ], 
-   penalty: -1.6E+06,                  ok:  [  Yes,  No ]}
-   -  {npl:  70, scale:  5.00E-01, bounds:  [  0.762,  1.181 ], exp accur:  [  1.51E-14 ], 
-   penalty:  1.5E+07,                  ok:  [  No,  Yes ]}
-   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.635,  1.181 ], exp accur:  [  1.71E-14 ], 
-   penalty:  7.7E-09,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  80, bounds:  [  0.635,  1.181 ], exp accur:  [  1.71E-14 ]}
  Total charge                          :  7.219978255316E+02
   #---------------------------------------------------------------------- Forces Calculation
  Multipole analysis origin             :  [  4.4E+00,  4.950000E+00,  1.463000E+02 ]

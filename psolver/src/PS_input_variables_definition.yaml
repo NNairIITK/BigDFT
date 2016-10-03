@@ -72,6 +72,22 @@
     CONDITION:
       MASTER_KEY: cavity
       WHEN: [sccs]
+  radii_set:
+    COMMENT: Set of vdW radii used by defauly in the setter function
+    default: UFF
+    EXCLUSIVE:
+      UFF: Unified Force Field
+      Bondi: Bondi collection
+      Pauling: Pauling collection
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN: [rigid]
+  atomic_radii:
+    COMMENT: Mapping of the radii that have to be used for each atomic species
+    default: 0
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN: [rigid]
   delta: 
     COMMENT: Amplitude of the transition region in the rigid cavity (AU)
     default: 2.0
@@ -82,6 +98,9 @@
   cavitation: 
     COMMENT: Triggers the evaluation of the extra cavitation terms
     default: Yes
+    CONDITION:
+      MASTER_KEY: cavity
+      WHEN_NOT: [none]
   fact_rigid: 
     COMMENT: Multiplying factor for the whole rigid cavity
     default: 1.12
@@ -137,6 +156,9 @@
   input_guess: 
     COMMENT: Triggers the input guess procedure of gps_algorithm
     default: Yes
+    CONDITION: 
+      MASTER_KEY: cavity
+      WHEN_NOT: [none]
   fd_order: 
     COMMENT: Order of the Finite-difference derivatives for the GPS solver
     default: 16

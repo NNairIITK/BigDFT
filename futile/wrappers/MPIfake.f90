@@ -87,6 +87,26 @@ subroutine mpi_wait(request,MPI_Status)
   MPI_Status = 1 + 0*request
 end subroutine mpi_wait
 
+subroutine mpi_file_close()
+stop 'mpi_file_close'
+end
+
+subroutine mpi_file_open()
+stop 'mpi_file_open'
+end
+subroutine mpi_file_read()
+stop 'mpi_file_read'
+end
+subroutine mpi_file_write()
+stop 'mpi_file_write'
+end
+
+
+
+subroutine mpi_file_set_view()
+stop 'mpi_file_set_view'
+end
+
 
 !here we have routines which do not transform the argument for nproc==1
 !these routines can be safely called also in the serial version

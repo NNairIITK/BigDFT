@@ -3271,7 +3271,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end if
 
         call get_coeff(iproc,nproc,scf_mode,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
-             infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
+             infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%calculate_KS_residue,in%calculate_gap, &
              energs_work,.false.,in%lin%coeff_factor,in%tel,in%occopt,&

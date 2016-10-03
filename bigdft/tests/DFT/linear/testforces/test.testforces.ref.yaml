@@ -3712,16 +3712,6 @@
      -  {Thr:  1.0E-04, Ext. Vol. %:  96.3, int(V):  4.312E+01, Err %:  3.8, 
     int(rho):  5.158E-58}
   #========================================================== Atomic multipole analysis done
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  90, scale:  1.00E+00, bounds:  [  0.581,  1.291 ], exp accur:  [  2.22E-14 ], 
-   penalty:  4.2E-09,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  90, bounds:  [  0.581,  1.291 ], exp accur:  [  2.22E-14 ]}
  Total charge                          :  7.999999346152E+00
   #---------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -5423,16 +5413,6 @@
      -  {Thr:  1.0E-04, Ext. Vol. %:  96.3, int(V):  4.310E+01, Err %:  1.6, 
     int(rho):  0.000E+00}
   #============================================================= Atomic multipole analysis done
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  70, scale:  1.00E+00, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ], 
-   penalty:  4.7E-07,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  70, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ]}
  Total charge                          :  8.000000182436E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -6983,16 +6963,6 @@
      -  {Thr:  1.0E-04, Ext. Vol. %:  96.3, int(V):  4.308E+01, Err %:  1.6, 
     int(rho):  2.707E-54}
   #============================================================= Atomic multipole analysis done
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  70, scale:  1.00E+00, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ], 
-   penalty:  4.7E-07,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  70, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ]}
  Total charge                          :  7.999999329840E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -8561,16 +8531,6 @@
      -  {Thr:  1.0E-04, Ext. Vol. %:  96.3, int(V):  4.306E+01, Err %:  1.8, 
     int(rho):  1.520E-54}
   #============================================================= Atomic multipole analysis done
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  70, scale:  1.00E+00, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ], 
-   penalty:  4.8E-07,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  70, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ]}
  Total charge                          :  7.999999326621E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes
@@ -10114,16 +10074,6 @@
      -  {Thr:  1.0E-04, Ext. Vol. %:  96.3, int(V):  4.305E+01, Err %:  1.9, 
     int(rho):  9.790E-55}
   #============================================================= Atomic multipole analysis done
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1020
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  70, scale:  1.00E+00, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ], 
-   penalty:  4.8E-07,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  70, bounds:  [  0.672,  1.116 ], exp accur:  [  1.64E-14 ]}
  Total charge                          :  7.999999313078E+00
   #------------------------------------------------------------------------- Forces Calculation
  Calculate local forces                :  Yes

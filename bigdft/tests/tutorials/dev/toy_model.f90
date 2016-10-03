@@ -93,7 +93,7 @@ program wvl
    nullify(rho_ion)
 !  allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
-
+  Lzd=default_lzd()
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/))
   call system_size(atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult, &
        & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
@@ -108,7 +108,7 @@ program wvl
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)
 
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)
-
+  call xc_init(xc, inputs%ixc, XC_ABINIT, inputs%nspin)
   !grid spacings and box of the density
   call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,&
        !inputs%PSolver_groupsize, &
@@ -235,7 +235,7 @@ program wvl
   if (iproc == 0) call yaml_map("Number of electrons", sum(rhor))
   deallocate(rhor)
 
-  call xc_init(xc, inputs%ixc, XC_ABINIT, inputs%nspin)
+
   call density_descriptors(iproc,nproc,xc,inputs%nspin,inputs%crmult,inputs%frmult,atoms,&
        dpcom,inputs%rho_commun,atoms%astruct%rxyz,rhodsc)
 
@@ -295,7 +295,7 @@ program wvl
   end if
 
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
-  if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
+!  if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
 
   deallocate(pot_ion,rho_ion)
   deallocate(psir)

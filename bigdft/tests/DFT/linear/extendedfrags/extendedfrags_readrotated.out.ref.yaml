@@ -1330,16 +1330,6 @@
        iter high:  2,            delta out:  9.100E-12, 
           energy: -5.62881181210445050E+01,                       D:  0.000E+00,  #FINAL
  }
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  1010
-   beta for penaltyfunction            : -1000.0
-   determine eigenvalue bounds:
-   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.617,  1.215 ], exp accur:  [  1.75E-14 ], 
-   penalty: -1.1E-07,                  ok:  [  Yes,  Yes ]}
-   summary: {npl:  80, bounds:  [  0.617,  1.215 ], exp accur:  [  1.75E-14 ]}
  Total charge                          :  3.999999769836E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

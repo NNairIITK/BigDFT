@@ -19,8 +19,9 @@ program PSolver_Program
   use dynamic_memory
   use yaml_output
   use dictionaries
-  use yaml_parse, only: yaml_load
+  use yaml_parse
   use yaml_strings
+  use numerics
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
@@ -41,12 +42,33 @@ program PSolver_Program
   integer, parameter :: FUNC_SINE = 7
   integer, parameter :: FUNC_ATAN = 8
 
+  character(len=*), parameter :: inputs=&
+       "- {name: ndim, shortname: n, default: 30,"//&
+       "  help_string: Size of the simulation domain,"//&
+       "  help_dict: {Allowed values: list of integers}}"//f_cr//&
+       
+       "- {name: geocode,shortname: g, default: P,"//&
+       "  help_string: Boundary conditions,"//&
+       "  help_dict: {Usage: set the boundary conditions of the run,"//&
+       "              Allowed values: [F, S , W, P]}}"//f_cr//&
+       
+       "- {name: angdeg, shortname: d, default: 90.0,"//&
+       "  help_string: Degrees of the angles between the directions,"//&
+       "  help_dict: {Allowed values: arrays of floats}}"//f_cr//&
+       
+       "- {name: input, shortname: i, default: None,"//&
+       "  help_string: Inpufile of Poisson Solver,"//&
+       "  help_dict: {Allowed values: dictionary in yaml format (mapping)}}"
+
+
   character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1) :: datacode
   character(len=30) :: mode
   real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion
   type(coulomb_operator) :: karray
+  integer, dimension(3) :: ndims
+  real(f_double), dimension(3) :: angdeg
   type(dictionary), pointer :: dict
   real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,mu0
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
@@ -58,17 +80,9 @@ program PSolver_Program
   !triclinic lattice
   real(kind=8) :: alpha,beta,gamma,detg
   real(kind=8), dimension(:,:,:,:), pointer :: rhocore_fake
+  type(dictionary), pointer :: options,input
   external :: gather_timings  
   nullify(rhocore_fake)
-
-  alpha = 2.0_dp*datan(1.0_dp)
-  beta  = 2.0_dp*datan(1.0_dp)
-  gamma = 2.0_dp*datan(1.0_dp)
-  !alpha = 1.0_dp*datan(1.0_dp)
-  !beta  = 1.0_dp*datan(1.0_dp)
-  !gamma = 1.0_dp*datan(1.0_dp)
-
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
 
   !mode = "charged_thin_wire"
@@ -79,69 +93,101 @@ program PSolver_Program
 
   call f_lib_initialize()
 
-  !Use arguments
-  call get_command_argument(1,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) n01
+  call mpiinit()
+  iproc=mpirank()
+  nproc=mpisize()
 
-  call get_command_argument(2,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) n02
+  iproc=0
+  nproc=1
 
-  call get_command_argument(3,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) n03
+  nullify(dict)
+  call yaml_argparse(options,inputs)
+  call yaml_map('Commandline options provided',options)
+  ndims=options//'ndim'
+  n01=ndims(1)
+  n02=ndims(2)
+  n03=ndims(3)
+  ixc=0 !not needed anymore
+  geocode=options//'geocode'
+  angdeg=options//'angdeg'
+  input=options .get. 'input'
+  call dict_copy(dict,input) !null if absent
 
-  call get_command_argument(4,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) ixc
+  call dict_free(options)
 
-  call get_command_argument(5,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) geocode
+  alpha = angdeg(1)/180.0_f_double*pi!2.0_dp*datan(1.0_dp) !to be modified
+  beta  = angdeg(2)/180.0_f_double*pi!2.0_dp*datan(1.0_dp)
+  gamma = angdeg(3)/180.0_f_double*pi!2.0_dp*datan(1.0_dp)
+  !alpha = 1.0_dp*datan(1.0_dp)
+  !beta  = 1.0_dp*datan(1.0_dp)
+  !gamma = 1.0_dp*datan(1.0_dp)
 
-  call get_command_argument(6,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) datacode
+  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
-  call get_command_argument(7,chain)
-  if(trim(chain)=='') then
-     write(*,'(1x,a)')&
-          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-     stop
-  end if
-  read(unit=chain,fmt=*) itype_scf
 
-  call get_command_argument(8,chain)
-  if(trim(chain)=='') then
-     mu0 = 0.0_dp
-  else
-     read(unit=chain,fmt=*) mu0
-  end if
+!!$  !Use arguments
+!!$  call get_command_argument(1,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) n01
+!!$
+!!$  call get_command_argument(2,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) n02
+!!$
+!!$  call get_command_argument(3,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) n03
+!!$
+!!$  call get_command_argument(4,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) ixc
+!!$
+!!$  call get_command_argument(5,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) geocode
+!!$
+!!$  call get_command_argument(6,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) datacode
+!!$
+!!$  call get_command_argument(7,chain)
+!!$  if(trim(chain)=='') then
+!!$     write(*,'(1x,a)')&
+!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
+!!$     stop
+!!$  end if
+!!$  read(unit=chain,fmt=*) itype_scf
+!!$
+!!$  call get_command_argument(8,chain)
+!!$  if(trim(chain)=='') then
+!!$     mu0 = 0.0_dp
+!!$  else
+!!$     read(unit=chain,fmt=*) mu0
+!!$  end if
 
 
   !write(*,*) 'mu0 =', mu0
@@ -152,9 +198,10 @@ program PSolver_Program
   !code for the Poisson Solver in the parallel case
   !datacode='G'
 
-  call MPI_INIT(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+!!$  call MPI_INIT(ierr)
+!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+
 
   select case(geocode)
   
@@ -227,15 +274,18 @@ program PSolver_Program
   !itype_scf=16
 
   !write(*,'(a12,i4)') ' itype_scf = ', itype_scf 
-  call yaml_map('itype_scf',itype_scf)
+  !call yaml_map('itype_scf',itype_scf)
 
   call f_timing_reset(filename='time.yaml',master=iproc==0)
   !call timing(nproc,'time.prc','IN')
 
-  dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
+  !dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
+  
+  call yaml_map('Input',dict)
+
   karray=pkernel_init(iproc,nproc,dict,&
        geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
-  call dict_free(dict)
+!  call dict_free(input)
   call pkernel_set(karray,verbose=.true.)
 
   !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
@@ -251,17 +301,17 @@ program PSolver_Program
      pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
+          density,potential,rhopot,pot_ion,mu0,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
 
-     ! i2=n02/2
-     ! do i3=1,n03
-     !    do i1=1,n01
-     !       j1=n01/2+1-abs(n01/2+1-i1)
-     !       j2=n02/2+1-abs(n02/2+1-i2)
-     !       j3=n03/2+1-abs(n03/2+1-i3)
-     !       write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
-     !    end do
-     ! end do
+      i2=n02/2
+      do i3=1,n03
+         do i1=1,n01
+            j1=n01/2+1-abs(n01/2+1-i1)
+            j2=n02/2+1-abs(n02/2+1-i2)
+            j3=n03/2+1-abs(n03/2+1-i3)
+            write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
+         end do
+      end do
 
 
      !offset, used only for the periodic solver case
@@ -279,17 +329,27 @@ program PSolver_Program
         call yaml_map('offset',offset)
      end if
 
-     !dimension needed for allocations
-     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,(ixc>10),.false.,0,n3d,n3p,n3pi,i3xcsh,i3s)
+!!$     !dimension needed for allocations
+!!$     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,(ixc>10),.false.,0,n3d,n3p,n3pi,i3xcsh,i3s)
+!!$
+!!$     !dimension for comparison in the global or distributed poisson solver
+!!$     if (datacode == 'G') then
+!!$        i3sd=1
+!!$        ncomp=n03
+!!$     else if (datacode == 'D') then
+!!$        i3sd=i3s
+!!$        ncomp=n3p
+!!$     end if
 
-     !dimension for comparison in the global or distributed poisson solver
-     if (datacode == 'G') then
+     if (karray%opt%datacode=='G') then
         i3sd=1
         ncomp=n03
-     else if (datacode == 'D') then
-        i3sd=i3s
-        ncomp=n3p
+     else
+        i3sd=karray%grid%istart+1
+        ncomp=karray%grid%n3p
      end if
+     i3s=i3sd
+     i3xcsh=0
 
 !!  print *,'iproc,i3xcsh,i3s',iproc,i3xcsh,i3s
 
@@ -297,7 +357,6 @@ program PSolver_Program
 !!$     print *,'potential',potential(25,25,25)
 !!$     print *,'rhopot',rhopot(25,25,25)
 !!$     print *,'pot_ion',pot_ion(25,25,25)
-
 
      !apply the Poisson Solver (case with distributed potential)
      eexcu=0.0_gp
@@ -307,7 +366,7 @@ program PSolver_Program
 !!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
 
      !print *,'potential integral',sum(density)
-     call yaml_map('potential integral',sum(density))
+     call yaml_map('potential integral',sum(density)*hx*hy*hx*sqrt(detg))
 
      i3=n03/2
      do i2=1,n02
@@ -315,7 +374,7 @@ program PSolver_Program
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(111,*) i1*hx,i2*hy,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+           write(111,'(2(1x,i6),3(1x,1pe25.16e3))') i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
            !write(111,*) i1*hx+hy*i2*dcos(alpha)+i3*hz*dcos(beta), &
            !     i2*hy*dsin(alpha)+i3*hz*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha), &
            !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
@@ -330,8 +389,7 @@ program PSolver_Program
               !j1=n01/2+1-abs(n01/2+1-i1)
               !j2=n02/2+1-abs(n02/2+1-i2)
               !j3=n03/2+1-abs(n03/2+1-i3)
-              write(112,*)i1*hx,i2*hy,i3*hz,rhopot(i1,i2,i3),potential(i1,i2,i3),&
-                   density(i1,i2,i3)
+              write(112,'(2(1x,i6),3(1x,1pe25.16e3))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
            end do
         !end do
      end do
@@ -343,30 +401,8 @@ program PSolver_Program
   end if
 
   
-!!$  if (geocode == 'P') then
-!!$     open(unit=65,file='karrayP.dump')
-!!$  elseif (geocode == 'S') then
-!!$     open(unit=65,file='karrayS.dump')
-!!$  elseif (geocode == 'F') then
-!!$     open(unit=65,file='karrayF.dump')
-!!$  elseif (geocode == 'W') then
-!!$     open(unit=65,file='karrayW.dump')
-!!$  end if
-!!$
-!!$ 
-!!$  do i1 = 1, nd1-1
-!!$     do i3 = 1, nd3-1
-!!$        write(65,fmt="(3(1pe20.12e3))") i1*1.0_dp, i3*1.0_dp, karray%kernel(i1 + (nd2-1)*nd1 + i3*nd1*nd2)
-!!$     end do
-!!$  end do
-!!$  close(65)
-  call pkernel_free(karray)
-!!$  i_all=-product(shape(karray))*kind(karray)
-!!$  deallocate(karray,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'karray',subname)
-
   call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm,nproc=karray%mpi_env%nproc,gather_routine=gather_timings)
-
+  call pkernel_free(karray)
   if (.not. onlykernel) then
 
      !comparison (each process compare its own part)
@@ -397,48 +433,22 @@ program PSolver_Program
 
   end if
 
-  call MPI_BARRIER(MPI_COMM_WORLD,ierr)
+!  call mpibarrier()
 
   !Serial case
   if (alsoserial) then
      call f_timing_reset(filename='time_serial.yaml',master=iproc==0)
      !call timing(0,'             ','IN')
 
-     dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
      karray=pkernel_init(0,1,dict,&
           geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
      call dict_free(dict)
 
      call pkernel_set(karray,verbose=.true.)
 
-!!$     call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,&
-!!$          (/alpha,beta,gamma/))
-
-     if (.not. onlykernel) then
-        !offset, used only for the periodic solver case
-        if(ixc==0) offset=potential(1,1,1)!-pot_ion(1,1,1)
-        
-        
-!!$        !this is how it should be called. Temporarily desactivated
-!!$        call XC_potential(geocode,'G',karray%mpi_env%iproc,karray%mpi_env%nproc,&
-!!$             karray%mpi_env%mpi_comm,n01,n02,n03,ixc,hx,hy,hz,&
-!!$             rhopot,exc,vxc,1,rhocore_fake,V_XC,xcstr)
-!!$        
-!!$        call H_potential('G',karray,rhopot,pot_ion,eh,0.0_dp,.true.)
-!!$
-!!$        !apply the Poisson Solver (case with distributed potential
-!!$        !this is the old call
-!!$        call PSolver(geocode,'G',0,1,n01,n02,n03,ixc,hx,hy,hz,&
-!!$             rhopot,karray%kernel,pot_ion,eh,exc,vxc,offset,.true.,1,alpha,beta,gamma)
-        
-     end if
      call pkernel_free(karray)
-!!$     i_all=-product(shape(karray))*kind(karray)
-!!$     deallocate(karray,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'karray',subname)
 
-     !call timing(,'              ','RE')
-     call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm)
+     call f_timing_stop(mpi_comm=mpiworld())
 
      if (.not. onlykernel) then
         !Maximum difference
@@ -511,6 +521,8 @@ program PSolver_Program
 
   end if
 
+  call dict_free(dict)
+
   if (.not. onlykernel) then
      call f_free(density)
      call f_free(rhopot)
@@ -518,9 +530,8 @@ program PSolver_Program
      call f_free(pot_ion)
   end if
 
+  call mpifinalize()
   call f_lib_finalize()
-
-  call MPI_FINALIZE(ierr)
 
 
 contains
@@ -593,6 +604,7 @@ end subroutine compare
 !! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
+  use yaml_output
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,ixc
@@ -642,7 +654,13 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   gu(2,1) = gu(1,2)
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
+
+  gu=gd !test
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  call yaml_map('Angles',[alpha,beta,gamma]*180.0_dp*oneopi)
+  call yaml_map('Contravariant Metric',gu)
 
   if (ixc==0) denval=0.d0
 
@@ -777,7 +795,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=FUNC_EXP_COSINE
+     ifx=FUNC_COSINE!FUNC_EXP_COSINE
      ifz=FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
@@ -1251,6 +1269,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      potion_fac=1.d0
   end if
 
+  print *,'denval',denval
   rhopot(:,:,:) = density(:,:,:) + denval
      do i3=1,n03
         do i2=1,n02

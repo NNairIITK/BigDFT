@@ -1396,13 +1396,6 @@
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
  -  {Process:  0, Timing:  [  1.572E+00,  1.572E+00 ]}
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  0
-   error estimation:
-     max / mean error                  :  [  5.55E-15,  5.89E-16 ]
  Total charge                          :  5.999999875498E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

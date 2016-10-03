@@ -4256,7 +4256,7 @@ module sparsematrix_init
       implicit none
       ! Calling arguments
       integer,intent(in) :: nseg
-      integer,dimension(nseg),intent(out) :: nvctr_per_segment
+      integer,dimension(nseg),intent(in) :: nvctr_per_segment
       integer,dimension(nseg),intent(out) :: keyv
       ! Local variables
       integer :: jseg
@@ -4755,7 +4755,7 @@ module sparsematrix_init
 
 
       ijfound(:,:,:) = 0
-      ! The following is to collapse a doubel loop over ii-nbuf,ii+nbuf and jj-nbuf,jj+nbuf
+      ! The following is to collapse a double loop over ii-nbuf,ii+nbuf and jj-nbuf,jj+nbuf
       call distribute_on_tasks((2*nbuf+1)**2, iproc, nproc, nit_task, is_task)
       !$omp parallel default(none) &
       !$omp shared(nnonzero_buf, nthread, nonzero_buf, ijfound, exitflag, is_task, nit_task) &

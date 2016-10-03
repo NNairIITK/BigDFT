@@ -139,7 +139,7 @@ subroutine exctx_post_computation(orb1, orb2, rp_ij, phi1, phi2, pkernel, norb, 
   use Poisson_Solver
   implicit none
   type(coulomb_operator), intent(inout) :: pkernel
-  real(wp), dimension(product(pkernel%ndims)), intent(out) :: rp_ij
+  real(wp), dimension(product(pkernel%ndims)), intent(inout) :: rp_ij
   type(local_data), intent(inout) :: phi1,phi2
   integer, intent(in) :: norb
   real(gp), dimension(norb), intent(in) :: occup

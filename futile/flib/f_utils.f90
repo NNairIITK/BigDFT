@@ -59,6 +59,7 @@ module f_utils
   interface f_diff
      module procedure f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
+     module procedure f_diff_d3
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
      module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
      module procedure f_diff_d0d1,f_diff_i0i1, f_diff_li0li1
@@ -109,7 +110,7 @@ module f_utils
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
   public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime,f_system
-  public :: assignment(=),f_none
+  public :: assignment(=),f_none,f_assert
 
 contains
  
@@ -135,6 +136,21 @@ contains
     call nanosec(itime)
     f_time=itime
   end function f_time
+
+  subroutine f_assert(condition,id,err_id,err_name)
+    use module_f_malloc, only: f_malloc_namelen
+    use yaml_strings
+    use dictionaries
+    implicit none
+    logical, intent(in) :: condition
+    character(len=*), intent(in) :: id
+    integer, intent(in), optional :: err_id
+    character(len=*), intent(in), optional :: err_name
+    if (condition) return
+    call f_err_throw('Assertion id="'+id+'" in routine="'+&
+         f_malloc_namelen+'" not satisfied. Raising error...',&
+         err_id=err_id,err_name=err_name)
+  end subroutine f_assert
 
   pure function f_progress_bar_new(nstep) result(bar)
     implicit none
@@ -905,6 +921,18 @@ contains
     external :: diff_d
     call diff_d(n,a(1,1),b(1,1),diff)
   end subroutine f_diff_d2
+
+  subroutine f_diff_d3(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    real(f_double), dimension(:,:,:),   intent(in) :: a
+    real(f_double), dimension(:,:,:), intent(in) :: b
+    real(f_double), intent(out) :: diff
+    external :: diff_d
+    call diff_d(n,a(1,1,1),b(1,1,1),diff)
+  end subroutine f_diff_d3
+
+
   subroutine f_diff_d1d2(n,a,b,diff)
     implicit none
     integer, intent(in) :: n

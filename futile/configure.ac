@@ -141,6 +141,9 @@ AX_ACC_CUDA()
 AX_ACC_OCL()
 AX_ACC_MIC()
 
+dnl do we use simgrid shared allocators or fake version?
+AX_SIMGRID_SHARED()
+
 dnl Linalg libraries.
 AX_LINALG()
 if test $ax_have_linalg != "yes" ; then

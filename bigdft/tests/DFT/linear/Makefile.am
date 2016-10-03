@@ -173,7 +173,7 @@ multipoles_periodic.out.post-out:
 	  --method=mulliken \
 	  --matrix_basis=realspace \
 	  --mpirun='/home/stephan/Software/openmpi-1.8.4_gnu/bin/mpirun -np 2' \
-	  --metadata_file=data-periodic/sparsematrix_metadata.bin \
+	  --metadata_file=data-periodic/sparsematrix_metadata.dat \
 	  --kernel_file=data-periodic/density_kernel_sparse.bin \
 	  --hamiltonian_file=data-periodic/hamiltonian_sparse.bin \
 	  --overlap_file=data-periodic/overlap_sparse.bin \
