@@ -1421,6 +1421,8 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
  !dimensions of the kernel, 1/8 of the total volume,
  !compatible with nproc
+ !note: for non-orthorhombic cells the dimensions of the kernel 
+ !should become double either in nd1 or in nd2
 
  !these two dimensions are like that since they are even
  nd1=n1/2+1

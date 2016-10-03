@@ -16,6 +16,7 @@ module PStypes
   use dynamic_memory
   use f_input_file, only: ATTRS
   use box
+  use dictionaries
   implicit none
 
   private

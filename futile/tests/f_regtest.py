@@ -15,20 +15,15 @@ import UniParse
 
 parser=UniParse.UniParser(description='Regression checker',method='argparse')
 
-parser.option('-f', '--fldiff', dest='fldiff', default="/dev/null",  # sys.argv[4],
-              help="set the script file performing fldiff (default: /dev/null)", metavar='FILE')
-parser.option('-t', '--tols', dest='tols', default="/dev/null",  # sys.argv[4],
-              help="set the yaml file containing the tolerances for each run", metavar='FILE')
-
-
-#parser.option('-r', '--reference', dest='ref', default=None,  # sys.argv[1],
-#              help="reference yaml stream", metavar='REFERENCE')
-#parser.option('-d', '--data', dest='data', default=None,  # sys.argv[2],
-#              help="yaml stream to be compared with reference", metavar='DATA')
-#parser.option('-t', '--tolerances', dest='tols', default=None,  # sys.argv[3],
-#              help="File of the tolerances used for comparison", metavar='TOLS')
-#parser.option('-l', '--label', dest='label', default=None,
-#              help="Define the label to be used in the tolerance file to override the default", metavar='LABEL')
+parser.option('-f', '--fldiff', dest='fldiff', default="/dev/null",
+              help="script file performing fldiff (default: /dev/null)",
+              metavar='FILE')
+parser.option('-t', '--tols', dest='tols', default="/dev/null",
+              help="yaml file containing the tolerances for each run",
+              metavar='FILE')
+parser.option('-s', '--srcdir', dest='srcdir', default="/",
+              help="yaml file containing the tolerances for each run",
+              metavar='FILE')
 #
 args = parser.args()
 #print 'Arguments'
@@ -61,9 +56,11 @@ for test in d_instr:
     label=test.keys()[0]
     specs=test.values()[0]
     binary=specs.get('binary',label)
-    output=specs['output']
+    output=specs.get('output',label+'.out.yaml')
     report=label+'.report.yaml'
-    ref=specs['reference']
+    ref=specs.get('reference',label+'.ref.yaml')
+    if not os.path.isfile(ref):
+        ref=os.path.join(args.srcdir,ref)
     if get_time(binary) > get_time(output): run_test(specs['runs'])
     os.system(base+' --label '+label+' -r '+ref+' -d '+output+' --output '+report)
         

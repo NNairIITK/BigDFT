@@ -5,28 +5,30 @@ program linalg_check
   use random
   implicit none
   logical :: symm
-  integer :: norb,nvctr,ncplx
+  integer :: norb,nvctr,ncplx,nthreads
   integer :: iorb,jorb,icplx,ivctr,idum
   !integer, parameter :: f_double = selected_real_kind(15, 307)
   real(f_double) :: diff
   real(f_double), dimension(2) :: dotp
   real(f_double), dimension(:,:,:), allocatable :: psi,hpsi
-  real(f_double), dimension(:,:,:), allocatable :: ref_mat,mat
-  
+  real(f_double), dimension(:,:,:), allocatable :: ref_mat,mat 
   type(dictionary), pointer :: options
+  !$ integer :: omp_get_max_threads
 
   call f_lib_initialize()
   !call mpiinit() !shall we use mpi here? do not think so...
   !call f_malloc_set_status(iproc=mpirank())
   !read command line
   call linalg_check_command_line_options(options)
+
+  call yaml_new_document()
   
   !retrieve command line arguments
   norb=options//'norb'
   nvctr=options//'nvctr'
   ncplx=options//'ncplx'
   symm=options//'symm'
-
+  call yaml_map('Options',options)
   call dict_free(options)
 
   !allocate arrays
@@ -82,6 +84,10 @@ program linalg_check
   !then compare the matrices
   call f_diff(size(mat),mat,ref_mat,diff)
 
+  nthreads=1
+  !$ nthreads=omp_get_max_threads()
+
+  call yaml_map('Number of omp threads',nthreads)
   call yaml_map('The maximum difference is',diff)
 
   if (diff > epsilon(1.0_f_double) .and. norb <=5) then
