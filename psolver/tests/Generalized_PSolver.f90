@@ -6521,7 +6521,8 @@ subroutine Eps_rigid_cavity_multiatoms(mesh,ndims,nspden,nord,acell,hgrids,natre
     do while(box_next_point(bit))
        !choose the closest atom
        do iat=1,nat
-          d2=square(mesh,bit%rxyz-rxyz(:,iat))
+          bit%tmp=bit%rxyz-rxyz(:,iat)
+          d2=square(mesh,bit%tmp)
 !print *,'i,j,k',bit%i,bit%j,bit%k,d2,iat,bit%rxyz
           d=dsqrt(d2)
           !------------------------------------------------------------------

@@ -932,6 +932,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use yaml_output
   use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi,f_zero
+  use module_defs, only: UNINITIALIZED
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -948,7 +949,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   integer :: i,iat
   integer :: i1,i2,i3,unt,i3s,i23
   real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene,IntSurt,IntVolt,diffSur,diffVol
-  real(gp) :: radii_Pau,radii_Bondi,radii_UFF,fact
+  real(gp) :: radii_Pau,radii_Bondi,radii_UFF,fact,rcav
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii
   real(gp), dimension(:,:), allocatable :: rxyz_shifted
@@ -983,73 +984,46 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      !only amu is extracted here
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
           rcov=radii(it%iat))
-  end do
-  !if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
-
-!  radii(1)=1.5d0/Bohr_Ang
-!  radii(2)=1.2d0/Bohr_Ang
-!  radii(3)=1.2d0/Bohr_Ang
-
-!  delta=4.0*maxval(pkernel%hgrids)
-  !delta=2.0d0
-  !delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
-
-!!$  do i=1,atoms%astruct%nat
-!!$!   write(*,*)atoms%astruct%atomnames(atoms%astruct%iatype(i))
-!!$   ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
-!!$   select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
-!!$   case('H')
-!!$    radii(i)=1.0d0 !Pauling's set
-!!$    !radii(i)=1.20d0 !Bondi's radii 
-!!$   case('C')
-!!$    radii(i)=1.50d0 !Pauling's set
-!!$    !radii(i)=1.70d0 !Bondi's radii 
-!!$   case('N')
-!!$    radii(i)=1.50d0 !Pauling's set
-!!$    !radii(i)=1.55d0 !Bondi's radii 
-!!$   case('O')
-!!$    radii(i)=1.40d0 !Pauling's set
-!!$    !radii(i)=1.52d0 !Bondi's radii 
-!!$   case('P')
-!!$    radii(i)=1.80d0 !Pauling's set
-!!$    !radii(i)=1.8d0 !Bondi's radii 
-!!$   case('S')
-!!$    radii(i)=1.80d0 !Pauling's set
-!!$    !radii(i)=1.80d0 !Bondi's radii 
-!!$   case('Cl')
-!!$    radii(i)=1.80d0 !Pauling's set
-!!$    !radii(i)=1.75d0 !Bondi's radii 
-!!$   case('Ti')
-!!$    radii(i)=1.80d0 !Pauling's set
-!!$    !radii(i)=1.80d0 !Bondi's radii 
-!!$   case('Pb')
-!!$    radii(i)=1.80d0 !Pauling's set
-!!$    !radii(i)=1.75d0 !Bondi's radii 
-!!$   case('I')
-!!$    radii(i)=1.80d0 !Pauling's set
-!!$    !radii(i)=1.80d0 !Bondi's radii 
-!!$   case default
-!!$    call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
-!!$   end select
-!!$   !if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
-!!$   !radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*pkernel%cavity%delta
-!!$   radii(i) = fact_Pau*radii(i)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
-!!$  end do
-  fact=pkernel%cavity%fact_rigid
-  if(bigdft_mpi%iproc==0) call yaml_map('fact_rigid',fact)
-  do i=1,atoms%astruct%nat
-    atname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(i)))
-   if (radii_cav.eq.1) then
-    !radii(i) = fact_Pau*radii_Pau(atname)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
-    radii(i) = fact*radii_Pau(atname)/Bohr_Ang
-   else if (radii_cav.eq.2) then
-    radii(i) = fact*radii_Bondi(atname)/Bohr_Ang
-   else if (radii_cav.eq.3) then
-    radii(i) = fact*radii_UFF(atname)/Bohr_Ang
-   end if
+     call astruct_at_from_dict(it%attrs,cavity_radius=rcav)
+     if (rcav==UNINITIALIZED(rcav)) then
+        radii(it%iat)=pkernel_get_radius(pkernel,it%name)
+     else
+        radii(it%iat)=rcav
+     end if
   end do
 
   if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
+  fact=pkernel%cavity%fact_rigid
+  it=atoms_iter(atoms%astruct)
+  do while(atoms_iter_next(it))
+     radii(it%iat)=fact*radii(it%iat)/Bohr_Ang
+  end do
+!  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
+  !if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
+
+!!$  fact=pkernel%cavity%fact_rigid
+!!$  if(bigdft_mpi%iproc==0) call yaml_map('fact_rigid',fact)
+!!!  do i=1,atoms%astruct%nat
+!!!     atname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+!!!!!$   if (radii_cav.eq.1) then
+!!!!!$    !radii(i) = fact_Pau*radii_Pau(atname)/Bohr_Ang + 1.22d0*pkernel%cavity%delta
+!!!!!$    radii(i) = fact*radii_Pau(atname)/Bohr_Ang
+!!!!!$   else if (radii_cav.eq.2) then
+!!!!!$    radii(i) = fact*radii_Bondi(atname)/Bohr_Ang
+!!!!!$   else if (radii_cav.eq.3) then
+!!!!!$    radii(i) = fact*radii_UFF(atname)/Bohr_Ang
+!!!!!$   end if
+!!!   call astruct_at_from_dict(cavity_radius=rcav)
+!!!   if (rcav==UNINITIALIZED(rcav)) then
+!!!      radii(i)=pkernel_get_radius(pkernel,atname)
+!!!   else
+!!!      radii(i)=rcav
+!!!   end if
+!!!
+!!!  end do
+!!!
 
 !--------------------------------------------
 
@@ -1239,375 +1213,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  call f_free(oneosqrtepst)
 !!$  call f_free(corrt)
 end subroutine epsilon_cavity
-
-!> Set the Pauling's set of atomic radii
-pure function radii_Pau(at) result(r)
-    use PSbase
-    implicit none
-    character(len=2), intent(in) :: at
-    real(gp) :: r 
-    !local variables
-   ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of
-   ! chemistry and physics (CRC Press, Cleveland, 1981)].
-   select case(trim(at))
-   case('H')
-    r=1.20d0 !Pauling's set
-   case('C')
-    r=1.50d0 !Pauling's set
-   case('N')
-    r=1.50d0 !Pauling's set
-   case('O')
-    r=1.40d0 !Pauling's set
-   case('F')
-    r=1.35d0 !Pauling's set
-   case('P')
-    r=1.90d0 !Pauling's set
-   case('Cl')
-    r=1.80d0 !Pauling's set
-   case('Ti')
-    r=1.40d0 
-   case('Br')
-    r=1.95d0 !Pauling's set
-   case('I')
-    r=2.15d0 !Pauling's set
-   case('S')
-    r=1.85d0 !Pauling's set
-   case default
-    !call f_err_throw('Pauling setup. For rigid cavity a radius should be fixed for each atom type')
-   end select
-
-end function radii_Pau
-
-!> Set the Bondi's set of atomic radii
-pure function radii_Bondi(at) result(r)
-    use PSbase
-    implicit none
-    character(len=2), intent(in) :: at
-    real(gp) :: r
-    !local variables
-   ! Set the Bondi's set of atomic radii [A. Bondi, J. Phys. Chem. 68, 441 (1964)].
-   ! Never tested and calibrated with the correct prefactor!!!
-   select case(trim(at))
-   case('H')
-    r=1.20d0  
-   case('He')
-    r=1.40d0  
-   case('Li')
-    r=1.82d0  
-   case('Be')
-    r=1.45d0  
-   case('B')
-    r=1.8d0
-   case('C')
-    r=1.70d0  
-   case('N')
-    r=1.55d0  
-   case('O')
-    r=1.52d0 
-   case('F')
-    r=1.47d0  
-   case('Ne')
-    r=1.54d0  
-   case('Na')
-    r=2.27d0  
-   case('Mg')
-    r=1.73d0  
-   case('Al')
-    r=2.30d0
-   case('Si')
-    r=2.10d0  
-   case('P')
-    r=1.80d0  
-   case('S')
-    r=1.80d0  
-   case('Cl')
-    r=1.75d0  
-   case('Ar')
-    r=1.88d0
-   case('K')
-    r=2.75d0  
-   case('Ni')
-    r=1.63d0  
-   case('Cu')
-    r=1.40d0  
-   case('Zn')
-    r=1.39d0  
-   case('Ga')
-    r=1.87d0
-   case('Ge')
-    r=2.19d0  
-   case('As')
-    r=1.85d0  
-   case('Se')
-    r=1.90d0  
-   case('Br')
-    r=1.85d0  
-   case('Kr')
-    r=2.02d0
-   case('Pd')
-    r=1.63d0
-   case('Ag')
-    r=1.72d0
-   case('Cd')
-    r=1.58d0  
-   case('In')
-    r=1.93d0  
-   case('Sn')
-    r=2.17d0  
-   case('Te')
-    r=2.06d0  
-   case('I')
-    r=1.98d0
-   case('Xe')
-    r=2.16d0  
-   case('Pt')
-    r=1.75d0  
-   case('Au')
-    r=1.66d0  
-   case('Hg')
-    r=1.55d0  
-   case('Tl')
-    r=1.96d0
-   case('Pb')
-    r=2.02d0
-   case('U')
-    r=1.86d0
-   case default
-    !call f_err_throw('Bondi setup. For rigid cavity a radius should be fixed for each atom type')
-   end select
-
-end function radii_Bondi
-
-!> Set the UFF set of atomic radii
-pure function radii_UFF(at) result(r)
-   use PSbase
-   implicit none
-   character(len=2), intent(in) :: at
-   real(gp) :: r
-   !local variables
-   ! Set the UFF set of atomic radii [A.K. Rapp/'{e} et al. J. Am. Chem. Soc. 114(25) pp.10024-10035 (1992)].
-   ! WARNING: below are atomic diameters as reported in the paper.
-   select case(trim(at))
-   case('H')
-    r=2.886d0  
-    !r=2.4d0  
-   case('He')
-    r=2.362d0
-   case('Li')
-    r=2.451d0 
-   case('Be')
-    r=2.745d0 
-   case('B')
-    r=4.083d0 
-   case('C')
-    r=3.851d0 
-   case('N')
-    !r=3.660d0 
-    r=3.100d0 ! Bondi radius 
-   case('O')
-    r=3.500d0 
-   case('F')
-    r=3.364d0 
-   case('Ne')
-    r=3.243d0  
-   case('Na')
-    r=2.983d0
-   case('Mg')
-    r=3.021d0 
-   case('Al')
-    r=4.499d0 
-   case('Si')
-    r=4.295d0 
-   case('P')
-    r=4.147d0 
-   case('S')
-    r=4.035d0 
-   case('Cl')
-    r=3.947d0 
-   case('Ar')
-    r=3.868d0 
-   case('K')
-    r=3.812d0  
-   case('Ca')
-    r=3.399d0
-   case('Sc')
-    r=3.295d0 
-   case('Ti')
-    r=3.175d0 
-    !r=4.00d0 
-   case('V')
-    r=3.144d0 
-   case('Cr')
-    r=3.023d0 
-   case('Mn')
-    r=2.961d0 
-   case('Fe')
-    r=2.912d0 
-   case('Co')
-    r=2.872d0 
-   case('Ni')
-    r=2.834d0  
-   case('Cu')
-    r=3.495d0
-   case('Zn')
-    r=2.763d0 
-   case('Ga')
-    r=4.383d0 
-   case('Ge')
-    r=4.280d0 
-   case('As')
-    r=4.230d0 
-   case('Se')
-    r=4.205d0 
-   case('Br')
-    r=4.189d0 
-   case('Kr')
-    r=4.141d0 
-   case('Rb')
-    r=4.114d0 
-   case('Sr') !(+2)
-    r=3.641d0 
-   case('Y')  !(+3)
-    r=3.345d0 
-   case('Zr') !(+4)
-    r=3.124d0 
-   case('Nb') !(+5)
-    r=3.165d0  
-   case('Mo') !(+6)
-    r=3.052d0
-   case('Tc') !(+5)
-    r=2.998d0 
-   case('Ru') !(+2)
-    r=2.963d0 
-   case('Rh') !(+3)
-    r=2.929d0 
-   case('Pd') !(+2)
-    r=2.899d0  
-   case('Ag') !(+1)
-    r=3.148d0 !UFF
-    !r=3.44d0
-   case('Cd') !(+2)
-    r=2.848d0 
-   case('In')
-    r=4.463d0 
-   case('Sn')
-    r=4.392d0 
-   case('Sb')
-    r=4.420d0 
-   case('Te')
-    r=4.470d0 
-   case('I')
-    r=4.500d0 
-   case('Xe')
-    r=4.404d0 
-   case('Cs')
-    r=4.517d0 
-   case('Ba') !(+2)
-    r=3.703d0 
-   case('La')  !(+3)
-    r=3.522d0 
-   case('Ce') !(+3)
-    r=3.556d0 
-   case('Pr') !(+3)
-    r=3.606d0  
-   case('Nd') !(+3)
-    r=3.575d0
-   case('Pm') !(+3)
-    r=3.547d0 
-   case('Sm') !(+3)
-    r=3.520d0 
-   case('Eu') !(+3)
-    r=3.493d0 
-   case('Gd') !(+3)
-    r=3.368d0  
-   case('Tb') !(+3)
-    r=3.451d0
-   case('Dy') !(+3)
-    r=3.428d0 
-   case('Ho') !(+3)
-    r=3.409d0 
-   case('Er') !(+3)
-    r=3.391d0 
-   case('Tm') !(+3)
-    r=3.374d0 
-   case('Yb') !(+3)
-    r=3.355d0  
-   case('Lu') !(+3)
-    r=3.640d0
-   case('Hf') !(+4)
-    r=3.141d0 
-   case('Ta') !(+5)
-    r=3.170d0 
-   case('W')  !(+4,+6)
-    r=3.069d0 
-   case('Re') !(+5,+7)
-    r=2.954d0  
-   case('Os') !(+6)
-    r=3.120d0
-   case('Ir') !(+3)
-    r=2.840d0 
-   case('Pt')
-    r=2.754d0 
-    !r=3.50d0 
-   case('Au')
-    r=3.293d0 
-   case('Hg')
-    r=2.705d0 
-   case('Tl')
-    r=4.347d0  
-   case('Pb')
-    r=4.297d0
-   case('Bi') !(+3)
-    r=4.370d0 
-   case('Po') !(+2)
-    r=4.709d0 
-   case('At')
-    r=4.750d0 
-   case('Rn') !(+4)
-    r=4.765d0 
-   case('Fr')
-    r=4.900d0 
-   case('Ra') !(+2)
-    r=3.677d0 
-   case('Ac') !(+3)
-    r=3.478d0 
-   case('Th') !(+4)
-    r=3.396d0 
-   case('Pa') !(+4)
-    r=3.424d0  
-   case('U')  !(+4)
-    r=3.395d0
-   case('Np') !(+4)
-    r=3.424d0 
-   case('Pu') !(+4)
-    r=3.424d0 
-   case('Am') !(+4)
-    r=3.381d0 
-   case('Cm') !(+3)
-    r=3.326d0  
-   case('Bk') !(+3)
-    r=3.339d0
-   case('Cf') !(+3)
-    r=3.313d0 
-   case('Es') !(+3)
-    r=3.299d0 
-   case('Fm') !(+3)
-    r=3.286d0 
-   case('Md') !(+3)
-    r=3.274d0  
-   case('No') !(+3)
-    r=3.248d0
-   case('Lw') !(+3)
-    r=3.236d0 
-   case default
-    r=6.0d0
-    !call f_err_throw('UFF setup. For rigid cavity a radius should be fixed for each atom type')
-   end select
-
-   r=0.5d0*r
-
-end function radii_UFF
-
 
 !> Check the difference of two 3 dimensional vectors
 subroutine check_accuracy_3d(n01,n02,n03,i,r1,r2)

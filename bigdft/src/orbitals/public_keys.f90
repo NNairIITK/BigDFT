@@ -299,6 +299,7 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen'
   character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin'
   character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg'
+  character(len=*), parameter :: ASTRUCT_ATT_CAVRAD = 'rcav' !< custom radius of the cavity
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1'
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2'
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3'

@@ -110,7 +110,7 @@ module f_utils
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
   public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime,f_system
-  public :: assignment(=),f_none
+  public :: assignment(=),f_none,f_assert
 
 contains
  
@@ -136,6 +136,21 @@ contains
     call nanosec(itime)
     f_time=itime
   end function f_time
+
+  subroutine f_assert(condition,id,err_id,err_name)
+    use module_f_malloc, only: f_malloc_namelen
+    use yaml_strings
+    use dictionaries
+    implicit none
+    logical, intent(in) :: condition
+    character(len=*), intent(in) :: id
+    integer, intent(in), optional :: err_id
+    character(len=*), intent(in), optional :: err_name
+    if (condition) return
+    call f_err_throw('Assertion id="'+id+'" in routine="'+&
+         f_malloc_namelen+'" not satisfied. Raising error...',&
+         err_id=err_id,err_name=err_name)
+  end subroutine f_assert
 
   pure function f_progress_bar_new(nstep) result(bar)
     implicit none
