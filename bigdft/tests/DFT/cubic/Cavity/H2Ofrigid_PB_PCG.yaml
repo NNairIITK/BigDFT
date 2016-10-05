@@ -10,7 +10,9 @@
  psolver:
    environment: 
      cavity: rigid
+     pb_method: modified
      itermax: 5
+     pb_itermax: 2
      radii_set     : UFF
      atomic_radii:
         O: 1.60

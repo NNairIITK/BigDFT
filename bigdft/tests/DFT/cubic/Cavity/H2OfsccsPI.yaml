@@ -8,12 +8,10 @@
    gnrm_cv: accurate
    itermax: 2
  psolver:
-   environment: 
-     cavity: rigid
+   environment:
+     cavity: sccs
      itermax: 5
-     radii_set     : UFF
-     atomic_radii:
-        O: 1.60
+     gps_algorithm: PI
  perf:
    projrad: 8.000
    rho_commun: MIX
@@ -24,7 +22,7 @@
    positions:
    - O: [8.1429903446128495E-023, 0.1228808011212545, -2.6272458256877808E-008]
    - H: [6.0858797985313103E-023, -0.4719903979445226, 0.7651344556227357]
-   - {H: [5.6367513765930241E-023, -0.4719903773917626, -0.7651344293502773], rcav: 1.0}
+   - H: [5.6367513765930241E-023, -0.4719903773917626, -0.7651344293502773]
    properties:
      format: xyz
      source: posinp

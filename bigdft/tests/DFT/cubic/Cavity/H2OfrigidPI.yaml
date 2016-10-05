@@ -11,6 +11,7 @@
    environment: 
      cavity: rigid
      itermax: 5
+     gps_algorithm: PI
      radii_set     : UFF
      atomic_radii:
         O: 1.60
