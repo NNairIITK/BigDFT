@@ -1883,7 +1883,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
   !here the orthogonality with respect to other occupied functions should be
   !passed as an optional argument
   energs%trH_prev=energs%trH
-  !disable correction for exact exhange computations
+  !disable correction for exact exhange computations, as the density matrix is the object to minimize.
   tr_min=(scf_mode .hasattr. 'MIXING') .or. energs%eexctX /=0.0_gp
   if(wfn%paw%usepaw) then
     !PAW: spsi is used.

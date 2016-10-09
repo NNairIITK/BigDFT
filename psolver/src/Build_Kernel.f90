@@ -346,6 +346,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   use wrapper_mpi
   use dynamic_memory
   use f_utils, only: f_zero
+  use module_fft_sg, only: p_index
   implicit none
   include 'perfdata.inc'
   
@@ -573,7 +574,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
 
   !let us now calculate the fraction of mu that will be considered 
   j2st=iproc*(nact2/nproc)
-  j2nd=min((iproc+1)*(nact2/nproc),n2/2+1) !here we might write nker2 instead of n2/2+1
+  j2nd=min((iproc+1)*(nact2/nproc),nker2)!n2/2+1) !here we might write nker2 instead of n2/2+1
 
   do ind2=(n1/2+1)*j2st+1,(n1/2+1)*j2nd,num_of_mus
      istart=ind2
@@ -660,8 +661,9 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
         i2=(imu-i1)/(n1/2+1)+1
         !with these conventions imu=i1+(i2-1)*(n1/2+1), with i1=0,...,n1/2 and (hopefully) i2=0,..,n2/2,-n2/2,-n2/2+1,...,-1
         ponx=real(i1-1,dp)/real(n1,dp)
-        pony=real(i2-1,dp)/real(n2,dp)
+        pony=real(p_index(i2,n2),dp)/real(n2,dp)!real(i2-1,dp)/real(n2,dp) !here we should put the value of p
         
+        !print *,'here',i1,i2,i1-1,p_index(i2,n2)
         
         !acerioni --- adding the mu0_screening
         !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3

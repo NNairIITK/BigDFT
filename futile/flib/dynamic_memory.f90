@@ -795,6 +795,7 @@ contains
 
   !> Opens a new instance of the dynamic memory handling
   subroutine f_malloc_initialize()
+    use f_environment
     implicit none
     !local variables
     integer :: istat
@@ -811,9 +812,7 @@ contains
     !in the first instance initialize the global memory info
     if (ictrl==1) then
        call memstate_init(memstate)
-       !check if we are in the bigdebug mode or not
-       call get_environment_variable('FUTILE_DEBUG_MODE', val,status=istat)
-       bigdebug = val == '1' .and. istat == 0
+       bigdebug = f_debug_level >= 1 !we might tune the level
     end if
 
     !initialize the memprofiling counters

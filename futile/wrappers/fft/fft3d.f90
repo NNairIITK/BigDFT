@@ -276,6 +276,23 @@ data ((ij_data(i_d,j_d),i_d=1,1+n_factors),j_d=1,ndata) /  &
 524288,  8,   8,   8,   8,   8,   8,   2,    1048576, 8,   8,   8,   8,   8,   8,   4,  &
 2097152, 8,   8,   8,   8,   8,   8,   8    /  
 
+contains
+  !>impulse coordinate, from 0,...,n/2+1,-n/2+1,...-1
+  pure function p_index(i,n) result(p)
+    implicit none
+    integer, intent(in) :: i,n
+    integer :: p
+    p=i-(i/(n/2+2))*n-1
+  end function p_index
+
+  !>real space coordinate, from 0,...,n-1
+  pure function i_index(p,n) result(j)
+    implicit none
+    integer, intent(in) :: p,n
+    integer :: j
+    j=p-((p+n)/n-1)*n
+  end function i_index
+
 end module module_fft_sg
 
 
@@ -369,6 +386,50 @@ subroutine fft_1d_ctoc(isign,nfft,n,zinout,inzee)
 
    deallocate(trig)
 END SUBROUTINE fft_1d_ctoc
+
+!> routine constituting the Building-block of other routines
+subroutine FFT_1d(n,nfft,zinout,isign,inzee,transpose,real_input)
+  use module_fft_sg
+  implicit none
+  logical, intent(in) :: transpose,real_input
+  integer, intent(in) :: n,nfft,isign
+  integer, intent(out) :: inzee
+  real(kind=8), dimension(2,nfft*n,2), intent(inout) :: zinout
+  !local variables
+  integer :: ic,i,ntrig,npr,iam
+  !automatic arrays for the FFT
+  integer, dimension(n_factors) :: after,now,before
+  real(kind=8), dimension(:,:), allocatable :: trig
+  real(kind=8), allocatable, dimension(:,:,:) :: zw  
+
+  ntrig=n
+  allocate(trig(2,ntrig))
+  !arrays for the FFT (to be halved)
+  call ctrig_sg(n,ntrig,trig,after,before,now,isign,ic)
+  !perform the FFT 
+
+!!!!$omp critical
+   allocate(zw(2,ncache/4,2))
+!!!!$omp end critical
+
+  inzee=1
+  npr=1
+!!!!$       npr=omp_get_num_threads()
+  iam=0
+  if (real_input) then
+     call fft_1d_base(nfft,n,nfft,n,nfft,nfft*n,n,&
+          ncache,ntrig,trig,after,now,before,ic,&
+          isign,inzee,transpose,iam,npr,zinout,zw)
+  else
+     call fft_1d_base(nfft,n,nfft,n,nfft,nfft*n,n,&
+          ncache,ntrig,trig,after,now,before,ic,&
+          isign,inzee,transpose,iam,npr,zinout,zw)
+  end if
+
+  deallocate(zw)
+!!!!!!!!!!$omp end parallel  
+  deallocate(trig)
+end subroutine FFT_1d
 
 subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
@@ -795,12 +856,23 @@ subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
            call fftrot_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
                 z(1,j,inzet),z(1,jj,3-inzet), &
                 ntrig,trig,after(i),now(i),before(i),i_sign)
+           if (real_input) then !only works when ld_out==n
+              inzet=3-inzet
+              call unpack_rfft(ndat_out,n,&
+                   z(1,jj,inzet),z(1,jj,3-inzet))
+           end if
         else
            !input z(2,ndat_in,ld_in,inzet)
            !output z(2,ndat_out,ld_out,3-inzet)
            call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
                 z(1,j,inzet),z(1,j,3-inzet), &
                 ntrig,trig,after(i),now(i),before(i),i_sign)
+           if (real_input) then !only works when ld_out==n
+              inzet=3-inzet
+              !here maybe the ndat_out has to be rethought
+              call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
+                   z(1,j,inzet),z(1,j,3-inzet))
+           end if
         end if
      else
         lotomp=(nfft)/nthread+1
@@ -828,10 +900,20 @@ subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
               call fftrot_sg(nn,nfft_th,n,ndat_out,ld_out,&
                    zw(1,1,inzeep),z(1,jj,3-inzet), &
                    ntrig,trig,after(i),now(i),before(i),i_sign)
+              if (real_input) then !only works when ld_out==n
+                 inzet=3-inzet
+                 call unpack_rfft(ndat_out,n,&
+                      z(1,jj,inzet),z(1,jj,3-inzet))
+              end if
            else
               call fftstp_sg(nn,nfft_th,n,ndat_out,ld_out,&
                    zw(1,1,inzeep),z(1,j,3-inzet), &
                    ntrig,trig,after(i),now(i),before(i),i_sign)
+              if (real_input) then !only works when ld_out==n
+                 inzet=3-inzet
+                 call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
+                      z(1,j,inzet),z(1,j,3-inzet))
+              end if
            end if
         end do
      end if
@@ -849,10 +931,10 @@ subroutine unpack_rfft(ndat,n,zin,zout)
   implicit none
   integer, intent(in) :: ndat,n
   real(f_double), intent(in) :: zin(2,n,*) !according ndat is odd or even(ndat-1)/2+1)
-  real(f_double), intent(out) :: zout(2,n/2,ndat)
+  real(f_double), intent(out) :: zout(2,n/2,2*ndat)
   !local variables
   integer :: idat,i,jp
-  do idat=1,ndat/2
+  do idat=1,ndat
      zout(1,1,2*idat-1)=2.0_f_double*zin(1,1,idat)
      zout(2,1,2*idat-1)=0.0_f_double
      do i=2,n/2
@@ -868,6 +950,7 @@ subroutine unpack_rfft(ndat,n,zin,zout)
         zout(2,i,2*idat  )=-zin(1,i,idat)+zin(1,jp,idat)
      end do
   end do
+  return
   if (2*(ndat/2)==ndat) return
   !last case, idat=(ndat-1)/2+1
   idat=(ndat-1)/2+1 

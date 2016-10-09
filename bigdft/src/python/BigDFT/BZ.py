@@ -169,7 +169,7 @@ class BrillouinZone():
         #sanity check of the interpolation
         sanity=0.0
         for kpt in evals:
-            diff=numpy.ravel(kpt-numpy.ravel(self.interpolator([ kpt.kpt])))
+            diff=numpy.ravel(numpy.ravel(kpt)-numpy.ravel(self.interpolator([ kpt.kpt])))
             sanity=max(sanity,numpy.dot(diff,diff))
         print 'Interpolation bias',sanity
     def plot(self,path=None,npts=50):

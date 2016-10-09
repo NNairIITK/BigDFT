@@ -4495,7 +4495,7 @@ module sparsematrix_init
     subroutine generate_random_symmetric_sparsity_pattern(iproc, nproc, comm, &
                nfvctr, nvctr, nbuf_mult, init_matmul, smat, &
                nextra, nbuf_extra, init_matmul_extra, smat_extra)
-      use random, only: builtin_rand
+      use f_random!, only: builtin_rand
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nbuf_mult
@@ -4601,7 +4601,8 @@ module sparsematrix_init
               end if
           end do
           idum = 0
-          tt_rand = builtin_rand(idum, reset=.true.)
+          call f_random_number(tt_rand,reset=.true.)
+          !tt_rand = builtin_rand(idum, reset=.true.)
           !ivctr = nfvctr
           it = 0
           search_loop2: do
@@ -4618,10 +4619,12 @@ module sparsematrix_init
                   end if
                   exit search_loop2
               end if
-              tt_rand = builtin_rand(idum)
+              !tt_rand = builtin_rand(idum)
+              call f_random_number(tt_rand)
               tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
               ii = max(nint(tt),1)
-              tt_rand = builtin_rand(idum)
+              call f_random_number(tt_rand)
+              !tt_rand = builtin_rand(idum)
               tt = real(tt_rand,kind=mp)*real(nfvctr,kind=mp) !scale to lie within the range of the matrix
               jj = max(nint(tt),1)
               do inonzero=1,nnonzero
