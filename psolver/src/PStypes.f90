@@ -377,6 +377,7 @@ contains
     k%max_iter=0
     k%PI_eta=0.0_dp
     k%minres=0.0_dp
+    k%minres_PB=0.0_dp
     k%radii_set=0
     nullify(k%radii_dict)
     nullify(k%counts)
@@ -1057,14 +1058,13 @@ contains
     if (atname .in. kernel%radii_dict) then
        radius=kernel%radii_dict//atname
     else
-       fact=kernel%cavity%fact_rigid
        select case (kernel%radii_set)
        case(RADII_PAULING_ID)
-          radius = fact*radii_Pau(atname)/Bohr_Ang
+          radius = radii_Pau(atname)
        case(RADII_BONDI_ID)
-          radius = fact*radii_Bondi(atname)/Bohr_Ang
+          radius = radii_Bondi(atname)
        case(RADII_UFF_ID)
-          radius = fact*radii_UFF(atname)/Bohr_Ang
+          radius = radii_UFF(atname)
        end select
     end if
 

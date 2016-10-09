@@ -101,6 +101,7 @@ program PSolver_Program
   nproc=1
 
   nullify(dict)
+  call dict_init(options)
   call yaml_argparse(options,inputs)
   call yaml_map('Commandline options provided',options)
   ndims=options//'ndim'
@@ -309,7 +310,7 @@ program PSolver_Program
             j1=n01/2+1-abs(n01/2+1-i1)
             j2=n02/2+1-abs(n02/2+1-i2)
             j3=n03/2+1-abs(n03/2+1-i3)
-            write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
+            write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
          end do
       end do
 
@@ -532,7 +533,6 @@ program PSolver_Program
 
   call mpifinalize()
   call f_lib_finalize()
-
 
 contains
 
@@ -801,7 +801,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=FUNC_COSINE!FUNC_EXP_COSINE
+     ifx=FUNC_EXP_COSINE
      ifz=FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN

@@ -11,6 +11,7 @@
    environment:
      cavity: sccs
      itermax: 5
+     gps_algorithm: PI
  perf:
    projrad: 8.000
    rho_commun: MIX

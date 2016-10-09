@@ -165,7 +165,7 @@
     EXCLUSIVE: [ 2, 4, 6, 8, 16 ]
   itermax: 
     COMMENT: Maximum number of iterations of the GPS outer loop
-    default: 50
+    default: 200
   minres: 
     COMMENT: Convergence threshold of the loop
     default: 1.e-8
