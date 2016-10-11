@@ -15,6 +15,8 @@
   <repository type="tarball" name="etsf" href="http://www.etsf.eu/system/files/"/>
 
   <repository type="tarball" name="simgrid" href="http://gforge.inria.fr/frs/download.php/file/35817/"/>
+  <repository type="git" name="simgrid-dev" href="https://scm.gforge.inria.fr/anonscm/git/"/>
+
 
   <repository type="tarball" name="metis"
               href="http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/"/>
@@ -73,7 +75,7 @@
         <dep package="gobject-introspection"/>
       </if>
       <if condition-set="simulation">
-        <dep package="simgrid"/>
+        <dep package="simgrid-dev"/>
       </if>
     </dependencies>
   </autotools>
@@ -179,6 +181,11 @@
   <cmake id="simgrid" skip-autogen="true">
     <branch repo="simgrid" module="SimGrid-3.13.tar.gz"
             version="3.13"/>
+  </cmake>
+
+  <cmake id="simgrid-dev" skip-autogen="true">
+    <branch repo="simgrid-dev"  module="simgrid/simgrid"
+            checkoutdir="simgrid-dev"/>
   </cmake>
 
 
