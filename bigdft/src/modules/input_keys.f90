@@ -196,6 +196,7 @@ module module_input_keys
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: occupancy_control_itermax !< number of maximal iterations to apply occupancy control
+     integer :: occupancy_control_nrepmax !< number of maximal re-diagonalizations to apply occupancy control
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
      integer :: ncongt      !< Number of conjugate garident for the tail treatment
@@ -1701,6 +1702,8 @@ contains
        case (OCCUPANCY_CONTROL)
        case (OCCUPANCY_CONTROL_ITERMAX)
           in%occupancy_control_itermax=val
+       case (OCCUPANCY_CONTROL_NREPMAX)
+          in%occupancy_control_nrepmax=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2374,6 +2377,7 @@ contains
     call f_zero(in%gnrm_cv_virt)
     call f_zero(in%itermax_virt)
     call f_zero(in%occupancy_control_itermax)
+    in%occupancy_control_nrepmax=1
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)
