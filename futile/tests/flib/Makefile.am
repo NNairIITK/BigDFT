@@ -22,6 +22,9 @@ if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
 AM_LDFLAGS += @FC_RPATH@$(abs_top_builddir)/src
 else
+if USE_SIMGRID_SHARED_ALLOCS
+AM_LDFLAGS += @FC_RPATH@$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
+endif
 flib_libraries = $(top_builddir)/src/libfutile-1.a
 LIBS += @LIBS_EXT_DEPS@
 endif

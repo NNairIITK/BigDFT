@@ -30,7 +30,8 @@ program f_buffer_allocations
   call f_malloc_dump_status()
   call yaml_mapping_close(advance='no')
   call yaml_comment('',hfill='~')
-  call f_free(d1_ptr,d1_ptr_exotic)
+  call f_free_ptr(d1_ptr)
+  call f_free_ptr(d1_ptr_exotic)
 
   call f_lib_finalize()
   
