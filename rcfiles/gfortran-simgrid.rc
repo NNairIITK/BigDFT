@@ -18,7 +18,7 @@ module_autogenargs.update({
 'libyaml': env_configuration(),
    
 'futile': env_configuration()+
-    " --enable-simgrid-shared --with-mpi-libs=-lsimgrid --with-mpi-include=-I"+getcwd()+"/install/include/smpi FC=gfortran CC=gcc SIMGRID_FC=getcwd()+"/install/bin/smpif90",
+    " --enable-simgrid-shared --with-mpi-libs=-lsimgrid --with-mpi-include=-I"+getcwd()+"/install/include/smpi FC=gfortran CC=gcc SIMGRID_FC="+getcwd()+"/install/bin/smpif90",
    
 'psolver': env_configuration(),
    
