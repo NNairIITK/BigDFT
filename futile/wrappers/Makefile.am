@@ -94,6 +94,7 @@ modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	WRAPPER_LINALG.@MODULE_EXT@ \
 	WRAPPER_MPI.@MODULE_EXT@ \
 	F_BLAS.@MODULE_EXT@ \
+	MPIF_MODULE.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	NUMERICS.@MODULE_EXT@
 else
@@ -101,6 +102,7 @@ modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
 	wrapper_mpi.@MODULE_EXT@ \
 	f_blas.@MODULE_EXT@ \
+	mpif_module.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	numerics.@MODULE_EXT@
 endif

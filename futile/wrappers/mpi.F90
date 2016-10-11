@@ -13,6 +13,11 @@
 #include <config.inc>
 #endif
 
+module mpif_module
+  !do not put implicit none to avoid implicit declaration of
+  !datatypes in some MPI implementations
+  include 'mpif.h'      !< MPI definitions and datatypes
+end module mpif_module
 
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
@@ -21,17 +26,18 @@ module wrapper_MPI
   use f_precisions
   use f_refcnts
   use dictionaries, only: f_err_throw
+  use mpif_module
   implicit none
 
   ! MPI handling
 #ifdef HAVE_MPI2
   logical, parameter :: have_mpi2 = .true.  !< Flag to use in the code to switch between MPI1 and MPI2
 #else
-  integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
+  integer :: MPI_IN_PLACE               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-  include 'mpif.h'      !< MPI definitions and datatypes
+!  include 'mpif.h'      !< MPI definitions and datatypes, now within mpif_module
 
   logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 

@@ -19,21 +19,29 @@ module f_environment
   logical :: f_debug=.false.
   !> integer flag specifying the debug level
   integer :: f_debug_level=0
-
+  !> flag to sontrol if we are in simulation mode
+  logical :: f_simulation_mode=.false.
 
   contains
 
     subroutine f_environment_acquire()
       implicit none
       !local variables
-      integer :: istat
+      integer :: istat,idum
       character(len=8) :: val
           
       !check if we are in the bigdebug mode or not
-      call get_environment_variable('FUTILE_DEBUG_MODE', val,status=istat)
+      call get_environment_variable('FUTILE_DEBUG_MODE',&
+           val,status=istat)
       !take the debug level
       if (istat==0) read(val,*)f_debug_level
       f_debug=f_debug_level /=0
+
+      call get_environment_variable('FUTILE_SIMULATION_MODE',&
+           val,status=istat)
+      if (istat==0) read(val,*)idum
+      f_simulation_mode=idum ==1
+
     end subroutine f_environment_acquire
 
 end module f_environment

@@ -2,7 +2,7 @@ program linalg_check
   use futile
   use wrapper_linalg
   !use wrapper_mpi
-  use random
+  use f_random
   implicit none
   logical :: symm
   integer :: norb,nvctr,ncplx,nthreads
@@ -38,7 +38,7 @@ program linalg_check
   ref_mat=f_malloc([ncplx,norb,norb],id='ref_mat')
   mat=f_malloc([ncplx,norb,norb],id='mat')
 
-  idum=11
+!!$  idum=11
 !!$  it=f_range([ncplx,nvctr,norb])
 !!$  do while(iterating(it,on=psi,stride=4))
 !!$     it%z(1)=real(builtin_rand(idum),f_double)

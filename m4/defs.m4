@@ -53,6 +53,7 @@ EOF
 
 AC_DEFUN([AX_SIMGRID_SHARED],
 [dnl Use the shared allocators from simgrid
+  AC_REQUIRE([AX_FC_RPATH])
   ax_have_simgrid_shared="no"
   AC_ARG_ENABLE(simgrid-shared, AS_HELP_STRING([--enable-simgrid-shared], [Use Simgrid shared allocators for explicitely marked buffers]),
                            ax_have_simgrid_shared=$enableval, ax_have_simgrid_shared="no")

@@ -1356,9 +1356,10 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
   integer, parameter :: FUNC_SHRINK_GAUSSIAN = 6
   integer, parameter :: FUNC_SINE = 7
   integer, parameter :: FUNC_ATAN = 8
+  integer, parameter :: FUNC_ERF = 9
 
   real(kind=8) :: r,r2,y,yp,ys,factor,g,h,g1,g2,h1,h2
-  real(kind=8) :: length,frequency,nu,sigma,agauss
+  real(kind=8) :: length,frequency,nu,sigma,agauss,derf
 
   !f1 = 0.0_dp
   select case(whichone)
@@ -1433,6 +1434,22 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      nu = length
      f=(datan(nu*x/length))**2
      f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2
+  case(FUNC_ERF)
+     !error function with a=sigma
+     factor=sqrt(2.d0/pi)/a
+     r=x
+     y=x/(sqrt(2.d0)*a)
+     if (abs(x)<=1.d-15) then
+        f=factor
+        f2=-sqrt(2.d0/pi)/(3.d0*a**3)
+     else
+        f=derf(y)/r
+        y=x*x
+        y=y/(2.d0*a**2)
+        g=dexp(-y)
+        h=1.d0/a**2+2.d0/x**2
+        f2=-factor*g*h+2.d0*f/x**2
+     end if
   case default
      !print *,"Unknow function:",whichone
      !stop
