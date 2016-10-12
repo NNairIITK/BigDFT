@@ -105,7 +105,8 @@ module overlap_point_to_point
       integer :: ngroupp !<number of groups treated by the present process
       integer :: ndim !< size of the data per each object (can be generalized to an array)
       integer :: mpi_comm !<handle of the communicator
-      integer :: gpudirect !<are we in a GPUDirect scenario? (cuda psolver + cuda-aware MPI)
+      integer :: gpudirect !<are we in a GPUDirect scenario? (cuda psolver + cuda-aware MPI) (should be removed from here, rather go in f_buffers)\
+      integer :: tag_offset !<offset for the tags in the communications
       integer :: ncouples !<total number of couples considered
       !>stores the requests for the data
       integer, dimension(:), pointer :: requests_data
@@ -195,6 +196,7 @@ module overlap_point_to_point
         OP2P%ndim=0
         OP2P%mpi_comm=mpicomm_null() !<handle of the communicator
         OP2P%gpudirect=0
+        OP2P%tag_offset=0
         OP2P%ncouples=0
         !then nullifications
         nullify(OP2P%requests_data)
@@ -377,7 +379,7 @@ module overlap_point_to_point
 
      end subroutine cuda_estimate_memory_needs_gpudirect
 
-     subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric,nearest_neighbor)
+     subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric,nearest_neighbor,tag_offset)
        use dynamic_memory
        use wrapper_MPI
        use yaml_strings
@@ -388,6 +390,7 @@ module overlap_point_to_point
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        type(OP2P_data), intent(out) :: OP2P
        logical, intent(in), optional :: nearest_neighbor
+       integer, intent(in), optional :: tag_offset
 
        !local variables
        logical :: nn
@@ -399,6 +402,8 @@ module overlap_point_to_point
 
        nn=.false.
        if (present(nearest_neighbor)) nn=nearest_neighbor
+
+       if (present(tag_offset)) OP2P%tag_offset=tag_offset
 
        OP2P%ngroup=ngroup
        OP2P%ndim=ndim
@@ -689,6 +694,24 @@ module overlap_point_to_point
      end subroutine release_OP2P_iterator
 
 
+     !> define tag according to the strategy
+     !pure 
+     function OP2P_tag(OP2P,iproc,back) result(tag)
+       use wrapper_MPI, only: mpisize
+       implicit none
+       type(OP2P_data), intent(in) :: OP2P 
+       integer, intent(in) :: iproc
+       logical, intent(in), optional :: back
+       integer :: tag
+
+       tag=iproc
+       if (present(back)) then
+          if (back) tag=tag+mpisize(OP2P%mpi_comm)
+       end if
+       tag=tag+OP2P%tag_offset
+       
+     end function OP2P_tag
+
      !>get the rank to which we have to send the data
      !pure 
      function get_send_rank(igroup,OP2P)
@@ -832,7 +855,7 @@ module overlap_point_to_point
                   OP2P%ndatas(DATA_,dest,igr)+count
              if(OP2P%gpudirect/=1)then
                 call mpisend(tmp(1),count,&
-                     dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
+                     dest=dest,tag=OP2P_tag(OP2P,iproc),comm=OP2P%mpi_comm,&
                      request=OP2P%requests_data(OP2P%ndata_comms),&
                      verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P
 !!$               call mpisend(phi%data(1+jshift),count,&
@@ -841,7 +864,7 @@ module overlap_point_to_point
 !!$                  verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
              else
                call mpisend(phi%data_GPU,count,&
-                  dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
+                  dest=dest,tag=OP2P_tag(OP2P,iproc),comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate,&
                   type=MPI_DOUBLE_PRECISION,offset=jshift) ! dest==OP2P%iproc_dump
@@ -857,12 +880,12 @@ module overlap_point_to_point
                   OP2P%ndatas(DATA_,iproc,igr)-count
              if(OP2P%gpudirect/=1)then
                call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr(1,1),count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
-                  source=source,tag=source,comm=OP2P%mpi_comm,&
+                  source=source,tag=OP2P_tag(OP2P,source),comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate) ! source == OP2P%iproc_dump
             else
                call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr_gpu,count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
-                  source=source,tag=source,comm=OP2P%mpi_comm,&
+                  source=source,tag=OP2P_tag(OP2P,source),comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate,&
                   type=MPI_DOUBLE_PRECISION) ! source == OP2P%iproc_dump
@@ -885,11 +908,11 @@ module overlap_point_to_point
 
        !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
        !local variables
-       integer :: igroup,dest,source,count,igr,iobj_local,nproc,jshift
+       integer :: igroup,dest,source,count,igr,iobj_local,jshift
 
 
        norbp = phi%nobj
-       nproc=mpisize(OP2P%mpi_comm)
+       !nproc=mpisize(OP2P%mpi_comm)
        if (OP2P%nres_comms > 0) then
           !verify that the messages have been passed
           call mpiwaitall(OP2P%nres_comms,OP2P%requests_res,&
@@ -938,7 +961,7 @@ module overlap_point_to_point
                   dest=OP2P%resw(igroup,OP2P%isend_res)%ptr)
                call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
-                  tag=iproc+nproc,comm=OP2P%mpi_comm,&
+                  tag=OP2P_tag(OP2P,iproc,back=.true.),comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
               else
                call copy_gpu_data(OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
@@ -946,7 +969,7 @@ module overlap_point_to_point
                call synchronize()
                call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
-                  tag=iproc+nproc,comm=OP2P%mpi_comm,&
+                  tag=OP2P_tag(OP2P,iproc,back=.true.),comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
                   type=MPI_DOUBLE_PRECISION)
               end if
@@ -962,12 +985,12 @@ module overlap_point_to_point
              count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
              if(OP2P%gpudirect/=1)then
                call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&
-                  source=source,tag=source+nproc,&
+                  source=source,tag=OP2P_tag(OP2P,source,back=.true.),&
                   comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
              else
                call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,count,&
-                  source=source,tag=source+nproc,&
+                  source=source,tag=OP2P_tag(OP2P,source,back=.true.),&
                   comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
                   type=MPI_DOUBLE_PRECISION)
@@ -1174,36 +1197,43 @@ module overlap_point_to_point
 
 
      !> Unitary test for the Overlap point-to-point.
-     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
+     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor,assert)
        use yaml_output, only: yaml_map
        use yaml_strings
        use dictionaries, only: f_err_throw
+       use f_utils
        implicit none
        !Arguments
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
        logical, intent(inout) :: symmetric
        integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim !< MPI data
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
-       logical, intent(in), optional :: nearest_neighbor
+       logical, intent(in), optional :: nearest_neighbor,assert
        !local variables
+       logical :: asst
        integer :: norbp
        real(wp) :: maxdiff
        type(OP2P_data) :: OP2P
 
+       asst=.false.
+       if (present(assert)) asst=assert
        !first initialize the OP2P data
        call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,0,symmetric,nearest_neighbor)
 
-       if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) then
+       if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff,asst)) then
           if (iproc==0) call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')
        end if
-
-       if (iproc==0)  call yaml_map('OP2P unitary test error',maxdiff)
+       if (asst) then
+          call f_assert(maxdiff,id='OP2P unitary test',tol=1.e-10_wp)
+       else if (iproc==0)  then
+          call yaml_map('OP2P unitary test error',maxdiff)
+       end if
        call free_OP2P_data(OP2P)
      end subroutine OP2P_unitary_test
 
      !> Test the coherence of the OP2P scheme within the chosen repartition.
      !! this subroutine might be useful to detect if some problem exists in a particular run.
-     function OP2P_test(iproc,nproc,OP2P,maxdiff) result(passed)
+     function OP2P_test(iproc,nproc,OP2P,maxdiff,quiet) result(passed)
        use yaml_output, only: yaml_comment
        use yaml_strings
        use wrapper_MPI
@@ -1211,6 +1241,7 @@ module overlap_point_to_point
        use f_utils, only: f_assert
        implicit none
        !Arguments
+       logical, intent(in) :: quiet
        integer, intent(in) :: iproc,nproc
        real(wp), intent(out) :: maxdiff
        type(OP2P_data), intent(inout) :: OP2P
@@ -1247,7 +1278,7 @@ module overlap_point_to_point
                iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
                OP2P%ndim,iter%phi_i,iter%phi_j,etot)
 
-          if (iproc==0) then
+          if (iproc==0 .and. .not. quiet) then
              call OP2P_info(iter,OP2P,prc,tel,trm)
              call yaml_comment('OP2P Simulation: '+prc**'(i3.3)'+'%; Time (s): Elapsed='+tel**'(1pg12.2)'&
                   +', Estimated Remaining='+trm**'(1pg12.2)')
