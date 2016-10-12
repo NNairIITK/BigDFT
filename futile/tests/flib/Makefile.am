@@ -13,7 +13,7 @@ check_PROGRAMS += test_plugin
 noinst_LIBRARIES = libpong.a
 endif
 
-AM_FCFLAGS = -I../../flib -I../../src
+AM_FCFLAGS = -I../../flib -I../../src -I../../wrappers
 AM_LDFLAGS = -L$(top_builddir)/src
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
