@@ -11,11 +11,16 @@ program OP2P_check
   use overlap_point_to_point
   use wrapper_MPI
   implicit none
-  logical :: symmetric,nearest_neighbor
-  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj
+  logical :: symmetric,nearest_neighbor,symfalse
+  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj,nij_loc,nij_glob,i,j
+  integer :: iorb_glb,jorb_glb
   integer, dimension(:), allocatable :: nobj,nobj_p
   integer, dimension(:,:), allocatable :: nobj_par
   type(dictionary), pointer :: options
+  type(OP2P_data) :: OP2P_outer,OP2P_inner
+  type(OP2P_iterator) :: iter_outer,iter_inner
+  type(f_progress_bar) :: bar
+  real(f_double), dimension(:,:), allocatable :: data,res,rho_i_data,v_i_data,k_ij,v_i_data_res
 
   call f_lib_initialize()
 
@@ -90,7 +95,109 @@ program OP2P_check
 
   call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
 
+ 
+  nij_glob=norb*norb !too much for the moment
+  nij_loc=norbp*maxval(nobj_par)
+
+  !fill now the nobj_p array for the communication of the couples
+  nobj_p=f_malloc(0.to.nproc-1,id='nobj_p')
+  nobj_p=nij_loc
+
+  !let us now identify a template for the calculation of the coupling matrix
+  k_ij=f_malloc0([nij_glob,nij_glob],id='kij')
+
+  !again initialize the data, use no res for the moment
+  data=f_malloc([ndim,norbp],id='data')
+  res=f_malloc0([ndim,norbp],id='res')
+
+  !here we should put the max (so for the moment we assume norbp*nproc=norb)
+  rho_i_data=f_malloc([ndim,nij_loc],id='rho_i_data')
+  V_i_data=f_malloc([ndim+1,nij_loc],id='V_i_data')
+  V_i_data_res=f_malloc([ndim+1,nij_loc],id='V_i_data_res')
+    
+  
+  data=1.0_f_double
+  symfalse=.false.
+
+  !first initialize the OP2P data
+  call initialize_OP2P_data(OP2P_outer,mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,0,symmetric,nearest_neighbor)
+
+  !let us initialize two different OP2P objects, for the communication
+  call set_OP2P_iterator(iproc,OP2P_outer,iter_outer,norbp,data,res)
+
+  bar=f_progress_bar_new(OP2P_outer%ncouples)
+  OP2P_outer_loop: do
+     call OP2P_communication_step(iproc,OP2P_outer,iter_outer)
+     if (iter_outer%event == OP2P_EXIT) exit
+     !otherwise calculate
+     call prepare_rho_and_v(ndim,norbp,norb,iter_outer%isloc_i,iter_outer%isloc_j,&
+          iter_outer%nloc_i,iter_outer%nloc_j,iter_outer%phi_i,iter_outer%phi_j,&
+          nij_loc,nij_glob,&
+          rho_I_data,v_i_data)
+
+     jorb_glb=iter_outer%phi_j%id_glb(iter_outer%isloc_j)
+     iorb_glb=iter_outer%phi_i%id_glb(iter_outer%isloc_i)
+
+     call OP2P_unitary_test(mpiworld(),mpirank(),nproc,1,ndim+1,nobj_p,symfalse,nearest_neighbor,assert=.true.)
+       
+          !first initialize the OP2P data
+     call initialize_OP2P_data(OP2P_inner,mpiworld(),mpirank(),nproc,1,ndim+1,nobj_p,0,symfalse,nearest_neighbor)
+
+     !let us initialize two different OP2P objects, for the communication
+     call set_OP2P_iterator(iproc,OP2P_inner,iter_inner,nij_loc,v_i_data,v_i_data_res)
+
+     !call set_OP2P_iterator(iproc,OP2P_metadata,iter_inner,nij_loc,v_i_data,v_i_data_res)
+
+     OP2P_inner_loop: do
+        !call OP2P_communication_step(iproc,OP2P_metadata,iter_metadata)
+        call OP2P_communication_step(iproc,OP2P_inner,iter_inner)
+        print *,'iter_inner',iter_inner%istep,iter_outer%istep,iproc
+        if (iter_inner%event == OP2P_EXIT) exit
+        call fill_coupling_matrix(ndim,iter_inner%isloc_i,iter_inner%isloc_j,&
+             iter_inner%nloc_i,iter_inner%nloc_j,&
+             iter_inner%phi_i,iter_inner%phi_j,&
+             nij_loc,nij_glob,iorb_glb-1,jorb_glb-1,norb,&
+             rho_I_data,k_ij)
+        
+     end do OP2P_inner_loop
+     call free_OP2P_data(OP2P_inner)
+     if (iproc==0) then
+        call dump_progress_bar(bar,iter_outer%ncalls) !tmp
+     end if
+  end do OP2P_outer_loop
+
+  call mpiallred(k_ij,op=MPI_SUM)
+
+!!$  do i=1,nij_glob
+!!$     do j=i+1,nij_glob
+!!$        !as we do not know which is zero and which is not
+!!$        if (k_ij(i,j) ==0.0_f_double) then
+!!$           k_ij(i,j)=k_ij(j,i)
+!!$        else if (k_ij(j,i) == 0.0_f_double) then
+!!$           k_ij(j,i)=k_ij(i,j)
+!!$        end if
+!!$     end do
+!!$  end do
+
+  !printout the coupling matrix
+  !if (iproc==0)call yaml_map('K_IJ',[(k_ij(I,I), i=1,nij_glob)])
+
+  if (iproc==0) then
+     call yaml_map('K_IJ',k_ij)
+     call yaml_map('Total sum',sum(k_ij))
+  end if
+
+  call free_OP2P_data(OP2P_outer)
+
+  call f_free(data)
+  call f_free(res)
+  call f_free(rho_i_data)
+  call f_free(v_i_data)
+  call f_free(v_i_data_res)
+  call f_free(k_ij)
   call f_free(nobj_par)
+  call f_free(nobj_p)
+
   call mpifinalize()
   call f_lib_finalize()
 
@@ -156,3 +263,96 @@ subroutine OP2P_check_options(parser)
        'Boolean, adjust the communication pattern of the operation.'))
 
 end subroutine OP2P_Check_options
+
+
+subroutine prepare_rho_and_v(ndim,norbp,norb,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
+     ncouples_local,ncouples_global,&
+     rho_I_data,v_i_data)
+  use futile
+  use overlap_point_to_point
+  implicit none
+  integer, intent(in) :: ndim,isloc_i,isloc_j,nloc_i,nloc_j,ncouples_global,ncouples_local,norbp,norb
+  real(f_double), dimension(ndim,ncouples_local),intent(inout) :: rho_I_data
+  real(f_double), dimension(ndim+1,ncouples_local),intent(inout) :: v_i_data
+  type(local_data), intent(inout) :: phi_i,phi_j
+  !local variables
+  real(f_double), parameter :: factor=5.0_f_double
+  integer :: iorb,jorb,i,ishift,jshift,jorb_glb,I_Loc,iorb_glb
+  !fill the coupling matrix
+  do iorb=isloc_i,nloc_i+isloc_i-1
+     do jorb=isloc_j,nloc_j+isloc_j-1
+        I_loc=iorb+norbp*(jorb-1)
+        !calculate rho_i
+        ishift=phi_i%displ(iorb)
+        jshift=phi_j%displ(jorb)
+        do i=1,ndim
+           rho_i_data(i,I_loc)=phi_i%data(i+ishift)*phi_j%data(i+jshift)
+        end do
+
+        !calculate V_i (siimulate the application of the poisson solver)
+        do i=1,ndim
+           v_i_data(i,I_loc)=factor*rho_i_data(i,I_loc)
+        end do
+
+        jorb_glb=phi_j%id_glb(jorb)
+        iorb_glb=phi_i%id_glb(iorb)
+
+        !add at the end of the v_i_data the information about the id of the couple
+        v_i_data(ndim+1,I_loc)=real(iorb_glb+(jorb_glb-1)*norb,f_double)
+        print *,'metadata',iorb_glb+(jorb_glb-1)*norb
+     end do
+  end do
+end subroutine prepare_rho_and_v
+
+subroutine fill_coupling_matrix(ndim,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
+     ncouples_local,ncouples_global,iglob_shift,jglob_shift,norb,&
+     rho_I_data,k_ij)
+  use futile
+  use overlap_point_to_point
+  implicit none
+  integer, intent(in) :: ndim,isloc_i,isloc_j,nloc_i,nloc_j,ncouples_global,ncouples_local
+  integer, intent(in) :: iglob_shift,jglob_shift,norb
+  real(f_double), dimension(ndim,ncouples_local),intent(inout) :: rho_I_data
+  real(f_double), dimension(ncouples_global,ncouples_global), intent(inout) :: k_ij
+  type(local_data), intent(inout) :: phi_i,phi_j
+  integer :: ic,jc,i,ishift,jshift,jc_glb,ic_glb,iorbi,iorbj,jorbi,jorbj
+  real(f_double) :: coupl
+
+  do ic=isloc_i,nloc_i+isloc_i-1
+     do jc=isloc_j,nloc_j+isloc_j-1
+
+        jshift=phi_j%displ(jc)
+        ishift=phi_i%displ(ic)
+
+        !calculate the coupling matrix
+        call f_zero(coupl)
+        !here we only have the diagonal
+        do i=1,ndim
+           coupl=coupl+phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+1)+1)
+        end do
+
+!!$        jorbj=(jc-1)/ncouples_local+1
+!!$        iorbj=(jc-(jorbj-1)*ncouples_local)+iglob_shift
+!!$        jorbj=jorbj+jglob_shift
+!!$        
+!!$        jorbi=(ic-1)/ncouples_local+1
+!!$        iorbi=(ic-(jorbi-1)*ncouples_local)+iglob_shift
+!!$        jorbi=jorbi+jglob_shift
+!!$
+!!$        !aliasing
+!!$        jc_glb=iorbj+norb*(jorbj-1)!+phi_i%id_glb(ic)
+!!$        ic_glb=iorbi+norb*(jorbi-1)!+phi_i%id_glb(ic)
+
+        !retrieve address associated to the provided couple
+        jc_glb=int(phi_j%data(ndim+1+jshift))
+        ic_glb=int(phi_i%data(ndim+1+ishift))
+
+        !print *,'metadata_return',jc_glb,ic_glb,coupl
+
+        k_ij(ic_glb,jc_glb)=k_ij(ic_glb,jc_glb)+coupl
+       !k_ij(jc_glb,ic_glb)=k_ij(jc_glb,ic_glb)+coupl
+       
+        !k_ij(I_glob,I_glob)=coupl
+     end do
+  end do
+end subroutine fill_coupling_matrix

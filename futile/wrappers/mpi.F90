@@ -344,6 +344,25 @@ contains
   end subroutine mpi_environment_set
 
 
+  function mpimaxtag(comm)
+    implicit none
+    integer, intent(in), optional :: comm
+    integer(MPI_ADDRESS_KIND) :: mpimaxtag
+    !local variables
+    logical :: flag
+    integer :: comm_,ierr
+
+    if (present(comm)) then
+       comm_=comm
+    else
+       comm_=mpiworld()
+    end if
+
+    call MPI_COMM_GET_ATTR(comm_,MPI_TAG_UB,mpimaxtag,flag,ierr)
+   
+    !error check
+  end function mpimaxtag
+
 !!! PSolver n1-n2 plane mpi partitioning !!!
   !> This is exactly like mpi_environment_set but it always creates groups
   !! the routine above should be modified accordingly
@@ -2535,6 +2554,13 @@ contains
        tag_=tag
     else
        tag_=mpirank(mpi_comm)
+    end if
+
+    !we may here check that the tag is not prohibited
+    if (MPI_TAG_UB > 0) then
+       if (tag_ < 0 .or. tag_ > MPI_TAG_UB) &
+            call f_err_throw('Tag "'+tag_+'" is outside the allowed range',&
+            err_id=ERR_MPI_WRAPPERS)
     end if
 
     verb=.false.
