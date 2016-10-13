@@ -95,6 +95,7 @@ class DoS():
         e_max=-1.e100
         for dos in self.ens:
             ddos=np.ravel(dos)
+            if len(ddos)==0: continue
             e_min = min(e_min,np.min(ddos) - 0.05*(np.max(ddos) - np.min(ddos)))
             e_max = max(e_max,np.max(ddos) + 0.05*(np.max(ddos) - np.min(ddos)))
         return np.arange( e_min, e_max, (e_max-e_min)/npts )
