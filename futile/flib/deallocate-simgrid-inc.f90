@@ -23,7 +23,8 @@
         !the fortran pointer descriptor is never deallocated
         !I am forced to comment it out as iso_c_binding does not provide 
         !a good alternative. We should find a workaround
-        !call smpi_shared_free(c_loc(array))
+        call bindfree(iadd)
+        !call smpi_shared_free(c_loc(c_add))
 
         call f_purge_database(ilsize,kind(array),iadd)
 

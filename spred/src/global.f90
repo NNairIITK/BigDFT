@@ -15,7 +15,7 @@ program MINHOP
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
   use SPREDtypes
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   type(SPRED_inputs) :: spredinputs
@@ -172,7 +172,8 @@ program MINHOP
   idum=nrandoff
   do i=1,nrandoff
      call random_number(ts)
-     rtmp = builtin_rand(idum)
+     !rtmp = builtin_rand(idum)
+     call f_random_number(rtmp)
   enddo
   if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
@@ -1368,7 +1369,7 @@ END SUBROUTINE velnorm
 subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   implicit none
   integer, intent(in) :: nat
   integer, intent(inout) :: idum
@@ -1381,7 +1382,8 @@ subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator
-     tt=builtin_rand(idum)
+     !tt=builtin_rand(idum)
+     call f_random_number(tt,seed=idum)
      vxyz(i)=real(tt-.5,gp)*3.e-1_gp
      !if (bigdft_mpi%iproc==0) print *,i,idum,vxyz(i)
   end do

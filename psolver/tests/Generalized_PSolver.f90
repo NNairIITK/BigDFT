@@ -32,6 +32,7 @@ program GPS_3D
    logical, parameter :: PIstart = .false. !.true.
    logical, parameter :: CFgrid = .false. !.true.
    logical, parameter :: Fgrid = .false. !.true.
+   logical :: mPB ! Set the solver for the modified Poisson-Boltzmann equation.
 
    real(kind=8), parameter :: acell = 10.d0 !10.d0
    real(kind=8), parameter :: rad_cav = 1.7d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
@@ -103,6 +104,7 @@ program GPS_3D
    SetEps =options//'seteps'
    usegpu = options // 'accel'
    logyes= options // 'logfile'
+   mPB= options // 'mPBe'
    delta=0.3d0
    delta= options .get. 'deltacav'
    lin_PB = SetEps == 17
@@ -175,6 +177,8 @@ program GPS_3D
    pot_check =f_malloc([n01,n02,n03,nspden,n_check],id='pot_check')
    rxyz   =f_malloc([3,nat],id='rxyz')
    radii   =f_malloc([nat],id='radii')
+   !here ndimsf was not initialized!!!
+   ndimsf=[n01,n02,n03]
    rhopotf =f_malloc([ndimsf(1),ndimsf(2),ndimsf(3),nspden],id='rhopotf')
    densityf =f_malloc([ndimsf(1),ndimsf(2),ndimsf(3),nspden],id='densityf')
    
@@ -257,7 +261,7 @@ program GPS_3D
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
    call SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,&
-        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz,lin_PB)
+        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz,lin_PB,mPB)
 !------------------------------------------------------------------------
 
 !------------------------------------------------------------------------
@@ -295,7 +299,7 @@ program GPS_3D
 
    geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,lin_PB,multp)
+   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,mPB,multp)
 
   if (iproc==0) then
      call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
@@ -328,6 +332,7 @@ program GPS_3D
    if (trim(PSol) /= 'VAC') then
       call dict_set(dict_input//'environment'//'cavity','rigid')
       call dict_set(dict_input//'environment'//'gps_algorithm',PSol)
+      if (mPB) call dict_set(dict_input//'environment'//'pb_method','modified')
    end if
 
   !new method
@@ -371,6 +376,9 @@ program GPS_3D
   case(5)
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
           eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,.false.,CFgrid)
+  case(6)
+   call Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,&
+        potential,corr,oneosqrteps,multp)
   case(8)
        call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
             eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
@@ -573,6 +581,11 @@ subroutine PS_Check_options(parser)
        dict_new('Usage' .is. &
        'Boolean, set the logfile as log.yaml'))
 
+  call yaml_cl_parse_option(parser,'mPBe','No',&
+       'Modified Poisson-Boltzmann solver','p',&
+       dict_new('Usage' .is. &
+       'Boolean, set the solver for the Modified Poisson-Boltzmann equation'))
+
   call yaml_cl_parse_option(parser,'deltacav','None',&
        'Delta rigid cavity','d',&
        dict_new('Usage' .is. &
@@ -627,7 +640,7 @@ subroutine print_PB_function(n01,n02,n03,iproc,hx,hy,hz,nord,acell)
 end subroutine print_PB_function
 
 !> Calcultion of the Poisson-Boltzmann function.
-!! following the definitions given in J. J. López-García, J. Horno, C. Grosse Langmuir 27, 13970-13974 (2011).
+!! following the definitions given in J. J. Lopez-Garcia, J. Horno, C. Grosse Langmuir 27, 13970-13974 (2011).
 pure function PB_charge(x) result(ions_conc)
 
  use numerics, only: safe_exp
@@ -2214,6 +2227,353 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
 end subroutine Poisson_Boltzmann
 
+subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
+
+  use Poisson_Solver
+  use yaml_output
+  use f_utils
+  use dynamic_memory
+  implicit none
+  integer, intent(in) :: n01
+  integer, intent(in) :: n02
+  integer, intent(in) :: n03
+  integer, intent(in) :: nspden,iproc
+  real(kind=8), intent(in) :: hx,hy,hz
+  integer, intent(in) :: nord
+  real(kind=8), intent(in) :: acell,multp
+  type(coulomb_operator), intent(inout) :: pkernel
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
+  integer, intent(in) :: SetEps
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,corr3,oneosqrteps
+  real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+
+  real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps,r_PB,x_PB,x_check
+  !real(kind=8), dimension(n01,n02,n03,3) :: deps
+  real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
+  integer, parameter :: max_iter = 50
+  integer, parameter :: max_iter_PB = 150
+  real(kind=8), parameter :: max_ratioex = 1.0d10
+  real(kind=8), parameter :: max_ratioex_PB = 1.0d10
+  real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
+  integer :: i,ii,j,i1,i2,i3,isp,i_PB
+  real(kind=8), parameter :: error = 1.0d-13 !1.0d-13
+  real(kind=8), parameter :: eps0 = 78.36d0
+  real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
+  real(kind=8), parameter :: tauPB = 1.0d-13 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
+  real(kind=8), dimension(n01,n02,n03) ::pot_ion
+  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB,errorvar
+  real(kind=8) :: PB_charge
+
+  !allocate heap arrays
+  x=f_malloc([n01,n02,n03,nspden],id='x')
+  r=f_malloc([n01,n02,n03,nspden],id='r')
+  z=f_malloc([n01,n02,n03,nspden],id='z')
+  p=f_malloc([n01,n02,n03,nspden],id='p')
+  q=f_malloc([n01,n02,n03,nspden],id='q')
+  qold=f_malloc([n01,n02,n03,nspden],id='qold')
+  lv=f_malloc([n01,n02,n03,nspden],id='lv')
+  corr=f_malloc([n01,n02,n03,nspden],id='corr')
+  deps=f_malloc([n01,n02,n03,3],id='deps')
+  ddeps=f_malloc([n01,n02,n03],id='ddeps')
+  de2=f_malloc([n01,n02,n03],id='de2')
+  r_PB=f_malloc([n01,n02,n03,nspden],id='r_PB')
+  x_PB=f_malloc([n01,n02,n03,nspden],id='x_PB')
+  x_check=f_malloc([n01,n02,n03,nspden],id='x_check')
+
+  pi = 4.d0*datan(1.d0)   
+  rpoints=product(real([n01,n02,n03],kind=8))
+
+  open(unit=18,file='PBimpro_PCG_normr.dat',status='unknown')
+  open(unit=38,file='PCGimpro_accuracy.dat',status='unknown')
+
+  if (iproc ==0) then
+   write(18,'(1x,a)')'iter_PB normrPB rhores2'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+   call yaml_map('rpoints',rpoints)
+   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+  end if
+
+  switch=0.0d0
+  if (SetEps.eq.6) then
+   switch=1.0d0
+  end if
+
+!--------------------------------------------------------------------------------------------
+! Set the correction vector for the Generalized Laplace operator
+
+!  call fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,eps,de2,ddeps,nord,acell)
+
+!  call fssnord3DmatNabla3varde2(n01,n02,n03,nspden,hx,hy,hx,eps,deps,de2,nord,acell)
+!  call fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,deps,ddeps,nord,acell)
+
+!  isp=1
+!  do i3=1,n03
+!   do i2=1,n02
+!    do i1=1,n01
+!     corr(i1,i2,i3,isp)=(-0.125d0/pi)*(0.5d0*de2(i1,i2,i3)/eps(i1,i2,i3)-ddeps(i1,i2,i3))
+!    end do
+!   end do
+!  end do
+!--------------------------------------------------------------------------------------------
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting a Poisson-Bolzmann run'
+  end if
+  
+  call f_zero(x)
+  call f_zero(r_PB)
+  call f_zero(x_PB)
+  call f_memcpy(src=b,dest=r)
+
+  beta=1.d0
+  ratio=1.d0
+
+  do i_PB=1,max_iter_PB ! Poisson-Boltzmann loop.
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'Starting Poisson-Boltzmann iteration ',i_PB
+   end if
+
+
+  if (iproc==0) then
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+  end if
+
+  normb=0.d0
+  isp=1
+  do i3=1,n03
+   do i2=1,n02
+    do i1=1,n01
+     normb=normb+b(i1,i2,i3,isp)*b(i1,i2,i3,isp)
+     !!lv(i1,i2,i3,isp) = b(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+    end do
+   end do
+  end do
+!!  normb=dsqrt(normb)
+  normb=sqrt(normb/rpoints)
+
+!  call f_memcpy(src=b,dest=r)
+!  call f_zero(x)
+  call f_zero(q)
+  call f_zero(p)
+  beta=1.d0
+  ratio=1.d0
+  normr=normb
+
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+           !lv(i1,i2,i3,isp) = pkernel%oneoeps(i1,i2,i3)*r(i1,i2,i3,isp)
+           lv(i1,i2,i3,isp) = oneosqrteps(i1,i2,i3)*r(i1,i2,i3,isp)
+        end do
+     end do
+  end do
+
+  if (i_PB.eq.1) then
+   errorvar=1.0d-6
+   errorvar=error
+   errorvar=max(error,errorvar)
+  else if (i_PB.eq.2) then
+   errorvar=1.0d-8
+   errorvar=error
+   errorvar=max(error,errorvar)
+  else
+   errorvar=error
+  end if
+  if (iproc ==0) then
+   call yaml_map('errorvar',errorvar)
+  end if
+
+  do i=1,max_iter
+
+   if (normr.lt.errorvar) exit
+   if (normr.gt.max_ratioex) exit
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'Starting PCG iteration ',i
+   end if
+
+!  Apply the Preconditioner
+
+   if (iproc ==0) then
+    call yaml_sequence(advance='no')
+   end if
+   call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
+
+   beta0 = beta
+   beta=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+        !z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+        z(i1,i2,i3,isp) = lv(i1,i2,i3,isp)*oneosqrteps(i1,i2,i3)
+        beta=beta+r(i1,i2,i3,isp)*z(i1,i2,i3,isp)
+! Apply the Generalized Laplace operator nabla(eps*nabla) to the potential correction
+      !q(i1,i2,i3,isp)=r(i1,i2,i3,isp)+z(i1,i2,i3,isp)*corr(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+
+   k=0.d0
+   isp=1
+
+  do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+        zeta=z(i1,i2,i3,isp)
+        !epsc=corr(i1,i2,i3,isp)
+        !epsc=pkernel%corr(i1,i2,i3)
+        epsc=corr3(i1,i2,i3)
+        pval=p(i1,i2,i3,isp)
+        qval=q(i1,i2,i3,isp)
+        rval=r(i1,i2,i3,isp)
+        pval = zeta+(beta/beta0)*pval
+        pbval=0.d0
+!        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+!                                                                           ! for the Poisson-Boltzmann solution.
+!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
+!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
+!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*zeta)
+!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta
+!        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(zeta**2)
+        qval = zeta*epsc+rval+pbval+(beta/beta0)*qval
+        k = k + pval*qval
+        p(i1,i2,i3,isp) = pval
+        q(i1,i2,i3,isp) = qval
+        !p(i1,i2,i3,isp) = z(i1,i2,i3,isp)+(beta/beta0)*p(i1,i2,i3,isp)
+        !q(i1,i2,i3,isp) = q(i1,i2,i3,isp)+(beta/beta0)*qold(i1,i2,i3,isp)
+        !qold(i1,i2,i3,isp)=q(i1,i2,i3,isp)
+        !k=k+p(i1,i2,i3,isp)*q(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+   alpha = beta/k
+   !write(*,*)alpha
+
+   normr=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
+      r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
+      normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
+      !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
+      lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*oneosqrteps(i1,i2,i3)
+      !x_check(i1,i2,i3,isp) = x_PB(i1,i2,i3,isp) + x(i1,i2,i3,isp)
+!      x_check(i1,i2,i3,isp) = x(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+!   normr=dsqrt(normr)
+   normr=sqrt(normr/rpoints)
+
+   ratio=normr/normb
+   if (iproc ==0) then
+!   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
+   !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
+   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
+!   call writeroutine(n01,n02,n03,nspden,r,i)
+   call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
+   end if
+
+  end do ! PCG loop
+
+   rhores2=0.d0
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      zeta=x(i1,i2,i3,isp)
+      res=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+                                                                      ! for the Poisson-Boltzmann equation.
+      rho=r_PB(i1,i2,i3,isp)
+      res=res-rho
+      res=eta*res
+      rhores2=rhores2+res*res
+      r_PB(i1,i2,i3,isp)=res+rho
+!      x_PB(i1,i2,i3,isp) = x_PB(i1,i2,i3,isp) + x(i1,i2,i3,isp)
+!      r(i1,i2,i3,isp) = b(i1,i2,i3,isp) + r_PB(i1,i2,i3,isp)
+      r(i1,i2,i3,isp) = r(i1,i2,i3,isp) + r_PB(i1,i2,i3,isp) - rho
+     end do
+    end do
+   end do
+
+  normrPB=sqrt(rhores2/rpoints)
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+   end if
+
+  if (iproc ==0) then
+   call yaml_map('iter PB',i_PB)
+   call yaml_map('normrPB',normrPB)
+   call yaml_map('rhores2',rhores2)
+   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+   call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
+  end if
+
+   if (normrPB.lt.tauPB) exit
+   if (normrPB.gt.max_ratioex_PB) exit
+
+ end do ! Poisson-Boltzmann loop
+
+   isp=1
+   do i3=1,n03
+    do i2=1,n02
+     do i1=1,n01
+      b(i1,i2,i3,isp) = x(i1,i2,i3,isp)
+     end do
+    end do
+   end do
+
+  call yaml_sequence_close()
+   !write(*,*)
+   !write(*,'(1x,a,1x,I8)')'PCG iterations =',i-1
+   !write(*,'(1x,a,1x,e14.7)')'PCG error =',ratio
+   !write(*,*)
+   !write(*,*)'Max abs difference between analytic potential and the computed one'
+!  if (iproc==0) then
+!   call writeroutinePot(n01,n02,n03,nspden,b,i-1,potential)
+!   write(*,*)
+!  end if
+
+  close(unit=18)
+  close(unit=38)
+
+  if (iproc==0) then
+   write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
+   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+  end if
+
+  call f_free(x)
+  call f_free(r)
+  call f_free(z)
+  call f_free(p)
+  call f_free(q)
+  call f_free(qold)
+  call f_free(lv)
+  call f_free(corr)
+  call f_free(deps)
+  call f_free(ddeps)
+  call f_free(de2)
+  call f_free(r_PB)
+  call f_free(x_PB)
+  call f_free(x_check)
+
+end subroutine Poisson_Boltzmann_improved2
 subroutine Poisson_Boltzmann_good(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,&
   density,oneoeps,dlogeps,corr3,oneosqrteps,multp,geocode)
 
@@ -4333,7 +4693,7 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 end subroutine fssnord3DmatDiv3var
 
 subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,&
-     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyzreal,lin_PB)
+     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyzreal,lin_PB,mPB)
   use dynamic_memory
   use yaml_output
   use f_utils
@@ -4357,6 +4717,7 @@ subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigm
   real(kind=8), intent(out) :: offset,einit
   real(kind=8), intent(in) :: multp
   logical, intent(in) :: lin_PB
+  logical, intent(in) :: mPB
   real(kind=8), dimension(n01,n02,n03) :: potential1
   real(kind=8), dimension(3,natreal), intent(inout) :: rxyzreal
   real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
@@ -4857,6 +5218,7 @@ subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigm
         end do
      else
         switch=0.0d0
+        if (mPB) switch=1.0d0
         if (lin_PB) switch=1.0d0
 
         sumd=0.d0

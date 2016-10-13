@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-10-05 11:16:46.315
+ Timestamp of this run                 : 2016-10-05 12:56:01.116
  Root process Hostname                 : psi02.cluster.bc2.ch
  Number of MPI tasks                   :  4
  OpenMP parallelization                :  Yes
@@ -50,7 +50,7 @@
      FCFLAGS                           : -O2 -openmp -I/include
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
- radical                               : H2OfrigidPCG
+ radical                               : H2OfsccsPI
  outdir                                : ./
  logfile                               : Yes
  run_from_files                        : Yes
@@ -92,19 +92,17 @@
     #                                              itermax
  psolver:
    environment:
-     cavity                            : rigid #  Type of the cavity
+     cavity                            : sccs #   Type of the cavity
      itermax                           : 5 #      Maximum number of iterations of the GPS outer loop
-     radii_set                         : UFF #    Set of vdW radii used by defauly in the setter function
-     atomic_radii:
-       O                               : 1.60
+     gps_algorithm                     : PI #     Algorithm for the Generalised Poisson Equation
      epsilon                           : 78.36 #  Dielectric constant of the exterior region
-     delta                             : 2.0 #    Amplitude of the transition region in the rigid cavity (AU)
+     edensmaxmin: [1.0e-4, 5.0e-3] #              Extremum values of the charge density, for the definition of the transition 
+      #                                            region
      cavitation                        : Yes #    Triggers the evaluation of the extra cavitation terms
-     fact_rigid                        : 1.12 #   Multiplying factor for the whole rigid cavity
      gammaS                            : 72.0 #   Cavitation term, surface tension of the solvent [dyn/cm]
      alphaS                            : -22.0 #  Proportionality of repulsion free energy in term of the surface integral [dyn/cm]
      betaV                             : -0.35 #  Proportionality of dispersion free energy in term of volume integral [GPa]
-     gps_algorithm                     : PCG #    Algorithm for the Generalised Poisson Equation
+     pi_eta                            : 0.6 #    Mixing parameter of the PI algorithm
      input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      minres                            : 1.e-8 #  Convergence threshold of the loop
@@ -369,7 +367,6 @@
    - O: [8.1429903446128495E-023, 0.1228808011212545, -2.6272458256877808E-008]
    - H: [6.0858797985313103E-023, -0.4719903979445226, 0.7651344556227357]
    - H: [5.6367513765930241E-023, -0.4719903773917626, -0.7651344293502773]
-     rcav                              : 1.0
    properties:
      format                            : xyz
      source                            : posinp
@@ -383,7 +380,7 @@
    Boundary Conditions                 : Free #Code: F
    Number of Symmetries                :  0
    Space group                         : disabled
-  #----------------------- Geometry optimization Input Parameters (file: H2OfrigidPCG.geopt)
+  #------------------------- Geometry optimization Input Parameters (file: H2OfsccsPI.geopt)
  Geometry Optimization Parameters:
    Maximum steps                       :  1
    Algorithm                           : none
@@ -495,19 +492,17 @@
  Poisson Kernel Initialization:
     #---------------------------------------------------------------------- Input parameters
    environment:
-     cavity                            : rigid #  Type of the cavity
+     cavity                            : sccs #   Type of the cavity
      itermax                           : 5 #      Maximum number of iterations of the GPS outer loop
-     radii_set                         : UFF #    Set of vdW radii used by defauly in the setter function
-     atomic_radii:
-       O                               : 1.60
+     gps_algorithm                     : PI #     Algorithm for the Generalised Poisson Equation
      epsilon                           : 78.36 #  Dielectric constant of the exterior region
-     delta                             : 2.0 #    Amplitude of the transition region in the rigid cavity (AU)
+     edensmaxmin: [1.0e-4, 5.0e-3] #              Extremum values of the charge density, for the definition of the transition 
+      #                                            region
      cavitation                        : Yes #    Triggers the evaluation of the extra cavitation terms
-     fact_rigid                        : 1.12 #   Multiplying factor for the whole rigid cavity
      gammaS                            : 72.0 #   Cavitation term, surface tension of the solvent [dyn/cm]
      alphaS                            : -22.0 #  Proportionality of repulsion free energy in term of the surface integral [dyn/cm]
      betaV                             : -0.35 #  Proportionality of dispersion free energy in term of volume integral [GPa]
-     gps_algorithm                     : PCG #    Algorithm for the Generalised Poisson Equation
+     pi_eta                            : 0.6 #    Mixing parameter of the PI algorithm
      input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
      minres                            : 1.e-8 #  Convergence threshold of the loop
@@ -524,9 +519,8 @@
      output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  4
    OpenMP threads per MPI task         :  1
-   Iterative method for Generalised Equation: PCG
-   Cavity determination                : rigid
- Covalent radii                        :  [  1.6,  1.443,  1.0 ]
+   Iterative method for Generalised Equation: PI
+   Cavity determination                : sccs
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  3122
@@ -600,26 +594,17 @@
      Box                               :  [  147,  147,  161 ]
      MPI tasks                         :  4
      Summing up ionic density          :  Yes
-     Integral of the density in the nonvacuum region:  0.1628252169123424
-     Embedded PSolver, Preconditioned Conjugate Gradient Method:
-     - Iteration quality: { #___________________________________________________ Iteration1
- iter:  1, res:  4.38510091413036197E-03, ratio:  1.11693402685734869E-01, 
-         alpha:  1.00000000000000000E+00, beta:  1.00000000000000000E+00}
-     - Iteration quality: { #___________________________________________________ Iteration2
- iter:  2, res:  6.26814760402573650E-04, ratio:  1.59656698475071322E-02, 
-         alpha:  6.21029220493083262E-02, beta:  3.28928056394637736E+02}
-     - Iteration quality: { #___________________________________________________ Iteration3
- iter:  3, res:  2.18710204553112023E-04, ratio:  5.57079242347943964E-03, 
-         alpha:  1.61015334451684700E-01, beta:  2.93696877256677258E+00}
-     - Iteration quality: { #___________________________________________________ Iteration4
- iter:  4, res:  1.17757451715406119E-04, ratio:  2.99941340718341007E-03, 
-         alpha:  3.74537475725455926E-01, beta:  6.51552115817209121E-02}
-     - Iteration quality: { #___________________________________________________ Iteration5
- iter:  5, res:  4.79660618269732230E-05, ratio:  1.22174900049055210E-03, 
-         alpha:  4.16121396095922025E-01, beta:  1.34474961955944727E-02}
-   Energies: {Ekin:  1.32300931927E+01, Epot: -1.87057314992E+01, Enl:  1.40413248096E+00, 
-                EH: -2.77339515362E+01,  EXC: -5.22555224869E+00, EvXC: -5.59447172826E+00}
-   EKS                                 : -1.76993060806947753E+01
+     Integral of the density in the nonvacuum region:  9.0549631551990001E-002
+     Embedded PSolver Polarization Iteration Method:
+     - Iteration quality: {iter:  1, res:  1.29783654985211075E-04}
+     - Iteration quality: {iter:  2, res:  1.50245723983086991E-04}
+     - Iteration quality: {iter:  3, res:  6.33037722939518664E-05}
+     - Iteration quality: {iter:  4, res:  1.62515325056971410E-05}
+     - Iteration quality: {iter:  5, res:  9.07564715105833645E-06}
+     - Iteration quality: {iter:  6, res:  4.68881608146637052E-06}
+   Energies: {Ekin:  1.32300931927E+01, Epot: -1.87566868763E+01, Enl:  1.40413248096E+00, 
+                EH: -2.77892152905E+01,  EXC: -5.22555224869E+00, EvXC: -5.59447172826E+00}
+   EKS                                 : -1.76949977035460435E+01
    Accuracy estimation for this run:
      Energy                            :  1.86E-03
      Convergence Criterion             :  4.65E-04
@@ -629,102 +614,71 @@
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
        -  { #---------------------------------------------------------------------- iter: 1
- GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999145193, 
- Electronic charge changed by rho compression:  6.961187182242E-11, 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999144800, 
+ Electronic charge changed by rho compression:  4.629905347997E-10, 
  Poisson Solver: {BC: Free, Box:  [  147,  147,  161 ], MPI tasks:  4, 
        Summing up ionic density:  Yes, 
- Integral of the density in the nonvacuum region:  0.1714695462386013, 
- Embedded PSolver, Preconditioned Conjugate Gradient Method: [
-Iteration quality: { #_________________________________________________________ Iteration1
- iter:  1, res:  6.87749395229036217E-03, ratio:  1.75864052486235073E-01, 
-         alpha:  1.00000000000000000E+00, beta:  1.00000000000000000E+00}, 
-Iteration quality: { #_________________________________________________________ Iteration2
- iter:  2, res:  1.08580439904383281E-03, ratio:  2.77650497620048828E-02, 
-         alpha:  1.72071844864410878E-01, beta:  3.16280410825706667E+02}, 
-Iteration quality: { #_________________________________________________________ Iteration3
- iter:  3, res:  6.67019213114743224E-04, ratio:  1.70563148027884880E-02, 
-         alpha:  8.09228605246215399E-02, beta:  1.07065528587186449E+01}, 
-Iteration quality: { #_________________________________________________________ Iteration4
- iter:  4, res:  2.72592074908422342E-04, ratio:  6.97043825870056599E-03, 
-         alpha:  1.94712152685737855E-01, beta:  2.21091446788659951E+00}, 
-Iteration quality: { #_________________________________________________________ Iteration5
- iter:  5, res:  8.34713630749120823E-05, ratio:  2.13444203349903022E-03, 
-         alpha:  5.92688831806331806E-01, beta:  7.57021692050872386E-02}]}, 
-                            Hamiltonian Applied:  Yes, Orthoconstraint:  Yes, 
-                                Preconditioning:  Yes, 
- Energies: {Ekin:  1.44132143352E+01, Epot: -1.86564247324E+01, Enl:  1.27505748596E+00, 
-              EH: -2.63036266817E+01,  EXC: -5.46390910577E+00, EvXC: -5.88771651052E+00}, 
- iter:  1, EKS: -1.79713900956183892E+01, gnrm:  2.39E-01, D: -2.72E-01, 
+ Integral of the density in the nonvacuum region:  9.8543404769832602E-002, Embedded PSolver Polarization Iteration Method: [
+Iteration quality: {iter:  1, res:  6.98359136825794035E-04}, 
+Iteration quality: {iter:  2, res:  3.84032560612445814E-04}, 
+Iteration quality: {iter:  3, res:  3.64578974732129813E-04}, 
+Iteration quality: {iter:  4, res:  2.14525190985532968E-04}, 
+Iteration quality: {iter:  5, res:  1.81797752469883855E-04}, 
+Iteration quality: {iter:  6, res:  1.24344869042536258E-04}]}, Hamiltonian Applied:  Yes, 
+          Orthoconstraint:  Yes, Preconditioning:  Yes, 
+ Energies: {Ekin:  1.44132331866E+01, Epot: -1.85231741006E+01, Enl:  1.27503906123E+00, 
+              EH: -2.61933487800E+01,  EXC: -5.46390747633E+00, EvXC: -5.88771403606E+00}, 
+ iter:  1, EKS: -1.79484177840874608E+01, gnrm:  2.43E-01, D: -2.53E-01, 
  DIIS weights: [ 1.00E+00,  1.00E+00]}
        -  &FINAL001  { #----------------------------------------------------------- iter: 2
- GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999207806, 
- Electronic charge changed by rho compression:  1.466792021176E-09, 
+ GPU acceleration:  No, Rho Commun: ALLRED (Mix), Total electronic charge:  7.999999201567, 
+ Electronic charge changed by rho compression:  8.947989016406E-10, 
  Poisson Solver: {BC: Free, Box:  [  147,  147,  161 ], MPI tasks:  4, 
        Summing up ionic density:  Yes, 
- Integral of the density in the nonvacuum region:  0.2642071879694542, 
- Embedded PSolver, Preconditioned Conjugate Gradient Method: [
-Iteration quality: { #_________________________________________________________ Iteration1
- iter:  1, res:  2.53262728640789086E-03, ratio:  6.45185536419974615E-02, 
-         alpha:  1.00000000000000000E+00, beta:  1.00000000000000000E+00}, 
-Iteration quality: { #_________________________________________________________ Iteration2
- iter:  2, res:  1.03821217515894220E-03, ratio:  2.64484033139248953E-02, 
-         alpha:  7.12349287846187340E-02, beta:  9.41447489427562800E+01}, 
-Iteration quality: { #_________________________________________________________ Iteration3
- iter:  3, res:  1.71787362302078706E-04, ratio:  4.37627447559564651E-03, 
-         alpha:  1.47266131873718287E-01, beta:  8.97861038131621214E+00}, 
-Iteration quality: { #_________________________________________________________ Iteration4
- iter:  4, res:  9.79088925305821820E-05, ratio:  2.49422414765279425E-03, 
-         alpha:  2.78124652241267478E-01, beta:  6.55538303734835293E-02}, 
-Iteration quality: { #_________________________________________________________ Iteration5
- iter:  5, res:  3.99145577409089225E-05, ratio:  1.01682136511921199E-03, 
-         alpha:  4.53306919320096924E-01, beta:  8.70348054834733931E-03}]}, 
-                            Hamiltonian Applied:  Yes, 
- iter:  2, EKS: -1.80907641249075937E+01, gnrm:  2.39E-01, D: -1.19E-01,  #FINAL
- Energies: {Ekin:  1.33872505958E+01, Epot: -1.86203942910E+01, Enl:  1.14410357563E+00, 
-              EH: -2.73617161322E+01,  EXC: -5.24183554260E+00, EvXC: -5.60906667607E+00, 
+ Integral of the density in the nonvacuum region:  0.1156141116042206, Embedded PSolver Polarization Iteration Method: [
+Iteration quality: {iter:  1, res:  2.28225629005167807E-04}, 
+Iteration quality: {iter:  2, res:  1.31739099564698412E-04}, 
+Iteration quality: {iter:  3, res:  9.19902584322181897E-05}, 
+Iteration quality: {iter:  4, res:  7.46561946931416657E-05}, 
+Iteration quality: {iter:  5, res:  4.43443867808993763E-05}, 
+Iteration quality: {iter:  6, res:  3.82819885462307150E-05}]}, Hamiltonian Applied:  Yes, 
+ iter:  2, EKS: -1.80769873992721131E+01, gnrm:  2.43E-01, D: -1.29E-01,  #FINAL
+ Energies: {Ekin:  1.35267600636E+01, Epot: -1.85486011661E+01, Enl:  1.14925507856E+00, 
+              EH: -2.71493972054E+01,  EXC: -5.27588866072E+00, EvXC: -5.65276135085E+00, 
             Eion: -4.17306712709E+01,                     Exc(rhoc): -7.76887952386E-01}, 
  }
         #WARNING: No convergence within the allowed number of minimization steps
-       Non-Hermiticity of Hamiltonian in the Subspace:  7.89E-31
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.91E-31
         #WARNING: Wavefunctions not converged after cycle  1
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
  Rho Commun                            : RED_SCT
- Total electronic charge               :  7.999999206340
+ Total electronic charge               :  7.999999200673
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  147,  147,  161 ]
    MPI tasks                           :  4
    Summing up ionic density            :  Yes
-   Integral of the density in the nonvacuum region:  0.2642071879074309
-   Embedded PSolver, Preconditioned Conjugate Gradient Method:
-   - Iteration quality: { #_____________________________________________________ Iteration1
- iter:  1, res:  1.29206774824697603E-04, ratio:  3.29153613608680314E-03, 
-         alpha:  1.00000000000000000E+00, beta:  1.00000000000000000E+00}
-   - Iteration quality: { #_____________________________________________________ Iteration2
- iter:  2, res:  1.75678682917460355E-05, ratio:  4.47540567394786768E-04, 
-         alpha:  1.60232481474824301E-01, beta:  1.02653823731263749E-01}
-   - Iteration quality: { #_____________________________________________________ Iteration3
- iter:  3, res:  8.46321286208000818E-06, ratio:  2.15599925009552699E-04, 
-         alpha:  2.60901397648832301E-01, beta:  9.00529997769041607E-04}
-   - Iteration quality: { #_____________________________________________________ Iteration4
- iter:  4, res:  5.54701244688124804E-06, ratio:  1.41309865067097787E-04, 
-         alpha:  3.40199681528634723E-01, beta:  6.01586348758448373E-05}
-   - Iteration quality: { #_____________________________________________________ Iteration5
- iter:  5, res:  6.95412797143725786E-06, ratio:  1.77156062783964940E-04, 
-         alpha:  1.39170732407249642E-01, beta:  8.74900903078717807E-05}
+   Integral of the density in the nonvacuum region:  0.1156141115466471
+   Embedded PSolver Polarization Iteration Method:
+   - Iteration quality: {iter:  1, res:  3.65284291323366534E-05}
+   - Iteration quality: {iter:  2, res:  3.11069973934187068E-05}
+   - Iteration quality: {iter:  3, res:  2.12189517092322985E-05}
+   - Iteration quality: {iter:  4, res:  1.41690802628021480E-05}
+   - Iteration quality: {iter:  5, res:  1.20612481925403792E-05}
+   - Iteration quality: {iter:  6, res:  7.15807008238163728E-06}
  Multipole analysis origin             :  [  1.16E+01,  1.244311E+01,  1.300000E+01 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [  3.069E-03, -1.2405E+00, -4.3764E-02 ]
-   norm(P)                             :  1.241324E+00
+   P vector                            :  [  4.272E-03, -1.1939E+00,  2.9510E-03 ]
+   norm(P)                             :  1.193897E+00
  Electric Dipole Moment (Debye):
-   P vector                            :  [  7.8007E-03, -3.1532E+00, -1.1124E-01 ]
-   norm(P)                             :  3.155130E+00
+   P vector                            :  [  1.0858E-02, -3.0346E+00,  7.5007E-03 ]
+   norm(P)                             :  3.034584E+00
  Quadrupole Moment (AU):
    Q matrix:
-   -  [-3.9167E+00, -1.2503E-03, -6.4738E-04]
-   -  [-1.2503E-03, -9.4413E-01,  1.1217E-01]
-   -  [-6.4738E-04,  1.1217E-01,  4.8608E+00]
+   -  [-4.0853E+00, -3.1706E-03,  4.3402E-04]
+   -  [-3.1706E-03, -6.8109E-01,  3.5745E-03]
+   -  [ 4.3402E-04,  3.5745E-03,  4.7664E+00]
    trace                               : -8.20E-13
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -734,29 +688,29 @@ Iteration quality: { #_________________________________________________________ 
  - Self-consistent cycle did not meet convergence criteria
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.01
-   Elapsed time (s)                    :  10.25
+   CPU time (s)                        :  31.40
+   Elapsed time (s)                    :  31.66
  BigDFT infocode                       :  1
- Average noise forces: {x:  3.80753083E-03, y:  1.48777976E-01, z: -1.57966424E-02, 
-                    total:  1.49662678E-01}
- Clean forces norm (Ha/Bohr): {maxval:  2.143486151965E-01, fnrm2:  7.256149498479E-02}
- Raw forces norm (Ha/Bohr): {maxval:  3.002721486224E-01, fnrm2:  9.505174750024E-02}
+ Average noise forces: {x:  1.37874996E-03, y:  1.50760014E-01, z: -2.45499971E-03, 
+                    total:  1.50786305E-01}
+ Clean forces norm (Ha/Bohr): {maxval:  1.925254192714E-01, fnrm2:  5.689083757352E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  2.795898254575E-01, fnrm2:  7.962997504241E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-3.462100989539E-19,  2.142659891361E-01,  5.951028163959E-03]} # 0001
- -  {H: [ 2.778268066994E-19, -1.048196084689E-01,  3.964371995208E-02]} # 0002
- -  {H: [ 2.846030702774E-19, -1.094463806672E-01, -4.559474811603E-02]} # 0003
- Energy (Hartree)                      : -1.80907641249075937E+01
- Force Norm (Hartree/Bohr)             :  2.69372409472070473E-01
+ -  {O: [ 8.797162820411E-20,  1.925023774304E-01, -2.978548178654E-03]} # 0001
+ -  {H: [-1.863472483959E-20, -9.740905413926E-02,  2.687726997735E-02]} # 0002
+ -  {H: [-1.694065894509E-20, -9.509332329114E-02, -2.389872179870E-02]} # 0003
+ Energy (Hartree)                      : -1.80769873992721131E+01
+ Force Norm (Hartree/Bohr)             :  2.38518002619332287E-01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  1161
-   Tot. No. of Deallocations           :  1161
+   Tot. No. of Allocations             :  1214
+   Tot. No. of Deallocations           :  1214
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  322.372
-     for the array                     : zt
-     in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 298.812 MB
- Walltime since initialization         : 00:00:12.141435091
- Max No. of dictionaries used          :  4661 #( 1025 still in use)
+     Peak Value (MB)                   :  469.597
+     for the array                     : dsurfdrho
+     in the routine                    : Electrostatic_Solver
+     Memory Peak of process            : 514.960 MB
+ Walltime since initialization         : 00:00:33.372851839
+ Max No. of dictionaries used          :  4650 #( 1025 still in use)
  Number of dictionary folders allocated:  1

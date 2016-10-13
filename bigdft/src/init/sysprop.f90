@@ -991,6 +991,16 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
         radii(it%iat)=rcav
      end if
   end do
+
+  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
+  fact=pkernel%cavity%fact_rigid
+  it=atoms_iter(atoms%astruct)
+  do while(atoms_iter_next(it))
+     radii(it%iat)=fact*radii(it%iat)/Bohr_Ang
+  end do
+!  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
   !if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
 
 !!$  fact=pkernel%cavity%fact_rigid
@@ -1014,7 +1024,6 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!!
 !!!  end do
 !!!
-  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
 !--------------------------------------------
 

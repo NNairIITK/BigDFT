@@ -31,6 +31,9 @@ BUILTIN={
     'forces': {PATH: [['Atomic Forces (Ha/Bohr)']]},
     'forcemax_cv': {PATH: [['geopt','forcemax']], PRINT: 'Convergence criterion on forces', GLOBAL: True, FLOAT_SCALAR: True},
     'force_fluct': {PATH:[["Geometry","FORCES norm(Ha/Bohr)","fluct"]], PRINT: "Threshold fluctuation of Forces"},
+    'magnetization': {PATH:[[ "Ground State Optimization", -1, "Total magnetization"],
+                            ["Ground State Optimization",-1,"Hamiltonian Optimization",-1,"Subspace Optimization","Total magnetization"]],
+                      PRINT: "Total magnetization of the system"},
     'symmetry': {PATH: [ ['Atomic System Properties','Space group']], 
                  PRINT: "Symmetry group", GLOBAL: True}}
 
@@ -219,11 +222,12 @@ class Logfile():
         for i,kp in enumerate(kpts):
             evals.append(BZ.BandArray(ev,ikpt=i+1,kpt=kp['Rc'],kwgt=kp['Wgt']))
         return evals
-    def get_dos(self,label=None):
+    def get_dos(self,label=None,npts=2500):
         "Get the density of states from the logfile"
         import DoS
+        reload(DoS)
         lbl=self.label if label is None else label
-        return DoS.DoS(bandarrays=self.evals,label=lbl,units='AU',fermi_level=self.fermi_level)
+        return DoS.DoS(bandarrays=self.evals,label=lbl,units='AU',fermi_level=self.fermi_level,npts=npts)
     def get_brillouin_zone(self):
         "Returns an instance of the BrillouinZone class, useful for band strucure"
         import BZ

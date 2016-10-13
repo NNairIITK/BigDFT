@@ -39,6 +39,7 @@ d_instr=yaml.load(instr)
 
 def run_test(runs):
     for r in runs:
+        print 'executing: ',r
         os.system(r)
 
 def get_time(file):
@@ -61,7 +62,8 @@ for test in d_instr:
     ref=specs.get('reference',label+'.ref.yaml')
     if not os.path.isfile(ref):
         ref=os.path.join(args.srcdir,ref)
-    if get_time(binary) > get_time(output): run_test(specs['runs'])
+    dorun=get_time(binary) > get_time(output) or get_time(output) == 0.0
+    if dorun: run_test(specs['runs'])
     os.system(base+' --label '+label+' -r '+ref+' -d '+output+' --output '+report)
         
 

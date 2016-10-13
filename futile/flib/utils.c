@@ -153,6 +153,14 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
   return;
 }
 
+void FC_FUNC(bindfree, BINDFREE)(long long int * fromadd)
+{
+  void *from = (void*)*fromadd;
+  /*printf("\n test long address = %p %lli\n", (void*)from,*fromadd);*/
+  free(from);
+}
+
+
 void FC_FUNC(callsystem, CALLSYSTEM)(const char *cmd, int *lgcmd, int *status)
 {
   char *command;
@@ -255,7 +263,6 @@ void FC_FUNC(getjmpbufsize, GETJMPBUFSIZE)(int *bufsize)
 {
   *bufsize = (int) sizeof(jb_main);
 }
-
 
 void FC_FUNC(setandcpyjmpbuf, SETANDCPYJMPBUF)(int *signal, FFunc_void* routine,long long int* arg, int* last_signal)
 {

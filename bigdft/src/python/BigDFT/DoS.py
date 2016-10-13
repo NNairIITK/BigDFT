@@ -19,18 +19,19 @@ class DoS():
     def append_from_bandarray(self,bandarrays,label):
         "Important for kpoints DOS"
         import numpy as np
-        kptlists=[[],[]]
-        for orbs in bandarrays:
-            for ispin,norbs in enumerate(orbs.info):
-                if norbs==0: continue
-                #energy values
-                kptlists[0].append(orbs[ispin,:norbs])
-                #normalization
-                kptlists[1].append(orbs.kwgt*(1.0-2*ispin))
-        #print 'kpt',kptlists
-        self.append(np.array(kptlists[0]),label=label,units='AU',
-                    norm=np.array(kptlists[1]))
-
+        for jspin in range(2):
+            lbl= 'up' if jspin==0 else 'dw'
+            kptlists=[[],[]]
+            for orbs in bandarrays:
+                for ispin,norbs in enumerate(orbs.info):
+                    if norbs==0 or ispin !=jspin: continue
+                    #energy values
+                    kptlists[0].append(orbs[ispin,:norbs])
+                    #normalization
+                    kptlists[1].append(orbs.kwgt*(1.0-2*ispin))
+                #print 'kpt',kptlists
+            self.append(np.array(kptlists[0]),label=label+lbl,units='AU',
+                        norm=np.array(kptlists[1]))
     def append_from_dict(self,evals,label):
         import numpy as np
         "Get the energies from the different flavours given by the dict"
@@ -94,6 +95,7 @@ class DoS():
         e_max=-1.e100
         for dos in self.ens:
             ddos=np.ravel(dos)
+            if len(ddos)==0: continue
             e_min = min(e_min,np.min(ddos) - 0.05*(np.max(ddos) - np.min(ddos)))
             e_max = max(e_max,np.max(ddos) + 0.05*(np.max(ddos) - np.min(ddos)))
         return np.arange( e_min, e_max, (e_max-e_min)/npts )

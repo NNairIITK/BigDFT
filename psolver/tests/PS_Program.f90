@@ -70,7 +70,7 @@ program PSolver_Program
   integer, dimension(3) :: ndims
   real(f_double), dimension(3) :: angdeg
   type(dictionary), pointer :: dict
-  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,mu0
+  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
   integer :: n01,n02,n03,itype_scf
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
@@ -100,9 +100,12 @@ program PSolver_Program
   iproc=0
   nproc=1
 
-  nullify(dict)
+  nullify(dict,input)
   call yaml_argparse(options,inputs)
-  call yaml_map('Commandline options provided',options)
+  if (iproc==0) then
+     call yaml_new_document()
+     call yaml_map('Commandline options provided',options)
+  end if
   ndims=options//'ndim'
   n01=ndims(1)
   n02=ndims(2)
@@ -263,8 +266,6 @@ program PSolver_Program
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
 
-  !write(*,'(a5,1pe20.12)') ' hx = ', hx
-  call yaml_map('hx',hx)
 
   !grid for the free BC case
   hgrid=max(hx,hy,hz)
@@ -281,7 +282,6 @@ program PSolver_Program
 
   !dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
   
-  call yaml_map('Input',dict)
 
   karray=pkernel_init(iproc,nproc,dict,&
        geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
@@ -301,7 +301,9 @@ program PSolver_Program
      pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,mu0,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
+          density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
+
+     !calculate expected hartree enegy
 
       i2=n02/2
       do i3=1,n03
@@ -309,7 +311,7 @@ program PSolver_Program
             j1=n01/2+1-abs(n01/2+1-i1)
             j2=n02/2+1-abs(n02/2+1-i2)
             j3=n03/2+1-abs(n03/2+1-i3)
-            write(110,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
+            write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
          end do
       end do
 
@@ -326,7 +328,7 @@ program PSolver_Program
         end do
         offset=offset*hx*hy*hz*sqrt(detg) ! /// to be fixed ///
         !write(*,*) 'offset = ',offset
-        call yaml_map('offset',offset)
+        if (iproc==0) call yaml_map('offset',offset)
      end if
 
 !!$     !dimension needed for allocations
@@ -366,7 +368,8 @@ program PSolver_Program
 !!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
 
      !print *,'potential integral',sum(density)
-     call yaml_map('potential integral',sum(density)*hx*hy*hx*sqrt(detg))
+     !this has to be corrected with the volume element of mesh
+     if (iproc==0) call yaml_map('potential integral',sum(density)*hx*hy*hx*sqrt(detg))
 
      i3=n03/2
      do i2=1,n02
@@ -421,14 +424,20 @@ program PSolver_Program
 
 
      if (iproc == 0) then
-
-        write(*,*) '--------------------'
-        write(*,*) 'Parallel calculation '
-        write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
-        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
-             '      result:',density(i1_max,i2_max,i3_max),&
-             '    original:',potential(i1_max,i2_max,i3_max)
+        call yaml_mapping_open('Parallel calculation')
+        call yaml_map('Ehartree',ehartree)
+        call yaml_map('Max diff at',[i1_max,i2_max,i3_max])
+        call yaml_map('Max diff',diff_par)
+        call yaml_map('Result',density(i1_max,i2_max,i3_max))
+        call yaml_map('Original',potential(i1_max,i2_max,i3_max))
+        call yaml_mapping_close()
+!!$        write(*,*) '--------------------'
+!!$        write(*,*) 'Parallel calculation '
+!!$        write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
+!!$        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
+!!$        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
+!!$             '      result:',density(i1_max,i2_max,i3_max),&
+!!$             '    original:',potential(i1_max,i2_max,i3_max)
      end if
 
   end if
@@ -533,7 +542,6 @@ program PSolver_Program
   call mpifinalize()
   call f_lib_finalize()
 
-
 contains
 
 
@@ -605,6 +613,7 @@ end subroutine compare
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
   use yaml_output
+  use f_utils
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,ixc
@@ -614,8 +623,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   real(kind=8), dimension(n01,n02,n03), intent(out) :: density,potential,rhopot,pot_ion
 
   !local variables
-  integer :: i1,i2,i3,ifx,ify,ifz
-  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,pi,a2,derf,factor,r,r2,r0
+  integer :: i1,i2,i3,ifx,ify,ifz,unit
+  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,a2,derf,factor,r,r2,r0,erfc_yy,erf_yy
   real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
   real(kind=8) :: monopole
   real(kind=8), dimension(3) :: dipole
@@ -641,7 +650,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
   !write(*,*) 'detg =', detg
-  call yaml_map('detg',detg)
+  if (iproc==0) call yaml_map('detg',detg)
   !
   !contravariant metric
   gu(1,1) = (dsin(gamma)**2)/detg
@@ -655,12 +664,19 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
 
-  gu=gd !test
+  !gu=gd !test
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  call yaml_map('Angles',[alpha,beta,gamma]*180.0_dp*oneopi)
-  call yaml_map('Contravariant Metric',gu)
+  if (iproc==0) then
+     call yaml_map('Angles',[alpha,beta,gamma]*180.0_dp*oneopi)
+     call yaml_map('Contravariant Metric',gu)
+     call yaml_map('Covariant Metric',gd)
+     call yaml_map('Product of the two',matmul(gu,gd))
+  end if
+
+  unit=200
+  call f_open_file(unit=unit,file='references.dat')
 
   if (ixc==0) denval=0.d0
 
@@ -758,7 +774,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -795,7 +811,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=FUNC_COSINE!FUNC_EXP_COSINE
+     ifx=FUNC_EXP_COSINE
      ifz=FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
@@ -808,7 +824,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      by=2.d0!real(nu,kind=8)
      bz=2.d0!real(nu,kind=8)
 
-     
+     call f_assert(alpha-onehalf*pi,id='Alpha angle invalid')
+     call f_assert(gamma-onehalf*pi,id='Gamma angle invalid for S BC')
      
      !non-periodic dimension
      !ay=length!4.d0*a
@@ -831,11 +848,11 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         call functions(x3,az,bz,fz,fz1,fz2,ifz)
         do i2=1,n02
            x2 = hy*real(i2-n02/2-1,kind=8)
-           call functions(x2,ay,by,fy,fz1,fy2,ify)
+           call functions(x2,ay,by,fy,fy1,fy2,ify)
            do i1=1,n01
               x1 = hx*real(i1-n01/2-1,kind=8)
               call functions(x1,ax,bx,fx,fx1,fx2,ifx)
-              potential(i1,i2,i3) =  -16.d0*datan(1.d0)*fx*fy*fz
+              potential(i1,i2,i3) =  -fourpi*fx*fy*fz
               density(i1,i2,i3) = -mu0**2*fx*fy*fz
               density(i1,i2,i3) = density(i1,i2,i3) + gu(1,1)*fx2*fy*fz+gu(2,2)*fx*fy2*fz+gu(3,3)*fx*fy*fz2
               density(i1,i2,i3) = density(i1,i2,i3) + 2.0_dp*(gu(1,2)*fx1*fy1*fz+gu(1,3)*fx1*fy*fz1+gu(2,3)*fx*fy1*fz1)
@@ -878,7 +895,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           z=real(i3,dp)*sin(beta)
+           write(unit,'(2(1x,i6),3(1x,1pe26.14e3))') &
+                i1,i3,z,density(i1,i2,i3),potential(i1,i2,i3)
         end do
      end do
 
@@ -957,7 +976,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      !hgrid=max(hx,hy,hz)
 
-     pi = 4.d0*atan(1.d0)
      a2 = a_gauss**2
      !mu0 = 1.e0_dp
 
@@ -980,12 +998,18 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
               if (r == 0.d0) then
                  potential(i1,i2,i3) = 1.0_dp
               else
-                 potential(i1,i2,i3) = -2+derfc(r/a_gauss-a_gauss*mu0/2.0_dp)
-                 potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*derfc(r/a_gauss+a_gauss*mu0/2.0_dp)
+                 call derf_local(erf_yy,r/a_gauss-a_gauss*mu0/2.0_dp)
+                 erfc_yy=1.0_dp-erf_yy
+                 potential(i1,i2,i3) = -2.0_dp+erfc_yy 
+                 !potential(i1,i2,i3) = -2+derfc(r/a_gauss-a_gauss*mu0/2.0_dp)
+                 call derf_local(erf_yy,r/a_gauss+a_gauss*mu0/2.0_dp)
+                 erfc_yy=1.0_dp-erf_yy
+                 potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*erfc_yy
+                 !potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*derfc(r/a_gauss+a_gauss*mu0/2.0_dp)
                  potential(i1,i2,i3) = potential(i1,i2,i3)*a_gauss*dexp(-mu0*r)*sqrt(pi)/(-2*r*factor*dexp(-a2*mu0**2/4.0_dp))
               end if
               !density(i1,i2,i3) = exp(-r2/a2)/4.0_dp/factor**2 + 0.1_dp**2/(4*pi)*potential(i1,i2,i3)
-              density(i1,i2,i3) = dexp(-r2/a2)/factor/(a2*pi)
+              density(i1,i2,i3) = safe_exp(-r2/a2)/factor/(a2*pi)
            end do
         end do
      end do
@@ -996,7 +1020,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -1219,7 +1243,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -1252,11 +1276,12 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   end do
   !write(*,*) 'monopole = ', monopole
   !write(*,*) 'dipole = ', dipole
-  call yaml_map('monopole',monopole)
-  call yaml_map('dipole',dipole)
+  if (iproc==0) then
+     call yaml_map('monopole',monopole)
+     call yaml_map('dipole',dipole)
+  end if
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
+  call f_close(unit)
   ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
   ! possible. In that case the only possible comparison is between the serial and the parallel case
   ! To ease the comparison between the serial and the parallel case we add a random pot_ion
@@ -1269,7 +1294,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      potion_fac=1.d0
   end if
 
-  print *,'denval',denval
   rhopot(:,:,:) = density(:,:,:) + denval
      do i3=1,n03
         do i2=1,n02
@@ -1287,103 +1311,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      if (denval /= 0.d0) density=rhopot
 
 end subroutine test_functions
-
-
-!> Define the test functions
-subroutine functions(x,a,b,f,f1,f2,whichone)
-  implicit none
-  integer, intent(in) :: whichone   !< Choose the function
-  real(kind=8), intent(in) :: x     !< Argument of the function
-  real(kind=8), intent(in) :: a,b   !< Parameter of the functions
-  real(kind=8), intent(out) :: f    !< The value of the function
-  real(kind=8), intent(out) :: f1   !< The value of the first derivative
-  real(kind=8), intent(out) :: f2   !< The value of the second derivative
-  !local variables
-  real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
-  real(kind=8) :: length,frequency,nu,sigma,agauss
-
-  !f1 = 0.0_dp
-
-  pi = 4.d0*datan(1.d0)
-  select case(whichone)
-  case(FUNC_CONSTANT)
-     !constant
-     f=1.d0
-     f1=0.d0
-     f2=0.d0
-  case(FUNC_GAUSSIAN)
-     !gaussian of sigma s.t. a=1/(2*sigma^2)
-     r2=a*x**2
-     f=dexp(-r2)
-     f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
-  case(FUNC_GAUSSIAN_SHRINKED)
-     !gaussian "shrinked" with a=length of the system
-     length=a
-     r=pi*x/length
-     y=dtan(r)
-     yp=pi/length*1.d0/(dcos(r))**2
-     ys=2.d0*pi/length*y*yp
-     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-     f2=factor*dexp(-y**2)
-     f=dexp(-y**2)
-  case(FUNC_COSINE)
-     !cosine with a=length, b=frequency
-     length=a
-     frequency=b
-     r=frequency*pi*x/length
-     f=dcos(r)
-     f1=-dsin(r)*frequency*pi/length
-     f2=-(frequency*pi/length)**2*dcos(r)
-  case(FUNC_EXP_COSINE)
-     !exp of a cosine, a=length
-     nu=2.d0
-     r=pi*nu/a*x
-     y=dcos(r)
-     yp=-dsin(r)
-     f=dexp(y)/dexp(1.0_dp)
-     factor=(pi*nu/a)**2*(-y+yp**2)
-     f1 = f*pi*nu/a*yp
-     f2 = factor*f
-  case(FUNC_SHRINK_GAUSSIAN)
-     !gaussian times "shrinked" gaussian, sigma=length/10
-     length=1.d0*a
-     r=pi*x/length
-     y=dtan(r)
-     yp=pi/length*1.d0/(dcos(r))**2
-     ys=2.d0*pi/length*y*yp
-     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-     g=dexp(-y**2)
-     g1=-2.d0*y*yp*g
-     g2=factor*dexp(-y**2)
-     sigma=length/10.0d0
-     agauss=0.5d0/sigma**2
-     r2=agauss*x**2
-     h=dexp(-r2)
-     h1=-2.d0*agauss*x*h
-     h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
-     f=g*h
-     f1=g1*h+g*h1
-     f2=g2*h+g*h2+2.d0*g1*h1
-  case(FUNC_SINE)
-     !sine with a=length, b=frequency
-     length=a
-     frequency=b
-     r=frequency*pi*x/length
-     f=dsin(r)
-     f2=-(frequency*pi/length)**2*dsin(r)
-  case(FUNC_ATAN)
-     !atan with a=length, b=frequency
-     length=a
-     nu = length
-     f=(datan(nu*x/length))**2
-     f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2
-  case default
-     !print *,"Unknow function:",whichone
-     !stop
-     call f_err_throw('Unknown function '//trim(yaml_toa(whichone)))
-  end select
-
-end subroutine functions
 
 
 !> Purpose: Compute exponential integral E1(x)
@@ -1423,3 +1350,254 @@ subroutine e1xb(x,e1)
 end subroutine e1xb
       
 end program PSolver_Program
+
+
+!> Define the test functions
+subroutine functions(x,a,b,f,f1,f2,whichone)
+  use futile, dp => f_double
+  use numerics
+  implicit none
+  integer, intent(in) :: whichone   !< Choose the function
+  real(kind=8), intent(in) :: x     !< Argument of the function
+  real(kind=8), intent(in) :: a,b   !< Parameter of the functions
+  real(kind=8), intent(out) :: f    !< The value of the function
+  real(kind=8), intent(out) :: f1   !< The value of the first derivative
+  real(kind=8), intent(out) :: f2   !< The value of the second derivative
+  !local variables
+  !Type of function
+  integer, parameter :: FUNC_CONSTANT = 1
+  integer, parameter :: FUNC_GAUSSIAN = 2
+  integer, parameter :: FUNC_GAUSSIAN_SHRINKED = 3
+  integer, parameter :: FUNC_COSINE = 4
+  integer, parameter :: FUNC_EXP_COSINE = 5
+  integer, parameter :: FUNC_SHRINK_GAUSSIAN = 6
+  integer, parameter :: FUNC_SINE = 7
+  integer, parameter :: FUNC_ATAN = 8
+  integer, parameter :: FUNC_ERF = 9
+
+  real(kind=8) :: r,r2,y,yp,ys,factor,g,h,g1,g2,h1,h2
+  real(kind=8) :: length,frequency,nu,sigma,agauss,derf
+
+  !f1 = 0.0_dp
+  select case(whichone)
+  case(FUNC_CONSTANT)
+     !constant
+     f=1.d0
+     f1=0.d0
+     f2=0.d0
+  case(FUNC_GAUSSIAN)
+     !gaussian of sigma s.t. a=1/(2*sigma^2)
+     r2=a*x**2
+     f=dexp(-r2)
+     !!here first derivative is lacking
+     f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
+  case(FUNC_GAUSSIAN_SHRINKED)
+     !gaussian "shrinked" with a=length of the system
+     length=a
+     r=pi*x/length
+     y=dtan(r)
+     yp=pi/length*1.d0/(dcos(r))**2
+     ys=2.d0*pi/length*y*yp
+     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+     !!!!here we still need the first derivative
+     f2=factor*dexp(-y**2)
+     f=dexp(-y**2)
+  case(FUNC_COSINE)
+     !cosine with a=length, b=frequency
+     length=a
+     frequency=b
+     r=frequency*pi*x/length
+     f=dcos(r)
+     f1=-dsin(r)*frequency*pi/length
+     f2=-(frequency*pi/length)**2*dcos(r)
+  case(FUNC_EXP_COSINE)
+     !exp of a cosine, a=length
+     nu=2.d0
+     r=pi*nu/a*x
+     y=dcos(r)
+     yp=-dsin(r)
+     f=dexp(y)/dexp(1.0_dp) !<to be checked
+     factor=(pi*nu/a)**2*(-y+yp**2)
+     f1 = f*pi*nu/a*yp
+     f2 = factor*f
+  case(FUNC_SHRINK_GAUSSIAN)
+     !gaussian times "shrinked" gaussian, sigma=length/10
+     length=1.d0*a
+     r=pi*x/length
+     y=dtan(r)
+     yp=pi/length*1.d0/(dcos(r))**2
+     ys=2.d0*pi/length*y*yp
+     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+     g=dexp(-y**2)
+     g1=-2.d0*y*yp*g
+     g2=factor*dexp(-y**2)
+     sigma=length/10.0d0
+     agauss=0.5d0/sigma**2
+     r2=agauss*x**2
+     h=dexp(-r2)
+     h1=-2.d0*agauss*x*h
+     h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
+     f=g*h
+     f1=g1*h+g*h1
+     f2=g2*h+g*h2+2.d0*g1*h1
+  case(FUNC_SINE)
+     !sine with a=length, b=frequency
+     length=a
+     frequency=b
+     r=frequency*pi*x/length
+     f=dsin(r)
+     !!here first derivative is lacking
+     f2=-(frequency*pi/length)**2*dsin(r)
+  case(FUNC_ATAN)
+     !atan with a=length, b=frequency
+     length=a
+     nu = length
+     f=(datan(nu*x/length))**2
+     !!here first derivative is lacking
+     f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2
+  case(FUNC_ERF)
+     !error function with a=sigma
+     factor=sqrt(2.d0/pi)/a
+     r=x
+     y=x/(sqrt(2.d0)*a)
+     if (abs(x)<=1.d-15) then
+        f=factor
+        f2=-sqrt(2.d0/pi)/(3.d0*a**3)
+     else
+        f=derf(y)/r
+        y=x*x
+        y=y/(2.d0*a**2)
+        g=dexp(-y)
+        h=1.d0/a**2+2.d0/x**2
+        f2=-factor*g*h+2.d0*f/x**2
+     end if
+     !!here first derivative is lacking
+  case default
+     !print *,"Unknow function:",whichone
+     !stop
+     call f_err_throw('Unknown function '//trim(yaml_toa(whichone)))
+  end select
+
+end subroutine functions
+
+!> Error function in double precision
+subroutine derf_local(derf_yy,yy)
+  use PSbase, only: dp
+  implicit none
+  real(dp),intent(in) :: yy
+  real(dp),intent(out) :: derf_yy
+  integer          ::  done,ii,isw
+  real(dp), parameter :: &
+                                ! coefficients for 0.0 <= yy < .477
+       &  pp(5)=(/ 113.8641541510502e0_dp, 377.4852376853020e0_dp,  &
+       &           3209.377589138469e0_dp, .1857777061846032e0_dp,  &
+       &           3.161123743870566e0_dp /)
+  real(dp), parameter :: &
+       &  qq(4)=(/ 244.0246379344442e0_dp, 1282.616526077372e0_dp,  &
+       &           2844.236833439171e0_dp, 23.60129095234412e0_dp/)
+  ! coefficients for .477 <= yy <= 4.0
+  real(dp), parameter :: &
+       &  p1(9)=(/ 8.883149794388376e0_dp, 66.11919063714163e0_dp,  &
+       &           298.6351381974001e0_dp, 881.9522212417691e0_dp,  &
+       &           1712.047612634071e0_dp, 2051.078377826071e0_dp,  &
+       &           1230.339354797997e0_dp, 2.153115354744038e-8_dp, &
+       &           .5641884969886701e0_dp /)
+  real(dp), parameter :: &
+       &  q1(8)=(/ 117.6939508913125e0_dp, 537.1811018620099e0_dp,  &
+       &           1621.389574566690e0_dp, 3290.799235733460e0_dp,  &
+       &           4362.619090143247e0_dp, 3439.367674143722e0_dp,  &
+       &           1230.339354803749e0_dp, 15.74492611070983e0_dp/)
+  ! coefficients for 4.0 < y,
+  real(dp), parameter :: &
+       &  p2(6)=(/ -3.603448999498044e-01_dp, -1.257817261112292e-01_dp,   &
+       &           -1.608378514874228e-02_dp, -6.587491615298378e-04_dp,   &
+       &           -1.631538713730210e-02_dp, -3.053266349612323e-01_dp/)
+  real(dp), parameter :: &
+       &  q2(5)=(/ 1.872952849923460e0_dp   , 5.279051029514284e-01_dp,    &
+       &           6.051834131244132e-02_dp , 2.335204976268692e-03_dp,    &
+       &           2.568520192289822e0_dp /)
+  real(dp), parameter :: &
+       &  sqrpi=.5641895835477563e0_dp, xbig=13.3e0_dp, xlarge=6.375e0_dp, xmin=1.0e-10_dp
+  real(dp) ::  res,xden,xi,xnum,xsq,xx
+
+  xx = yy
+  isw = 1
+  !Here change the sign of xx, and keep track of it thanks to isw
+  if (xx<0.0e0_dp) then
+     isw = -1
+     xx = -xx
+  end if
+
+  done=0
+
+  !Residual value, if yy < -6.375e0_dp
+  res=-1.0e0_dp
+
+  !abs(yy) < .477, evaluate approximation for erfc
+  if (xx<0.477e0_dp) then
+     ! xmin is a very small number
+     if (xx<xmin) then
+        res = xx*pp(3)/qq(3)
+     else
+        xsq = xx*xx
+        xnum = pp(4)*xsq+pp(5)
+        xden = xsq+qq(4)
+        do ii = 1,3
+           xnum = xnum*xsq+pp(ii)
+           xden = xden*xsq+qq(ii)
+        end do
+        res = xx*xnum/xden
+     end if
+     if (isw==-1) res = -res
+     done=1
+  end if
+
+  !.477 < abs(yy) < 4.0 , evaluate approximation for erfc
+  if (xx<=4.0e0_dp .and. done==0 ) then
+     xsq = xx*xx
+     xnum = p1(8)*xx+p1(9)
+     xden = xx+q1(8)
+     do ii=1,7
+        xnum = xnum*xx+p1(ii)
+        xden = xden*xx+q1(ii)
+     end do
+     res = xnum/xden
+     res = res* exp(-xsq)
+     if (isw.eq.-1) then
+        res = res-1.0e0_dp
+     else
+        res=1.0e0_dp-res
+     end if
+     done=1
+  end if
+
+  !y > 13.3e0_dp
+  if (isw > 0 .and. xx > xbig .and. done==0 ) then
+     res = 1.0e0_dp
+     done=1
+  end if
+
+  !4.0 < yy < 13.3e0_dp  .or. -6.375e0_dp < yy < -4.0
+  !evaluate minimax approximation for erfc
+  if ( ( isw > 0 .or. xx < xlarge ) .and. done==0 ) then
+     xsq = xx*xx
+     xi = 1.0e0_dp/xsq
+     xnum= p2(5)*xi+p2(6)
+     xden = xi+q2(5)
+     do ii = 1,4
+        xnum = xnum*xi+p2(ii)
+        xden = xden*xi+q2(ii)
+     end do
+     res = (sqrpi+xi*xnum/xden)/xx
+     res = res* exp(-xsq)
+     if (isw.eq.-1) then
+        res = res-1.0e0_dp
+     else
+        res=1.0e0_dp-res
+     end if
+  end if
+
+  !All cases have been investigated
+  derf_yy = res
+
+end subroutine derf_local
