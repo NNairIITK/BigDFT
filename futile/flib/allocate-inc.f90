@@ -26,7 +26,7 @@
      if (m%profile .and. track_origins) iadd=loc_arr(array)!call getlongaddress(array,iadd)
 
      call f_update_database(product(int(m%shape(1:m%rank),kind=8)),kind(array),m%rank,&
-          iadd,m%array_id,m%routine_id)
+          iadd,m%array_id,m%routine_id,m%info)
 
   else
      !$ if(not_omp) then

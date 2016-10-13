@@ -1356,13 +1356,18 @@ END SUBROUTINE P_FFT_dimensions
 !!    Dimensions n02 and n03 were exchanged
 !! @author Luigi Genovese
 !! @date October 2006
-subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
+subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2,non_ortho)
  implicit none
  logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
  integer :: l1,l2,l3
+ logical, intent(in), optional :: non_ortho
+ !local variables
+ logical :: north
 
+ north=.false.
+ if (present(non_ortho)) north=non_ortho
  !dimensions of the density in the real space
  m1=n01
  m2=n03
@@ -1427,6 +1432,7 @@ subroutine S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  !these two dimensions are like that since they are even
  nd1=n1/2+1
  nd2=n2/2+1
+ if (north) nd2=n2
  nd3=n3/2+1
  do while(modulo(nd3,nproc) /= 0)
     !250 if (modulo(nd3,nproc) .ne. 0) then

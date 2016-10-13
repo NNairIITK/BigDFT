@@ -7,7 +7,7 @@ EXTRA_DIST = \
 
 dynlibdir = $(libdir)
 
-check_PROGRAMS = yaml_test hooks yaml_argparse
+check_PROGRAMS = yaml_test hooks yaml_argparse f_allocations
 if BUILD_DYNAMIC_LIBS
 check_PROGRAMS += test_plugin
 noinst_LIBRARIES = libpong.a
@@ -22,6 +22,9 @@ if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
 AM_LDFLAGS += @FC_RPATH@$(abs_top_builddir)/src
 else
+if USE_SIMGRID_SHARED_ALLOCS
+AM_LDFLAGS += @FC_RPATH@$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
+endif
 flib_libraries = $(top_builddir)/src/libfutile-1.a
 LIBS += @LIBS_EXT_DEPS@
 endif
@@ -31,6 +34,10 @@ yaml_test_LDADD = $(flib_libraries)
 
 yaml_argparse_SOURCES = yaml_argparse.f90
 yaml_argparse_LDADD = $(flib_libraries)
+
+f_allocations_SOURCES = f_allocations.f90
+f_allocations_LDADD = $(flib_libraries)
+
 
 hooks_SOURCES = hooks.f90
 hooks_LDADD = $(flib_libraries)
@@ -77,7 +84,7 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 regtest: yaml_argparse
-	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml
+	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
 
 define F_REGTEST_INSTRUCTIONS
 - yaml_argparse:

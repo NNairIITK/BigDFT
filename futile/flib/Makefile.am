@@ -56,7 +56,7 @@ libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c \
 	razero.f90 getadd.f90 time.f90 \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
-	f_ternary.f90 f_objects.f90 fpython.f90 \
+	f_ternary.f90 f_objects.f90 fpython.f90 f_environment.f90 \
 	$(flush_files) $(getarg_files) $(CUDA_PROF) $(SIMGRID_SHARED_SOURCE) $(CUDA_SOURCES)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -96,13 +96,13 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
 	F_ENUMS.@MODULE_EXT@ \
 	F_PRECISIONS.@MODULE_EXT@ \
+	F_ENVIRONMENT.@MODULE_EXT@ \
 	YAML_PARSE.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	MODULE_F_MALLOC.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
 	DYNAMIC_MEMORY_BASE.@MODULE_EXT@ \
-	RANDOMDATA.@MODULE_EXT@ \
-	RANDOM.@MODULE_EXT@ \
+	F_RANDOM.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
 	F_UTILS.@MODULE_EXT@ \
 	F_REFCNTS.@MODULE_EXT@ \
@@ -122,14 +122,14 @@ modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries_base.@MODULE_EXT@ \
 	f_enums.@MODULE_EXT@ \
 	f_precisions.@MODULE_EXT@ \
+	f_environment.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
 	yaml_parse.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
 	module_f_malloc.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
 	dynamic_memory_base.@MODULE_EXT@ \
-	randomdata.@MODULE_EXT@ \
-	random.@MODULE_EXT@ \
+	f_random.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
 	f_utils.@MODULE_EXT@ \
 	f_input_file.@MODULE_EXT@ \
@@ -177,7 +177,7 @@ yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(SIMGRID_DEP) $(F_MALLOC_INCLUDES)
 f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
-dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
+dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES) f_environment.o
 mem_profiling.o: yaml_output.o yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) $(SIMGRID_DEP) time.o f_utils.o f_input_file.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o f_malloc.o
@@ -185,6 +185,7 @@ f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
+randomData.o: f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 fpython.o: dictionaries.o yaml_output.o f_objects.o
 

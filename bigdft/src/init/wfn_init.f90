@@ -210,7 +210,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   use communications_base, only: comms_cubic
   use communications, only: transpose_v, untranspose_v, toglobal_and_transpose
   use public_enums
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   implicit none
   logical, intent(in) :: mixing
   integer, intent(in) :: iproc,nproc,natsc,nspin,occopt
@@ -427,7 +427,8 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
              max(Tel,1.0e-3_gp),fmt='(1pe12.5)')
 !        !add a small displacement in the eigenvalues
         do iorb=1,orbse%norb*orbse%nkpts
-           tt=builtin_rand(idum)
+           !tt=builtin_rand(idum)
+           call f_random_number(tt)
            orbse%eval(iorb)=orbse%eval(iorb)*(1.0_gp+max(Tel,1.0e-3_gp)*real(tt,gp))
         end do
         

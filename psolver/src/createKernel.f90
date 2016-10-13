@@ -176,6 +176,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   use time_profiling, only: f_timing
   use dictionaries, only: f_err_throw
   use yaml_strings, only: operator(+)
+  use numerics
   implicit none
   !Arguments
   type(coulomb_operator), intent(inout) :: kernel
@@ -200,7 +201,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   character(len=*), parameter :: subname='createKernel'
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
-  real(kind=8) :: alphat,betat,gammat,mu0t,pi
+  real(kind=8) :: alphat,betat,gammat,mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
@@ -209,7 +210,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
   call f_routine(id='pkernel_set')
-  pi=4.0_dp*atan(1.0_dp)
+  !pi=4.0_dp*atan(1.0_dp)
   wrtmsg=.true.
   if (present(verbose)) wrtmsg=verbose
 
@@ -304,7 +305,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      end if
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,&
+          kernel%igpu,.false.,non_ortho=kernel%angrad(1)/= onehalf*pi)
+
 
      if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')

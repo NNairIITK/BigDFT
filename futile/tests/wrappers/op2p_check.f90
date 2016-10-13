@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
 program OP2P_check
   use futile
   use overlap_point_to_point
@@ -89,7 +87,6 @@ program OP2P_check
 
   call f_free(nobj)
   call f_free(nobj_p)
-
 
   call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
 

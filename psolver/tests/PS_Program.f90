@@ -70,7 +70,7 @@ program PSolver_Program
   integer, dimension(3) :: ndims
   real(f_double), dimension(3) :: angdeg
   type(dictionary), pointer :: dict
-  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,mu0
+  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
   integer :: n01,n02,n03,itype_scf
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
@@ -302,7 +302,7 @@ program PSolver_Program
      pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,mu0,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
+          density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
 
       i2=n02/2
       do i3=1,n03
@@ -605,6 +605,7 @@ end subroutine compare
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
   use yaml_output
+  use f_utils
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,ixc
@@ -614,8 +615,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   real(kind=8), dimension(n01,n02,n03), intent(out) :: density,potential,rhopot,pot_ion
 
   !local variables
-  integer :: i1,i2,i3,ifx,ify,ifz
-  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,pi,a2,derf,factor,r,r2,r0
+  integer :: i1,i2,i3,ifx,ify,ifz,unit
+  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,a2,derf,factor,r,r2,r0
   real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
   real(kind=8) :: monopole
   real(kind=8), dimension(3) :: dipole
@@ -655,12 +656,17 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   gu(3,1) = gu(1,3)
   gu(3,2) = gu(2,3)
 
-  gu=gd !test
+  !gu=gd !test
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   call yaml_map('Angles',[alpha,beta,gamma]*180.0_dp*oneopi)
   call yaml_map('Contravariant Metric',gu)
+  call yaml_map('Covariant Metric',gd)
+  call yaml_map('Product of the two',matmul(gu,gd))
+
+  unit=200
+  call f_open_file(unit=unit,file='references.dat')
 
   if (ixc==0) denval=0.d0
 
@@ -758,7 +764,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -795,7 +801,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=FUNC_COSINE!FUNC_EXP_COSINE
+     ifx=FUNC_EXP_COSINE
      ifz=FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
@@ -808,7 +814,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      by=2.d0!real(nu,kind=8)
      bz=2.d0!real(nu,kind=8)
 
-     
+     call f_assert(alpha-onehalf*pi,id='Alpha angle invalid')
+     call f_assert(gamma-onehalf*pi,id='Gamma angle invalid for S BC')
      
      !non-periodic dimension
      !ay=length!4.d0*a
@@ -831,11 +838,11 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         call functions(x3,az,bz,fz,fz1,fz2,ifz)
         do i2=1,n02
            x2 = hy*real(i2-n02/2-1,kind=8)
-           call functions(x2,ay,by,fy,fz1,fy2,ify)
+           call functions(x2,ay,by,fy,fy1,fy2,ify)
            do i1=1,n01
               x1 = hx*real(i1-n01/2-1,kind=8)
               call functions(x1,ax,bx,fx,fx1,fx2,ifx)
-              potential(i1,i2,i3) =  -16.d0*datan(1.d0)*fx*fy*fz
+              potential(i1,i2,i3) =  -fourpi*fx*fy*fz
               density(i1,i2,i3) = -mu0**2*fx*fy*fz
               density(i1,i2,i3) = density(i1,i2,i3) + gu(1,1)*fx2*fy*fz+gu(2,2)*fx*fy2*fz+gu(3,3)*fx*fy*fz2
               density(i1,i2,i3) = density(i1,i2,i3) + 2.0_dp*(gu(1,2)*fx1*fy1*fz+gu(1,3)*fx1*fy*fz1+gu(2,3)*fx*fy1*fz1)
@@ -878,7 +885,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,'(2(1x,I8),2(1x,e22.15))') i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           z=real(i3,dp)*sin(beta)
+           write(unit,'(2(1x,i6),3(1x,1pe26.14e3))') &
+                i1,i3,z,density(i1,i2,i3),potential(i1,i2,i3)
         end do
      end do
 
@@ -957,7 +966,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      !hgrid=max(hx,hy,hz)
 
-     pi = 4.d0*atan(1.d0)
      a2 = a_gauss**2
      !mu0 = 1.e0_dp
 
@@ -996,7 +1004,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -1219,7 +1227,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -1255,8 +1263,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   call yaml_map('monopole',monopole)
   call yaml_map('dipole',dipole)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
+  call f_close(unit)
   ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
   ! possible. In that case the only possible comparison is between the serial and the parallel case
   ! To ease the comparison between the serial and the parallel case we add a random pot_ion
@@ -1289,8 +1296,49 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 end subroutine test_functions
 
 
+!> Purpose: Compute exponential integral E1(x)
+subroutine e1xb(x,e1)
+  implicit none
+  !Arguments
+  real(kind=8), intent(in) :: x   !< x  Argument of E1(x)
+  real(kind=8), intent(out) :: e1 !< E1 --- E1(x)  ( x > 0 )
+  !Local variables
+  real(kind=8), parameter :: ga=0.5772156649015328d0 !< EulerGamma
+  real(kind=8) :: r,t0,t
+  integer :: k,m
+
+  if (x.eq.0.0) then
+     e1=1.0d+300
+  else if (x.le.1.0) then
+     e1=1.0d0
+     r=1.0d0
+     do k=1,25
+        r=-r*k*x/(k+1.0d0)**2
+        e1=e1+r
+        if (abs(r) <= abs(e1)*1.0d-15) then 
+           exit
+        end if
+     end do
+      e1=-ga-dlog(x)+x*e1
+   else
+        m=20+int(80.0/x)
+        t0=0.0d0
+        do k=m,1,-1
+           t0=k/(1.0d0+k/(x+t0))
+        end do
+           t=1.0d0/(x+t0)
+           e1=dexp(-x)*t
+        endif
+        
+end subroutine e1xb
+      
+end program PSolver_Program
+
+
 !> Define the test functions
 subroutine functions(x,a,b,f,f1,f2,whichone)
+  use futile, dp => f_double
+  use numerics
   implicit none
   integer, intent(in) :: whichone   !< Choose the function
   real(kind=8), intent(in) :: x     !< Argument of the function
@@ -1299,12 +1347,21 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
   real(kind=8), intent(out) :: f1   !< The value of the first derivative
   real(kind=8), intent(out) :: f2   !< The value of the second derivative
   !local variables
-  real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
-  real(kind=8) :: length,frequency,nu,sigma,agauss
+  !Type of function
+  integer, parameter :: FUNC_CONSTANT = 1
+  integer, parameter :: FUNC_GAUSSIAN = 2
+  integer, parameter :: FUNC_GAUSSIAN_SHRINKED = 3
+  integer, parameter :: FUNC_COSINE = 4
+  integer, parameter :: FUNC_EXP_COSINE = 5
+  integer, parameter :: FUNC_SHRINK_GAUSSIAN = 6
+  integer, parameter :: FUNC_SINE = 7
+  integer, parameter :: FUNC_ATAN = 8
+  integer, parameter :: FUNC_ERF = 9
+
+  real(kind=8) :: r,r2,y,yp,ys,factor,g,h,g1,g2,h1,h2
+  real(kind=8) :: length,frequency,nu,sigma,agauss,derf
 
   !f1 = 0.0_dp
-
-  pi = 4.d0*datan(1.d0)
   select case(whichone)
   case(FUNC_CONSTANT)
      !constant
@@ -1377,6 +1434,22 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      nu = length
      f=(datan(nu*x/length))**2
      f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2
+  case(FUNC_ERF)
+     !error function with a=sigma
+     factor=sqrt(2.d0/pi)/a
+     r=x
+     y=x/(sqrt(2.d0)*a)
+     if (abs(x)<=1.d-15) then
+        f=factor
+        f2=-sqrt(2.d0/pi)/(3.d0*a**3)
+     else
+        f=derf(y)/r
+        y=x*x
+        y=y/(2.d0*a**2)
+        g=dexp(-y)
+        h=1.d0/a**2+2.d0/x**2
+        f2=-factor*g*h+2.d0*f/x**2
+     end if
   case default
      !print *,"Unknow function:",whichone
      !stop
@@ -1384,42 +1457,3 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
   end select
 
 end subroutine functions
-
-
-!> Purpose: Compute exponential integral E1(x)
-subroutine e1xb(x,e1)
-  implicit none
-  !Arguments
-  real(kind=8), intent(in) :: x   !< x  Argument of E1(x)
-  real(kind=8), intent(out) :: e1 !< E1 --- E1(x)  ( x > 0 )
-  !Local variables
-  real(kind=8), parameter :: ga=0.5772156649015328d0 !< EulerGamma
-  real(kind=8) :: r,t0,t
-  integer :: k,m
-
-  if (x.eq.0.0) then
-     e1=1.0d+300
-  else if (x.le.1.0) then
-     e1=1.0d0
-     r=1.0d0
-     do k=1,25
-        r=-r*k*x/(k+1.0d0)**2
-        e1=e1+r
-        if (abs(r) <= abs(e1)*1.0d-15) then 
-           exit
-        end if
-     end do
-      e1=-ga-dlog(x)+x*e1
-   else
-        m=20+int(80.0/x)
-        t0=0.0d0
-        do k=m,1,-1
-           t0=k/(1.0d0+k/(x+t0))
-        end do
-           t=1.0d0/(x+t0)
-           e1=dexp(-x)*t
-        endif
-        
-end subroutine e1xb
-      
-end program PSolver_Program

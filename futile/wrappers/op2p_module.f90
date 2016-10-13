@@ -1208,6 +1208,7 @@ module overlap_point_to_point
        use yaml_strings
        use wrapper_MPI
        use dynamic_memory
+       use f_utils, only: f_assert
        implicit none
        !Arguments
        integer, intent(in) :: iproc,nproc
@@ -1215,18 +1216,19 @@ module overlap_point_to_point
        type(OP2P_data), intent(inout) :: OP2P
        logical :: passed
        !local variables
+       logical :: shared=.true.
        real(wp), parameter :: tol_maxdiff=1.e-10_wp
        integer :: norbp,prc
        real(wp) :: etot,tel,trm
        type(OP2P_iterator) :: iter
-       real(wp), dimension(:,:), allocatable :: data,res
+       !real(wp), dimension(:,:), allocatable :: data,res
+       real(wp), dimension(:,:), pointer :: data,res !< these are declared as pointer to test the simgrid implementation
 
        passed=.false.
        norbp=sum(OP2P%nobj_par(iproc,:))
 
-       !allocate and fill the data
-       data=f_malloc([OP2P%ndim,norbp],id='data')
-       res=f_malloc0([OP2P%ndim,norbp],id='res')
+       data=f_malloc_ptr([OP2P%ndim,norbp],id='data')!,shared=shared)
+       res=f_malloc0_ptr([OP2P%ndim,norbp],id='res')!,shared=shared)
 
        !To avoid too big numbers during the test.
        obj_delta = 1.d0/real(sum(OP2P%nobj_par),wp)
@@ -1260,8 +1262,11 @@ module overlap_point_to_point
 !!$       passed=maxdiff < abs(data_val(1,1,1) - data_val(2,1,1)) + tol_maxdiff
        passed=maxdiff < tol_maxdiff
 
-       call f_free(data)
-       call f_free(res)
+       call f_free_ptr(data)!,shared=shared)
+       call f_free_ptr(res)!,shared=shared)
+
+       call f_assert(.not. associated(data),id='Error, pointer "data" is still associated')
+       call f_assert(.not. associated(res),id='Error, pointer "data" is still associated')
 
      end function OP2P_test
 
