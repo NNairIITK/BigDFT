@@ -41,3 +41,8 @@ Patterns to ignore:
   - llocations
   - MB
   - Point
+
+Generalized_PSolver:
+  itermax: 150.0
+PS_Check:
+  itermax: 150.0

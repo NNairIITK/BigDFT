@@ -361,6 +361,11 @@ contains
     call MPI_COMM_GET_ATTR(comm_,MPI_TAG_UB,mpimaxtag,flag,ierr)
    
     !error check
+    if (ierr /= MPI_SUCCESS .or. .not. flag) then
+       call f_err_throw('An error in calling to mpimaxtag occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
   end function mpimaxtag
 
 !!! PSolver n1-n2 plane mpi partitioning !!!
