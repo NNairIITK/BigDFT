@@ -21,7 +21,14 @@
 
 !> Module defining the basic operations with sparse matrices (initialization)
 module sparsematrix_init
+  use f_utils
+  use wrapper_MPI
+  use dictionaries, only: f_err_throw
+  use yaml_output
+  use dynamic_memory, only: f_routine,f_release_routine
   use sparsematrix_base
+  use wrapper_linalg
+  use time_profiling
   implicit none
 
   private
@@ -259,7 +266,8 @@ module sparsematrix_init
 
 
     subroutine init_sparse_matrix_matrix_multiplication_new(iproc, nproc, comm, norb, norbp, isorb, nseg, &
-               nsegline, istsegline, keyv, keyg, sparsemat)
+         nsegline, istsegline, keyv, keyg, sparsemat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -570,6 +578,7 @@ module sparsematrix_init
     end subroutine init_sparse_matrix_matrix_multiplication_new
 
     subroutine init_line_and_column(nvctrp, isvctr, nseg, keyv, keyg, line_and_column)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -605,6 +614,7 @@ module sparsematrix_init
 
     !> Calculates the offset of a parallel distribution for each MPI task
     function get_offset(iproc, nproc, comm, n) result(is)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -647,6 +657,7 @@ module sparsematrix_init
 
 
     subroutine nseg_perline(norb, lut, nseg, nvctr, nsegline)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -690,6 +701,7 @@ module sparsematrix_init
 
 
     subroutine keyg_per_line(norb, nseg, iline, istseg, lut, ivctr, keyg)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -794,7 +806,8 @@ module sparsematrix_init
 
     !> Currently assuming square matrices
     subroutine init_sparse_matrix(iproc, nproc, comm, norbu, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
-               init_matmul, nspin, geocode, cell_dim, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
+         init_matmul, nspin, geocode, cell_dim, norbup, isorbu, store_index, on_which_atom, allocate_full, print_info)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1235,6 +1248,7 @@ module sparsematrix_init
 
 
     subroutine determine_sequential_length_new2(npt, ispt, nseg, nline, keyv, keyg, smat, istsegline, nseq, nseq_per_line)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1313,6 +1327,7 @@ module sparsematrix_init
     !! accelerate the loop (useful if this routine is called several times with
     !! steadily increasing values of iel).
     subroutine get_line_and_column(iel, nseg, keyv, keyg, iseg_start, iline, icolumn)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1364,6 +1379,7 @@ module sparsematrix_init
 
 
     subroutine get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, nout)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1528,6 +1544,7 @@ module sparsematrix_init
     subroutine get_arrays_for_sequential_acces(norb, norbp, isorb, nseg, &
                nsegline, istsegline, keyg, sparsemat, nseq, &
                ivectorindex)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1570,6 +1587,7 @@ module sparsematrix_init
 
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1718,7 +1736,8 @@ module sparsematrix_init
 
 
     subroutine determine_consecutive_values(nout, nseq, ivectorindex, onedimindices_new, &
-               nconsecutive_max, consecutive_lookup)
+         nconsecutive_max, consecutive_lookup)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1843,7 +1862,8 @@ module sparsematrix_init
 
 
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
-               indices_extract_sequential)
+         indices_extract_sequential)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2141,6 +2161,7 @@ module sparsematrix_init
     subroutine bigdft_to_sparsebigdft(iproc, nproc, comm, ncol, nvctr, nseg, keyg, smat, &
          init_matmul, nspin, geocode, cell_dim, on_which_atom, nseg_mult, nvctr_mult, keyg_mult)
       use f_utils
+      use dynamic_memory
       implicit none
       integer,intent(in) :: iproc, nproc, comm, ncol, nvctr, nseg
       !logical,intent(in) :: store_index
@@ -2289,6 +2310,7 @@ module sparsematrix_init
 
     !> Assign the values of a sparse matrix in CCS format to a sparse matrix in the BigDFT format
     subroutine ccs_values_to_bigdft(ncol, nnonzero, row_ind, col_ptr, smat, val, mat)
+      use dynamic_memory
       implicit none
       integer,intent(in) :: ncol, nnonzero
       integer,dimension(nnonzero),intent(in) :: row_ind
@@ -2333,6 +2355,7 @@ module sparsematrix_init
 
 
     subroutine read_ccs_format(filename, ncol, nnonzero, col_ptr, row_ind, val)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2407,6 +2430,7 @@ module sparsematrix_init
     !! given distribution of the orbitals (or a similar quantity), this subroutine
     !! redistributes the orbitals such that the load unbalancing is optimal
     subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2682,6 +2706,7 @@ module sparsematrix_init
     !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
     !! It requires that each column has at least one non-zero element.
     subroutine sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr !< number of columns/rows
@@ -2723,6 +2748,7 @@ module sparsematrix_init
     !> Converts the sparse matrix descriptors from the CCS format to the ones from the BigDFT format.
     !! It required that each column has at least one non-zero element.
     subroutine ccs_to_sparsebigdft_short(nfvctr, nvctr, row_ind, col_ptr, nseg, keyv, keyg)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr !< number of columns/rows
@@ -2815,6 +2841,7 @@ module sparsematrix_init
 
     ! Distribute iterations ranging from istart to iend equally to nthread threads
     subroutine distribute_on_threads(istart, iend, nthread, ise)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2872,7 +2899,8 @@ module sparsematrix_init
 
 
     subroutine sparse_matrix_metadata_init(geocode, cell_dim, nfvctr, nat, ntypes, units, &
-               nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom, smmd)
+         nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom, smmd)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       character(len=1),intent(in) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
@@ -2923,7 +2951,8 @@ module sparsematrix_init
 
 
     subroutine init_matrix_taskgroups(iproc, nproc, comm, parallel_layout, smat, &
-        ind_minx, ind_maxx, ind_trans_minx, ind_trans_maxx, iirow, iicol)
+         ind_minx, ind_maxx, ind_trans_minx, ind_trans_maxx, iirow, iicol)
+      use dynamic_memory
       implicit none
 
       ! Caling arguments
@@ -4149,6 +4178,7 @@ module sparsematrix_init
     !! and produces a symmetric sparsity pattern with these parameters.
     subroutine sparse_matrix_init_fake(iproc, nproc, comm, nfvctr, nseg, nvctr, smat)
       use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -4267,6 +4297,7 @@ module sparsematrix_init
     end subroutine keyv_init_ext
 
     subroutine keyg_init_ext(norb, nseg, nfvctr, nvctr, nsegline, istsegline, keyv, nvctr_per_segment, keyg)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: norb, nseg, nfvctr, nvctr
@@ -4410,6 +4441,7 @@ module sparsematrix_init
 
 
     function check_symmetry(smat)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -4451,6 +4483,7 @@ module sparsematrix_init
 
 
     subroutine init_transposed_lookup_local(smat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -4496,6 +4529,7 @@ module sparsematrix_init
                nfvctr, nvctr, nbuf_mult, init_matmul, smat, &
                nextra, nbuf_extra, init_matmul_extra, smat_extra)
       use f_random!, only: builtin_rand
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nbuf_mult
@@ -4717,6 +4751,7 @@ module sparsematrix_init
 
 
     subroutine add_buffer_region(iproc, nproc, comm, ii, jj, nbuf, nfvctr, nvctr, nnonzero_buf, nonzero_buf)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, ii, jj, nbuf, nfvctr, nvctr
@@ -5030,6 +5065,7 @@ module sparsematrix_init
 
 
    subroutine calculate_nonzero_simple(ncol, nvctr, nseg, keyg, nonzero)
+     use dynamic_memory
      implicit none
 
      ! Calling arguments

@@ -20,7 +20,12 @@
 
 
 module matrix_operations
-    use sparsematrix_base
+  use sparsematrix_base
+  use dictionaries, only: f_err_throw
+  use time_profiling
+  use wrapper_mpi
+  use wrapper_linalg
+  use f_utils
     implicit none
 
     private
@@ -60,6 +65,7 @@ module matrix_operations
         use ice, only: inverse_chebyshev_expansion_new
         use foe_base, only: foe_data
         use yaml_output
+        use dynamic_memory
         implicit none
         
         ! Calling arguments
@@ -1133,6 +1139,7 @@ module matrix_operations
                  amat_seq, bmatp, power, &
                  max_error, mean_error, dmat_seq, cmatp)
         use sparsematrix, only: sparsemm_new
+        use dynamic_memory
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, nseq, nout, power
         type(sparse_matrix) :: smat
@@ -1196,6 +1203,7 @@ module matrix_operations
                  norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
                  smat, max_error, mean_error)
         use yaml_output
+        use dynamic_memory
         implicit none
         
         ! Calling arguments
@@ -1380,6 +1388,7 @@ module matrix_operations
 
       subroutine check_accur_overlap_minus_one(iproc,nproc,comm,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
                  smat,max_error,mean_error)
+        use dynamic_memory
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, power
         real(kind=mp),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
@@ -1440,6 +1449,7 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel_new(iproc, nproc, comm, ovrlp, smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -1666,6 +1676,7 @@ module matrix_operations
 
 
       subroutine first_order_taylor_sparse_new(power, smat, ovrlpp, inv_ovrlpp)
+        use dynamic_memory
         implicit none
         !!integer,intent(in) :: norb, isorb, norbp, power
         !!real(kind=mp),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -1769,6 +1780,7 @@ module matrix_operations
 
 
       subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
+        use dynamic_memory
         implicit none
         integer,intent(in) :: norb
         real(kind=mp),dimension(norb,norb),intent(inout) :: inv_ovrlp
@@ -1804,6 +1816,8 @@ module matrix_operations
 
       subroutine overlap_plus_minus_one_half_exact(iproc,nproc,comm,norb,blocksize,plusminus,inv_ovrlp_half,smat)
         use parallel_linalg, only: dgemm_parallel, dsyev_parallel
+        use f_utils
+        use dynamic_memory
         implicit none
         integer,intent(in) :: iproc,nproc,comm,norb,blocksize
         real(kind=mp),dimension(norb,norb) :: inv_ovrlp_half
@@ -2061,6 +2075,7 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel(iproc, nproc, comm, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2125,6 +2140,7 @@ module matrix_operations
 
       subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2165,6 +2181,7 @@ module matrix_operations
       subroutine max_matrix_diff_parallel(iproc, nproc, comm, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2223,6 +2240,7 @@ module matrix_operations
       subroutine max_matrix_diff_parallel_new(iproc, nproc, comm, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2306,6 +2324,7 @@ module matrix_operations
                  inv_ovrlp_half, inv_ovrlp_half_)
         use sparsematrix_init, only: matrixindex_in_compressed
         use sparsematrix, only: synchronize_matrix_taskgroups
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2604,6 +2623,7 @@ module matrix_operations
     subroutine calculate_S_minus_one_half_onsite(iproc, nproc, comm, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: extract_taskgroup
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2701,6 +2721,7 @@ module matrix_operations
                                    deallocate_matrices
       use sparsematrix, only: matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
       use yaml_output
+      use dynamic_memory
       implicit none
 
       ! Calling arguments

@@ -21,7 +21,9 @@
 
 !> Determination of the Fermi level for the density matrix
 module fermi_level
+  use dictionaries, only: f_err_throw
   use sparsematrix_base
+  use wrapper_linalg
   implicit none
 
   private
@@ -51,6 +53,7 @@ module fermi_level
     
     !> Initialize the internal variables
     subroutine init_fermi_level(target_charge, ef, f, bisection_shift, ef_interpol_chargediff, ef_interpol_det, verbosity)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -107,6 +110,7 @@ module fermi_level
 
 
     subroutine determine_fermi_level(iproc, f, sumn, ef, info)
+      use dynamic_memory
       use yaml_output
       implicit none
 

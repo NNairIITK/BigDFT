@@ -22,6 +22,10 @@
 !> Module Inverse Chebyshev Expansion
 module ice
   use sparsematrix_base
+  use dynamic_memory
+  use yaml_output
+  use dictionaries, only: f_err_throw
+  use time_profiling
   implicit none
 
   private
