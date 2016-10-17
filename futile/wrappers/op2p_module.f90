@@ -383,6 +383,7 @@ module overlap_point_to_point
        use dynamic_memory
        use wrapper_MPI
        use yaml_strings
+       use dictionaries, only: f_err_throw
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
        logical, intent(inout) :: symmetric
@@ -395,7 +396,7 @@ module overlap_point_to_point
        !local variables
        logical :: nn
        integer :: igroup,icount,icountmax,iprocgrs,iprocgrr,jproc,igr,nobjp,nprocgr
-       integer :: istep,nsteps,isobj,iobj_local,i,i_stat
+       integer :: istep,nsteps,isobj,iobj_local,i,i_stat,maxtag
        integer, dimension(:,:,:), allocatable :: iprocpm1
 
        call nullify_OP2P_data(OP2P)
@@ -409,6 +410,14 @@ module overlap_point_to_point
        OP2P%ndim=ndim
        OP2P%mpi_comm=mpi_comm
        OP2P%nearest_neighbor=nn
+
+       !check if the maximum tag would create problems
+       maxtag=nproc
+       if (symmetric) maxtag=maxtag+nproc
+       if (maxtag > mpimaxtag(OP2P%mpi_comm)) then
+          call f_err_throw('Maximal tag "'+maxtag+'" is outside the allowed range',&
+               err_name='BIGDFT_RUNTIME_ERROR')
+       end if
 
        OP2P%nobj_par=f_malloc_ptr([0.to.nproc-1,1.to.ngroup],id='nobj_par')
        call f_memcpy(src=nobj_par,dest=OP2P%nobj_par)

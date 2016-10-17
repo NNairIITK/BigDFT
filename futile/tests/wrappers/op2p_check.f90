@@ -12,7 +12,7 @@ program OP2P_check
   use wrapper_MPI
   implicit none
   logical :: symmetric,nearest_neighbor,symfalse
-  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj,nij_loc,nij_glob,i,j
+  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj,nij_loc,nij_glob,i,j,ndimp,isdim
   integer :: iorb_glb,jorb_glb
   integer, dimension(:), allocatable :: nobj,nobj_p
   integer, dimension(:,:), allocatable :: nobj_par
@@ -21,6 +21,7 @@ program OP2P_check
   type(OP2P_iterator) :: iter_outer,iter_inner
   type(f_progress_bar) :: bar
   real(f_double), dimension(:,:), allocatable :: data,res,rho_i_data,v_i_data,k_ij,v_i_data_res
+  real(f_double), dimension(:,:), allocatable :: v_i_dist
 
   call f_lib_initialize()
 
@@ -95,7 +96,12 @@ program OP2P_check
 
   call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
 
+  call calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim)
  
+  call yaml_map('Ndimp',[ndimp,isdim,iproc])
+  call mpibarrier()
+  call yaml_flush_document()
+
   nij_glob=norb*norb !too much for the moment
   nij_loc=norbp*maxval(nobj_par)
 
@@ -106,14 +112,18 @@ program OP2P_check
   !let us now identify a template for the calculation of the coupling matrix
   k_ij=f_malloc0([nij_glob,nij_glob],id='kij')
 
+  !also the array of distributed potentials is needed
+  !here we store the potentials which are built little by little
+  v_i_dist=f_malloc([ndimp,nij_glob],id='v_i_dist')
+
   !again initialize the data, use no res for the moment
   data=f_malloc([ndim,norbp],id='data')
   res=f_malloc0([ndim,norbp],id='res')
 
   !here we should put the max (so for the moment we assume norbp*nproc=norb)
   rho_i_data=f_malloc([ndim,nij_loc],id='rho_i_data')
-  V_i_data=f_malloc([ndim+1,nij_loc],id='V_i_data')
-  V_i_data_res=f_malloc([ndim+1,nij_loc],id='V_i_data_res')
+  V_i_data=f_malloc([ndim+2,nij_loc],id='V_i_data')
+  V_i_data_res=f_malloc([ndim+2,nij_loc],id='V_i_data_res')
     
   
   data=1.0_f_double
@@ -138,16 +148,18 @@ program OP2P_check
      jorb_glb=iter_outer%phi_j%id_glb(iter_outer%isloc_j)
      iorb_glb=iter_outer%phi_i%id_glb(iter_outer%isloc_i)
 
-     call OP2P_unitary_test(mpiworld(),mpirank(),nproc,1,ndim+1,nobj_p,symfalse,nearest_neighbor,assert=.true.)
+     call OP2P_unitary_test(mpiworld(),mpirank(),nproc,1,ndim+2,nobj_p,symfalse,nearest_neighbor,assert=.true.)
        
           !first initialize the OP2P data
-     call initialize_OP2P_data(OP2P_inner,mpiworld(),mpirank(),nproc,1,ndim+1,nobj_p,0,symfalse,nearest_neighbor)
+     call initialize_OP2P_data(OP2P_inner,mpiworld(),mpirank(),nproc,1,ndim+2,nobj_p,0,symfalse,nearest_neighbor)
 
      !let us initialize two different OP2P objects, for the communication
      call set_OP2P_iterator(iproc,OP2P_inner,iter_inner,nij_loc,v_i_data,v_i_data_res)
 
      !call set_OP2P_iterator(iproc,OP2P_metadata,iter_inner,nij_loc,v_i_data,v_i_data_res)
 
+     !this loop should be modified into a mpi_alltoallv, but we do not know
+     !if all the prcesses participate to the calculation
      OP2P_inner_loop: do
         !call OP2P_communication_step(iproc,OP2P_metadata,iter_metadata)
         call OP2P_communication_step(iproc,OP2P_inner,iter_inner)
@@ -156,11 +168,22 @@ program OP2P_check
         call fill_coupling_matrix(ndim,iter_inner%isloc_i,iter_inner%isloc_j,&
              iter_inner%nloc_i,iter_inner%nloc_j,&
              iter_inner%phi_i,iter_inner%phi_j,&
-             nij_loc,nij_glob,iorb_glb-1,jorb_glb-1,norb,&
-             rho_I_data,k_ij)
+             nij_loc,nij_glob,iorb_glb-1,jorb_glb-1,norb,ndimp,isdim,&
+             rho_I_data,k_ij,v_i_dist)
         
      end do OP2P_inner_loop
      call free_OP2P_data(OP2P_inner)
+
+     !here we might again fill the coupling matrix in the distributed sense
+     !calculate the coupling matrix
+     call f_zero(coupl)
+     !here we only have the diagonal
+
+     do i=1,ndim
+        coupl=coupl+phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+2)+1)
+     end do
+
+
      if (iproc==0) then
         call dump_progress_bar(bar,iter_outer%ncalls) !tmp
      end if
@@ -185,7 +208,10 @@ program OP2P_check
   if (iproc==0) then
      call yaml_map('K_IJ',k_ij)
      call yaml_map('Total sum',sum(k_ij))
+     call yaml_map('Dist',sum(v_i_dist,dim=1))
   end if
+
+
 
   call free_OP2P_data(OP2P_outer)
 
@@ -194,6 +220,7 @@ program OP2P_check
   call f_free(rho_i_data)
   call f_free(v_i_data)
   call f_free(v_i_data_res)
+  call f_free(v_i_dist)
   call f_free(k_ij)
   call f_free(nobj_par)
   call f_free(nobj_p)
@@ -264,6 +291,34 @@ subroutine OP2P_check_options(parser)
 
 end subroutine OP2P_Check_options
 
+subroutine calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim)
+  use futile
+  implicit none
+  integer, intent(in) :: ndim,nproc,iproc
+  integer, intent(out) :: ndimp,isdim
+  !local variables
+  integer :: jproc,i
+  integer, dimension(:), allocatable :: ndim_p
+
+  ndim_p=f_malloc0(0.to.nproc-1, id='ndim_p')
+
+  do i=0,ndim-1
+     jproc=modulo(i,nproc)
+     call f_increment(ndim_p(jproc))
+  end do
+
+  !verify
+  call f_assert(sum(ndim_p)==ndim,id='Total partition of ndim failed')
+
+  isdim=0
+  !calculate the shift
+  do jproc=0,iproc-1
+     call f_increment(isdim,inc=ndim_p(jproc))
+  end do
+  ndimp=ndim_p(iproc)
+  call f_free(ndim_p)
+
+end subroutine calculate_ndimp_and_isdim
 
 subroutine prepare_rho_and_v(ndim,norbp,norb,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
      ncouples_local,ncouples_global,&
@@ -273,7 +328,7 @@ subroutine prepare_rho_and_v(ndim,norbp,norb,isloc_i,isloc_j,nloc_i,nloc_j,phi_i
   implicit none
   integer, intent(in) :: ndim,isloc_i,isloc_j,nloc_i,nloc_j,ncouples_global,ncouples_local,norbp,norb
   real(f_double), dimension(ndim,ncouples_local),intent(inout) :: rho_I_data
-  real(f_double), dimension(ndim+1,ncouples_local),intent(inout) :: v_i_data
+  real(f_double), dimension(ndim+2,ncouples_local),intent(inout) :: v_i_data
   type(local_data), intent(inout) :: phi_i,phi_j
   !local variables
   real(f_double), parameter :: factor=5.0_f_double
@@ -298,22 +353,24 @@ subroutine prepare_rho_and_v(ndim,norbp,norb,isloc_i,isloc_j,nloc_i,nloc_j,phi_i
         iorb_glb=phi_i%id_glb(iorb)
 
         !add at the end of the v_i_data the information about the id of the couple
-        v_i_data(ndim+1,I_loc)=real(iorb_glb+(jorb_glb-1)*norb,f_double)
-        print *,'metadata',iorb_glb+(jorb_glb-1)*norb
+        v_i_data(ndim+1,I_loc)=real(iorb_glb,f_double)
+        v_i_data(ndim+2,I_loc)=real(jorb_glb,f_double)
+        print *,'metadata',iorb_glb,jorb_glb
      end do
   end do
 end subroutine prepare_rho_and_v
 
 subroutine fill_coupling_matrix(ndim,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
-     ncouples_local,ncouples_global,iglob_shift,jglob_shift,norb,&
-     rho_I_data,k_ij)
+     ncouples_local,ncouples_global,iglob_shift,jglob_shift,norb,ndimp,&
+     isdim,rho_I_data,k_ij,v_i_dist)
   use futile
   use overlap_point_to_point
   implicit none
   integer, intent(in) :: ndim,isloc_i,isloc_j,nloc_i,nloc_j,ncouples_global,ncouples_local
-  integer, intent(in) :: iglob_shift,jglob_shift,norb
+  integer, intent(in) :: iglob_shift,jglob_shift,norb,ndimp,isdim
   real(f_double), dimension(ndim,ncouples_local),intent(inout) :: rho_I_data
   real(f_double), dimension(ncouples_global,ncouples_global), intent(inout) :: k_ij
+  real(f_double), dimension(ndimp,ncouples_global), intent(inout) :: v_i_dist
   type(local_data), intent(inout) :: phi_i,phi_j
   integer :: ic,jc,i,ishift,jshift,jc_glb,ic_glb,iorbi,iorbj,jorbi,jorbj
   real(f_double) :: coupl
@@ -328,8 +385,9 @@ subroutine fill_coupling_matrix(ndim,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
         call f_zero(coupl)
         !here we only have the diagonal
         do i=1,ndim
-           coupl=coupl+phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+1)+1)
+           coupl=coupl+phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+2)+1)
         end do
+
 
 !!$        jorbj=(jc-1)/ncouples_local+1
 !!$        iorbj=(jc-(jorbj-1)*ncouples_local)+iglob_shift
@@ -344,15 +402,28 @@ subroutine fill_coupling_matrix(ndim,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
 !!$        ic_glb=iorbi+norb*(jorbi-1)!+phi_i%id_glb(ic)
 
         !retrieve address associated to the provided couple
-        jc_glb=int(phi_j%data(ndim+1+jshift))
-        ic_glb=int(phi_i%data(ndim+1+ishift))
+        iorbi=int(phi_i%data(ndim+1+ishift))
+        jorbi=int(phi_i%data(ndim+2+ishift))
+        iorbj=int(phi_j%data(ndim+1+jshift))
+        jorbj=int(phi_j%data(ndim+2+jshift))
+        
+        jc_glb=iorbj+(jorbj-1)*norb
+        ic_glb=iorbi+(jorbi-1)*norb
 
-        !print *,'metadata_return',jc_glb,ic_glb,coupl
+        !store in the distributed array the potentials 
+        !of the couples which have been calculalted already
+        do i=1,ndimp
+           v_i_dist(i,jc_glb)=phi_j%data(i+jshift+isdim)
+        end do
 
+        print *,'metadata_return',iorbi,jorbi,iorbj,jorbj
+        print *,'matrix indices',ic_glb,jc_glb
         k_ij(ic_glb,jc_glb)=k_ij(ic_glb,jc_glb)+coupl
-       !k_ij(jc_glb,ic_glb)=k_ij(jc_glb,ic_glb)+coupl
-       
-        !k_ij(I_glob,I_glob)=coupl
+!!$        !we might do that only for the steps after the first
+!!$        !invert iorb and jorb
+!!$        ic_glb=jorbi+(iorbi-1)*norb
+!!$        jc_glb=jorbj+(iorbj-1)*norb
+!!$        k_ij(jc_glb,ic_glb)=k_ij(jc_glb,ic_glb)+coupl
      end do
   end do
 end subroutine fill_coupling_matrix

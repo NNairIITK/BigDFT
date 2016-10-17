@@ -26,7 +26,7 @@
 
 #include "utils.h"
 
-#include "smpi.h"
+/*#include "smpi.h"*/
 
 #ifndef HAVE_STRNDUP
 char* strndup(const char *src, size_t len);
@@ -159,7 +159,8 @@ void FC_FUNC(bindfree, BINDFREE)(long long int * fromadd)
 {
   void *from = (void*)*fromadd;
   /*printf("\n test long address = %p %lli\n", (void*)from,*fromadd);*/
-  smpi_shared_free(from);
+//  smpi_shared_free(from);
+  free(from);
 }
 
 

@@ -55,7 +55,7 @@ Generalized_PSolver_LDADD += @LIB_FUTILE_LIBS@
 Fock_LDADD += @LIB_FUTILE_LIBS@
 endif
 
-CLEANFILES = malloc.prc time.prc PS_Check.out.yaml PSolver.report.yaml
+CLEANFILES = malloc.prc time.prc *.out.yaml *.report.yaml report_remarks *dat fort* log.yaml time.yaml
 
 PS_Check.out.yaml: PS_Check Generalized_PSolver
 	-$(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
@@ -75,11 +75,10 @@ PS_Basics.out.yaml: PS_Program PS_Exercise
 	-$(run_parallel) ./PS_Program -n [32,64,48] -g S >> $@
 	-$(run_parallel) ./PS_Program -n [32,64,48] -g W >> $@
 
+check: regtest report #PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
 
-check: PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
-
-report: PS_Basics.report.yaml PS_Check.report.yaml
-	python $(pythondir)/report.py
+report: 
+	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 PS_Basics.report.yaml: PS_Basics.ref.yaml PS_Basics.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
@@ -91,7 +90,32 @@ PS_Check.report.yaml: PS_Check.ref.yaml PS_Check.out.yaml
 		-r $< -d PS_Check.out.yaml -t $(srcdir)/tols.yaml \
 	        --output $@
 
+regtest: PS_Program PS_Exercise PS_Check Generalized_PSolver
+	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
 
 
-#	python $(top_srcdir)/tests/fldiff.py --mode=psolver --discrepancy=2.e-8 \
-#		PS_Check.out $(srcdir)/PS_Check.out.ref | tee fldiff.report
+define F_REGTEST_INSTRUCTIONS
+- PS_Basics:
+   binary: PS_Program
+   runs:
+    # broken - $(run_parallel) ./PS_Program -n [57,48,63] -g F > PS_Basics.out.yaml
+    - $(run_parallel) ./PS_Program -n [64,64,64] -g P > PS_Basics.out.yaml
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S >> PS_Basics.out.yaml
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [89,90,90] >> PS_Basics.out.yaml
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [60,90,90] >> PS_Basics.out.yaml
+    # broken - $(run_parallel) ./PS_Program -n [32,64,48] -g W >> PS_Basics.out.yaml
+- PS_Check:
+   runs:
+    - $(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
+    - $(run_parallel) ./PS_Check -n [64,64,64] -g P >> PS_Check.out.yaml
+    - $(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
+- Generalized_PSolver:
+   runs:
+    - |  #this is important to avoid misunderstanding with the yaml in the command line
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI -i '{environment: {input_guess: No}}'
+    - cat log.yaml > Generalized_PSolver.out.yaml
+    - |
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG -i '{environment: {input_guess: No}}'
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+endef
+export F_REGTEST_INSTRUCTIONS

@@ -177,6 +177,8 @@ program GPS_3D
    pot_check =f_malloc([n01,n02,n03,nspden,n_check],id='pot_check')
    rxyz   =f_malloc([3,nat],id='rxyz')
    radii   =f_malloc([nat],id='radii')
+   !here ndimsf was not initialized!!!
+   ndimsf=[n01,n02,n03]
    rhopotf =f_malloc([ndimsf(1),ndimsf(2),ndimsf(3),nspden],id='rhopotf')
    densityf =f_malloc([ndimsf(1),ndimsf(2),ndimsf(3),nspden],id='densityf')
    

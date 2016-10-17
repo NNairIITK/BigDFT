@@ -361,6 +361,11 @@ contains
     call MPI_COMM_GET_ATTR(comm_,MPI_TAG_UB,mpimaxtag,flag,ierr)
    
     !error check
+    if (ierr /= MPI_SUCCESS .or. .not. flag) then
+       call f_err_throw('An error in calling to mpimaxtag occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
   end function mpimaxtag
 
 !!! PSolver n1-n2 plane mpi partitioning !!!
@@ -2555,14 +2560,7 @@ contains
     else
        tag_=mpirank(mpi_comm)
     end if
-
-    !we may here check that the tag is not prohibited
-    if (MPI_TAG_UB > 0) then
-       if (tag_ < 0 .or. tag_ > MPI_TAG_UB) &
-            call f_err_throw('Tag "'+tag_+'" is outside the allowed range',&
-            err_id=ERR_MPI_WRAPPERS)
-    end if
-
+   
     verb=.false.
     if (present(verbose)) verb=verbose .and. dest /=mpirank_null()
 
@@ -2660,6 +2658,8 @@ contains
           tmpint = tmpint + offset*tmpsize
           tmpaddr= TRANSFER(tmpint, tmpaddr)
           call c_f_pointer(tmpaddr, a)
+       else
+          call c_f_pointer(buf, a)
        end if
     else
       call c_f_pointer(buf, a)
