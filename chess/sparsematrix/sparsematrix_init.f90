@@ -1328,6 +1328,7 @@ module sparsematrix_init
     !! steadily increasing values of iel).
     subroutine get_line_and_column(iel, nseg, keyv, keyg, iseg_start, iline, icolumn)
       use dynamic_memory
+      use yaml_strings
       implicit none
 
       ! Calling arguments
