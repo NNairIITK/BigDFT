@@ -178,6 +178,7 @@ program OP2P_check
      !calculate the coupling matrix
      call f_zero(coupl)
      !here we only have the diagonal
+
      do i=1,ndim
         coupl=coupl+phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+2)+1)
      end do

@@ -2560,14 +2560,7 @@ contains
     else
        tag_=mpirank(mpi_comm)
     end if
-
-    !we may here check that the tag is not prohibited
-    if (MPI_TAG_UB > 0) then
-       if (tag_ < 0 .or. tag_ > MPI_TAG_UB) &
-            call f_err_throw('Tag "'+tag_+'" is outside the allowed range',&
-            err_id=ERR_MPI_WRAPPERS)
-    end if
-
+   
     verb=.false.
     if (present(verbose)) verb=verbose .and. dest /=mpirank_null()
 

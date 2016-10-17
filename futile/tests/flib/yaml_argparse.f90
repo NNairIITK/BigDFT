@@ -18,9 +18,26 @@ program yaml_argparse_main
        "  {name: input, shortname: i, default: None,"//&
        "  help_string: Inpufile of Poisson Solver,"//&
        "  help_dict: {Allowed values: dictionary in yaml format (mapping)}}"
-  character(len=*), parameter :: inputs='-'//input1//f_cr//'-'//input2//f_cr//&
-       '-'//input3//f_cr//'-'//input4
-  character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
+  character(len=*), parameter :: input5=&
+       "  {name: boldify, shortname: b, default: None,"//&
+       "  help_string: Boldify the string as a test,"//&
+       "  help_dict: {Allowed values: string scalar}}"
+
+  character(len=*), parameter :: input6=&
+       "  {name: blinkify, shortname: l, default: None,"//&
+       "  help_string: Make the string blinking,"//&
+       "  help_dict: {Allowed values: string scalar}}"
+
+
+  character(len=*), parameter :: inputs=&
+       '-'//input1//f_cr//&
+       '-'//input2//f_cr//&
+       '-'//input3//f_cr//&
+       '-'//input4//f_cr//&
+       '-'//input5//f_cr//&
+       '-'//input6
+  character(len=1) :: geocode
+  character(len=32) :: bold,blink
   integer, dimension(3) :: ndims
   real(f_double), dimension(3) :: angdeg
   type(dictionary), pointer :: dict,options,input
@@ -30,13 +47,20 @@ program yaml_argparse_main
   call yaml_new_document()
 
   nullify(dict)
+  call f_zero(bold)
+  call f_zero(blink)
   call yaml_argparse(options,inputs)
   call yaml_map('Commandline options provided',options)
   ndims=options//'ndim'
   geocode=options//'geocode'
   angdeg=options//'angdeg'
+  bold=options .get. 'boldify'
+  blink=options .get. 'blinkify'
 !  input=options .get. 'input'
 !  call dict_copy(dict,input) !null if absent
+
+  if (len_trim(bold)>0) call yaml_map('Boldify test',yaml_bold(bold))
+  if (len_trim(blink)>0) call yaml_map('Blinkify test',yaml_bold(yaml_blink(blink)))
 
   call dict_free(options)
 !  call dict_free(dict)
