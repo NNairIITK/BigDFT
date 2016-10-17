@@ -589,7 +589,7 @@ args = parser.args()
 if args.configure_line is not None:
   cfg=''
   for i in args.configure_line:
-      cfg+='"'+i+'" '
+      if i is not None: cfg+='"'+i+'" '
   #scratch the BIGDFT_CFG environment variable
   import os
   os.environ[BIGDFT_CFG]=cfg
