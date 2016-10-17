@@ -1579,6 +1579,7 @@
           *  2 => Fortran binary in sparse format
           * 12 => Fortran binary in dense format
           * 22 => Fortran binary in both formats
+          *  4 => MPI native binary in sparse format
        default: 0
        EXCLUSIVE:
          0:  None
@@ -1588,6 +1589,7 @@
          2:  Fortran binary sparse
          12: Fortran binary dense
          22: Fortran binary sparse and dense
+         4:  MPI native binary sparse
      output_coeff:
        COMMENT: output KS coefficients; 0 no output, 1 formatted output
        DESCRIPTION: |
@@ -1689,6 +1691,7 @@
        COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
        DESCRIPTION: |
          Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
+         Currently only implemented and tested for nspin=1
          Possible values are:
          * 0 => no calculation
                     * 1 => Loewdin approach, however without explicit orthogonalization
@@ -1818,6 +1821,9 @@
      orthogonalize_ao:
        COMMENT: Orthogonalize the atomic orbitals used as input guess
        default: Yes    
+     reset_DIIS_history:
+       COMMENT: reset the DIIS history when starting the loop which optimizes the support functions
+       default: No
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
@@ -1930,6 +1936,13 @@
          or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
+     delta_pnrm:
+       COMMENT: stop the kernel optimization if the density/potential difference has decreased by this factor (deactivated if -1.0)
+       DESCRIPTION: |
+         stop the kernel optimization if the density/potential difference has decreased by this factor compared to the first iteration.
+         The feature is deactivated for a value of -1.0
+       default: -1.0
+       RANGE: [-1.0,1.0]
      pexsi_npoles:
        COMMENT: number of poles used by PEXSI
        DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
@@ -2200,7 +2213,7 @@ linear:
    check_matrix_compression: No
    correction_co_contra: Yes
    store_index: No
-   mixing_after_inputguess: 1
+   mixing_after_inputguess: 0
    kappa_conv: 0.1
    FOE_restart: 1
    hamapp_radius_incr: 6
@@ -2225,6 +2238,7 @@ linear:
    fix_basis: 1.0e-12
    correction_orthoconstraint: 0
    gnrm_ig: 1.e-1
+   reset_DIIS_history: yes
  lin_kernel:
    nstep: 10
    nit: 6
@@ -2235,6 +2249,7 @@ linear:
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0e-2
+   delta_pnrm: 0.1
  lin_basis_params:
    ao_confinement: -1.0
    confinement: -1.0
@@ -2245,12 +2260,23 @@ linear:
    C:  {nbasis: 4, rloc: 5.5}
    N:  {nbasis: 4, rloc: 5.5}
    O:  {nbasis: 4, rloc: 5.5}
+   F:  {nbasis: 4, rloc: 5.5}
    P:  {nbasis: 4, rloc: 6.0}
    S:  {nbasis: 4, rloc: 6.0}
    Cl: {nbasis: 4, rloc: 6.0}
    Na: {nbasis: 1, rloc: 7.5}
    K:  {nbasis: 1, rloc: 8.0}
    Sn: {nbasis: 4, rloc: 6.5}
+   Fe: {nbasis: 13, rloc: 8.0}
+ ig_occupation:
+   Fe:
+     3s: 2.0
+     3p: 6.0
+     3d:
+       up: 4.0
+       down: 2.0
+     4s: 2.0
+     4p: 0.0
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules
   geopt:

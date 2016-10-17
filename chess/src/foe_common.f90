@@ -1,6 +1,31 @@
+!> @file
+
+!!  
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module module_func
   use sparsematrix_base
-  !use module_base, only: safe_exp
+  use numerics
+  use dynamic_memory
+  use yaml_output
+  use dictionaries, only: f_err_throw
   implicit none
 
   private
@@ -108,6 +133,12 @@ end module module_func
 module foe_common
   use foe_base
   use sparsematrix_base
+  use dictionaries, only: f_err_throw
+  use wrapper_mpi
+  use yaml_output
+  use numerics
+  use f_utils
+  use time_profiling
   implicit none
 
   private
@@ -140,6 +171,7 @@ module foe_common
     subroutine get_chebyshev_expansion_coefficients(iproc, nproc, comm, A, B, N, func, cc, x_max_error,max_error,mean_error)
       use yaml_output
       use sparsematrix_init, only: distribute_on_tasks
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -605,6 +637,7 @@ module foe_common
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: transform_sparse_matrix
       use yaml_output
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -741,6 +774,7 @@ module foe_common
                matscal_compr, scale_factor, shift_value)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: transform_sparse_matrix
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ispin, i1shift
@@ -901,6 +935,7 @@ module foe_common
         use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                                 compress_matrix_distributed_wrapper, &
                                 sparsemm_new, transform_sparsity_pattern
+        use dynamic_memory
         implicit none
         ! Calling arguments
         integer,intent(in) :: iproc, nproc
@@ -1013,6 +1048,7 @@ module foe_common
                fscale_lowerbound, fscale_upperbound, eval_multiplicator, &
                npl_min, npl_max, npl_stride, betax)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1033,7 +1069,7 @@ module foe_common
       integer,intent(in),optional :: npl_min
       integer,intent(in),optional :: npl_max
       integer,intent(in),optional :: npl_stride
-      integer,intent(in),optional :: betax
+      real(kind=mp),intent(in),optional :: betax
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1072,7 +1108,7 @@ module foe_common
       npl_min_ = 10
       npl_max_ = 5000
       npl_stride_ = 10
-      betax_ = -500
+      betax_ = -1000.0_mp
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1132,6 +1168,7 @@ module foe_common
     subroutine accuracy_of_chebyshev_expansion(iproc, nproc, comm, npl, coeff, bound_lower, bound_upper, &
                h, func, x_max_error, max_error, mean_error)
       use sparsematrix_init, only: distribute_on_tasks
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1286,6 +1323,7 @@ module foe_common
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1560,7 +1598,7 @@ module foe_common
                       !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                       !!     x_max_error, max_error, mean_error)
                       cc = 0.d0
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                            muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,2,1), &
@@ -1730,6 +1768,7 @@ module foe_common
       !!use foe_common, only: scale_and_shift_matrix, evnoise, &
       !!                      check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1923,7 +1962,7 @@ module foe_common
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                            muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,2), &
@@ -2106,6 +2145,7 @@ module foe_common
 
 
     subroutine calculate_trace_distributed_new(iproc, nproc, comm, smatl, matrixp, trace)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
@@ -2152,6 +2192,7 @@ module foe_common
       use foe_base, only: foe_data, foe_data_get_real
       use yaml_output
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2254,7 +2295,7 @@ module foe_common
           end do
           if (error_ok) then
               do icalc=1,ncalc
-                  call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                  call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
@@ -2307,6 +2348,7 @@ module foe_common
 
 
     subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, comm, n, np, is)
+      use dynamic_memory
       implicit none
       ! Caling arguments
       integer,intent(in) :: iproc, nproc, comm, n
@@ -2338,6 +2380,7 @@ module foe_common
 
 
     subroutine chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2391,6 +2434,7 @@ module foe_common
 
     ! This routine is basically just here to get the profiling...
     subroutine chebyshev_coefficients_communicate(comm, n, cc)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2408,6 +2452,7 @@ module foe_common
 
     ! This routine is basically just here to get the profiling...
     subroutine penalty_communicate(nproc, comm, penalty)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2426,18 +2471,18 @@ module foe_common
 
 
 
-    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, betax, ncalc, func_name, &
+    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, &
                do_scaling, bounds_factor_low, bounds_factor_up, foe_verbosity, &
                smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
                smats, ovrlp_, ovrlp_minus_one_half_, efarr, fscale_arr, ex, &
                scaling_factor_low, scaling_factor_up, eval_multiplicator, eval_multiplicator_total, cc, max_errorx)
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, foe_verbosity
-      real(mp),intent(in) :: betax
       type(sparse_matrix),intent(in) :: smatm, smatl
       type(matrices),intent(in) :: ham_
       logical,intent(in) :: do_scaling
@@ -2513,7 +2558,7 @@ module foe_common
     
     
       if (iproc==0 .and. foe_verbosity>0) then
-          call yaml_map('beta for penaltyfunction',betax,fmt='(f7.1)')
+          call yaml_map('beta for penaltyfunction',foe_data_get_real(foe_obj,"betax"),fmt='(f7.1)')
           call yaml_sequence_open('determine eigenvalue bounds')
       end if
       bounds_loop: do

@@ -419,6 +419,11 @@ class BigDFTInstaller():
         print '--------- Linking line to build with package "'+self.package+'":'
         print "  "+includes+libs
 
+    def sourcefile_dump(self):
+        "Build the sourcefile that the installation of BigDFT require to run python modules and related activities"
+        sflist=[]
+        
+
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
         import os
@@ -487,61 +492,104 @@ class BigDFTInstaller():
         except:
             print 'Goodbye...'
 
-#Now follows the available actions, argparse might be called
-import argparse
+#import the uniparse module from futile
+##Now follows the available actions, argparse might be called
+##Now follows the available actions, argparse might be called
+import os
+import sys
+FUTILE_UNIPARSEDIR=os.path.abspath(
+    os.path.join(os.path.dirname(__file__),'futile','tests'))
+if FUTILE_UNIPARSEDIR not in sys.path: sys.path+=[FUTILE_UNIPARSEDIR]
+
+import UniParse
 
 #Redefine ArgumentParser to have the help message if no arguments
-class Installer_Parser(argparse.ArgumentParser):
+class Installer_Parser(UniParse.UniParser):
     def error(self, message):
         import sys
         sys.stderr.write('error: %s\n' % message)
         self.print_help()
         self.exit()
 
-parser = Installer_Parser(description='BigDFT suite Installer',
+parser=Installer_Parser(description='BigDFT suite Installer',
                             epilog='''
 If you want more help type "%(prog)s help"
 ------------------------------------------------
-For more information, visit www.bigdft.org''',
-                            formatter_class=argparse.RawDescriptionHelpFormatter)
+For more information, visit www.bigdft.org''')
 
-parser.add_argument('action',nargs='?',default='help',
+parser.option('action',nargs='?',default='help',
                     help='Action to be performed by the Installer.'
                     ' (default: %(default)s)',choices=['help']+[a for a in ACTIONS])
-parser.add_argument('package',nargs='?',default='spred',
+parser.option('package',nargs='?',default='spred',
                     help='Package to be built by the installer. (default: %(default)s)',
                     choices=CHECKMODULES)
-parser.add_argument('-f','--file',
+parser.option('-f','--file',
                    help='Use an alternative configuration file instead of the default configuration '
                     + 'given by the environment variable %s' % BIGDFT_CFG)
 
-group = parser.add_mutually_exclusive_group()
-group.add_argument("-v", "--verbose", action="store_true",help='Verbose output, default from a development branch')
-group.add_argument("-q", "--quiet", action="store_true",help='Verbosity disabled output, default from a development branch')
+parser.add_group(mutually_exclusive=True)
+parser.group_option("-v", "--verbose", action="store_true",help=
+                    'Verbose output, default from a development branch')
+parser.group_option("-q", "--quiet", action="store_true",help=
+                    'Verbosity disabled output, default from a development branch')
 
-parser.add_argument('-d','--debug',action='store_true',
-                   help='Verbose output, default from a development branch')
-parser.add_argument('-y','--yes',action='store_true',
-                   help='Answer yes to dialog questions')
-parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
-                   help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
+parser.option('-d','--debug',action='store_true',
+              help='Verbose output, default from a development branch')
+parser.option('-y','--yes',action='store_true',
+              help='Answer yes to dialog questions')
+parser.option('-c','--configure-line',remainder=True,
+              help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
+
+args = parser.args()
 
 
-
-###Define the possible actions
-##subparsers = parser.add_subparsers(title='The following actions are available',
-##                    dest='action',
-##                    help='Action to be performed by the Installer.')
-##for (k,v) in ACTIONS.items():
-##    subparsers.add_parser(k,help=v)
-##
-args = parser.parse_args()
+##Now follows the available actions, argparse might be called
+#import argparse
+#
+##Redefine ArgumentParser to have the help message if no arguments
+#class Installer_Parser(argparse.ArgumentParser):
+#    def error(self, message):
+#        import sys
+#        sys.stderr.write('error: %s\n' % message)
+#        self.print_help()
+#        self.exit()
+#
+#parser = Installer_Parser(description='BigDFT suite Installer',
+#                            epilog='''
+#If you want more help type "%(prog)s help"
+#------------------------------------------------
+#For more information, visit www.bigdft.org''',
+#                            formatter_class=argparse.RawDescriptionHelpFormatter)
+#
+#parser.add_argument('action',nargs='?',default='help',
+#                    help='Action to be performed by the Installer.'
+#                    ' (default: %(default)s)',choices=['help']+[a for a in ACTIONS])
+#parser.add_argument('package',nargs='?',default='spred',
+#                    help='Package to be built by the installer. (default: %(default)s)',
+#                    choices=CHECKMODULES)
+#parser.add_argument('-f','--file',
+#                   help='Use an alternative configuration file instead of the default configuration '
+#                    + 'given by the environment variable %s' % BIGDFT_CFG)
+#
+#group = parser.add_mutually_exclusive_group()
+#group.add_argument("-v", "--verbose", action="store_true",help='Verbose output, default from a development branch')
+#group.add_argument("-q", "--quiet", action="store_true",help='Verbosity disabled output, default from a development branch')
+#
+#parser.add_argument('-d','--debug',action='store_true',
+#                   help='Verbose output, default from a development branch')
+#parser.add_argument('-y','--yes',action='store_true',
+#                   help='Answer yes to dialog questions')
+#parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
+#                   help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
+#
+#
+#args = parser.parse_args()
 
 
 if args.configure_line is not None:
   cfg=''
   for i in args.configure_line:
-      cfg+='"'+i+'" '
+      if i is not None: cfg+='"'+i+'" '
   #scratch the BIGDFT_CFG environment variable
   import os
   os.environ[BIGDFT_CFG]=cfg

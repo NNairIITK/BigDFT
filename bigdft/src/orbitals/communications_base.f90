@@ -90,6 +90,7 @@ module communications_base
 
   !> Public routines
   public :: comms_linear_null
+  public :: comms_cubic_null
   public :: p2pComms_null
   public :: allocate_MPI_communication_arrays
   public :: allocate_local_comms_cubic
@@ -184,6 +185,24 @@ contains
     comms%window = 0
     comms%imethod_overlap = 0
   end subroutine nullify_comms_linear
+
+
+  pure function comms_cubic_null() result(comms)
+    implicit none
+    type(comms_cubic) :: comms
+    call nullify_comms_cubic(comms)
+  end function comms_cubic_null
+
+
+  pure subroutine nullify_comms_cubic(comms)
+    implicit none
+    type(comms_cubic),intent(inout) :: comms
+     nullify(comms%ncntd)
+     nullify(comms%ncntt)
+     nullify(comms%ndspld)
+     nullify(comms%ndsplt)
+     nullify(comms%nvctr_par)
+  end subroutine nullify_comms_cubic
 
 
   pure function p2pComms_null() result(comms)

@@ -13,25 +13,31 @@
 #include <config.inc>
 #endif
 
+module mpif_module
+  !do not put implicit none to avoid implicit declaration of
+  !datatypes in some MPI implementations
+  include 'mpif.h'      !< MPI definitions and datatypes
+end module mpif_module
 
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
   use time_profiling, only: TIMING_UNINITIALIZED
-  use yaml_strings, only: operator(//)
+  use yaml_strings !, only: operator(//)
   use f_precisions
   use f_refcnts
   use dictionaries, only: f_err_throw
+  use mpif_module
   implicit none
 
   ! MPI handling
 #ifdef HAVE_MPI2
   logical, parameter :: have_mpi2 = .true.  !< Flag to use in the code to switch between MPI1 and MPI2
 #else
-  integer :: MPI_IN_PLACE = 0               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
+  integer :: MPI_IN_PLACE               !< Fake MPI_IN_PLACE variable to allow compilation in sumrho.
   logical, parameter :: have_mpi2 = .false. !< Flag to use in the code to switch between MPI1 and MPI2
 #endif
 
-  include 'mpif.h'      !< MPI definitions and datatypes
+!  include 'mpif.h'      !< MPI definitions and datatypes, now within mpif_module
 
   logical :: mpi_thread_funneled_is_supported=.false. !< Control the OMP_NESTED based overlap, checked by bigdft_mpi_init below
 
@@ -209,7 +215,7 @@ contains
   end function mpi_environment_null
 
   subroutine release_mpi_environment(mpi_env)
-    use yaml_strings!, only: yaml_toa,operator(//),f_string
+!    use yaml_strings!, only: yaml_toa,operator(//),f_string
 !    use dictionaries, only: f_err_throw
     implicit none
     type(mpi_environment), intent(inout) :: mpi_env
@@ -337,6 +343,30 @@ contains
     call f_release_routine()
   end subroutine mpi_environment_set
 
+
+  function mpimaxtag(comm)
+    implicit none
+    integer, intent(in), optional :: comm
+    integer(MPI_ADDRESS_KIND) :: mpimaxtag
+    !local variables
+    logical :: flag
+    integer :: comm_,ierr
+
+    if (present(comm)) then
+       comm_=comm
+    else
+       comm_=mpiworld()
+    end if
+
+    call MPI_COMM_GET_ATTR(comm_,MPI_TAG_UB,mpimaxtag,flag,ierr)
+   
+    !error check
+    if (ierr /= MPI_SUCCESS .or. .not. flag) then
+       call f_err_throw('An error in calling to mpimaxtag occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+  end function mpimaxtag
 
 !!! PSolver n1-n2 plane mpi partitioning !!!
   !> This is exactly like mpi_environment_set but it always creates groups
@@ -571,7 +601,7 @@ contains
   contains
 
     subroutine check_ierr(ierr,message)
-      use yaml_strings, only: yaml_toa
+!      use yaml_strings, only: yaml_toa
       use dictionaries, only: f_err_throw
       implicit none
       integer, intent(in) :: ierr
@@ -782,7 +812,7 @@ contains
   subroutine mpi_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use dictionaries, only: f_err_throw,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
 
     call f_timing_category_group(tgrp_mpi_name,&
@@ -1366,7 +1396,7 @@ contains
   !! as a function of the arguments
   subroutine mpiallgatherv_d0(sendbuf,sendcount,recvbuf,recvcount,&
        recvcounts,displs,comm)
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
@@ -1377,7 +1407,7 @@ contains
   end subroutine mpiallgatherv_d0
   subroutine mpiallgatherv_d1(sendbuf,sendcount,recvbuf,recvcount,&
        recvcounts,displs,comm)
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
@@ -1388,7 +1418,7 @@ contains
   end subroutine mpiallgatherv_d1
   subroutine mpiallgatherv_d2d3(sendbuf,sendcount,recvbuf,recvcount,&
        recvcounts,displs,comm)
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
@@ -1400,7 +1430,7 @@ contains
 
   subroutine mpiallgatherv_i2(sendbuf,sendcount,recvbuf,recvcount,&
        recvcounts,displs,comm)
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
@@ -1496,7 +1526,7 @@ contains
   subroutine mpiallred_i1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     integer, dimension(:), intent(inout) :: sendbuf
     integer, dimension(:), intent(inout), optional :: recvbuf
@@ -1507,7 +1537,7 @@ contains
   subroutine mpiallred_i2(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     integer, dimension(:,:), intent(inout) :: sendbuf
     integer, dimension(:,:), intent(inout), optional :: recvbuf
@@ -1518,7 +1548,7 @@ contains
   subroutine mpiallred_i3(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     integer, dimension(:,:,:), intent(inout) :: sendbuf
     integer, dimension(:,:,:), intent(inout), optional :: recvbuf
@@ -1529,7 +1559,7 @@ contains
   subroutine mpiallred_l3(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     logical, dimension(:,:,:), intent(inout) :: sendbuf
     logical, dimension(:,:,:), intent(inout), optional :: recvbuf
@@ -1541,7 +1571,7 @@ contains
   subroutine mpiallred_r1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_refine
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     real, dimension(:), intent(inout) :: sendbuf
     real, dimension(:), intent(inout), optional :: recvbuf
@@ -1552,7 +1582,7 @@ contains
   subroutine mpiallred_r2(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     real, dimension(:,:), intent(inout) :: sendbuf
     real, dimension(:,:), intent(inout), optional :: recvbuf
@@ -1563,7 +1593,7 @@ contains
   subroutine mpiallred_r3(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     real, dimension(:,:,:), intent(inout) :: sendbuf
     real, dimension(:,:,:), intent(inout), optional :: recvbuf
@@ -1574,7 +1604,7 @@ contains
   subroutine mpiallred_r4(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     real, dimension(:,:,:,:), intent(inout) :: sendbuf
     real, dimension(:,:,:,:), intent(inout), optional :: recvbuf
@@ -1585,7 +1615,7 @@ contains
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     double precision, dimension(:), intent(inout) :: sendbuf
     double precision, dimension(:), intent(inout), optional :: recvbuf
@@ -1596,7 +1626,7 @@ contains
   subroutine mpiallred_d2(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     double precision, dimension(:,:), intent(inout) :: sendbuf
     double precision, dimension(:,:), intent(inout), optional :: recvbuf
@@ -1607,7 +1637,7 @@ contains
   subroutine mpiallred_d3(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     double precision, dimension(:,:,:), intent(inout) :: sendbuf
     double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
@@ -1618,7 +1648,7 @@ contains
   subroutine mpiallred_d4(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     double precision, dimension(:,:,:,:), intent(inout) :: sendbuf
     double precision, dimension(:,:,:,:), intent(inout), optional :: recvbuf
@@ -1629,7 +1659,7 @@ contains
   subroutine mpiallred_d5(sendbuf,op,comm,recvbuf)
     use dynamic_memory
     use dictionaries, only: f_err_throw!,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     double precision, dimension(:,:,:,:,:), intent(inout) :: sendbuf
     double precision, dimension(:,:,:,:,:), intent(inout), optional :: recvbuf
@@ -2143,7 +2173,7 @@ contains
 
   !> create a peer_to_peer group, to use RMA calls instead of send-receive
   function p2p_group(base_grp,p1,p2,p3) result(grp)
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in) :: base_grp
     integer, intent(in) :: p1,p2
@@ -2370,7 +2400,7 @@ contains
 
   subroutine mpi_get_to_allgatherv_double(sendbuf,sendcount,recvbuf,recvcounts,displs,comm,check_,window_)
     use dictionaries, only: f_err_throw,f_err_define
-    use yaml_strings, only: yaml_toa
+!    use yaml_strings, only: yaml_toa
     implicit none
     double precision,intent(in) :: sendbuf
     double precision,intent(inout) :: recvbuf
@@ -2530,7 +2560,7 @@ contains
     else
        tag_=mpirank(mpi_comm)
     end if
-
+   
     verb=.false.
     if (present(verbose)) verb=verbose .and. dest /=mpirank_null()
 

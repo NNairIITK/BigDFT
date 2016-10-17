@@ -136,6 +136,8 @@ module module_input_keys
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
      real(kind=8) :: precision_FOE_eigenvalues !< decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
      logical :: orthogonalize_ao !< orthogonalize the AO generated as input guess
+     logical :: reset_DIIS_history !< reset the DIIS history when starting the loop which optimizes the support functions
+     real(kind=8) :: delta_pnrm !<stop the kernel optimization if the density/potential difference has decreased by this factor
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -2173,6 +2175,8 @@ contains
           in%lin%correctionOrthoconstraint = val
        case (orthogonalize_ao)
           in%lin%orthogonalize_ao = val
+       case (RESET_DIIS_HISTORY)
+          in%lin%reset_DIIS_history = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2239,6 +2243,8 @@ contains
           in%lin%fscale = val
        case (COEFF_SCALING_FACTOR)
           in%lin%coeff_factor = val
+       case (DELTA_PNRM)
+          in%lin%delta_pnrm = val
        case (PEXSI_NPOLES)
           in%lin%pexsi_npoles = val
        case (PEXSI_MUMIN)
@@ -2749,6 +2755,7 @@ contains
     use m_ab6_kpoints
     use yaml_output
     use public_keys
+    use f_utils
     implicit none
     !Arguments
     integer, intent(in) :: iproc
@@ -2922,13 +2929,12 @@ contains
 
        in%kptv = f_malloc_ptr((/ 3, in%nkptv /),id='in%kptv')
 
-       ikpt = 0
+       ikpt = 1
+       in%kptv(:, ikpt) = dict // KPTV // (ikpt - 1)
        do i=1,nseg
           iseg_ = dict // ISEG // (i-1)
           ikpt=ikpt+iseg_
-          in%kptv(1,ikpt) = dict // KPTV // (ikpt - 1) // 0
-          in%kptv(2,ikpt) = dict // KPTV // (ikpt - 1) // 1
-          in%kptv(3,ikpt) = dict // KPTV // (ikpt - 1) // 2
+          in%kptv(:,ikpt) = dict // KPTV // i
           !interpolate the values
           do j=ikpt-iseg_+1,ikpt-1
              in%kptv(:,j)=in%kptv(:,ikpt-iseg_) + &
@@ -2944,18 +2950,17 @@ contains
 
        if (has_key(dict, BAND_STRUCTURE_FILENAME)) then
           in%band_structure_filename = dict // BAND_STRUCTURE_FILENAME
-          !since a file for the local potential is already given, do not perform ground state calculation
-          if (iproc==0) then
-             write(*,'(1x,a)')'Local Potential read from file, '//trim(in%band_structure_filename)//&
-                  ', do not optimise GS wavefunctions'
+          call f_file_exists(in%band_structure_filename, lstat)
+
+          if (lstat) then
+             !since a file for the local potential is already given,
+             !do not perform ground state calculation
+             in%nrepmax=0
+             in%itermax=0
+             in%itrpmax=0
+             call set_inputpsiid(INPUT_PSI_EMPTY,in%inputPsiId)
+             call set_output_denspot(OUTPUT_DENSPOT_NONE,in%output_denspot)
           end if
-          in%nrepmax=0
-          in%itermax=0
-          in%itrpmax=0
-          !in%inputPsiId=-1000 !allocate empty wavefunctions
-          call set_inputpsiid(INPUT_PSI_EMPTY,in%inputPsiId)
-          call set_output_denspot(OUTPUT_DENSPOT_NONE,in%output_denspot)
-          !in%output_denspot=0
        end if
     else
        in%nkptv = 0

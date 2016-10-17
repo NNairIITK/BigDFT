@@ -1,0 +1,31 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.40
+   rmult: 8.0
+   ixc: PBE
+   gnrm_cv: accurate
+   itermax: 2
+ psolver:
+   environment: 
+     cavity: rigid
+     itermax: 5
+     gps_algorithm: PI
+     radii_set     : UFF
+     atomic_radii:
+        O: 1.60
+ perf:
+   projrad: 8.000
+   rho_commun: MIX
+   verbosity: 1
+   psp_onfly: No
+ posinp:
+   units: angstroem
+   positions:
+   - O: [8.1429903446128495E-023, 0.1228808011212545, -2.6272458256877808E-008]
+   - H: [6.0858797985313103E-023, -0.4719903979445226, 0.7651344556227357]
+   - {H: [5.6367513765930241E-023, -0.4719903773917626, -0.7651344293502773], rcav: 1.0}
+   properties:
+     format: xyz
+     source: posinp

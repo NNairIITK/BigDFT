@@ -1,0 +1,35 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+conditions.add("simulation") #to include simgrid compilation
+#List the module the this rcfile will build
+modules = ['spred',]
+def getcwd():
+  import os
+  return os.getcwd()
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    return """'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal -Wall ' "--with-ext-linalg=${MKL_LIBS_MT}" --with-blas=no --with-lapack=no 'CFLAGS=-O2 -fopenmp'"""
+#here follow the configuration instructions for the modules built
+module_autogenargs.update({
+   
+'libyaml': env_configuration(),
+   
+'futile': env_configuration()+
+    " --enable-simgrid-shared --with-mpi-libs=-lsimgrid --with-mpi-include=-I"+getcwd()+"/install/include/smpi FC=gfortran CC=gcc SIMGRID_FC="+getcwd()+"/install/bin/smpif90",
+   
+'psolver': env_configuration(),
+   
+'libxc': env_configuration(),
+   
+'libABINIT': env_configuration(),
+   
+'GaIn': env_configuration(),
+   
+'bigdft': env_configuration(),
+   
+'spred': env_configuration(),
+   
+})

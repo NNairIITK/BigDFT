@@ -718,9 +718,12 @@ subroutine d1_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   !local variables
   include 'allocate-profile-inc.f90' 
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
@@ -779,9 +782,12 @@ subroutine d2_ptr(array,m)
   use metadata_interfaces, metadata_address => getdp2ptr
   implicit none
   type(malloc_information_ptr), intent(in) :: m
+  double precision :: d
+  type(c_ptr) :: p
   double precision, dimension(:,:), pointer, intent(inout) :: array
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
@@ -825,8 +831,11 @@ subroutine d3_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
@@ -916,8 +925,11 @@ subroutine d4_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
@@ -939,8 +951,11 @@ subroutine d5_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
@@ -963,8 +978,11 @@ subroutine d6_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:,:,:), pointer, intent(inout) :: array
+  double precision :: d
+  type(c_ptr) :: p
   include 'allocate-profile-inc.f90'
   include 'allocate-ptr-inc.f90' 
+  include 'allocate-simgrid-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&

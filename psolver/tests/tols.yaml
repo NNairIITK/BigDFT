@@ -24,7 +24,9 @@ Default tolerances:
 
 Keys to ignore:
   - Total No. of Taskgroups created
+  - taskgroup_size
   - Timings for root process
+  - input_guess
   - MPI tasks*
   - OpenMP threads per task
   - OpenMP threads per MPI task
@@ -39,3 +41,8 @@ Patterns to ignore:
   - llocations
   - MB
   - Point
+
+Generalized_PSolver:
+  itermax: 150.0
+PS_Check:
+  itermax: 150.0

@@ -201,6 +201,7 @@ contains
        do i=ist,diis%ids
           mi=mod(i-1,diis%idsx)+1
           !useful in care of more than one group
+          !this is the DIIS_DOT_PRODUCT event
           rds(i-ist+1,igrp)=0.0_tp
           rds(i-ist+1,igrp)=rds(i-ist+1,igrp)+dot(ncomp,&
                diis%hpsidst(ispsidst+(diis%mids-1)*ncomp),1,&

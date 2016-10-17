@@ -1,5 +1,29 @@
+!> @file
+!!   File containing high level CheSS wrappers
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module sparsematrix_highlevel
+  use yaml_strings
+  use yaml_output
   use sparsematrix_base
+  use dictionaries, only: f_err_throw
   private
 
   !> Initialization routines
@@ -32,6 +56,7 @@ module sparsematrix_highlevel
     subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, comm, smat, mat, &
                init_matmul)
       use sparsematrix_init, only: read_ccs_format
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -76,6 +101,7 @@ module sparsematrix_highlevel
 
     subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat)
       use sparsematrix_init, only: read_ccs_format
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -109,7 +135,8 @@ module sparsematrix_highlevel
     subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
                init_matmul, nvctr_mult, row_ind_mult, col_ptr_mult)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
-                                   bigdft_to_sparsebigdft, init_matrix_taskgroups
+           bigdft_to_sparsebigdft, init_matrix_taskgroups
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -183,18 +210,21 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_data_ccs
 
 
-    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat, &
-               init_matmul)
+    subroutine sparse_matrix_and_matrices_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, mat, &
+               init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
       logical,intent(in),optional :: init_matmul
+      character(len=*),intent(in),optional :: filename_mult
       ! Optional variables that are contained within the sparse matrix format
       !!integer,intent(out),optional :: nat, ntypes
       !!integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
@@ -213,21 +243,42 @@ module sparsematrix_highlevel
 !      real(kind=8),dimension(3) :: cell_dim
       real(kind=mp),dimension(:,:),pointer :: rxyz_
       real(kind=mp),dimension(3) :: cell_dim
+      type(sparse_matrix) :: smat_mult
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
 
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
+          call f_err_throw("wrong value of 'mode'")
+      end if
+
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+      ! This is necessary to get the values in val, even though the matrix 
+      ! is then read once again in sparse_matrix_init_from_file_bigdft
+      call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
-          init_matmul_ = .true.
+          init_matmul_ = .false.
       end if
 
-      ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
-           init_matmul=init_matmul_)!, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
+      if (init_matmul_) then
+          if (.not.present(filename_mult)) then
+              call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          !call sparse_matrix_init_from_file_bigdft(mode, filename_mult, iproc, nproc, comm, smat_mult, init_matmul=.false.)
+      end if
+
+
+      !!! Create the sparse_matrix structure
+      !!call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+      !!     init_matmul=init_matmul_)!, nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom_)
+
+      if (init_matmul_) then
+          call sparse_matrix_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, init_matmul_, filename_mult)
+      else
+          call sparse_matrix_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, init_matmul_)
+      end if
 
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -243,15 +294,20 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_and_matrices_init_from_file_bigdft
 
 
-    subroutine sparse_matrix_init_from_file_bigdft(filename, iproc, nproc, comm, smat)
+    recursive subroutine sparse_matrix_init_from_file_bigdft(mode, filename, iproc, nproc, comm, &
+                         smat, init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
+      character(len=*),intent(in),optional :: filename_mult
 
       ! Local variables
       integer :: nspin, nfvctr, nseg, nvctr
@@ -261,15 +317,41 @@ module sparsematrix_highlevel
       real(kind=mp),dimension(:),pointer :: val
       real(kind=mp),dimension(3) :: cell_dim
       integer,dimension(:),pointer :: on_which_atom
+      logical :: init_matmul_
+      type(sparse_matrix) :: smat_mult
 
-      call f_routine(id='sparse_matrix_and_matrices_init_from_file_bigdft')
+      call f_routine(id='sparse_matrix_init_from_file_bigdft')
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .false.
+      end if
+
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
+          call f_err_throw("wrong value of 'mode'")
+      end if
 
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+      call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+
+      if (init_matmul_) then
+          if (.not.present(filename_mult)) then
+              call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          call sparse_matrix_init_from_file_bigdft(mode, filename_mult, iproc, nproc, comm, smat_mult, init_matmul=.false.)
+      end if
 
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
-           nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
+      !!call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+      !!     nspin=nspin, geocode=geocode, cell_dim=cell_dim, on_which_atom=on_which_atom)
+      if (init_matmul_) then
+          call sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, init_matmul_, &
+               nseg_mult=smat_mult%nseg, nvctr_mult=smat_mult%nvctr, keyg_mult=smat_mult%keyg)
+          call deallocate_sparse_matrix(smat_mult)
+      else
+          call sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, init_matmul_)
+      end if
 
       ! Deallocate the pointers
       call f_free_ptr(keyv)
@@ -281,11 +363,13 @@ module sparsematrix_highlevel
     end subroutine sparse_matrix_init_from_file_bigdft
 
 
-    subroutine matrices_init_from_file_bigdft(filename, iproc, nproc, comm, smat, mat)
+    subroutine matrices_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, mat)
       use sparsematrix_io, only: read_sparse_matrix
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(in) :: smat
@@ -298,9 +382,13 @@ module sparsematrix_highlevel
       real(kind=mp),dimension(:),pointer :: val
     
       call f_routine(id='matrices_init_from_file_bigdft')
+
+      if (trim(mode)/='serial_text' .and. trim(mode)/='parallel_mpi-native') then
+          call f_err_throw("wrong value of 'mode'")
+      end if
     
       ! Read in the matrix
-      call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
+      call read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, val)
 
       ! Check that it is consistent with the provided sparse matrix type
       if (nspin/=smat%nspin) then
@@ -358,26 +446,48 @@ module sparsematrix_highlevel
 
       smmd = sparse_matrix_metadata_null()
       call read_sparse_matrix_metadata(filename, smmd%nfvctr, smmd%nat, smmd%ntypes, &
-           smmd%units, smmd%geocode, smmd%cell_dim, smmd%nzatom, smmd%nelpsp, &
+           smmd%units, smmd%geocode, smmd%cell_dim, smmd%shift, smmd%nzatom, smmd%nelpsp, &
            smmd%atomnames, smmd%iatype, smmd%rxyz, smmd%on_which_atom)
 
     end subroutine sparse_matrix_metadata_init_from_file
 
 
-    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
+    subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+               init_matmul, nseg_mult, nvctr_mult, keyg_mult)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
-                                   bigdft_to_sparsebigdft, init_matrix_taskgroups
+           bigdft_to_sparsebigdft, init_matrix_taskgroups
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, nfvctr, nvctr, nseg
       integer,dimension(2,2,nseg),intent(in) :: keyg
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in) :: init_matmul
+      integer,intent(in),optional :: nseg_mult, nvctr_mult
+      integer,dimension(:,:,:),intent(in),optional :: keyg_mult
 
       call f_routine(id='sparse_matrix_init_from_data_bigdft')
 
+      if (init_matmul) then
+          if (.not.present(nseg_mult)) then
+              call f_err_throw("'nseg_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (.not.present(nvctr_mult)) then
+              call f_err_throw("'nvctr_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          if (.not.present(nseg_mult)) then
+              call f_err_throw("'nvctr_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+      end if
+
       ! Create the sparse_matrix structure
-      call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
+      if (init_matmul) then
+          call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
+               init_matmul=init_matmul, nseg_mult=nseg_mult, nvctr_mult=nvctr_mult, keyg_mult=keyg_mult)
+      else
+          call bigdft_to_sparsebigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat)
+      end if
 
       call f_release_routine()
 
@@ -385,6 +495,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_init_from_data(smat, val, mat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -420,6 +531,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_set_values(smat, val, mat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -445,6 +557,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_get_values(smat, mat, val)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -470,6 +583,7 @@ module sparsematrix_highlevel
 
 
     function matrices_get_size(smat) result(s)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -487,6 +601,7 @@ module sparsematrix_highlevel
 
     subroutine ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)
       use sparsematrix_init, only: sparsebigdft_to_ccs
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -507,6 +622,7 @@ module sparsematrix_highlevel
 
     subroutine ccs_matrix_write(filename, smat, row_ind, col_ptr, mat)
       use sparsematrix_io, only: write_ccs_matrix
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -531,6 +647,7 @@ module sparsematrix_highlevel
 
     subroutine matrix_matrix_multiplication(iproc, nproc, smat, a, b, c)
       use sparsematrix, only: matrix_matrix_mult_wrapper
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -564,6 +681,7 @@ module sparsematrix_highlevel
                smat_in, smat_out, mat_in, mat_out, npl_auto, ice_obj)
       use ice, only: inverse_chebyshev_expansion_new
       use foe_base, only: foe_data
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -629,6 +747,7 @@ module sparsematrix_highlevel
                calculate_minusonehalf, foe_verbosity, symmetrize_kernel, calculate_energy_density_kernel, energy_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -727,6 +846,7 @@ module sparsematrix_highlevel
                fscale, calculate_minusonehalf, foe_verbosity)
       use foe_base, only: foe_data
       use foe, only: get_selected_eigenvalues
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -809,6 +929,7 @@ module sparsematrix_highlevel
     !! within the sparsity pattern of bmat!
     function trace_AB(iproc, nproc, comm, asmat, bsmat, amat, bmat, ispin)
       use sparsematrix, only: trace_sparse_matrix_product
+      use dynamic_memory
       implicit none
 
       ! Calling arguments

@@ -22,7 +22,7 @@ module module_atoms
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
        & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, &
        & ASTRUCT_ATT_RXYZ_INT_1, ASTRUCT_ATT_RXYZ_INT_2, &
-       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE
+       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE, ASTRUCT_ATT_CAVRAD
   use dictionaries, only: dictionary
   use f_trees, only: f_tree
   use f_blas, only: f_matrix,f_matrix_allocate_ptr
@@ -59,6 +59,7 @@ module module_atoms
      integer :: nat                        !< Number of atoms
      integer :: ntypes                     !< Number of atomic species in the structure
      real(gp), dimension(3) :: cell_dim    !< Dimensions of the simulation domain (each one periodic or free according to geocode)
+     real(gp), dimension(3) :: shift       !< Rigid shift applied to the atomic positions
      !pointers
      real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
      real(gp), dimension(:,:), pointer :: rxyz_int         !< Atomic positions in internal coordinates (Z matrix)
@@ -280,6 +281,7 @@ contains
     astruct%nat=-1
     astruct%ntypes=-1
     astruct%cell_dim=0.0_gp
+    astruct%shift=0.0_gp
     nullify(astruct%input_polarization)
     nullify(astruct%ifrztyp)
     nullify(astruct%atomnames)
@@ -1262,7 +1264,7 @@ contains
 
 
     subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, &
-               ixyz, ixyz_add, rxyz_int, rxyz_int_add, mode)
+               ixyz, ixyz_add, rxyz_int, rxyz_int_add, cavity_radius,mode)
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
@@ -1279,6 +1281,7 @@ contains
       real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
       real(gp), dimension(3), intent(out), optional :: rxyz_int !< Internal coordinates.
       real(gp), intent(out), optional :: rxyz_int_add !< Internal coordinates address.
+      real(gp), intent(out), optional :: cavity_radius !< radius of the cavity
       character(len = max_field_length), intent(out), optional :: mode !< QM/MM treatment.
 
       type(dictionary), pointer :: atData
@@ -1296,6 +1299,7 @@ contains
       if (present(igspin))  igspin = 0
       if (present(igchrg))  igchrg = 0
       if (present(mode)) write(mode, "(A)") ""
+      if (present(cavity_radius)) cavity_radius=UNINITIALIZED(cavity_radius)
 
       atData => dict_iter(dict)
       do while(associated(atData))
@@ -1355,6 +1359,8 @@ contains
                rcoord_int(3) = atData
                call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
+         case(ASTRUCT_ATT_CAVRAD)
+            if (present(cavity_radius)) cavity_radius= atData
          case default
             if (dict_len(atData) == 3) then
                if (present(symbol)) symbol = str
@@ -1553,10 +1559,12 @@ contains
     !! retrieve also other information like the energy and the forces if requested
     !! and presend in the dictionary
     subroutine astruct_set_from_dict(dict, astruct, comment)
+      use module_base, only: bigdft_mpi
       use module_defs, only: gp,  UNINITIALIZED
       use numerics, only: Bohr_Ang
       use dynamic_memory
       use dictionaries
+      use yaml_output, only: yaml_warning
       implicit none
       !Arguments
       type(dictionary), pointer :: dict !< dictionary of the input variables
@@ -1672,11 +1680,21 @@ contains
          call astruct_set_n_atoms(astruct,0)
       end if
 
-      if (has_key(dict, ASTRUCT_PROPERTIES)) then
+      if (ASTRUCT_PROPERTIES .in. dict) then
          pos => dict // ASTRUCT_PROPERTIES
-         if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
-         if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
-         if (has_key(pos, "source")) astruct%source = pos // "source"
+         if (("info" .in. pos) .and. present(comment)) comment = pos // "info"
+         if ("format" .in. pos) then
+            astruct%inputfile_format = pos // "format"
+         else
+            if (bigdft_mpi%iproc==0) &
+                 call yaml_warning('Format not specified in the posinp dictionary, assuming yaml')
+            astruct%inputfile_format='yaml'
+         end if
+         if ("source" .in. pos) astruct%source = pos // "source"
+      else
+         if (bigdft_mpi%iproc==0) &
+              call yaml_warning('Format not specified in the posinp dictionary, assuming yaml')
+         astruct%inputfile_format='yaml'
       end if
 
       call dict_free(types)

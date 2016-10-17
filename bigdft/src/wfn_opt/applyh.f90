@@ -211,11 +211,12 @@ END SUBROUTINE local_hamiltonian_old
 !!                   2 is the application of the Perdew-Zunger SIC
 !!                   3 is the application of the Non-Koopman's correction SIC
 subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
-     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
+     ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,comgp,vpsi_noconf,econf_sum)
   use module_base
   use module_types
   use module_xc
   use locreg_operations
+  use rhopotential, only: extract_potential
   implicit none
   integer, intent(in) :: iproc,ipotmethod,npsidim_orbs
   real(gp), intent(in) :: alphaSIC
@@ -228,18 +229,20 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   real(gp), intent(out) :: epot_sum,evSIC
   real(wp), dimension(npsidim_orbs), intent(inout) :: vpsi
   type(coulomb_operator), intent(in) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
+  type(p2pcomms),intent(in) :: comgp
   real(wp), dimension(npsidim_orbs), intent(inout),optional :: vpsi_noconf
   real(gp),intent(out),optional :: econf_sum
   !local variables
   character(len=*), parameter :: subname='psi_to_vlocpsi'
   logical :: dosome
-  integer :: iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor
+  integer :: iorb,npot,ispot,ispsi,ilr,ilr_orb,nbox,nvctr,ispinor,ispin,size_lpot
   real(wp) :: exctXcoeff
   real(gp) :: epot,eSICi,eSIC_DCi,econf !n(c) etest
   type(workarr_sumrho) :: w
   real(wp), dimension(:,:), allocatable :: psir,vsicpsir,psir_noconf
 
   call f_routine(id='psi_to_vlocpsi')
+
 
   !some checks
   exctXcoeff=xc_exctXfac(xc)
@@ -340,6 +343,16 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
              vsicpsir,eSICi)
      end if
 
+     ! For the linear scaling case
+     if (orbs%spinsgn(iorb+orbs%isorb)>0.d0) then
+         ispin=1
+     else
+         ispin=2
+     end if
+     size_Lpot = Lzd%Llr(ilr_orb)%d%n1i*Lzd%Llr(ilr_orb)%d%n2i*Lzd%Llr(ilr_orb)%d%n3i
+
+     call extract_potential(ispin, ilr_orb, size_lpot, lzd, pot, comgp)
+
      !apply the potential to the psir wavefunction and calculate potential energy
      if (present(vpsi_noconf)) then
          if (.not.present(econf_sum)) then
@@ -347,10 +360,10 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
          end if
          call vcopy(nbox*orbs%nspinor, psir(1,1), 1, psir_noconf(1,1), 1)
          call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-              pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb),vpsir_noconf=psir_noconf,econf=econf)
+              pot,psir,epot,confdata=confdatarr(iorb),vpsir_noconf=psir_noconf,econf=econf)
      else
          call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
-              pot(orbs%ispot(iorb)),psir,epot,confdata=confdatarr(iorb))
+              pot,psir,epot,confdata=confdatarr(iorb))
      end if
      !!do i_stat=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
      !!    write(1000+ilr_orb,*) orbs%ispot(iorb)+i_stat-1, pot(orbs%ispot(iorb)+i_stat-1)

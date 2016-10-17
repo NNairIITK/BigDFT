@@ -30,7 +30,8 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
            "plot-wavefunction", "suggest-cutoff", "multipole-analysis", "dos", 
            "export-proj", "fit-proj",
-           "convert-matrix-format", "calculate-selected-eigenvalues"]
+           "convert-matrix-format", "calculate-selected-eigenvalues",
+           "kernel-purity", "build-KS-orbitals"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -180,6 +181,8 @@ def parse():
     #                 help="energy interval [default: %default]")
     group.add_option("--pdos_file", type="string", default="pdos.dat", metavar="PDOSFILE",
                      help="TMBs to be considered for PDOS [default: %default]")
+    group.add_option("--matrix_format", type="string", default="parallel_mpi-native", metavar="MATRIXFORMAT",
+                     help="format of the sparse matrices [default: %default]")
 
     # calculate a full kernel from the coeffs and compare it to the sparse one
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[12],
@@ -206,6 +209,10 @@ def parse():
              		 help="input file with the hamiltonian[default: %default]")
     group.add_option("--overlap_file", type="str", default="overlap_sparse.bin", metavar="MATRIXNAME",
              		 help="input file with the overlap matrix[default: %default]")
+    group.add_option("--kernel_matmul_file", type="str", default="density_kernel_sparse_matmul.bin", metavar="KERNELMULTNAME",
+             		 help="input file with the kernel matrix multiplication sparsity pattern [default: %default]")
+    group.add_option("--fragment_file", type="str", default="fragment.dat", metavar="FRAGMENTSNAME",
+             		 help="file with the fragment to be analyzed [default: %default]")
 
     # solve the eigensystem to get the coefficients
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
@@ -303,6 +310,8 @@ def parse():
     group.add_option("--iev_min", type="int", default=1, metavar="NUM",)
     group.add_option("--iev_max", type="int", default=1000000, metavar="NUM",)
     group.add_option("--fscale", type="float", default=1.e-2, metavar="NUM",)
+    group.add_option("--is_ks", type="float", default=1, metavar="NUM",)
+    group.add_option("--ie_ks", type="float", default=2, metavar="NUM",)
 
     return parser
 
@@ -1090,7 +1099,7 @@ options:
         #infile_extension = infile_names[len(infile_names)-1]
         #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
         #command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
-        command = "%s %s pdos %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.metadata_file, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
+        command = "%s %s pdos %s %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.coeff_file, options.hamiltonian_file, options.overlap_file, options.pdos_file)
         print command
     if options.action == "kernel-analysis":
         print 'calling memguess for kernel analysis'
@@ -1103,7 +1112,7 @@ options:
     if options.action == "solve-eigensystem":
         print 'calling memguess to solve the eigensystem'
         #command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
-        command = "%s %s solve-eigensystem %s %s %s %s" % (options.mpirun, chess_toolbox, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.coeff_file)
+        command = "%s %s solve-eigensystem %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.coeff_file)
     if options.action == "analyse-coeffs":
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
@@ -1125,9 +1134,9 @@ options:
         print 'calling memguess to suggest cutoff radii'
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
-    if options.action == "charge-analysis":
+    if options.action == "multipole-analysis":
         #print 'calling utilities to perform a Loewdin multipole analysis'
-        command = "%s %s multipole-analysis %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (options.mpirun, utilities, options.method, options.matrix_basis, options.metadata_file, options.overlap_file, options.kernel_file, options.hamiltonian_file, options.multipole_matrix_0_0, options.multipole_matrix_1_0, options.multipole_matrix_1_1, options.multipole_matrix_1_2, options.multipole_matrix_2_0, options.multipole_matrix_2_1, options.multipole_matrix_2_2, options.multipole_matrix_2_3, options.multipole_matrix_2_4)
+        command = "%s %s multipole-analysis %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s %s" % (options.mpirun, utilities, options.method, options.matrix_basis, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.kernel_matmul_file, options.multipole_matrix_0_0, options.multipole_matrix_1_0, options.multipole_matrix_1_1, options.multipole_matrix_1_2, options.multipole_matrix_2_0, options.multipole_matrix_2_1, options.multipole_matrix_2_2, options.multipole_matrix_2_3, options.multipole_matrix_2_4)
         print command
     if options.action == 'dos':
         print 'calling memguess for DOS'
@@ -1137,7 +1146,10 @@ options:
         command = "%s %s convert-matrix-format %s %s %s" % (options.mpirun, chess_toolbox, options.conversion, options.infile, options.outfile)
         print command
     if options.action == "calculate-selected-eigenvalues":
-        command = "%s %s calculate-selected-eigenvalues %s %s %s %s %i %i %f" % (options.mpirun, chess_toolbox, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.iev_min, options.iev_max, options.fscale)
+        command = "%s %s calculate-selected-eigenvalues %s %s %s %s %s %s %i %i %f" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.kernel_matmul_file, options.iev_min, options.iev_max, options.fscale)
+        print command
+    if options.action == "kernel-purity":
+        command = "%s %s kernel-purity %s %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.overlap_file, options.kernel_file, options.kernel_matmul_file, options.fragment_file)
         print command
     if options.action == "fit-proj":
         if len(args) < 1:
@@ -1149,5 +1161,8 @@ options:
           gauss2plot(args[0])
         else:
           fitPAW(args[0], options.n_funcs)
+    if options.action == "build-KS-orbitals":
+        command = "%s %s build-KS-orbitals %s %s %i %i" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.is_ks, options.ie_ks)
+        print command
     if command is not None:
         os.system(command)

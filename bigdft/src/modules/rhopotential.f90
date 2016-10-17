@@ -20,6 +20,7 @@ module rhopotential
   public :: sumrho_for_TMBs
   public :: clean_rho
   public :: corrections_for_negative_charge
+  public :: extract_potential
 
   contains
 
@@ -121,7 +122,7 @@ module rhopotential
        use module_xc
        use communications_base, only: p2pComms
        use communications, only: synchronize_onesided_communication
-       use locreg_operations, only: global_to_local_parallel, global_to_local
+       use locreg_operations, only: global_to_local
        use module_dpbox, only: denspot_distribution
        implicit none
        !Arguments
@@ -139,7 +140,7 @@ module rhopotential
        !local variables
        character(len=*), parameter :: subname='full_local_potential'
        logical :: odp,newvalue !orbital dependent potential
-       integer :: npot,ispot,ispotential,ispin,ierr,ii,ilr,iorb,iorb2,nilr,ni1,ni2,iiorb
+       integer :: npot,ispot,ispotential,ispin,ierr,ii,ilr,iorb,iorb2,nilr,ni1,ni2,iiorb,size_lpot_max
        !integer :: i
        integer:: istl, ist, size_Lpot, i3s, i3e, i2s, i2e, i1s, i1e, iispin, ishift
        integer,dimension(:),allocatable:: ilrtable
@@ -268,6 +269,7 @@ module rhopotential
                      if (newvalue) then
                         ii = ii + 1
                         ilrtable(ii)=ilr
+                        !write(*,*) 'ii, iorb, ilr, ilrtable(ii)', ii, iorb, ilr, ilrtable(ii)
                      end if
                  end if
               end do
@@ -331,142 +333,38 @@ module rhopotential
           end do
        else
           if(.not.associated(pot)) then !otherwise this has been done already... Should be improved.
-             pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
+             !pot = f_malloc_ptr(lzd%ndimpotisf,id='pot')
     
-             !do i=1,comgp%nspin*comgp%nrecvBuf
-             !    write(5300+iproc,'(es16.8)') comgp%recvbuf(i)
-             !end do
+
+             size_lpot_max = 0
     
-             !write(*,*) 'ne full_local_potential: comgp%nrecvbuf',comgp%nrecvbuf
-    
-             !!do i=1,comgp%nrecvbuf
-             !!    write(510,'(es16.8)') comgp%recvbuf(i)
-             !!end do
-             !do i=1,2097152
-             !    read(499,*) comgp%recvbuf(i)
-             !end do
-             !do i=1,comgp%nrecvbuf
-             !    write(520,'(es16.8)') comgp%recvbuf(i)
-             !end do
-    
-             ist=1
+             !!ist=1
              do iorb=1,nilr
                 ilr = ilrtable(iorb)
                 iiorb=orbs%isorb+iorb
                 if (orbs%inwhichlocreg(iiorb)/=ilr) call f_err_throw('full_local_potential: orbs%inwhichlocreg(iiorb)/=ilr')
-                
-                if (orbs%spinsgn(iiorb)>0.d0) then
-                    ispin=1
-                else
-                    ispin=2
-                end if
-    
-                ! spin shift of the potential in the receive buffer
-                ishift=(ispin-1)*comgp%nrecvBuf
-    
+
                 !determine the dimension of the potential array (copied from full_local_potential)
                 if (xc_exctXfac(xc) /= 0.0_gp) then
                    stop 'exctX not yet implemented!'
                 else
                    size_Lpot = Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
                 end if
-    
-    
-                ! Extract the part of the potential which is needed for the current localization region.
-                !!i3s=lzd%Llr(ilr)%nsi3-comgp%ise(5)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-                !!i3e=lzd%Llr(ilr)%nsi3+lzd%Llr(ilr)%d%n3i-comgp%ise(5)+1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
-                !!i2s=lzd%Llr(ilr)%nsi2-comgp%ise(3)+2
-                !!i2e=lzd%Llr(ilr)%nsi2+lzd%Llr(ilr)%d%n2i-comgp%ise(3)+1
-                !!i1s=lzd%Llr(ilr)%nsi1-comgp%ise(1)+2
-                !!i1e=lzd%Llr(ilr)%nsi1+lzd%Llr(ilr)%d%n1i-comgp%ise(1)+1
-                i3s=modulo(lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1-comgp%ise(5)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
-                i3e=i3s+lzd%Llr(ilr)%d%n3i-1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
-                i2s=modulo(lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1-comgp%ise(3)+2
-                i2e=i2s+lzd%Llr(ilr)%d%n2i-1
-                i1s=modulo(lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1-comgp%ise(1)+2
-                i1e=i1s+lzd%Llr(ilr)%d%n1i-1
-                !!!! Make sure that the length is not larger than the global box (only possible for non-free BC)
-                !!!ni1=min(comgp%ise(2)-comgp%ise(1)+1,lzd%glr%d%n1i)
-                !!!ni2=min(comgp%ise(4)-comgp%ise(3)+1,lzd%glr%d%n2i)
-                if (comgp%ise(2)>=comgp%ise(1)) then
-                    ni1=comgp%ise(2)-comgp%ise(1)+1
-                else
-                    ! This is the case with aperiodic wrap around
-                    ni1=comgp%ise(2)+lzd%glr%d%n1i-comgp%ise(1)+1
-                end if
-                if (comgp%ise(4)>=comgp%ise(3)) then
-                    ni2=comgp%ise(4)-comgp%ise(3)+1
-                else
-                    ! This is the case with aperiodic wrap around
-                    ni2=comgp%ise(4)+lzd%glr%d%n2i-comgp%ise(3)+1
-                end if
-                if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
-                   write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
-                   stop
-                end if
-    
-                ! Shift of the potential in the receive buffer for non-free boundary conditions
-                !!if (comgp%ise(6)>lzd%glr%d%n3i) then
-                !!    i3shift = modulo(comgp%ise(6)-1,lzd%glr%d%n3i)
-                !!    i3shift = min(i3shift,comgp%ise(5)-1)
+
+                size_lpot_max = max(size_lpot_max,size_lpot)
+
+                
+                !!if (orbs%spinsgn(iiorb)>0.d0) then
+                !!    ispin=1
                 !!else
-                !!    i3shift = 0
+                !!    ispin=2
                 !!end if
-                !!if (comgp%ise(4)>lzd%glr%d%n2i) then
-                !!    i2shift = modulo(comgp%ise(4)-1,lzd%glr%d%n2i)
-                !!    i2shift = min(i2shift,comgp%ise(3)-1)
-                !!else
-                !!    i2shift = 0
-                !!end if
-                !!if (comgp%ise(2)>lzd%glr%d%n1i) then
-                !!    i1shift = modulo(comgp%ise(2)-1,lzd%glr%d%n1i)
-                !!    i1shift = min(i1shift,comgp%ise(1)-1)
-                !!else
-                !!    i1shift = 0
-                !!end if
-                if (comgp%ise(6)<comgp%ise(5)) then
-                    i3shift=comgp%ise(6)
-                else
-                    i3shift=0
-                end if
-                if (comgp%ise(4)<comgp%ise(3)) then
-                    i2shift=comgp%ise(4)
-                else
-                    i2shift=0
-                end if
-                if (comgp%ise(2)<comgp%ise(1)) then
-                    i1shift=comgp%ise(2)
-                else
-                    i1shift=0
-                end if
-                !write(*,*) 'size(comgp%recvBuf), comgp%nrecvBuf, nspin', size(comgp%recvBuf), comgp%nrecvBuf, comgp%nspin
-                !write(*,'(a,i7,2x,8i6)') 'iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', iproc, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
-                !write(*,'(a,i7,2x,i5,2x,9i6)') 'iproc, ilr, ns1i, ise1, ns2i, ise2, ns3i, ise3', &
-                !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1:2), lzd%Llr(ilr)%nsi2, comgp%ise(3:4), lzd%Llr(ilr)%nsi3, comgp%ise(5:6)
-                !!call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
-                !!     comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
-                !write(*,*) 'comgp%nrecvBuf, size_Lpot, size(comgp%recvBuf(ishift+1:)), size(pot(ist:))', &
-                !            comgp%nrecvBuf, size_Lpot, size(comgp%recvBuf(ishift+1:)), size(pot(ist:))
-                !write(*,*) 'i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2 
-                !write(*,*) 'i1shift, i2shift, i3shift, comgp%ise', i1shift, i2shift, i3shift, comgp%ise
-                !write(*,*) 'kind(comgp%nrecvBuf)', kind(comgp%nrecvBuf)
-                !write(*,*) 'kind(size_Lpot)', kind(size_Lpot)
-                !write(*,*) 'kind(comgp%recvBuf)',kind(comgp%recvBuf)
-                !write(*,*) 'kind(pot)', kind(pot)
-                !write(*,*) 'kind(i1s)', kind(i1s)
-                !write(*,*) 'kind(comgp%ise)',kind(comgp%ise)
-                call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), comgp%nrecvBuf, size_Lpot,&
-                     comgp%recvBuf(ishift+1:), pot(ist:), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2, &
-                     i1shift, i2shift, i3shift, comgp%ise)
-                !write(*,'(3(a,i0))') 'process ',iproc,' copies data from position ',ishift+1,' to position ',ist
-                !write(*,'(a,2i6,i10,2es17.6,6i6)') 'iproc, iorb, ishift, sum(pot[iorb]), sum(recvbuf[ishift+1]), i1s, i1e, i2s, i2e, i3s, i3e', &
-                !    iproc, iorb, ishift, sum(pot(ist:ist+size_lpot-1)), sum(comgp%recvBuf(ishift+1:ishift+comgp%nrecvBuf-1)), i1s, i1e, i2s, i2e, i3s, i3e
-                !!do i=1,size_lpot
-                !!    write(5500+iproc,'(a,5i12,es15.7)') 'ilr, ispin, ishift, i, ist, pot(ist+i-1)', ilr, ispin, ishift, i, ist, pot(ist+i-1)
-                !!end do
+
+                !!call extract_potential(ispin, ilr, size_lpot, lzd, pot(ist:), comgp)
     
-                ist = ist + size_lpot
+                !!ist = ist + size_lpot
              end do
+             pot = f_malloc_ptr(size_lpot_max,id='pot')
           end if
        end if
     
@@ -846,5 +744,70 @@ module rhopotential
       end if
       
     end subroutine clean_rho
+
+
+    subroutine extract_potential(ispin, ilr, size_lpot, lzd, pot, comgp)
+      use module_base
+      use module_types
+      use locreg_operations, only: global_to_local_parallel
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: ispin, ilr, size_lpot
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(kind=8),dimension(size_lpot),intent(out) :: pot
+      type(p2pComms),intent(in):: comgp
+
+      ! Local variables
+      integer :: ishift, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2, ni3, i1shift, i2shift, i3shift
+    
+      ! spin shift of the potential in the receive buffer
+      ishift=(ispin-1)*comgp%nrecvBuf
+    
+      ! Extract the part of the potential which is needed for the current localization region.
+      i3s=modulo(lzd%Llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1-comgp%ise(5)+2 ! starting index of localized  potential with respect to total potential in comgp%recvBuf
+      i3e=i3s+lzd%Llr(ilr)%d%n3i-1 ! ending index of localized potential with respect to total potential in comgp%recvBuf
+      i2s=modulo(lzd%Llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1-comgp%ise(3)+2
+      i2e=i2s+lzd%Llr(ilr)%d%n2i-1
+      i1s=modulo(lzd%Llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1-comgp%ise(1)+2
+      i1e=i1s+lzd%Llr(ilr)%d%n1i-1
+      !!!! Make sure that the length is not larger than the global box (only possible for non-free BC)
+      if (comgp%ise(2)>=comgp%ise(1)) then
+          ni1=comgp%ise(2)-comgp%ise(1)+1
+      else
+          ! This is the case with aperiodic wrap around
+          ni1=comgp%ise(2)+lzd%glr%d%n1i-comgp%ise(1)+1
+      end if
+      if (comgp%ise(4)>=comgp%ise(3)) then
+          ni2=comgp%ise(4)-comgp%ise(3)+1
+      else
+          ! This is the case with aperiodic wrap around
+          ni2=comgp%ise(4)+lzd%glr%d%n2i-comgp%ise(3)+1
+      end if
+      if(i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i) then
+         write(*,'(a,i0,3x,i0)') 'ERROR: i3e-i3s+1 /= Lzd%Llr(ilr)%d%n3i',i3e-i3s+1, Lzd%Llr(ilr)%d%n3i
+         stop
+      end if
+    
+      if (comgp%ise(6)<comgp%ise(5)) then
+          i3shift=comgp%ise(6)
+      else
+          i3shift=0
+      end if
+      if (comgp%ise(4)<comgp%ise(3)) then
+          i2shift=comgp%ise(4)
+      else
+          i2shift=0
+      end if
+      if (comgp%ise(2)<comgp%ise(1)) then
+          i1shift=comgp%ise(2)
+      else
+          i1shift=0
+      end if
+      call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), comgp%nrecvBuf, size_Lpot,&
+           comgp%recvBuf(ishift+1:), pot, i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2, &
+           i1shift, i2shift, i3shift, comgp%ise)
+
+     end subroutine extract_potential
 
 end module rhopotential
