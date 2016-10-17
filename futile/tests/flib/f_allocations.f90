@@ -19,7 +19,8 @@ program f_buffer_allocations
   call output("Normal",d1_ptr)
   !now insert some extra information in the buffer
   !allocate the pointer in the normal case
-  d1_ptr_exotic=f_malloc_ptr(-1.to.34,id='d1_ptr_exotic',info='{Type: SHARED}')
+  d1_ptr_exotic=f_malloc_ptr(-1.to.34,id='d1_ptr_exotic',&
+       info='{Type: SHARED}')
 
   call output("Exotic",d1_ptr_exotic)
 

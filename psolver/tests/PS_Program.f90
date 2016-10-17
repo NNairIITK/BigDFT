@@ -1378,7 +1378,6 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
   real(kind=8) :: r,r2,y,yp,ys,factor,g,h,g1,g2,h1,h2
   real(kind=8) :: length,frequency,nu,sigma,agauss,derf
 
-  !f1 = 0.0_dp
   select case(whichone)
   case(FUNC_CONSTANT)
      !constant
@@ -1388,38 +1387,40 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
   case(FUNC_GAUSSIAN)
      !gaussian of sigma s.t. a=1/(2*sigma^2)
      r2=a*x**2
-     f=dexp(-r2)
-     !!here first derivative is lacking
-     f2=(-2.d0*a+4.d0*a*r2)*dexp(-r2)
+     f=dexp(-r2) !<checed
+     f1=-2.d0*a*x*f !<checked
+     f2=(-2.d0*a+4.d0*a*r2)*f !<checked
   case(FUNC_GAUSSIAN_SHRINKED)
      !gaussian "shrinked" with a=length of the system
      length=a
      r=pi*x/length
-     y=dtan(r)
-     yp=pi/length*1.d0/(dcos(r))**2
-     ys=2.d0*pi/length*y*yp
-     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-     !!!!here we still need the first derivative
-     f2=factor*dexp(-y**2)
-     f=dexp(-y**2)
+     y=tan(r)
+!!$     yp=pi/length*1.d0/(dcos(r))**2
+!!$     ys=2.d0*pi/length*y*yp
+!!$     factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
+!!$     !!!!here we still need the first derivative
+!!$     f2=factor*dexp(-y**2)
+     f=dexp(-y**2) !<checked
+     f1=-2.d0*pi*f*y/(length*cos(r)**2) !<checked
+     f2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*f !<checked
   case(FUNC_COSINE)
      !cosine with a=length, b=frequency
      length=a
      frequency=b
      r=frequency*pi*x/length
-     f=dcos(r)
-     f1=-dsin(r)*frequency*pi/length
-     f2=-(frequency*pi/length)**2*dcos(r)
+     f=dcos(r) !<checked
+     f1=-dsin(r)*frequency*pi/length !<checked
+     f2=-(frequency*pi/length)**2*dcos(r) !<checked
   case(FUNC_EXP_COSINE)
      !exp of a cosine, a=length
      nu=2.d0
      r=pi*nu/a*x
-     y=dcos(r)
-     yp=-dsin(r)
-     f=dexp(y)/dexp(1.0_dp) !<to be checked
+     y=cos(r)
+     yp=-sin(r)
+     f=exp(y) !<checked /dexp(1.0_dp) !<to be checked
      factor=(pi*nu/a)**2*(-y+yp**2)
-     f1 = f*pi*nu/a*yp
-     f2 = factor*f
+     f1 = f*pi*nu/a*yp !<checked
+     f2 = factor*f !<checked
   case(FUNC_SHRINK_GAUSSIAN)
      !gaussian times "shrinked" gaussian, sigma=length/10
      length=1.d0*a
@@ -1428,33 +1429,39 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      yp=pi/length*1.d0/(dcos(r))**2
      ys=2.d0*pi/length*y*yp
      factor=-2.d0*ys*y-2.d0*yp**2+4.d0*yp**2*y**2
-     g=dexp(-y**2)
-     g1=-2.d0*y*yp*g
-     g2=factor*dexp(-y**2)
+     g=dexp(-y**2) !<checked
+     g1=-2.d0*y*yp*g !<checked
+     !g2=factor*dexp(-y**2)
+     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*f !<che
      sigma=length/10.0d0
      agauss=0.5d0/sigma**2
      r2=agauss*x**2
-     h=dexp(-r2)
-     h1=-2.d0*agauss*x*h
-     h2=(-2.d0*agauss+4.d0*agauss*r2)*dexp(-r2)
-     f=g*h
-     f1=g1*h+g*h1
-     f2=g2*h+g*h2+2.d0*g1*h1
+     h=dexp(-r2) !<checked
+     h1=-2.d0*agauss*x*h !<checked
+     h2=(-2.d0*agauss+4.d0*agauss*r2)*h !<checked
+     f=g*h !<checked
+     f1=g1*h+g*h1 !<checked
+     f2=g2*h+g*h2+2.d0*g1*h1 !<checked
   case(FUNC_SINE)
      !sine with a=length, b=frequency
      length=a
      frequency=b
      r=frequency*pi*x/length
-     f=dsin(r)
-     !!here first derivative is lacking
-     f2=-(frequency*pi/length)**2*dsin(r)
+     f=dsin(r) !<checked
+     f1=frequency*pi*cos(r)/length !<checked
+     f2=-(frequency*pi/length)**2*sin(r) !<checked
   case(FUNC_ATAN)
-     !atan with a=length, b=frequency
-     length=a
-     nu = length
-     f=(datan(nu*x/length))**2
-     !!here first derivative is lacking
-     f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2
+     r=a*x
+     factor=r**2+1.d0
+     f=atan(r) !<checked
+     f1=a/factor !<checked
+     f2=-2.d0*r*a**2/factor**2 !<checked
+!!$     !atan with a=length, b=frequency
+!!$     length=a
+!!$     nu = length
+!!$     f=(datan(nu*x/length))**2 !<checked
+!!$     !!here first derivative is lacking
+!!$     f2=2.0d0*nu**2*length*(length-2.0d0*nu*x*f)/(length**2+nu**2*x**2)**2 
   case(FUNC_ERF)
      !error function with a=sigma
      factor=sqrt(2.d0/pi)/a
@@ -1462,16 +1469,17 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      y=x/(sqrt(2.d0)*a)
      if (abs(x)<=1.d-15) then
         f=factor
-        f2=-sqrt(2.d0/pi)/(3.d0*a**3)
+        f1=0.d0 !<checked
+        f2=-sqrt(2.d0/pi)/(3.d0*a**3) !<checked
      else
         f=derf(y)/r
         y=x*x
         y=y/(2.d0*a**2)
         g=dexp(-y)
         h=1.d0/a**2+2.d0/x**2
-        f2=-factor*g*h+2.d0*f/x**2
+        f1=-f/x+factor*g/x !<checked
+        f2=-factor*g*h+2.d0*f/x**2  !<checked
      end if
-     !!here first derivative is lacking
   case default
      !print *,"Unknow function:",whichone
      !stop

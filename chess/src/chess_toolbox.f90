@@ -22,7 +22,14 @@
 program chess_toolbox
 
    !use module_base
-   use yaml_output
+  !use yaml_output
+  use yaml_output
+  use dictionaries
+  use time_profiling
+  use f_utils
+  use wrapper_mpi
+  use dynamic_memory
+  use wrapper_linalg
    !!use module_types, only: bigdft_init_errors, bigdft_init_timing_categories
    !!use module_atoms, only: atoms_data, atoms_data_null, deallocate_atoms_data
    use sparsematrix_base

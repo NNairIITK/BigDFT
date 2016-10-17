@@ -40,7 +40,7 @@ program yaml_argparse_main
   character(len=32) :: bold,blink
   integer, dimension(3) :: ndims
   real(f_double), dimension(3) :: angdeg
-  type(dictionary), pointer :: dict,options,input
+  type(dictionary), pointer :: dict,options
 
 
   call f_lib_initialize()
@@ -65,32 +65,5 @@ program yaml_argparse_main
   call dict_free(options)
 !  call dict_free(dict)
   call f_lib_finalize()
-
-  contains
-
-    subroutine yaml_argparse_local(options,string)
-      use dictionaries
-      use f_utils, only: f_zero
-      implicit none
-      !> the dictionary of the options, should be nullified as input
-      type(dictionary), pointer :: options 
-      !>definition of the input variables, given with a single string
-      character(len=*), intent(in) :: string
-      !local variables
-      type(yaml_cl_parse) :: parser !< command line parser
-
-      !define command-line options
-      parser=yaml_cl_parse_null()
-      call yaml_cl_parse_option(parser,input1)
-      call yaml_cl_parse_option(parser,input2)
-      call yaml_cl_parse_option(parser,input3)
-      call yaml_cl_parse_option(parser,input4)
-      !parse command line, and retrieve arguments
-      call yaml_cl_parse_cmd_line(parser,args=options)
-      !free command line parser information
-      call yaml_cl_parse_free(parser)
-
-    end subroutine yaml_argparse_local
-
 
 end program yaml_argparse_main
