@@ -159,11 +159,9 @@ program GPS_3D
     call yaml_map('rad_cav',rad_cav)
     call yaml_map('multp',multp)
     if ((SetEps.eq.5).and.( trim(PSol)=='VAC')) then
-     write(*,*)'Running a Generalized Poisson calculation'
+     call yaml_map('Running a Generalized Poisson calculation','---')
     else if ((SetEps.eq.6).and.( trim(PSol)=='VAC')) then
-     write(*,*)'Running a Poisson-Boltzmann calculation'
-    else if ((SetEps.eq.7).and.( trim(PSol)=='VAC')) then
-     write(*,*)'Running a Generalized Poisson calculation with restart'
+     call yaml_map('Running a Poisson-Boltzmann calculation','---')
     end if
    end if
 
@@ -2257,10 +2255,10 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   real(kind=8), parameter :: max_ratioex_PB = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp,i_PB
-  real(kind=8), parameter :: error = 1.0d-13 !1.0d-13
+  real(kind=8), parameter :: error = 1.0d-8 !1.0d-13
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
-  real(kind=8), parameter :: tauPB = 1.0d-13 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
+  real(kind=8), parameter :: tauPB = 1.0d-10 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB,errorvar
   real(kind=8) :: PB_charge
@@ -2284,12 +2282,12 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   pi = 4.d0*datan(1.d0)   
   rpoints=product(real([n01,n02,n03],kind=8))
 
-  open(unit=18,file='PBimpro_PCG_normr.dat',status='unknown')
-  open(unit=38,file='PCGimpro_accuracy.dat',status='unknown')
+!  open(unit=18,file='PBimpro_PCG_normr.dat',status='unknown')
+!  open(unit=38,file='PCGimpro_accuracy.dat',status='unknown')
 
   if (iproc ==0) then
-   write(18,'(1x,a)')'iter_PB normrPB rhores2'
-   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+!   write(18,'(1x,a)')'iter_PB normrPB rhores2'
+!   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    call yaml_map('rpoints',rpoints)
    call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
@@ -2318,8 +2316,9 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 !--------------------------------------------------------------------------------------------
 
   if (iproc==0) then
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   write(*,'(a)')'Starting a Poisson-Bolzmann run'
+   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   call yaml_map('-------------------------------','---')
+   call yaml_map('Starting a Poisson-Bolzmann run','---')
   end if
   
   call f_zero(x)
@@ -2333,14 +2332,16 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   do i_PB=1,max_iter_PB ! Poisson-Boltzmann loop.
 
    if (iproc==0) then
-    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    write(*,*)'Starting Poisson-Boltzmann iteration ',i_PB
+    !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    call yaml_map('-------------------------------','---')
+    call yaml_map('Starting Poisson-Boltzmann iteration ',i_PB)
    end if
 
 
   if (iproc==0) then
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   write(*,'(a)')'Starting Preconditioned Conjugate Gradient'
+   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   call yaml_map('-------------------------------','---')
+   call yaml_map('Starting Preconditioned Conjugate Gradient','---')
   end if
 
   normb=0.d0
@@ -2395,8 +2396,9 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
    if (normr.gt.max_ratioex) exit
 
    if (iproc==0) then
-    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    write(*,*)'Starting PCG iteration ',i
+    !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    call yaml_map('-------------------------------','---')
+    call yaml_map('Starting PCG iteration ',i)
    end if
 
 !  Apply the Preconditioner
@@ -2513,15 +2515,16 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   normrPB=sqrt(rhores2/rpoints)
 
    if (iproc==0) then
-    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+    !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    call yaml_map('-------------------------------','---')
+    call yaml_map('End Poisson-Boltzmann iteration ',i_PB)
    end if
 
   if (iproc ==0) then
    call yaml_map('iter PB',i_PB)
    call yaml_map('normrPB',normrPB)
    call yaml_map('rhores2',rhores2)
-   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+!   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
    call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
   end if
 
@@ -2550,12 +2553,13 @@ subroutine Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 !   write(*,*)
 !  end if
 
-  close(unit=18)
-  close(unit=38)
+!  close(unit=18)
+!  close(unit=38)
 
   if (iproc==0) then
-   write(*,'(a)')'Termination of Preconditioned Conjugate Gradient'
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
+   call yaml_map('Termination of Preconditioned Conjugate Gradient','---')
+   call yaml_map('-------------------------------','---')
+   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
   end if
 
   call f_free(x)
@@ -3302,6 +3306,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
   real(kind=8) :: max_val,fact
   character(len=20) :: str
+  logical :: wrtfiles=.false.
   re=f_malloc([n01,n02,n03,nspden],id='re')
   
       max_val = 0.d0
@@ -3322,12 +3327,14 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
             end do
          end do
       end do
+      if (wrtfiles) then      
       write(38,'(4(1x,I4),2(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
            re(n01/2,n02/2,n03/2,1)
 !!$      write(38,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
 !!$           re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
       !write(*,'(4(1x,I4),4(1x,e22.15))')i,i1_max,i2_max,i3_max,max_val,&
       !     re(n01/2,n02/2,n03/2,1),re(2,n02/2,n03/2,1),re(10,n02/2,n03/2,1)
+      end if
       if (max_val == 0.d0) then
          call yaml_map('Inf. Norm difference with reference',0.d0)
       else
@@ -3338,29 +3345,31 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
               fmt='(1pe22.15)')
          call yaml_mapping_close()
       end if
-      
-      unt=f_get_free_unit(21)
-      call f_open_file(unt,file='final.dat')
-      !i1=n01/2
-      i1=(n01-1)/2+1
-      do i2=1,n02
-         do i3=1,n03
-            write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1,i2,i3,1),potential(i1,i2,i3)
-         end do
-      end do
-      call f_close(unt)
 
-      unt=f_get_free_unit(22)
-      i1=(n01-1)/2+1
-      i3=(n03-1)/2+1
-      call f_open_file(unt,file='final_line.dat')
-      !write (str, *) i
-      !str = adjustl(str)
-      !call f_open_file(unt,file='final_line'//trim(str)//'.dat')
-      do i2=1,n02
-       write(unt,'(1x,I8,3(1x,e22.15))') i2,ri(i1,i2,i3,1),potential(i1,i2,i3),re(i1,i2,i3,1)
-      end do
-      call f_close(unt)
+      if (wrtfiles) then      
+       unt=f_get_free_unit(21)
+       call f_open_file(unt,file='final.dat')
+       !i1=n01/2
+       i1=(n01-1)/2+1
+       do i2=1,n02
+          do i3=1,n03
+             write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,ri(i1,i2,i3,1),potential(i1,i2,i3)
+          end do
+       end do
+       call f_close(unt)
+ 
+       unt=f_get_free_unit(22)
+       i1=(n01-1)/2+1
+       i3=(n03-1)/2+1
+       call f_open_file(unt,file='final_line.dat')
+       !write (str, *) i
+       !str = adjustl(str)
+       !call f_open_file(unt,file='final_line'//trim(str)//'.dat')
+       do i2=1,n02
+        write(unt,'(1x,I8,3(1x,e22.15))') i2,ri(i1,i2,i3,1),potential(i1,i2,i3),re(i1,i2,i3,1)
+       end do
+       call f_close(unt)
+      end if
 
       call f_free(re)
 end subroutine writeroutinePot
@@ -4741,6 +4750,7 @@ subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigm
   logical :: perx,pery,perz
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,nn
   type(box_iterator) :: bit
+  logical :: wrtfiles=.false.
 
   density1=f_malloc([n01,n02,n03,nspden],id='density1')
   density2=f_malloc([n01,n02,n03,nspden],id='density2')
@@ -5315,7 +5325,7 @@ else if (SetEps.eq.18) then
   end do
 
 end if
-
+if (wrtfiles) then
 !plot of the starting conditions
  unt=f_get_free_unit(21)
  call f_open_file(unt,file='initial.dat')
@@ -5341,6 +5351,7 @@ end if
   write(unt,'(1x,I8,4(1x,e22.15))') i2,y,density(i1,i2,i3,1),potential(i1,i2,i3),eps(i1,i2,i3)
  end do
  call f_close(unt)
+end if
 
  !calculate hartree energy
  einit=0.d0
@@ -5516,9 +5527,7 @@ subroutine SetEpsilon(mesh,n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy
   real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor,length,oneoeps0,oneosqrteps0
   real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
   real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1
-
-  open(unit=21,file='epsilon.dat',status='unknown')
-  open(unit=22,file='epsilon_line.dat',status='unknown')
+  logical :: wrtfiles=.false.
 
   nabla_edens=0.d0
   ddt_edens=0.d0
@@ -5791,27 +5800,31 @@ end if
 !!$      write(21,*)
 !!$     end do
 
-     !i1=n01/2+1
-     i1=(n01-1)/2+1
-     !i1=1
-     do i2=1,n02
-      do i3=1,n03
-       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i2,i1,i3),eps(i1,i2,i3)
+  if (wrtfiles) then
+   open(unit=21,file='epsilon.dat',status='unknown')
+   open(unit=22,file='epsilon_line.dat',status='unknown')
+ 
+      !i1=n01/2+1
+      i1=(n01-1)/2+1
+      !i1=1
+      do i2=1,n02
+       do i3=1,n03
+        write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i2,i1,i3),eps(i1,i2,i3)
+       end do
+       write(21,*)
       end do
-      write(21,*)
-     end do
-
-
-     i1=(n01-1)/2+1
-     i3=(n03-1)/2+1
-     do i2=1,n02
-      y=hy*real(i2-1,kind=8)
-      write(22,'(1x,I8,6(1x,e22.15))') i2,y,eps(i1,i2,i3),dlogeps(1,i1,i2,i3),dlogeps(2,i1,i2,i3),dlogeps(3,i1,i2,i3),corr(i1,i2,i3)
-     end do
-
-  close(unit=21)
-  close(unit=22)
-
+ 
+ 
+      i1=(n01-1)/2+1
+      i3=(n03-1)/2+1
+      do i2=1,n02
+       y=hy*real(i2-1,kind=8)
+       write(22,'(1x,I8,6(1x,e22.15))') i2,y,eps(i1,i2,i3),dlogeps(1,i1,i2,i3),dlogeps(2,i1,i2,i3),dlogeps(3,i1,i2,i3),corr(i1,i2,i3)
+      end do
+ 
+   close(unit=21)
+   close(unit=22)
+  end if
 end subroutine SetEpsilon
 
 

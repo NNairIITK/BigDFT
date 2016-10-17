@@ -90,7 +90,7 @@ class UniParser():
                     else:
                         val=argtmp[i]
                 else:
-                    val=pos.get('default',None)
+                    val=pos.get('default',[])
                 name=pos['name']
                 if hasattr(argstmp,name): 
                     val=[getattr(argstmp,name)]+val

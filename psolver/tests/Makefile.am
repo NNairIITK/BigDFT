@@ -117,5 +117,14 @@ define F_REGTEST_INSTRUCTIONS
     - |
       $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG -i '{environment: {input_guess: No}}'
     - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |
+      $(run_parallel) ./Generalized_PSolver -n 100 -m PCG -p yes 
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |
+      $(run_parallel) ./Generalized_PSolver -n 100 -m PI -p yes 
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |
+      $(run_parallel) ./Generalized_PSolver -n 80 -m VAC -e 6 -p yes
+    - cat log.yaml >> Generalized_PSolver.out.yaml
 endef
 export F_REGTEST_INSTRUCTIONS

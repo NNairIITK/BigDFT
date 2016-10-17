@@ -21,7 +21,13 @@
 
 !> Module to deal with the sparse matrices
 module sparsematrix
+  use dictionaries, only: f_err_throw
+  use yaml_strings
   use sparsematrix_base
+  use time_profiling
+  use wrapper_mpi
+  use wrapper_linalg
+  use f_utils
   implicit none
 
   private
@@ -65,6 +71,7 @@ module sparsematrix
 
     !> subroutine to compress the matrix to sparse form
     subroutine compress_matrix(iproc,nproc,sparsemat,inmat,outmat)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -166,6 +173,7 @@ module sparsematrix
 
 
     subroutine compress_matrix2(iproc, nproc, sparsemat, inmat, outmat)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -285,6 +293,7 @@ module sparsematrix
 
 
     subroutine uncompress_matrix2(iproc, nproc, comm, smat, matrix_compr, matrix)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -305,6 +314,7 @@ module sparsematrix
 
     subroutine check_matrix_compression(iproc, nproc, sparsemat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
       integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
@@ -418,7 +428,8 @@ module sparsematrix
 
 
     subroutine transform_sparse_matrix(iproc, smat, lmat, imode, direction, &
-               smat_in, lmat_in, smat_out, lmat_out)
+         smat_in, lmat_in, smat_out, lmat_out)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -684,6 +695,7 @@ module sparsematrix
 
 
    subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
+     use dynamic_memory
      implicit none
 
      ! Calling arguments
@@ -756,6 +768,7 @@ module sparsematrix
 
    subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, matrix_compr)
      !!use yaml_output
+     use dynamic_memory
      implicit none
 
      ! Calling arguments
@@ -867,7 +880,8 @@ module sparsematrix
    !> Gathers together the matrix parts calculated by other tasks.
    !! Attention: Even if the output array has size smat%nvctrp_tg, only the
    !! relevant part (indicated by smat%istartend_local) is calculated
-   subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
+  subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
+    use dynamic_memory
      implicit none
 
      ! Calling arguments
@@ -1046,6 +1060,7 @@ module sparsematrix
 
 
   subroutine uncompress_matrix_distributed2(iproc, smat, layout, matrix_compr, matrixp)
+    use dynamic_memory
     implicit none
 
     ! Calling arguments
@@ -1112,6 +1127,7 @@ module sparsematrix
 
 
    subroutine sequential_acces_matrix_fast(smat, a, a_seq)
+     use dynamic_memory
      implicit none
    
      ! Calling arguments
@@ -1142,6 +1158,7 @@ module sparsematrix
    end subroutine sequential_acces_matrix_fast
 
    subroutine sequential_acces_matrix_fast2(smat, a, a_seq)
+     use dynamic_memory
      implicit none
    
      ! Calling arguments
@@ -1177,6 +1194,7 @@ module sparsematrix
 
    subroutine sparsemm_new(iproc, smat, a_seq, b, c)
      use yaml_output
+     use dynamic_memory
      implicit none
    
      !Calling Arguments
@@ -1354,6 +1372,7 @@ module sparsematrix
 
 
    subroutine gather_matrix_from_taskgroups(iproc, nproc, comm, smat, mat_tg, mat_global)
+     use dynamic_memory
      implicit none
    
      ! Calling arguments
@@ -1405,7 +1424,9 @@ module sparsematrix
 
 
    subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, comm, smat, mat)
+     use dynamic_memory
      implicit none
+
    
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, comm
@@ -1570,6 +1591,7 @@ module sparsematrix
     !> Write a sparse matrix to a file
     subroutine write_sparsematrix(filename, smat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -1633,6 +1655,7 @@ module sparsematrix
     !> Write a sparse matrix to a file, using the CCS format
     subroutine write_sparsematrix_CCS(filename, smat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -1768,6 +1791,7 @@ module sparsematrix
                nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, istsegline_l, direction, &
                matrix_s_in, matrix_l_in, matrix_s_out, matrix_l_out)
       use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
@@ -1856,7 +1880,10 @@ module sparsematrix
 
     !> Calculates c = a*b for matrices a,b,c
     subroutine matrix_matrix_mult_wrapper(iproc, nproc, smat, a, b, c)
+      use dynamic_memory
       implicit none
+
+
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
@@ -1905,6 +1932,7 @@ module sparsematrix
     !< Calculates the trace of the sparse matrix mat
     function trace_sparse_matrix(iproc, nproc, comm, smat, mat) result(tr)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -1944,7 +1972,9 @@ module sparsematrix
     !< within the sparsity pattern of bmat!
     function trace_sparse_matrix_product(iproc, nproc, comm, asmat, bsmat, amat, bmat) result(sumn)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
+
     
       ! Calling arguments
       integer,intent(in) :: iproc,  nproc, comm
@@ -2043,7 +2073,8 @@ module sparsematrix
    end subroutine delete_coupling_terms
 
 
-    subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+   subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+     use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2109,6 +2140,7 @@ module sparsematrix
 
     subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2309,6 +2341,7 @@ module sparsematrix
 
     subroutine symmetrize_matrix(smat, csign, mat_in, mat_out, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2384,8 +2417,8 @@ module sparsematrix
 
 
     subroutine check_deviation_from_unity_sparse(iproc, smat, mat, max_error, mean_error)
-      use sparsematrix_base, only: sparse_matrix, &
-                                   matrices
+      use sparsematrix_base, only: sparse_matrix,matrices
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2490,6 +2523,7 @@ module sparsematrix
 
     subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, &
                exp_power, smat_in, smat_out, mat_in, mat_out)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2527,6 +2561,7 @@ module sparsematrix
     subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out)
       !use module_base
       use parallel_linalg, only: dgemm_parallel, dsyev_parallel
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2584,6 +2619,7 @@ module sparsematrix
 
 
     subroutine check_deviation_from_unity_dense(iproc, n, mat)
+      use yaml_output
       implicit none
 
       ! Calling arguments
@@ -2620,6 +2656,7 @@ module sparsematrix
 
 
     subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
+      use dynamic_memory
       !
       ! Purpose:
       ! ========
@@ -2780,6 +2817,8 @@ module sparsematrix
     subroutine get_minmax_eigenvalues(iproc, nproc, comm, scalapack_blocksize, &
                ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
       use parallel_linalg, only: dsyev_parallel
+      use dynamic_memory
+      use yaml_output
       implicit none
 
       ! Calling arguments

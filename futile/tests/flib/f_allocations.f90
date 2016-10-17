@@ -23,7 +23,8 @@ program f_buffer_allocations
 
   !now insert some extra information in the buffer
   !allocate the pointer in the normal case
-  d1_ptr_exotic=f_malloc_ptr(-1.to.34,id='d1_ptr_exotic',info='{Type: SHARED}')
+  d1_ptr_exotic=f_malloc_ptr(-1.to.34,id='d1_ptr_exotic',&
+       info='{Type: SHARED}')
 
   call yaml_mapping_open('Status of the database',advance='no')
   call yaml_comment('Database status',hfill='~')

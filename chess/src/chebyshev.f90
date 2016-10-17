@@ -20,7 +20,12 @@
 
 
 module chebyshev
+  use dynamic_memory
+  use dictionaries, only: f_err_throw
   use sparsematrix_base
+  use f_utils
+  use wrapper_linalg
+  use time_profiling
   implicit none
 
   private

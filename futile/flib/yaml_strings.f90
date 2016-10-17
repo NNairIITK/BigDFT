@@ -69,7 +69,7 @@ module yaml_strings
   end interface
 
   interface assignment(=)
-     module procedure msg_to_string
+     module procedure msg_to_string,string_to_msg
   end interface assignment(=)
 
   interface operator(**)
@@ -841,6 +841,13 @@ contains
     type(f_string), intent(in) :: msg
     call f_strcpy(string,msg%msg)
   end subroutine msg_to_string
+
+  pure subroutine string_to_msg(msg,string)
+    implicit none
+    character(len=*), intent(in) :: string
+    type(f_string), intent(out) :: msg
+    call f_strcpy(msg%msg,string//char(0))
+  end subroutine string_to_msg
 
   !function which attach two strings each other
   pure function attach_ci(s,num) result(c)
