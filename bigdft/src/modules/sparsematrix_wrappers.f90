@@ -17,7 +17,7 @@ module sparsematrix_wrappers
       use module_types, only: orbitals_data, local_zone_descriptors, atomic_structure
       use sparsematrix_init, only: init_sparse_matrix
       implicit none
-  
+
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nspin, imode
       type(orbitals_data),intent(in) :: orbs
@@ -26,7 +26,7 @@ module sparsematrix_wrappers
       logical,intent(in) :: store_index, init_matmul
       type(sparse_matrix),intent(out) :: smat
       type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case smat must be at least as large as smat_ref
-  
+
       ! Local variables
       integer :: nnonzero, nnonzero_mult, ilr
       integer,dimension(:,:),pointer :: nonzero, nonzero_mult
@@ -34,13 +34,13 @@ module sparsematrix_wrappers
       logical :: present_smat_ref
       integer,parameter :: KEYS=1
       integer,parameter :: DISTANCE=2
-  
+
       call f_routine(id='init_sparse_matrix_wrapper')
-  
+
       present_smat_ref = present(smat_ref)
-  
+
       locrad = f_malloc(lzd%nlr,id='lzd%nlr')
-  
+
       if (imode==KEYS) then
          call determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
       else if (imode==DISTANCE) then
@@ -55,7 +55,7 @@ module sparsematrix_wrappers
       else
          stop 'wrong imode'
       end if
-  
+
       ! Make sure that the cutoff for the multiplications is larger than the kernel cutoff
       do ilr=1,lzd%nlr
          !write(*,*) 'lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel', lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel
@@ -65,7 +65,7 @@ module sparsematrix_wrappers
                  &//trim(yaml_toa(lzd%llr(ilr)%locrad_kernel,fmt='(f5.2)'))//')', err_id=BIGDFT_RUNTIME_ERROR)
          end if
       end do
-  
+
       do ilr=1,lzd%nlr
           locrad(ilr) = lzd%llr(ilr)%locrad_mult
       end do
@@ -84,45 +84,45 @@ module sparsematrix_wrappers
       call f_free_ptr(nonzero)
       call f_free_ptr(nonzero_mult)
       call f_free(locrad)
-  
+
       call f_release_routine()
-  
+
     end subroutine init_sparse_matrix_wrapper
-  
-  
+
+
     subroutine check_kernel_cutoff(iproc, orbs, atoms, hamapp_radius_incr, lzd)
       use module_types
       use yaml_output
       implicit none
-    
+
       ! Calling arguments
       integer,intent(in) :: iproc, hamapp_radius_incr
       type(orbitals_data),intent(in) :: orbs
       type(atoms_data),intent(in) :: atoms
       type(local_zone_descriptors),intent(inout) :: lzd
-    
+
       ! Local variables
       integer :: iorb, ilr, iat, iatype
       real(kind=8) :: cutoff_sf, cutoff_kernel
       character(len=20) :: atomname
       logical :: write_data
       logical,dimension(atoms%astruct%ntypes) :: write_atomtype
-    
+
       write_atomtype=.true.
-    
+
       if (iproc==0) then
           call yaml_sequence_open('Check of kernel cutoff radius')
       end if
-    
+
       do iorb=1,orbs%norb
           ilr=orbs%inwhichlocreg(iorb)
-    
+
           ! cutoff radius of the support function, including shamop region
           cutoff_sf=lzd%llr(ilr)%locrad+real(hamapp_radius_incr,kind=8)*lzd%hgrids(1)
-    
+
           ! cutoff of the density kernel
           cutoff_kernel=lzd%llr(ilr)%locrad_kernel
-    
+
           ! check whether the date for this atomtype has already shoudl been written
           iat=orbs%onwhichatom(iorb)
           iatype=atoms%astruct%iatype(iat)
@@ -136,7 +136,7 @@ module sparsematrix_wrappers
           else
               write_data=.false.
           end if
-    
+
           ! Adjust if necessary
           if (write_data) then
               call yaml_sequence(advance='no')
@@ -159,16 +159,16 @@ module sparsematrix_wrappers
               call yaml_mapping_close()
           end if
       end do
-    
+
       if (iproc==0) then
           call yaml_sequence_close
       end if
-    
-    
+
+
     end subroutine check_kernel_cutoff
-  
-  
-  
+
+
+
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_types
           use locregs, only: check_overlap_cubic_periodic,check_overlap_from_descriptors_periodic
@@ -189,20 +189,20 @@ module sparsematrix_wrappers
           integer, dimension(:), allocatable :: noverlapsarr
           integer, dimension(:,:), allocatable :: overlaps_op
           !character(len=*), parameter :: subname='determine_overlap_from_descriptors'
-    
+
           call f_routine('determine_sparsity_pattern')
           call timing(iproc,'determinespars','ON')
-        
+
           overlapMatrix = f_malloc((/orbs%norbu,orbs%norbup/),id='overlapMatrix')
           noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
-        
+
           overlapMatrix=.false.
-  
+
           do iorb=1,orbs%norbup
              ioverlaporb=0 ! counts the overlaps for the given orbital.
              iiorb=orbs%isorbu+iorb
              ilr=orbs%inWhichLocreg(iiorb)
-  
+
              !$omp parallel default(none) &
              !$omp private(jorb,jlr,isoverlap,onseg) &
              !$omp shared(orbs,lzd,iorb,ilr,overlapMatrix,ioverlaporb)
@@ -240,21 +240,21 @@ module sparsematrix_wrappers
                 !!write(*,'(a,2i8,l4)') 'iiorb, jorb, isoverlap', iiorb, jorb, isoverlap
              end do
              !$omp end do
-             !$omp end parallel     
+             !$omp end parallel
              noverlapsarr(iorb)=ioverlaporb
           end do
-   
-  
-  
+
+
+
           overlaps_op = f_malloc((/maxval(noverlapsarr),orbs%norbup/),id='overlaps_op')
-        
+
           ! Now we know how many overlaps have to be calculated, so determine which orbital overlaps
           ! with which one. This is essentially the same loop as above, but we use the array 'overlapMatrix'
           ! which indicates the overlaps.
           !$omp parallel if (orbs%norbu>1000) &
           !$omp default(none) &
           !$omp shared(orbs,overlapMatrix,overlaps_op) &
-          !$omp private(iorb,ioverlaporb,iiorb)
+          !$omp private(iorb,ioverlaporb,iiorb,jorb)
           !$omp do schedule(guided)
           do iorb=1,orbs%norbup
              ioverlaporb=0 ! counts the overlaps for the given orbital.
@@ -264,12 +264,12 @@ module sparsematrix_wrappers
                    ioverlaporb=ioverlaporb+1
                    overlaps_op(ioverlaporb,iorb)=jorb
                 end if
-             end do 
+             end do
           end do
           !$omp end do
           !$omp end parallel
-    
-    
+
+
           nnonzero=0
           do iorb=1,orbs%norbup
               nnonzero=nnonzero+noverlapsarr(iorb)
@@ -284,17 +284,17 @@ module sparsematrix_wrappers
                   nonzero(2,ii)=iiorb
               end do
           end do
-    
+
           call f_free(overlapMatrix)
           call f_free(noverlapsarr)
           call f_free(overlaps_op)
-        
+
           call timing(iproc,'determinespars','OF')
           call f_release_routine()
-    
+
     end subroutine determine_sparsity_pattern
-  
-  
+
+
     !> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
     subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, geocode, cell_dim, nextra, smat, smat_extra)
       use module_types
@@ -302,7 +302,7 @@ module sparsematrix_wrappers
       use public_enums
       use sparsematrix_init, only: init_sparse_matrix
       implicit none
-    
+
       ! Calling arguments
       integer, intent(in) :: iproc, nproc, nextra
       type(orbitals_data), intent(in) :: orbs
@@ -310,26 +310,26 @@ module sparsematrix_wrappers
       character(len=1),intent(in) :: geocode
       real(kind=8),dimension(3),intent(in) :: cell_dim
       type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
-    
+
       ! Local variables
       integer :: i, iorb, iiorb, jorb, ind, norb, norbp, isorb, ispin
       integer,dimension(:,:),allocatable :: nonzero
       type(orbitals_data) :: orbs_aux
       character(len=*), parameter :: subname='init_sparse_matrix_for_KSorbs'
-    
+
       call f_routine('init_sparse_matrix_for_KSorbs')
-    
-    
+
+
       allocate(smat(input%nspin))
       allocate(smat_extra(input%nspin))
-    
-    
+
+
       ! First the type for the normal KS orbitals distribution
       do ispin=1,input%nspin
-    
+
           smat(ispin) = sparse_matrix_null()
           smat_extra(ispin) = sparse_matrix_null()
-    
+
           if (ispin==1) then
               norb=orbs%norbu
               norbp=orbs%norbup
@@ -339,7 +339,7 @@ module sparsematrix_wrappers
               norbp=orbs%norbdp
               isorb=orbs%isorbd
           end if
-    
+
           nonzero = f_malloc((/2,norb*norbp/), id='nonzero')
           i=0
           do iorb=1,norbp
@@ -356,8 +356,8 @@ module sparsematrix_wrappers
                nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
                store_index=input%store_index, on_which_atom=orbs%onwhichatom, print_info=.false.)
           call f_free(nonzero)
-    
-    
+
+
           !SM: WARNING: not tested whether the spin works here! Mainly just to create a
           !spin down part and make the compiler happy at another location.
           ! Now the distribution for the KS orbitals including the extr states. Requires
@@ -390,11 +390,11 @@ module sparsematrix_wrappers
                store_index=input%store_index, on_which_atom=orbs_aux%onwhichatom, print_info=.false.)
           call f_free(nonzero)
           call deallocate_orbitals_data(orbs_aux)
-    
+
       end do
-    
+
       call f_release_routine()
-    
+
     end subroutine init_sparse_matrix_for_KSorbs
 
 
@@ -402,7 +402,7 @@ module sparsematrix_wrappers
       use module_types
       use sparsematrix_init, only: matrixindex_in_compressed
       implicit none
-    
+
       ! Calling arguments
       type(orbitals_data), intent(in) :: orbs
       type(local_zone_descriptors), intent(in) :: lzd
@@ -411,7 +411,7 @@ module sparsematrix_wrappers
       integer, intent(out) :: nnonzero
       integer, dimension(:,:), pointer,intent(out) :: nonzero
       type(sparse_matrix),intent(in),optional :: smat_ref !< reference sparsity pattern, in case the sparisty pattern to be calculated must be at least be as large as smat_ref
-    
+
       ! Local variables
       logical :: overlap
       integer :: i1, i2, i3
@@ -421,10 +421,10 @@ module sparsematrix_wrappers
       logical :: perx, pery, perz, present_smat_ref
 
       call f_routine('determine_sparsity_pattern_distance')
-      call timing(bigdft_mpi%iproc,'determinespars','ON')    
+      call timing(bigdft_mpi%iproc,'determinespars','ON')
 
       present_smat_ref = present(smat_ref)
-    
+
       ! periodicity in the three directions
       perx=(lzd%glr%geocode /= 'F')
       pery=(lzd%glr%geocode == 'P')
@@ -466,7 +466,7 @@ module sparsematrix_wrappers
          !$omp parallel default(none) &
          !$omp private(jjorb,ind,overlap,jlr,jwa,jtype,x0,y0,z0,cut,i3,i2,i1,zj,yj,xj,tt) &
          !$omp shared(xi,yi,zi,iiorb,ilr,orbs,nnonzero,lzd,cutoff,astruct) &
-         !$omp shared(ijs3,ije3,ijs2,ije2,ijs1,ije1,present_smat_ref,smat_ref) 
+         !$omp shared(ijs3,ije3,ijs2,ije2,ijs1,ije1,present_smat_ref,smat_ref)
          !$omp do schedule(guided) reduction(+:nnonzero)
          do jjorb=1,orbs%norbu
             if (present_smat_ref) then
@@ -520,7 +520,7 @@ module sparsematrix_wrappers
 
       !call mpiallred(nnonzero, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
       nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
-    
+
       ii=0
       !!do iorb=1,orbs%norbup
       !!   iiorb=orbs%isorbu+iorb
@@ -606,7 +606,7 @@ module sparsematrix_wrappers
 
       call timing(bigdft_mpi%iproc,'determinespars','OF')
       call f_release_routine()
-    
+
     end subroutine determine_sparsity_pattern_distance
 
 
