@@ -2390,7 +2390,7 @@ QMMM:
   EKS: 1.2e-11
 
 Cavity_H2OfsccsPCG:
- Atomic Forces (Ha/Bohr): 9.4e-10
+ Atomic Forces (Ha/Bohr): 9.4e-07
  Iteration quality: 6.8e-7
  Energies: 4.01e-9
  Average noise forces: 1.01e-9
@@ -2401,14 +2401,14 @@ Cavity_H2OfsccsPCG:
  Ekin: 1.8e-06
  Enl: 1.49e-07
  EvXC: 3.05e-07
- Integral of the density in the nonvacuum region: 7.84e-08
+ Integral of the density in the nonvacuum region: 7.84e-07
  P vector: 1.01e-07
  Total electronic charge: 1.46e-09
  alpha: 0.397
  beta: 0.0002
  EKS: 2.44e-07
- Energy (Hartree): 2.44e-07
- Force Norm (Hartree/Bohr): 4.68e-07
+ Energy (Hartree): *energy
+ Force Norm (Hartree/Bohr): 4.68e-06
  H: 9.94e-07
  O: 2.01e-07
  fnrm2: 4.39e-07
@@ -2421,69 +2421,77 @@ Cavity_H2OfsccsPCG:
    - Electronic charge changed by rho compression
 
 Cavity_H2OfrigidPI:
-  EH: 2.0999983973979397e-09
-  EKS: 5.021441040753416e-10
-  EXC: 4.3000003557835953e-10
-  Ekin: 7.000000579182597e-10
-  Electronic charge changed by rho compression: 3.6565417360640003e-10
-  Energy (Hartree): 1.9139889673169819e-10
-  Enl: 4.000000330961484e-11
-  Epot: 1.4999983477537171e-09
-  EvXC: 5.7000004716201147e-10
-  H: 7.3399994415801473e-11
-  Integral of the density in the nonvacuum region: 1.2564910223389347e-10
-  O: 6.0904000159095473e-11
-  Total electronic charge: 1.1469998284496796e-09
-  fnrm2: 2.191999359801855e-11
-  maxval: 5.9100002669509877e-11
-  x: 5.0000000233890729e-11
+  EH: 2.0e-05
+  EKS: 5.0e-5
+  EXC: 4.30e-07
+  Ekin: 7.0e-06
+  Electronic charge changed by rho compression: 3.6565417360640003e-08
+  Energy (Hartree): *energy
+  Atomic Forces (Ha/Bohr): 9.4e-07
+  Force Norm (Hartree/Bohr): 4.68e-06
+  Enl: 4.00e-07
+  Epot: 1.49e-07
+  EvXC: 5.70e-07
+  H: 7.33e-07
+  Integral of the density in the nonvacuum region: 1.2564910223389347e-08
+  O: 6.09e-07
+  Total electronic charge: 1.1469998284496796e-07
+  fnrm2: 2.19e-7
+  maxval: 5.91e-7
+  x: 5.00e-07
+  Keys to ignore:
+   - Electronic charge changed by rho compression
 
 Cavity_H2Ofrigid_PB_PCG:
-  EH: 2.0999983973979397e-09
-  EKS: 5.0254200800736726e-10
-  EXC: 3.4000002813172614e-10
-  Ekin: 3.000000248221113e-10
-  Electronic charge changed by rho compression: 8.0430062610044003e-10
-  Energy (Hartree): 1.9410251184126537e-10
-  Enl: 3.000000248221113e-11
-  Epot: 1.4999983477537171e-09
-  EvXC: 4.6000003806057066e-10
-  Force Norm (Hartree/Bohr): 1.2313305930433671e-10
-  H: 1.4220000177367353e-10
-  Integral of the density in the nonvacuum region: 2.2249085906977939e-10
-  O: 2.2798400060169977e-10
-  Total electronic charge: 8.0399953361620646e-10
+  EH:   2.09e-07
+  EKS:  5.02e-07
+  EXC:  3.40e-07
+  Ekin: 3.00e-07
+  Electronic charge changed by rho compression: 8.0430062610044003e-07
+  Energy (Hartree): *energy
+  Enl:  3.00e-07
+  Epot: 1.49e-07
+  EvXC: 4.60e-07
+  Force Norm (Hartree/Bohr): 1.23e-07
+  H: 1.42e-07
+  Integral of the density in the nonvacuum region: 2.22e-8
+  O: 2.27e-08
+  Total electronic charge: 8.03e-07
   alpha: 4.0304737780605393e-07
   beta: 2.3793108425707032e-06
-  fnrm2: 1.0381000226100667e-10
-  maxval: 1.7230000759482778e-10
-  ratio: 6.5879529262402592e-10
-  res: 2.8494700752707566e-06
-  x: 9.0000000074058617e-11
-  y: 9.9999999947364415e-10
-  z: 1.9999999920083944e-10
+  fnrm2: 1.0381000226100667e-07
+  maxval: 1.7230000759482778e-07
+  ratio: 6.5879529262402592e-07
+  res: 2.8494700752707566e-04
+  x: 9.0000000074058617e-07
+  y: 9.9999999947364415e-07
+  z: 1.9999999920083944e-07
+  Keys to ignore:
+   - Electronic charge changed by rho compression
 
 Cavity_H2OfsccsPI:
-  EH: 3.8000003144134098e-09
-  EKS: 7.8333783903872245e-10
-  EXC: 7.5000006205527825e-10
-  Ekin: 4.000000330961484e-10
-  Electronic charge changed by rho compression: 3.2664448923470001e-10
-  Energy (Hartree): 7.8333783903872245e-10
-  Enl: 3.000000248221113e-11
-  Epot: 2.8000002316730388e-09
-  EvXC: 9.8000008108556358e-10
-  Force Norm (Hartree/Bohr): 1.9483933910713347e-10
-  H: 1.0196000987949816e-10
-  Integral of the density in the nonvacuum region: 1.1233629304552295e-10
-  O: 1.5859999424883142e-10
-  Total electronic charge: 2.0120003441093104e-09
-  fnrm2: 1.4178000440345784e-10
-  maxval: 2.5129998082462635e-10
-  total: 9.9999999947364415e-10
-  x: 3.6999999982259557e-10
-  y: 9.9999999947364415e-10
-  z: 4.999999980020986e-11
+  EH: 3.8000003144134098e-07
+  EKS: 7.8333783903872245e-07
+  EXC: 7.5000006205527825e-07
+  Ekin: 4.000000330961484e-07
+  Electronic charge changed by rho compression: 3.2664448923470001e-07
+  Energy (Hartree): *energy
+  Enl: 3.000000248221113e-07
+  Epot: 2.8000002316730388e-07
+  EvXC: 9.8000008108556358e-07
+  Force Norm (Hartree/Bohr): 1.9483933910713347e-06
+  H: 1.0196000987949816e-07
+  Integral of the density in the nonvacuum region: 1.1233629304552295e-07
+  O: 1.5859999424883142e-07
+  Total electronic charge: 2.0120003441093104e-07
+  fnrm2: 1.4178000440345784e-07
+  maxval: 2.5129998082462635e-07
+  total: 9.9999999947364415e-07
+  x: 3.6999999982259557e-07
+  y: 9.9999999947364415e-07
+  z: 4.999999980020986e-07
+  Keys to ignore:
+   - Electronic charge changed by rho compression
 
 pexsi:
   Energy (Hartree): 2.3e-11
