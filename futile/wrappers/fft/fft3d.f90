@@ -396,7 +396,7 @@ subroutine FFT_1d(n,nfft,zinout,isign,inzee,transpose,real_input)
   integer, intent(out) :: inzee
   real(kind=8), dimension(2,nfft*n,2), intent(inout) :: zinout
   !local variables
-  integer :: ic,i,ntrig,npr,iam
+  integer :: ic,ntrig,npr,iam
   !automatic arrays for the FFT
   integer, dimension(n_factors) :: after,now,before
   real(kind=8), dimension(:,:), allocatable :: trig

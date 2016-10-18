@@ -42,7 +42,7 @@ module f_random
       logical, intent(in), optional :: reset
 
       if (present(seed)) idum=seed
-      harvest = real(builtin_rand(idum,reset=reset),f_double)
+      harvest = builtin_rand(idum,reset=reset)
 
     end subroutine f_random_number_r0
 

@@ -81,17 +81,17 @@ program fft_results
      call verify_single_harmonic(pref,n,zinout,inzee,.false.,.not. quiet)
   end if
 
-  call take_timings(nrep,n,zinout,1,inzee)
+  call take_timings(nrep,n,zinout,inzee)
 
   call f_free(zinout)
   call f_lib_finalize()
 
 end program fft_results
 
-subroutine take_timings(nrep,n,zinout,isign,inzee) 
+subroutine take_timings(nrep,n,zinout,inzee) 
   use futile
   implicit none
-  integer, intent(in) :: nrep,isign
+  integer, intent(in) :: nrep
   integer, dimension(3) :: n
   integer, intent(inout) :: inzee
   real(f_double), dimension(2,n(1),n(2),n(3),2), intent(inout) :: zinout

@@ -259,7 +259,7 @@ module overlap_point_to_point
        type(c_ptr), optional :: psir_gpu
        type(c_ptr), optional :: dpsir_gpu
        !local variables
-       integer :: iorb,ndim,ntot,jorb,i_stat
+       integer :: iorb,ndim,ntot
 
        if (ld%nobj == 0) return
 
@@ -841,8 +841,8 @@ module overlap_point_to_point
  !      real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
        type(local_data), intent(inout) :: phi
        !local variables
-       integer :: igroup,dest,source,count,igr,iobj_local,jshift
-       integer :: norbp,original_source!,norbp_max
+       integer :: igroup,dest,source,count,igr,jshift
+       integer :: norbp!,original_source,norbp_max,iobj_local
        real(f_double), dimension(:), pointer :: tmp
 
        norbp=phi%nobj
@@ -917,7 +917,7 @@ module overlap_point_to_point
 
        !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
        !local variables
-       integer :: igroup,dest,source,count,igr,iobj_local,jshift
+       integer :: igroup,dest,source,count,igr,jshift
 
 
        norbp = phi%nobj
@@ -1017,7 +1017,7 @@ module overlap_point_to_point
        type(OP2P_data), intent(inout) :: OP2P
        type(OP2P_iterator), intent(inout) :: iter
        !local variables
-       integer :: igr,source,isorb,jsorb,jorbs
+       integer :: igr,source,isorb,jsorb
 
        igr=OP2P%group_id(OP2P%igroup)
        iter%igroup=igr
@@ -1098,7 +1098,7 @@ module overlap_point_to_point
        type(OP2P_data), intent(inout) :: OP2P
        type(OP2P_iterator), intent(inout) :: iter
        !local variables
-       integer :: igroup,igr,i_stat,norbp
+       integer :: igroup,i_stat,norbp
 
        if (iter%event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
 
@@ -1220,7 +1220,6 @@ module overlap_point_to_point
        logical, intent(in), optional :: nearest_neighbor,assert
        !local variables
        logical :: asst
-       integer :: norbp
        real(wp) :: maxdiff
        type(OP2P_data) :: OP2P
 
@@ -1435,7 +1434,6 @@ module overlap_point_to_point
      !local variables
      integer :: iorb,jorb,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
      real(wp) :: rint_ij
-     real(wp) :: hfac,hfaci,hfacj,hfac2,ehart
      !loop over all the orbitals
      !for the first step do only the upper triangular part
      do iorb=isloc_i,nloc_i+isloc_i-1

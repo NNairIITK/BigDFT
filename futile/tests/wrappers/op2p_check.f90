@@ -12,9 +12,10 @@ program OP2P_check
   use wrapper_MPI
   implicit none
   logical :: symmetric,nearest_neighbor,symfalse
-  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj,nij_loc,nij_glob,i,j,ndimp,isdim
+  integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj,nij_loc,nij_glob,ndimp,isdim
+  !integer :: i,j
   integer :: iorb_glb,jorb_glb
-  integer, dimension(:), allocatable :: nobj,nobj_p
+  integer, dimension(:), allocatable :: nobj,nobj_p,ndim_p
   integer, dimension(:,:), allocatable :: nobj_par
   type(dictionary), pointer :: options
   type(OP2P_data) :: OP2P_outer,OP2P_inner
@@ -96,7 +97,9 @@ program OP2P_check
 
   call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
 
-  call calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim)
+  ndim_p=f_malloc(0.to.nproc-1,id='ndim_p')
+  call calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim,ndim_p)
+  call f_free(ndim_p)
 
   call yaml_map('Ndimp',[ndimp,isdim,iproc])
 
