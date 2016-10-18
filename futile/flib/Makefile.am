@@ -24,8 +24,10 @@ endif
 # Module files.
 if CAPITALIZE
 CUDA_MODS = NVTX.@MODULE_EXT@
+SIMGRID_SHARED_MODS = SMPI_SHARED.@MODULE_EXT@
 else
 CUDA_MODS = nvtx.@MODULE_EXT@
+SIMGRID_SHARED_MODS = smpi_shared.@MODULE_EXT@
 endif
 
 # Source code.
@@ -115,7 +117,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	MODULE_F_BIND.@MODULE_EXT@ \
 	MODULE_F_OBJECTS.@MODULE_EXT@ \
 	F_PYTHON.@MODULE_EXT@ \
-	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
+	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS) $(SIMGRID_SHARED_MODS)
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
@@ -142,7 +144,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
 	f_jmp.@MODULE_EXT@ \
-	module_razero.@MODULE_EXT@ $(CUDA_MODS)
+	module_razero.@MODULE_EXT@ $(CUDA_MODS) $(SIMGRID_SHARED_MODS)
 endif
 
 CLEANFILES = *.@MODULE_EXT@ memstatus.yaml

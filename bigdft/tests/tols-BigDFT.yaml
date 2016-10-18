@@ -347,17 +347,24 @@ test.testforces.ref.yaml:
  Maxdiff for overlap calculation: 9.8e-09
  eF: 3.0e-07
  multiplicator for the confinement: 3.65e-9
- EBS: 3.93e-09
- EBS higher temperature: 3.93e-09
- EH: 4.11e-09
- EXC: 4.91e-10
- Ekin: 5.1e-10
- Epot: 2.91e-09
- EvXC: 6.51e-10
+ EBS: 6.2e-09
+ EBS higher temperature: 3.7e-08
+ EH: 6.5e-09
+ EXC: 7.5e-10
+ Ekin: 9.1e-10
+ Epot: 4.6e-09
+ EvXC: 9.8e-10
  Multipole coefficients: 1.0e-9
- Raw forces norm (Ha/Bohr): 1.5e-10
- difference: 1.4e-9
- relative difference: 4.8e-10
+ Raw forces norm (Ha/Bohr): 3.2e-10
+ Clean forces norm (Ha/Bohr): 1.6e-10
+ difference: 3.7e-8
+ relative difference: 1.3e-8
+ Force Norm (Hartree/Bohr): 1.6e-10
+ Average noise forces: 1.9e-10
+ D Tr(K): 1.1e-08
+ Total charge: 3.4e-10
+ Tr(K): 3.0e-07
+ trace(KS): 3.4e-10
 
 
 
@@ -858,32 +865,33 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 7.9e-6
+ eF: 3.1e-4
  guess for new ef: 4.7e-7
- Epot: 9.0e-10
- EH: 1.0e-9
- EXC: 9.1e-11
- EvXC: 1.3e-10
- Ekin: 1.1e-10
- D Tr(K): 7.1e-6
+ Epot: 3.8e-8
+ EH: 4.0e-8
+ EXC: 3.7e-9
+ EvXC: 4.8e-8
+ Ekin: 2.1e-10
+ Enl: 7.1e-11
+ D Tr(K): 1.0e-2
  difference from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
- Tr(K) : 1.3e-4
+ Tr(K) : 4.8e-3
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
  EBS: 2.1e-7
- EBS higher temperature: 1.1e-8
+ EBS higher temperature: 3.9e-8
  difference: 2.1e-7
  Positions: 2.1e-9
- Omega: 3.2e-10
- Total charge: 3.9e-10
+ Omega: 1.3e-8
+ Total charge: 1.6e-8
  guess for new ef: 4.7e-07
- trace(KS): 3.9e-10
- energy: 8.9e-11
- relative difference: 1.4e-10
+ trace(KS): 1.6e-8
+ energy: 3.6e-9
+ relative difference: 5.8e-9
  Maxdiff for overlap calculation: 4.5e-08
  Maxdiff for transpose (checksum): 1.2e-10
-
+ Ion-Ion interaction energy: 1.2e-11
 
 geopt_diag:
  Epot: 1.1e-10
@@ -1477,7 +1485,7 @@ geoptconstrained_BFGS:
  EH: 2.1e-9
  Enl: 9.1e-11
  EvXC: 3.8e-10
- eF: 1.1e-7
+ eF: 1.6e-7
  guess for new ef: 2.8e-8
  D eF: 2.0e-8
  D Tr(K): 1.1e-10
@@ -1485,6 +1493,7 @@ geoptconstrained_BFGS:
  D: 1.1e-10
  Positions: 1.1e-9
  Atomic Forces (Ha/Bohr): 3.4e-9
+ Force Norm (Hartree/Bohr): 1.1e-10
  Average noise forces: 2.0e-9
  Raw forces norm (Ha/Bohr): 8.5e-10
  Clean forces norm (Ha/Bohr): 7.8e-10
@@ -1493,11 +1502,12 @@ geoptconstrained_BFGS:
  Ion-Ion interaction energy: 2.2e-9
  Positions: 1.1e-8
  Omega: 1.6e-9
- energy: 2.7e-11
+ energy: 3.3e-11
  Maxdiff for transpose (checksum): 1.8e-10
  difference: 4.5-11
- Total charge: 6.1e-11
- trace(KS): 5.8e-11
+ relative difference: 9.0e-11
+ Total charge: 9.1e-11
+ trace(KS): 9.8e-11
 
 geoptconstrained_SDCG:
  eF: 8.7e-8
@@ -1532,8 +1542,8 @@ O2spin_diag:
  Clean forces norm (Ha/Bohr): 3.09e-6
  Raw forces norm (Ha/Bohr): 2.51e-6
  Orbitals: 2.9e-7
- EBS: 1.4e-10
- EBS higher temperature: 1.4e-10
+ EBS: 9.5e-10
+ EBS higher temperature: 9.4e-10
  EH: 1.9e-6
  EXC: 3.5e-7
  Ekin: 2.3e-6
@@ -1551,10 +1561,13 @@ O2spin_diag:
  delta: 1.1e-10
  Fermi Energy: 1.8e-09
  Suggested Fermi Level: 1.8e-09
- HOMO energy: 2.6e-11
- LUMO energy: 2.0e-11
- HOMO-LUMO gap (Ha): 4.6e-11
- HOMO-LUMO gap (eV): 1.3e-09
+ HOMO energy: 2.3e-10
+ LUMO energy: 4.8e-10
+ HOMO-LUMO gap (Ha): 3.5e-10
+ HOMO-LUMO gap (eV): 9.4e-09
+ Asymmetry of kernel: 0.00025
+ difference: 1.2e-11
+ relative difference: 3.8e-11
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7
@@ -1589,6 +1602,8 @@ O2spin_foe:
  spin occupations: 2.7e-05
  exp accur: 1.0e-08
  D: 2.1e-7
+ number of corrected points: 665
+ total charge correction: 3.7e-09
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 2.44e-5
@@ -1874,7 +1889,7 @@ periodic_water:
  guess for new ef: 3.0e-7
  number of corrected points: 1
  D Tr(K): 5.2e-7
- difference: 6.5e-10
+ difference: 6.6e-10
  Tr(K): 1.01e-5
  D Tr: 1.0e-6
  Total ionic charge: 9.5e-11
@@ -1975,7 +1990,7 @@ multipoles_waterQM:
  EBS: 1.4e-11
  EBS higher temperature: 1.4e-11
  Maxdiff for transpose (checksum): 3.0e-11
- multiplicator for the confinement: 2.5e-11
+ multiplicator for the confinement: 2.8e-11
  trace: 3.8e-11
  difference: 1.7e-11
  eF: 1.1e-8
@@ -2065,8 +2080,8 @@ multipoles_periodic:
   EvXC: 1.2e-10
   Epot: 4.1e-10
   Ekin: 1.1e-10
-  Omega: 3.2e-11
-  energy: 3.1e-11
+  Omega: 3.3e-11
+  energy: 3.2e-11
   HOMO energy: 4.8e-11
   HOMO-LUMO gap (Ha): 4.1e-11
   HOMO-LUMO gap (eV): 1.2e-9
@@ -2075,7 +2090,7 @@ multipoles_periodic:
   D Tr(K): 2.8e-9
   eF: 6.0e-07
   EBS: 6.9e-10
-  EBS higher temperature: 1.6e-9
+  EBS higher temperature: 1.7e-9
   guess for new ef: 1.14e-07
   Atomic Forces (Ha/Bohr): 1.7e-10
   Force Norm (Hartree/Bohr): 1.2e-10
@@ -2083,14 +2098,14 @@ multipoles_periodic:
   PV (Ha): 1.6e-10
   Charge analysis (charge / net charge): 1.9e-10
   D Tr: 1.1e-10
-  Total charge: 4.6e-11
-  difference: 1.6e-9
+  Total charge: 4.7e-11
+  difference: 1.7e-9
   trace: 3.7e-11
-  trace(KS): 4.7e-11
+  trace(KS): 4.8e-11
   e: 4.11-11
   Average noise forces: 1.1e-10
   Maxdiff for transpose (checksum): 1.5e-11
-  relative difference: 7.2e-10
+  relative difference: 7.4e-10
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
@@ -2550,10 +2565,11 @@ H2Omultipoles_1:
   relative difference: 1.4e-7
   Average noise forces: 1.0e-10
   Raw forces norm (Ha/Bohr): 1.4e-11
+  e: 1.2e-11
 
 H2Omultipoles_11:
   EBS: 9.3e-10
-  EBS higher temperature: 3.0e-7
+  EBS higher temperature: 3.2e-7
   EH: 1.1e-9
   EXC: 1.7e-10
   Ekin: 4.1e-10
@@ -2561,18 +2577,18 @@ H2Omultipoles_11:
   Epot: 1.1e-9
   EvXC: 2.1e-10
   Charge analysis (charge / net charge): 1.1e-10
-  Omega: 5.8e-11
-  Total charge: 3.0e-10
-  Tr(K): 1.2e-05
+  Omega: 6.2e-11
+  Total charge: 3.1e-10
+  Tr(K): 1.3e-05
   D Tr(K): 1.0e-08
-  trace(KS): 3.0e-10
+  trace(KS): 3.1e-10
   eF: 6.0e-07
-  energy: 5.7e-11
+  energy: 6.1e-11
   multiplicator for the confinement: 4.4e-11
   Maxdiff for transpose (checksum): 1.5e-11
   Pseudo Fermi level for occupations: 2.1e-11
-  difference: 3.0e-7
-  relative difference: 1.4e-07
+  difference: 3.2e-7
+  relative difference: 1.5e-07
   q2: 1.1e-09
   Average noise forces: 1.0e-10
 
