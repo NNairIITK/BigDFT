@@ -46,17 +46,14 @@
      CFLAGS                            : -O2 -openmp -g -C
      FCFLAGS                           : -O2 -openmp -fpe0 -traceback -g -C
      CXXFLAGS                          : -g -O2
-  #WARNING: Input files read in the old format. Use the input_minimal.yaml file to switch to 
-  #new format. In future versions this will be deprecated
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
  outdir                                : ./
  logfile                               : Yes
  run_from_files                        : Yes
  dft:
-   hgrids: [1.0, 1.0, 1.0] #                      Grid spacing in the three directions (bohr)
-   rmult: [0.0, 0.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
-   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   hgrids                              : 1.0 #    Grid spacing in the three directions (bohr)
+   rmult                               : 0.0 #    c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    qcharge                             : -2 #     Charge of the system. Can be integer or real.
    elecfield: [0.0, 0.0, 0.0] #                   Electric field (Ex,Ey,Ez)
    nspin                               : 1 #      Spin polarization treatment
@@ -75,16 +72,14 @@
    norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
-   disablesym                          : Yes #    Disable the symmetry detection
-   itermin                             : 0 #      Min. iterations of wfn. opt. steps
-   solvent                             : vacuum # Electrostatic environment for Poisson Equation
-   external_potential:
-     values                            : __not_a_value__
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
+   external_potential                  : 0.0 #    Multipole moments of an external potential
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
  kpt:
    method                              : mpgrid # K-point sampling method
-   ngkpt: [2, 2, 2] #                             No. of Monkhorst-Pack grid points
+   ngkpt                               : 2 #      No. of Monkhorst-Pack grid points
    shiftk: #                                      Grid shifts
    -  [0.0, 0.0, 0.0]
    bands                               : No #     For doing band structure calculation
@@ -209,10 +204,17 @@
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    subspace_diag                       : No #     diagonalization at the end
-   extra_states                        : 0 #      extra states to optimize (dmin only)
+   extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
+    #                                              only), must be equal to norbsempty
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
-   charge_multipoles                   : no #     Calculate the atom-centered multipole coefficients of the electronic charge
+   charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
+    #                                              new approach Projector
+   support_function_multipoles         : False #  Calculate the multipole moments of the support functions
+   plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
+   precision_FOE_eigenvalues           : 5.e-3 #  decay length of the error function used to extract the eigenvalues (i.e. something like 
+    #                                              the resolution)
  lin_basis:
    nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
