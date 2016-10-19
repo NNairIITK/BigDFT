@@ -157,7 +157,7 @@ program OP2P_check
 
      call OP2P_unitary_test(mpiworld(),mpirank(),nproc,1,ndim+2,nobj_p,symfalse,nearest_neighbor,assert=.true.)
 
-          !first initialize the OP2P data
+     !first initialize the OP2P data
      call initialize_OP2P_data(OP2P_inner,mpiworld(),mpirank(),nproc,1,ndim+2,nobj_p,0,symfalse,nearest_neighbor)
 
      !let us initialize two different OP2P objects, for the communication

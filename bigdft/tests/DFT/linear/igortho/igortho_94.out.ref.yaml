@@ -309,13 +309,8 @@
      stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : Yes #    Triggers the evaluation of the extra cavitation terms
-     gammaS                            : 72.0 #   Cavitation term, surface tension of the solvent [dyn/cm]
-     alphaS                            : -22.0 #  Proportionality of repulsion free energy in term of the surface integral [dyn/cm]
-     betaV                             : -0.35 #  Proportionality of dispersion free energy in term of volume integral [GPa]
-     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
-     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     itermax                           : 200 #    Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-8 #  Convergence threshold of the loop
      pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
@@ -495,13 +490,8 @@
      stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
    environment:
      cavity                            : none #   Type of the cavity
-     cavitation                        : Yes #    Triggers the evaluation of the extra cavitation terms
-     gammaS                            : 72.0 #   Cavitation term, surface tension of the solvent [dyn/cm]
-     alphaS                            : -22.0 #  Proportionality of repulsion free energy in term of the surface integral [dyn/cm]
-     betaV                             : -0.35 #  Proportionality of dispersion free energy in term of volume integral [GPa]
-     input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
-     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     itermax                           : 200 #    Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-8 #  Convergence threshold of the loop
      pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
