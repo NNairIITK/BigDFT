@@ -21,9 +21,8 @@
 ############################################
 # Density Functional Theory parameters
  dft:
-   COMMENT: Density Functional Theory parameters
    DESCRIPTION: |
-    Defines all the parameters required for a single wavefunction calculation.
+     Defines all the parameters required for a single wavefunction calculation.
    hgrids:
      COMMENT: Grid spacing in the three directions (bohr)
      DESCRIPTION: |
