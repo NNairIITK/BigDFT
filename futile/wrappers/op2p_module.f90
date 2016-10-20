@@ -658,6 +658,7 @@ module overlap_point_to_point
        integer, intent(in) :: norbp,iproc
        type(OP2P_data), intent(in) :: OP2P
        type(OP2P_iterator), intent(out) :: iter
+       !todo: make res optional if the loop does not need it
        real(wp), dimension(OP2P%ndim*norbp), intent(in), target :: data,res
        integer i_stat
 

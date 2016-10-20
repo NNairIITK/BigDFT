@@ -826,6 +826,7 @@ contains
     if (ictrl==1) then
        call memstate_init(memstate)
        bigdebug = f_debug_level >= 1 !we might tune the level
+       !ndebug=f_nan_pad_size
     end if
 
     !initialize the memprofiling counters
