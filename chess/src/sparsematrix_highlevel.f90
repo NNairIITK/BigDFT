@@ -20,7 +20,10 @@
 
 
 module sparsematrix_highlevel
+  use yaml_strings
+  use yaml_output
   use sparsematrix_base
+  use dictionaries, only: f_err_throw
   private
 
   !> Initialization routines
@@ -53,6 +56,7 @@ module sparsematrix_highlevel
     subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, comm, smat, mat, &
                init_matmul)
       use sparsematrix_init, only: read_ccs_format
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -97,6 +101,7 @@ module sparsematrix_highlevel
 
     subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat)
       use sparsematrix_init, only: read_ccs_format
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -130,7 +135,8 @@ module sparsematrix_highlevel
     subroutine sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
                init_matmul, nvctr_mult, row_ind_mult, col_ptr_mult)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
-                                   bigdft_to_sparsebigdft, init_matrix_taskgroups
+           bigdft_to_sparsebigdft, init_matrix_taskgroups
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -208,6 +214,7 @@ module sparsematrix_highlevel
                init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -291,6 +298,7 @@ module sparsematrix_highlevel
                          smat, init_matmul, filename_mult)
       use sparsematrix_init, only: bigdft_to_sparsebigdft
       use sparsematrix_io, only: read_sparse_matrix
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -357,6 +365,7 @@ module sparsematrix_highlevel
 
     subroutine matrices_init_from_file_bigdft(mode, filename, iproc, nproc, comm, smat, mat)
       use sparsematrix_io, only: read_sparse_matrix
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -446,7 +455,8 @@ module sparsematrix_highlevel
     subroutine sparse_matrix_init_from_data_bigdft(iproc, nproc, comm, nfvctr, nvctr, nseg, keyg, smat, &
                init_matmul, nseg_mult, nvctr_mult, keyg_mult)
       use sparsematrix_init, only: ccs_to_sparsebigdft_short, &
-                                   bigdft_to_sparsebigdft, init_matrix_taskgroups
+           bigdft_to_sparsebigdft, init_matrix_taskgroups
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -485,6 +495,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_init_from_data(smat, val, mat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -520,6 +531,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_set_values(smat, val, mat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -545,6 +557,7 @@ module sparsematrix_highlevel
 
 
     subroutine matrices_get_values(smat, mat, val)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -570,6 +583,7 @@ module sparsematrix_highlevel
 
 
     function matrices_get_size(smat) result(s)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -587,6 +601,7 @@ module sparsematrix_highlevel
 
     subroutine ccs_data_from_sparse_matrix(smat, row_ind, col_ptr)
       use sparsematrix_init, only: sparsebigdft_to_ccs
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -607,6 +622,7 @@ module sparsematrix_highlevel
 
     subroutine ccs_matrix_write(filename, smat, row_ind, col_ptr, mat)
       use sparsematrix_io, only: write_ccs_matrix
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -631,6 +647,7 @@ module sparsematrix_highlevel
 
     subroutine matrix_matrix_multiplication(iproc, nproc, smat, a, b, c)
       use sparsematrix, only: matrix_matrix_mult_wrapper
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -664,6 +681,7 @@ module sparsematrix_highlevel
                smat_in, smat_out, mat_in, mat_out, npl_auto, ice_obj)
       use ice, only: inverse_chebyshev_expansion_new
       use foe_base, only: foe_data
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -730,6 +748,7 @@ module sparsematrix_highlevel
                energy_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -832,6 +851,7 @@ module sparsematrix_highlevel
                fscale, calculate_minusonehalf, foe_verbosity)
       use foe_base, only: foe_data
       use foe, only: get_selected_eigenvalues
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -914,6 +934,7 @@ module sparsematrix_highlevel
     !! within the sparsity pattern of bmat!
     function trace_AB(iproc, nproc, comm, asmat, bsmat, amat, bmat, ispin)
       use sparsematrix, only: trace_sparse_matrix_product
+      use dynamic_memory
       implicit none
 
       ! Calling arguments

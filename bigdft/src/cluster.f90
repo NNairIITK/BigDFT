@@ -831,6 +831,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 !!$call yaml_map('evals',KSwfn%orbs%eval)
 !!$KSwfn%orbs%eval=-0.3d0 !to test if they are erased
+
+!print *,'test',sum(KSwfn%psi)
+!stop
   !start the optimization
   energs%eexctX=0.0_gp
   ! Skip the following part in the linear scaling case.
@@ -991,7 +994,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !analyse the possibility to calculate Davidson treatment
   !(nvirt > 0 .and. in%inputPsiId == 0)
-  DoDavidson= abs(in%norbv) > 0 .and. DoLastRunThings
+  DoDavidson= (abs(in%norbv) > 0 .or. in%nkptv > 0) .and. DoLastRunThings
 
   !project the wavefunctions on a gaussian basis and keep in memory
   !if (in%gaussian_help) then
@@ -1175,6 +1178,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call timing(iproc,'CrtProjectors ','OF')
            if (iproc == 0) call print_nlpsp(nlpsp)
 
+           nvirt = KSwfn%orbs%norbu + in%nvirt
         else
            !the virtual orbitals should be in agreement with the traditional k-points
            call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
@@ -1186,6 +1190,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call orbitals_communicators(iproc,nproc,KSwfn%Lzd%Glr,VTwfn%orbs,VTwfn%comms,&
                 basedist=KSwfn%comms%nvctr_par(0:,1:))
 
+           nvirt = in%nvirt
         end if
 
         !allocate psivirt pointer (note the orbs dimension)
@@ -1209,9 +1214,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            if(abs(in%nplot)>KSwfn%orbs%norb+nvirt) then
               if(iproc==0) call yaml_warning('More plots requested than orbitals calculated')
            end if
-        else if (in%norbv > 0) then
+        else if (in%norbv > 0 .or. in%nkptv > 0) then
            call davidson(iproc,nproc,in,atoms,&
-                KSwfn%orbs,VTwfn%orbs,in%nvirt,VTwfn%Lzd,&
+                KSwfn%orbs,VTwfn%orbs,nvirt,VTwfn%Lzd,&
                 KSwfn%comms,VTwfn%comms,&
                 rxyz,denspot%rhov,nlpsp, &
                 denspot%pkernelseq,KSwfn%psi,VTwfn%psi,denspot%dpbox,denspot%xc,GPU)
@@ -1835,7 +1840,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            if(in%linear == INPUT_IG_TMO) linflag = 2
 
            !if (opt%iter == 1) minres_gpe=denspot%pkernel%minres
-           !denspot%pkernel%minres=max(min(1.e-4_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
+           !denspot%pkernel%minres=max(min(1.e-6_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
 
            nlpsp%apply_gamma_target=((opt%scf .hasattr. 'MIXING') .and. opt%itrp <= in%occupancy_control_itermax) .or. &
                 (.not. (opt%scf .hasattr. 'MIXING') .and. opt%iter <= in%occupancy_control_itermax)
@@ -2247,7 +2252,8 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rho_work(1),dest=denspot%pot_work(1))
      !the ionic denisty is given in the case of the embedded solver
      call PS_set_options(denspot%pkernel,calculate_strten=.true.,&
-          final_call=denspot%pkernel%method .hasattr. 'rigid')
+          final_call=denspot%pkernel%method .hasattr. 'rigid',&
+          cavity_info=output_denspot /= ENUM_EMPTY)
      if (denspot%pkernel%method /= 'VAC') then
         call Electrostatic_Solver(denspot%pkernel,denspot%pot_work,PSenergies,rho_ion=denspot%rho_ion)
         !here the ionic forces can be corrected with the value coming from the cavity
@@ -2317,22 +2323,18 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      else
          call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
               atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
-     end if
+      end if
 !---------------------------------------------------
-! giuseppe fisicaro dielectric cavity
-     if (denspot%pkernel%method /= 'VAC') then
-!!$        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
+!!$! giuseppe fisicaro dielectric cavity
+!!$     if (denspot%pkernel%method /= 'VAC') then
+!!$        !this will have to be replaced by a routine which plots the pkernel information
+!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+        
+!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+!!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
+!!$     end if
 
-!this one should be plotted otherwise as the array is now deallocated
-!!$        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-!!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
-
-        !this will have to be replaced by a routine which plots the pkernel information
-        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
-!!$        
-        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%eps)
-     end if
+     call PS_dump_coulomb_operator(denspot%pkernel,trim(dir_output))
 !---------------------------------------------------
 
      ! SM: the check whether denspot%dpbox%n3d>0 might lead to deadlocks (plot_density contains

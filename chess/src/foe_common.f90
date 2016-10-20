@@ -1,4 +1,5 @@
 !> @file
+
 !!  
 !! @author
 !!   Copyright (C) 2016 CheSS developers
@@ -21,7 +22,10 @@
 
 module module_func
   use sparsematrix_base
-  !use module_base, only: safe_exp
+  use numerics
+  use dynamic_memory
+  use yaml_output
+  use dictionaries, only: f_err_throw
   implicit none
 
   private
@@ -129,6 +133,12 @@ end module module_func
 module foe_common
   use foe_base
   use sparsematrix_base
+  use dictionaries, only: f_err_throw
+  use wrapper_mpi
+  use yaml_output
+  use numerics
+  use f_utils
+  use time_profiling
   implicit none
 
   private
@@ -161,6 +171,7 @@ module foe_common
     subroutine get_chebyshev_expansion_coefficients(iproc, nproc, comm, A, B, N, func, cc, x_max_error,max_error,mean_error)
       use yaml_output
       use sparsematrix_init, only: distribute_on_tasks
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -626,6 +637,7 @@ module foe_common
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: transform_sparse_matrix
       use yaml_output
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -762,6 +774,7 @@ module foe_common
                matscal_compr, scale_factor, shift_value)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: transform_sparse_matrix
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, ispin, i1shift
@@ -922,6 +935,7 @@ module foe_common
         use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                                 compress_matrix_distributed_wrapper, &
                                 sparsemm_new, transform_sparsity_pattern
+        use dynamic_memory
         implicit none
         ! Calling arguments
         integer,intent(in) :: iproc, nproc
@@ -1034,6 +1048,7 @@ module foe_common
                fscale_lowerbound, fscale_upperbound, eval_multiplicator, &
                npl_min, npl_max, npl_stride, betax)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1153,6 +1168,7 @@ module foe_common
     subroutine accuracy_of_chebyshev_expansion(iproc, nproc, comm, npl, coeff, bound_lower, bound_upper, &
                h, func, x_max_error, max_error, mean_error)
       use sparsematrix_init, only: distribute_on_tasks
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1307,6 +1323,7 @@ module foe_common
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -1751,6 +1768,7 @@ module foe_common
       !!use foe_common, only: scale_and_shift_matrix, evnoise, &
       !!                      check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2130,6 +2148,7 @@ module foe_common
 
 
     subroutine calculate_trace_distributed_new(iproc, nproc, comm, smatl, matrixp, trace)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm
@@ -2176,6 +2195,7 @@ module foe_common
       use foe_base, only: foe_data, foe_data_get_real
       use yaml_output
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2331,6 +2351,7 @@ module foe_common
 
 
     subroutine chebyshev_coefficients_init_parallelization(iproc, nproc, comm, n, np, is)
+      use dynamic_memory
       implicit none
       ! Caling arguments
       integer,intent(in) :: iproc, nproc, comm, n
@@ -2362,6 +2383,7 @@ module foe_common
 
 
     subroutine chebyshev_coefficients_calculate(n, a, b, np, is, func, cc)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2415,6 +2437,7 @@ module foe_common
 
     ! This routine is basically just here to get the profiling...
     subroutine chebyshev_coefficients_communicate(comm, n, cc)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2432,6 +2455,7 @@ module foe_common
 
     ! This routine is basically just here to get the profiling...
     subroutine penalty_communicate(nproc, comm, penalty)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2457,6 +2481,7 @@ module foe_common
                smats, ovrlp_, ovrlp_minus_one_half_, efarr, fscale_arr, ex, &
                scaling_factor_low, scaling_factor_up, eval_multiplicator, eval_multiplicator_total, cc, max_errorx)
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments

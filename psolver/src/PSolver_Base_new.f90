@@ -1450,15 +1450,18 @@ END SUBROUTINE P_multkernel
 !! Author:S
 !!    S. Goedecker, L. Genovese
 subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
+  use module_fft_sg
   implicit none
   !Argments
   integer, intent(in) :: nd1,nd2,n1,n2,lot,nfft,jS
   real(kind=8), dimension(nd1,nd2), intent(in) :: pot
   real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
   !Local variables
-  integer :: j,j1,i2,j2
+  integer :: j,j1,i2,j2,jj1
 
   !Body
+
+  !here we should modify the fetching of the result according to the value of j1 and i2
 
   !case i2=1
   do j=1,nfft
@@ -1466,34 +1469,86 @@ subroutine multkernel(nd1,nd2,n1,n2,lot,nfft,jS,pot,zw)
      !isign=(j1/(n1/2+2))
      !j1=(1-2*isign)*j1+isign*(n1+2) !n1/2+1-abs(n1/2+2-jS-i1)
      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+     
      !!     j1=n1/2+1-abs(n1/2+2-jS-j)!this stands for j1=min(jS-1+j,n1+3-jS-j)
+!!$     if (abs(zw(1,j,1)) > 1.d-10) then
+!!$        print *,'helloX',j,1,p_index(j1,n1),p_index(1,n2),zw(1,j,1)
+!!$     end if
+
      zw(1,j,1)=zw(1,j,1)*pot(j1,1)
      zw(2,j,1)=zw(2,j,1)*pot(j1,1)
   end do
 
 
-  !generic case
-  do i2=2,n2/2
-     do j=1,nfft
-        j1=j+jS-1
-        j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
-!!        j1=n1/2+1-abs(n1/2+2-jS-j)
-        j2=n2+2-i2
-        zw(1,j,i2)=zw(1,j,i2)*pot(j1,i2)
-        zw(2,j,i2)=zw(2,j,i2)*pot(j1,i2)
-        zw(1,j,j2)=zw(1,j,j2)*pot(j1,i2)
-        zw(2,j,j2)=zw(2,j,j2)*pot(j1,i2)
-      !  write(*,*) 'Re[zw(i2=', i2, ')] = ', zw(1,j,i2)
-      !  write(*,*) 'Im[zw(i2=', i2, ')] = ', zw(2,j,i2)
+  if (nd2 /= n2) then
+     !generic case
+     do i2=2,n2/2
+        do j=1,nfft
+           j1=j+jS-1
+           !the following is j1=0,1,...,n1/2+1,n1+2-j1
+           !therefore always positive
+           j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+           !!        j1=n1/2+1-abs(n1/2+2-jS-j)
+           j2=n2+2-i2
+           zw(1,j,i2)=zw(1,j,i2)*pot(j1,i2)
+           zw(2,j,i2)=zw(2,j,i2)*pot(j1,i2)
+           zw(1,j,j2)=zw(1,j,j2)*pot(j1,i2)
+           zw(2,j,j2)=zw(2,j,j2)*pot(j1,i2)
+           !  write(*,*) 'Re[zw(i2=', i2, ')] = ', zw(1,j,i2)
+           !  write(*,*) 'Im[zw(i2=', i2, ')] = ', zw(2,j,i2)
+        end do
      end do
-  end do
+     
+  else
+     !print *,'here',js,pot(i_index(3,n1)+1,i_index(3,n2)+1),&
+     !     pot(i_index(3,n1)+1,i_index(-3,n2)+1)
+     !case with larger kernel for non-orthorhombic cases
+     do i2=2,n2/2
+!!$        if (p_index(i2,n2)==4) then
+!!$           print *,'here,js',js,p_index(js,n1),zw(1,1,i2)
+!!$        end if
+        do j=1,nfft
+           j1=j+jS-1
+           j2=n2+2-i2
+!!$           if (zw(1,j,i2) /= 0.d0) then
+!!$              print *,'hello',j,i2,p_index(j,n1),p_index(i2,n2),zw(1,j,i2)
+!!$           end if
+!!$           if (zw(1,j,j2) /= 0.d0) then
+!!$              print *,'hello',j,j2,p_index(j,n1),p_index(j2,n2),zw(1,j,j2)
+!!$           end if
+           if (j1<=n1/2+1) then
+              !low-low
+              zw(1,j,i2)=zw(1,j,i2)*pot(j1,i2)
+              zw(2,j,i2)=zw(2,j,i2)*pot(j1,i2)
+              !low-high
+              zw(1,j,j2)=zw(1,j,j2)*pot(j1,j2)
+              zw(2,j,j2)=zw(2,j,j2)*pot(j1,j2)
+           else
+              jj1=n1+2-j1
+              !high-low (like low-high)
+              zw(1,j,i2)=zw(1,j,i2)*pot(jj1,j2)
+              zw(2,j,i2)=zw(2,j,i2)*pot(jj1,j2)
+              !high-high (like low-low)
+              zw(1,j,j2)=zw(1,j,j2)*pot(jj1,i2)
+              zw(2,j,j2)=zw(2,j,j2)*pot(jj1,i2)
+           end if
+        end do
+     end do
+  end if
+  
 
   !case i2=n2/2+1
   do j=1,nfft
      j1=j+jS-1
      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
 !!     j1=n1/2+1-abs(n1/2+2-jS-j)
+
      j2=n2/2+1
+!!$     if (abs(zw(1,j,j2)) > 1.d-10) then
+!!$        print *,'helloY',j,n2/2+1,p_index(j1,n1),p_index(j2,n2),&
+!!$             zw(1,j,j2)
+!!$     end if
+
      zw(1,j,j2)=zw(1,j,j2)*pot(j1,j2)
      zw(2,j,j2)=zw(2,j,j2)*pot(j1,j2)
   end do

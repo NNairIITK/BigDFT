@@ -402,7 +402,7 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict)
   run = bigdft_run_new();
 
   /* Associate the dictionary and parse it. */
-  FC_FUNC_(run_objects_update, RUN_OBJECTS_UPDATE)(F_TYPE(run->data), &dict->root);
+  FC_FUNC_(run_objects_update_bind, RUN_OBJECTS_UPDATE_BIND)(F_TYPE(run->data), &dict->root);
   _attributes_from_fortran(run);
   return run;
 }
@@ -503,7 +503,7 @@ void bigdft_run_update(BigDFT_Run *run, BigDFT_Dict *dict)
       bigdft_inputs_unref(run->inputs);
       bigdft_atoms_unref(run->atoms);
     }
-  FC_FUNC_(run_objects_update, RUN_OBJECTS_UPDATE)(F_TYPE(run->data), &dict->root);
+  FC_FUNC_(run_objects_update_bind, RUN_OBJECTS_UPDATE_BIND)(F_TYPE(run->data), &dict->root);
   /* Reassociate atoms, inputs structures. */
   FC_FUNC_(run_objects_get, RUN_OBJECTS_GET)(F_TYPE(run->data),
                                              &dictf, &inputs, &atoms);

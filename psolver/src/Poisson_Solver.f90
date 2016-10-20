@@ -92,12 +92,12 @@ module Poisson_Solver
    ! Calculate the allocation dimensions
    public :: PS_dim4allocation,PSolver_logo,ps_soft_PCM_forces
    ! Routine that creates the kernel
-   public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity
+   public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity,pkernel_get_radius
    ! Calculate the poisson solver
    public :: H_potential,Electrostatic_Solver,PS_set_options
    ! Calculate the allocation dimensions
-   public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
-   public :: dp,gp
+   public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions
+   public :: dp,gp,PS_dump_coulomb_operator, xc_dimensions
 
    !> This structure is used to indicate the arguments of the routine which are used commonly
    !! Doxygen will duplicate the documentation for the arguments

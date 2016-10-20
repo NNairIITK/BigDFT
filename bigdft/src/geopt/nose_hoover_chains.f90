@@ -80,7 +80,8 @@ CONTAINS
   !!
   subroutine nose_init(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
     use numerics, only: au_to_k=>Ha_K, pi, cubroot => onethird
-    use random, only: builtin_rand
+    use f_random!, only: builtin_rand
+    
     implicit none 
     integer :: NATOMS,NDOF
     REAL (KIND=8)   :: dt, T0ions, amass(natoms),vxyz(3,natoms) 
@@ -131,8 +132,9 @@ CONTAINS
     !   ** Assign initial nose velocities **
     do inhc = 1, nhc%nhnc, 2
        sigma=dsqrt(KT/nhc%noseq(inhc)) 
-       dum(1)=real(builtin_rand(idum),8)
-       dum(2)=real(builtin_rand(idum),8)
+       call f_random_number(dum)
+       !dum(1)=real(builtin_rand(idum),8)
+       !dum(2)=real(builtin_rand(idum),8)
        nhc%veta(inhc) =sigma*dsqrt(-2.D0*dlog(dum(2)))*dcos(2.D0*pi*dum(1))
        if(INHC+1.le.nhc%nhnc)then 
           sigma=DSQRT(kt/nhc%noseq(inhc+1)) 

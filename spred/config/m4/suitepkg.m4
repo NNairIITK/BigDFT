@@ -74,7 +74,7 @@ AC_DEFUN([AX_PACKAGE],
       FCFLAGS="$FCFLAGS $ax_$1_incdir"
     fi
     FCFLAGS="$FCFLAGS $5"
-    AC_COMPILE_IFELSE([[$6]], with$1mod=yes, with$1mod=no)
+    AC_COMPILE_IFELSE([AC_LANG_SOURCE($6)], with$1mod=yes, with$1mod=no)
     AC_MSG_RESULT($with$1mod)
   
     dnl Test the library.

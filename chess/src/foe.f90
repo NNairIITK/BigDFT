@@ -20,7 +20,11 @@
 
 
 module foe
+  use yaml_output
   use sparsematrix_base
+  use wrapper_mpi
+  use time_profiling
+  use dictionaries, only: f_err_throw
   implicit none
 
   private
@@ -51,6 +55,7 @@ module foe
                             find_fermi_level, get_polynomial_degree, &
                             calculate_trace_distributed_new, get_bounds_and_polynomials
       use module_func
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -639,6 +644,8 @@ module foe
 
     subroutine get_minmax_eigenvalues(iproc, ham_smat, ham_mat, imshift, ovrlp_smat, ovrlp_mat, isshift)
       use yaml_output
+      use dynamic_memory
+      use wrapper_linalg
       implicit none
 
       ! Calling arguments
@@ -716,6 +723,8 @@ module foe
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
       use foe_common, only: retransform_ext, find_fermi_level, get_bounds_and_polynomials, init_foe
       use module_func
+      use f_utils
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -889,6 +898,7 @@ module foe
                verbosity, ice_obj)
       use foe_base, only: foe_data
       use ice, only: inverse_chebyshev_expansion_new
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm

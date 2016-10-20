@@ -55,5 +55,5 @@ AC_DEFUN([AX_INTROSPECTION],
 
   AM_CONDITIONAL([HAVE_GLIB], [test "$ax_have_glib" = "yes"])
   AM_CONDITIONAL([WITH_GOBJECT_INTROSPECTION],
-                 [test "x$enable_introspection" = "xyes"])
+                 [test "x$ax_have_introspection" = "xyes"])
 ])
