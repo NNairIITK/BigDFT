@@ -1017,7 +1017,9 @@ module sparsematrix
                  end if
              end do jloop
          end do iloop
-         if (.not.found) stop 'get_taskgroup_id did not suceed'
+         if (.not.found) then
+             call f_err_throw('get_taskgroup_id did not suceed')
+         end if
        end function get_taskgroup_id
 
 
