@@ -164,6 +164,8 @@ program f_buffer_allocations
 
   call f_lib_initialize()
 
+  call yaml_new_document()
+
   !pich a typical size for allocation
   n1=5  
   n2=5

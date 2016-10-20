@@ -3,6 +3,7 @@ EXTRA_DIST = \
 	tols.yaml \
 	yaml_test.ref.yaml \
 	yaml_argparse.ref.yaml \
+	f_allocations.ref.yaml \
 	hooks.ref.yaml
 
 dynlibdir = $(libdir)
@@ -95,5 +96,9 @@ define F_REGTEST_INSTRUCTIONS
    - ./yaml_argparse -n 100 -d [89,90,90] >> yaml_argparse.out.yaml
    reference: $(srcdir)/yaml_argparse.ref.yaml
    output: yaml_argparse.out.yaml
+- f_allocations:
+   runs:
+   - ./f_allocations > f_allocations.out.yaml
+   - FUTILE_MALLOC_NAN_PADDING=2 ./f_allocations >> f_allocations.out.yaml
 endef
 export F_REGTEST_INSTRUCTIONS
