@@ -99,7 +99,7 @@
      cavitation                        : No #     Triggers the evaluation of the extra cavitation terms
      input_guess                       : Yes #    Triggers the input guess procedure of gps_algorithm
      fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
-     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     itermax                           : 200 #    Maximum number of iterations of the GPS outer loop
      minres                            : 1.e-6 #  Convergence threshold of the loop
      pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
    setup:
