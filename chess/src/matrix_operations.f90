@@ -122,7 +122,7 @@ module matrix_operations
         !call timing(iproc,'lovrlp^-1     ','ON')
         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
         
-        if (.not.inv_ovrlp_smat%smatmul_initialized) then
+        if (imode==SPARSE .and. .not.inv_ovrlp_smat%smatmul_initialized) then
             call f_err_throw('sparse matrix multiplication not initialized', &
                  err_name='SPARSEMATRIX_RUNTIME_ERROR')
         end if

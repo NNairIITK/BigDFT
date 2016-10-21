@@ -353,7 +353,8 @@ module sparsematrix_wrappers
           end do
           call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
                norb, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), &
-               nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
+               init_matmul=.false., nspin=input%nspin, geocode=geocode, &
+               cell_dim=cell_dim, norbup=norbp, isorbu=isorb, &
                store_index=input%store_index, on_which_atom=orbs%onwhichatom, print_info=.false.)
           call f_free(nonzero)
 
@@ -386,7 +387,8 @@ module sparsematrix_wrappers
           call init_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
                orbs_aux%norb, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                orbs_aux%norbu*orbs_aux%norbup, nonzero, smat_extra(ispin), &
-               nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, norbup=orbs_aux%norbp, isorbu=orbs_aux%isorb, &
+               init_matmul=.false., nspin=input%nspin, geocode=geocode, cell_dim=cell_dim, &
+               norbup=orbs_aux%norbp, isorbu=orbs_aux%isorb, &
                store_index=input%store_index, on_which_atom=orbs_aux%onwhichatom, print_info=.false.)
           call f_free(nonzero)
           call deallocate_orbitals_data(orbs_aux)

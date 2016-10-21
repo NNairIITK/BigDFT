@@ -1821,7 +1821,7 @@
   eF: -4.349467E-01, spin occupations:  [  0.0E+00,  4.5000004E+00 ], Tr(K):  4.5000004E+00, 
                               D Tr(K):  4.50E-07, new eF: linear interpol}
      summary: {nit:  17, eF: -4.349467E-01, Tr(K):  4.5000004E+00, D Tr(K):  4.50E-07}
-     Asymmetry of kernel                :  6.9366640837179291E-310
+     Asymmetry of kernel               :  3.18E-15
      symmetrize_kernel                  :  Yes
      EBS                                : -3.044190214259E+00
      EBS higher temperature             : -3.265145962163E+00
@@ -1875,7 +1875,7 @@
   eF: -4.373316E-01, spin occupations:  [  0.0E+00,  4.5000000E+00 ], Tr(K):  4.5000000E+00, 
                               D Tr(K):  5.77E-10, new eF: linear interpol}
      summary: {nit:  12, eF: -4.373316E-01, Tr(K):  4.5000000E+00, D Tr(K):  5.77E-10}
-     Asymmetry of kernel                :  6.9366640837179291E-310
+     Asymmetry of kernel               :  6.18E-15
      symmetrize_kernel                  :  Yes
      EBS                                : -3.044189909457E+00
      EBS higher temperature             : -3.265126623609E+00
@@ -1947,7 +1947,7 @@
   eF: -1.453205E-01, spin occupations:  [  0.0E+00,  5.5000000E+00 ], Tr(K):  5.5000000E+00, 
                               D Tr(K): -5.27E-09, new eF: linear interpol}
      summary: {nit:  12, eF: -1.453205E-01, Tr(K):  5.5000000E+00, D Tr(K): -5.27E-09}
-     Asymmetry of kernel                :  6.9366640837179291E-310
+     Asymmetry of kernel               :  2.29E-15
      symmetrize_kernel                  :  Yes
      EBS                                : -3.334323380144E+00
      EBS higher temperature             : -3.733469736701E+00
@@ -1992,7 +1992,7 @@
   eF: -1.429356E-01, spin occupations:  [  0.0E+00,  5.5000001E+00 ], Tr(K):  5.5000001E+00, 
                               D Tr(K):  8.75E-08, new eF: linear interpol}
      summary: {nit:  9, eF: -1.429356E-01, Tr(K):  5.5000001E+00, D Tr(K):  8.75E-08}
-     Asymmetry of kernel                :  6.9366640837179291E-310
+     Asymmetry of kernel               :  4.41E-15
      symmetrize_kernel                  :  Yes
      EBS                                : -3.334324075138E+00
      EBS higher temperature             : -3.733472749299E+00

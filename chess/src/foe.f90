@@ -354,10 +354,10 @@ module foe
 
                       call retransform_ext(iproc, nproc, smatl, &
                            ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
-                      ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
                       call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                           smatl, kernel_%matrix_compr, asymm_K, ispinx=ispin)
+                           smatl, kernel_%matrix_compr(ilshift+1:), asymm_K)!, ispinx=ispin)
                       !!write(*,*) 'BEFORE SYM, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+                      ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
                       if (symmetrize_kernel) then
                           call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
                           call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)

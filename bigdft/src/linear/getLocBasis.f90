@@ -1227,17 +1227,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           if (.not.recovered_old_kernel) then
               call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
           end if
-          !if (iproc==0) call yaml_sequence_close()
-      else
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       end if
 
-      ! Gather the data in case it has not been done before
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
-      end if
+      ! Gather the data
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       ncount=tmb%ham_descr%collcom%ndimind_c
       if(ncount>0) call vcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
       ncount=7*tmb%ham_descr%collcom%ndimind_f
@@ -1603,6 +1597,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! Only need to reconstruct the kernel if it is actually used.
+      !SM: Do we really need this here? We have already renormalized the kernel above in renormalize_kernel...
       if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
            .and. .not.complete_reset ) then
           if(scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
