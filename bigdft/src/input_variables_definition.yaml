@@ -102,7 +102,7 @@
        You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
      default: 0
    gnrm_cv:
-     COMMENT: convergence criterion gradient
+     COMMENT: Convergence criterion gradient
      DESCRIPTION: |
        Convergence criterion for the wavefunction optimization (norm of the gradient).
        Reasonable values are in most cases between 1.d-4 and 1.d-5.
@@ -378,7 +378,7 @@
      RANGE: [0, 9999]
      default: 0
    gnrm_cv_virt:
-     COMMENT: convergence criterion gradient for virtual orbitals
+     COMMENT: Convergence criterion gradient for virtual orbitals
      DESCRIPTION: |
        Norm of the gradient for virtual orbitals convergence.
        Calculates the results on the first nvirt orbitals
@@ -734,7 +734,7 @@
      RANGE: [0, 1e4]
      default: 1.5
    nhistx:
-     COMMENT: maximum history length
+     COMMENT: Maximum history length
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -755,7 +755,7 @@
      RANGE: [0., 100.]
      default: 5e-1
    maxrise:
-     COMMENT: maximum allowed rise in energy in one geopt step
+     COMMENT: Maximum allowed rise in energy in one geopt step
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -764,7 +764,7 @@
      RANGE: [0., 1e10]
      default: 1e-6
    cutoffratio:
-     COMMENT: if ratio of eigenvalues of displacement overlapmatrix is smaller than cutoffratio, the corresponding directions are not used
+     COMMENT: If ratio of eigenvalues of displacement overlapmatrix is smaller than cutoffratio, the corresponding directions are not used
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -773,7 +773,7 @@
      RANGE: [0., 1.]
      default: 1e-4
    steepthresh:
-     COMMENT: if fnrm < steepthresh, geopt method uses steepest descent
+     COMMENT: If fnrm < steepthresh, geopt method uses steepest descent
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -782,7 +782,7 @@
      RANGE: [0., 1e10]
      default: 0.5
    trustr:
-     COMMENT: maximum displacement of single atom
+     COMMENT: Maximum displacement of single atom
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -877,21 +877,21 @@
      RANGE: [0, 1e9]
      default: 1.
    climbing:
-     COMMENT: make the highest energy image to climb along the path
+     COMMENT: Make the highest energy image to climb along the path
      CONDITION:
        MASTER_KEY: method
        WHEN:
        - NEB
      default: No
    extrema_opt:
-     COMMENT: minimize the energy of extremum images during NEB optimization
+     COMMENT: Minimize the energy of extremum images during NEB optimization
      CONDITION:
        MASTER_KEY: method
        WHEN:
        - NEB
      default: No
    neb_method:
-     COMMENT: image minimization method
+     COMMENT: Image minimization method
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -905,7 +905,7 @@
        sim-annealing: Simulation of annealing
      default: quick-min
    temp:
-     COMMENT: temperature for simulated annealing
+     COMMENT: Temperature for simulated annealing
      RANGE: [0.,1000.]
      default: 0.
      CONDITION:
@@ -913,7 +913,7 @@
        WHEN:
        - sim-annealing
    damp:
-     COMMENT: damping factor
+     COMMENT: Damping factor
      RANGE: [0.,1000.]
      default: 1.
      CONDITION:
@@ -921,7 +921,7 @@
        WHEN:
        - damped-verlet
    springs_k:
-     COMMENT: maximum and minimum value when changing spring constant during optimization
+     COMMENT: Maximum and minimum value when changing spring constant during optimization
      RANGE: [0.,1000.]
      CONDITION:
        MASTER_KEY: method
@@ -929,7 +929,7 @@
        - NEB
      default: [0.05,0.1]
    fix_tol:
-     COMMENT: tolerance to apply on atom moves between extrema
+     COMMENT: Tolerance to apply on atom moves between extrema
      RANGE: [0,100]
      CONDITION:
        MASTER_KEY: method
@@ -937,7 +937,7 @@
        - NEB
      default: 1e-4
    nimg:
-     COMMENT: number of images
+     COMMENT: Number of images
      RANGE: [3,100]
      CONDITION:
        MASTER_KEY: method
@@ -1223,7 +1223,7 @@
        The debug mode is enable mainly for memory profiling.
      default: No
    profiling_depth:
-     COMMENT: maximum level of the profiling for the tracking of the routines
+     COMMENT: Maximum level of the profiling for the tracking of the routines
      default: -1
    fftcache:
      COMMENT: Cache size for the FFT
@@ -1424,29 +1424,29 @@
      COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
      default: 3
    evboundsshrink_nsatur:
-     COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
+     COMMENT: Maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
    calculate_gap:
-     COMMENT: linear scaling calculate the HOMO LUMO gap
+     COMMENT: Linear scaling calculate the HOMO LUMO gap
      default: No
    loewdin_charge_analysis:
-     COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
+     COMMENT: Linear scaling perform a Loewdin charge analysis at the end of the calculation
      default: No
    coeff_weight_analysis:
-     COMMENT: linear scaling perform a Loewdin charge analysis of the coefficients for fragment calculations
+     COMMENT: Linear scaling perform a Loewdin charge analysis of the coefficients for fragment calculations
      default: No
    check_matrix_compression:
-     COMMENT: linear scaling perform a check of the matrix compression routines
+     COMMENT: Linear scaling perform a check of the matrix compression routines
      default: Yes
    correction_co_contra:
-     COMMENT: linear scaling correction covariant / contravariant gradient
+     COMMENT: Linear scaling correction covariant / contravariant gradient
      default: Yes
    fscale_lowerbound:
-     COMMENT: linear scaling lower bound for the error function decay length
+     COMMENT: Linear scaling lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
      default: 5.e-3
    fscale_upperbound:
-     COMMENT: linear scaling upper bound for the error function decay length
+     COMMENT: Linear scaling upper bound for the error function decay length
      default: 5.e-2
      RANGE: [1.e-2,1.0]
    FOE_restart:
@@ -1456,29 +1456,29 @@
        1: REFORMAT
      default: 0
    imethod_overlap:
-     COMMENT: method to calculate the overlap matrices (1=old, 2=new)
+     COMMENT: Method to calculate the overlap matrices (1=old, 2=new)
      EXCLUSIVE:
        1: old
        2: new
      default: 1
    enable_matrix_taskgroups:
-     COMMENT: enable the matrix taskgroups
+     COMMENT: Enable the matrix taskgroups
      default: True
    hamapp_radius_incr:
-     COMMENT: radius enlargement for the Hamiltonian application (in grid points)
+     COMMENT: Radius enlargement for the Hamiltonian application (in grid points)
      default: 8
      RANGE: [0,8]
    adjust_kernel_iterations:
-     COMMENT: enable the adaptive ajustment of the number of kernel iterations
+     COMMENT: Enable the adaptive ajustment of the number of kernel iterations
      default: True
    adjust_kernel_threshold:
-     COMMENT: enable the adaptive ajustment of the kernel convergence threshold according to the support function convergence
+     COMMENT: Enable the adaptive ajustment of the kernel convergence threshold according to the support function convergence
      default: True
    wf_extent_analysis:
-     COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     COMMENT: Perform an analysis of the extent of the support functions (and possibly KS orbitals)
      default: False
 #   gps_method:
-#     COMMENT: method for the Generalized Poisson Equation
+#     COMMENT: Method for the Generalized Poisson Equation
 #     EXCLUSIVE:
 #        VAC: Vacuum (ordinary treatment)
 #        PI: Polarization Iteration
@@ -1489,10 +1489,10 @@
      default: False
  lin_general:
      hybrid:
-       COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
+       COMMENT: Activate the hybrid mode; if activated, only the low accuracy values will be relevant
        default: No
      nit:
-       COMMENT: number of iteration with low/high accuracy
+       COMMENT: Number of iteration with low/high accuracy
        DESCRIPTION: |
          Maximal number of outer loop iterations (high / low accuracy).
          In each iteration both the support function and the kernel are optimized.
@@ -1502,7 +1502,7 @@
        default: [100,100]
        Yes: [100, 1]
      rpnrm_cv:
-       COMMENT: convergence criterion for low/high accuracy
+       COMMENT: Convergence criterion for low/high accuracy
        DESCRIPTION: |
          Convergence criterion for the outer loop iterations (high / low accuracy).
          The optimization stops if the mean change of the charge density / potential falls below this threshold.
@@ -1510,7 +1510,7 @@
        RANGE: [1.e-15,1.e-5]
        default: [1.e-12,1.e-12]
      conf_damping:
-       COMMENT: how the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
+       COMMENT: How the confinement should be decreased, only relevant for hybrid mode; negative -> automatic
        DESCRIPTION: |
          Prescription how the prefactor for the confining potential should be decreased
          * negative value => automatic adjustment (recommended)
@@ -1519,7 +1519,7 @@
        RANGE: [-1.0,1.0]
        default: -0.5
      taylor_order:
-       COMMENT: order of the Taylor approximation; 0 -> exact
+       COMMENT: Order of the Taylor approximation; 0 -> exact
        DESCRIPTION: |
          Indicates how the matrix powers are calculated:
          * n<0 => Laura's method of order n
@@ -1528,7 +1528,7 @@
        RANGE: [-100,10000]
        default: 0
      max_inversion_error:
-       COMMENT: linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
+       COMMENT: Linear scaling maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
        DESCRIPTION: |
          Maximal error of the Taylor approximations which are used to  calculate the inverse of the overlap matrix.
          If this error is larger than the specified value, the order of the Taylor approximation is increased.
@@ -1536,7 +1536,7 @@
        default: 1.d0
        RANGE: [1.e-20,1.0]
      output_wf:
-       COMMENT: output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+       COMMENT: Output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
        DESCRIPTION: |
          Indicates how the support functions should be written to disk at the end of the run:
           *  0 => None
@@ -1570,7 +1570,7 @@
          22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
          23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
      output_mat:
-       COMMENT: output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 formatted both
+       COMMENT: Output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 formatted both
        DESCRIPTION: |
          Indicates how the support functions should be written to disk at the end of the run:
           *  0 => None
@@ -1592,7 +1592,7 @@
          22: Fortran binary sparse and dense
          4:  MPI native binary sparse
      output_coeff:
-       COMMENT: output KS coefficients; 0 no output, 1 formatted output
+       COMMENT: Output KS coefficients; 0 no output, 1 formatted output
        DESCRIPTION: |
          Indicates how the support functions should be written to disk at the end of the run:
           *  0 => None
@@ -1602,7 +1602,7 @@
          0:  None
          1:  Plain text
      output_fragments:
-       COMMENT: output support functions, kernel and coeffs; 0 fragments and full system, 1 fragments only, 2 full system only
+       COMMENT: Output support functions, kernel and coeffs; 0 fragments and full system, 1 fragments only, 2 full system only
        DESCRIPTION: |
          Indicates how the support functions should be written to disk at the end of the run:
           *  0 => Fragments and full system
@@ -1614,7 +1614,7 @@
          1:  Fragments only
          2:  Full system only
      kernel_restart_mode:
-       COMMENT: method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 support function weights
+       COMMENT: Method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 support function weights
        DESCRIPTION: |
          Indicates how the kernel should be generated for a restart calculation:
           *  0 => Density kernel
@@ -1636,19 +1636,19 @@
        diag: 3
        weight: 4
      kernel_restart_noise:
-       COMMENT: add random noise to kernel or coefficients when restarting
+       COMMENT: Add random noise to kernel or coefficients when restarting
        DESCRIPTION: |
          Indicates how much noise should be added to kernel or coefficients for a restart calculation
        default: 0.0d0
        RANGE: [0.0,1.0]
      frag_num_neighbours:
-       COMMENT: number of neighbours to output for each fragment
+       COMMENT: Number of neighbours to output for each fragment
        DESCRIPTION: |
          Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
        RANGE: [0,4]
        default: 0
      frag_neighbour_cutoff:
-       COMMENT: number of neighbours to output for each fragment
+       COMMENT: Number of neighbours to output for each fragment
        DESCRIPTION: |
          Distance (in bohr) beyond which neighbouring atoms are not included in frag_env.xyz
        RANGE: [0,100]
@@ -1668,16 +1668,16 @@
      calc_dipole:
        DESCRIPTION: |
          Indicates whether the dipole moment should be calculated after the run or not
-       COMMENT: calculate dipole
+       COMMENT: Calculate dipole
        default: No
      calc_quadrupole:
        DESCRIPTION: |
          Indicates whether the quadrupole moment should be calculated after the run or not
-       COMMENT: calculate quadrupole
+       COMMENT: Calculate quadrupole
        default: No
 # this name might be misleading
      subspace_diag: #called calc_ks, to be renamed
-       COMMENT: diagonalization at the end
+       COMMENT: Diagonalization at the end
        DESCRIPTION: |
          Indicates whether a diagonalization shall be performed at the end of the run
        default: No
@@ -1686,7 +1686,7 @@
        default: 0
        RANGE: [0, 10000]
      calculate_onsite_overlap:
-       COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
+       COMMENT: Calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
      charge_multipoles:
        COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
@@ -1714,19 +1714,19 @@
        COMMENT: Calculate the multipole moments of the support functions
        default: False
      plot_locreg_grids:
-       COMMENT: plot the scaling function and wavelets grid of each localization region
+       COMMENT: Plot the scaling function and wavelets grid of each localization region
        default: False
      calculate_FOE_eigenvalues:
        COMMENT: First and last eigenvalue to be calculated using the FOE procedure
        default: [0,-1]
      precision_FOE_eigenvalues:
-       COMMENT: decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
+       COMMENT: Decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
        default: 5.e-3
        RANGE: [0.0,1.e-1]
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
-       COMMENT: maximal number of iterations in the optimization of the support functions
+       COMMENT: Maximal number of iterations in the optimization of the support functions
        DESCRIPTION: |
          Maximal number of iterations in the optimization of the support functions.
          The first number is used for the low accuracy part, the second one for the high accuracy part.
@@ -1746,7 +1746,7 @@
        RANGE: [0,20]
        default: [6,6]
      gnrm_cv:
-       COMMENT: convergence criterion for the optimization of the support functions (low/high accuracy)
+       COMMENT: Convergence criterion for the optimization of the support functions (low/high accuracy)
        DESCRIPTION: |
          Convergence criterion for optimization of the support functions (high / low accuracy).
          The optimization stops if the mean gradient norm falls below this threshold.
@@ -1754,18 +1754,18 @@
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
      gnrm_ig:
-       COMMENT: convergence criterion for the optimization of the support functions in the extended input guess (experimental mode only)
+       COMMENT: Convergence criterion for the optimization of the support functions in the extended input guess (experimental mode only)
        RANGE: [1.e-5,10.0]
        default: 1.e-3 #just for backward compatibility, should be larger
      deltae_cv:
-       COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
+       COMMENT: Total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
          The optimization of the support functions stops if the total relative gain in the target function
          during the given cycle of support function optimization falls below this threshold
        RANGE: [1.e-6,1.e-1]
        default: 1.e-4
      gnrm_dyn:
-       COMMENT: dynamic convergence criterion ('experimental_mode' only)
+       COMMENT: Dynamic convergence criterion ('experimental_mode' only)
        DESCRIPTION: |
          From this value the effective dynamic convergence criterion is calculated by a division by kappa.
          Then the optimization of the support functions stops if the mean gradient norm falls
@@ -1776,14 +1776,14 @@
        RANGE: [1.e-7,1.e-1]
        default: 1.e-4
      min_gnrm_for_dynamic:
-       COMMENT: minimal gnrm to active the dynamic gnrm criterion
+       COMMENT: Minimal gnrm to active the dynamic gnrm criterion
        DESCRIPTION: |
          The dynamic convergence criterion (specified by gnrm_dyn) is only active if the mean gradient norm
          of the support functions is below this threshold
        RANGE: [1.e-7,1.0]
        default: 1.e-3
      alpha_diis:
-       COMMENT: multiplicator for DIIS
+       COMMENT: Multiplicator for DIIS
        DESCRIPTION: |
                     possible value: 2 positive real numbers
                     The support functions gradient is multiplied by this number before being used for the DIIS optimization.
@@ -1792,7 +1792,7 @@
        RANGE: [0.1,10]
        default: 1.0
      alpha_sd:
-       COMMENT: initial step size for SD
+       COMMENT: Initial step size for SD
        DESCRIPTION: |
          The initial step size which is used to optimize the support functions with steepest descent.
          If the specified value is not appropriate, it will be adjusted automatically.
@@ -1801,17 +1801,17 @@
        RANGE: [1.e-4,10.0]
        default: 1.0
      nstep_prec:
-       COMMENT: number of iterations in the preconditioner
+       COMMENT: Number of iterations in the preconditioner
        DESCRIPTION: |
          Indicates how many iterations in the preconditioning of the gradient shall be performed
        RANGE: [1,30]
        default: 5
      fix_basis:
-       COMMENT: fix the support functions if the density change is below this threshold
+       COMMENT: Fix the support functions if the density change is below this threshold
        RANGE: [1.e-14,1.e-6]
        default: 1.e-10
      correction_orthoconstraint:
-       COMMENT: correction for the slight non-orthonormality in the orthoconstraint
+       COMMENT: Correction for the slight non-orthonormality in the orthoconstraint
        DESCRIPTION: |
          Indicates whether the slight non-orthogonality of the support functions
          should be taken into account during the application of the orthogonality constraint
@@ -1823,12 +1823,12 @@
        COMMENT: Orthogonalize the atomic orbitals used as input guess
        default: Yes    
      reset_DIIS_history:
-       COMMENT: reset the DIIS history when starting the loop which optimizes the support functions
+       COMMENT: Reset the DIIS history when starting the loop which optimizes the support functions
        default: No
  #Parameters for the calculation of the kernel (linear scaling version)
  lin_kernel:
      nstep:
-       COMMENT: number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
+       COMMENT: Number of steps taken when updating the coefficients via direct minimization for each iteration of the density kernel loop
        DESCRIPTION: |
          Indicates the number of steps taken when updating the coefficients
          via direct minimization for each iteration of the density kernel loop.
@@ -1837,7 +1837,7 @@
        RANGE: [0,100]
        default: [1,1]
      nit:
-       COMMENT: number of iterations in the (self-consistent) optimization of the density kernel
+       COMMENT: Number of iterations in the (self-consistent) optimization of the density kernel
        DESCRIPTION: |
          Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
          The first entry is used for the low accuracy part, the second one for the high accuracy part.
@@ -1849,7 +1849,7 @@
        COMMENT: DIIS history for direct mininimization
        default: [0,0]
      idsx:
-       COMMENT: mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+       COMMENT: Mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
        DESCRIPTION: |
          Indicates how the density / potential mixing shall be performed:
          n=0 => linear mixing
@@ -1859,7 +1859,7 @@
        RANGE: [0,20]
        default: [0,0]
      alphamix:
-       COMMENT: mixing parameter (low/high accuracy)
+       COMMENT: Mixing parameter (low/high accuracy)
        DESCRIPTION: |
          Indicates the mixing parameter used for the mixing of the charge density / potential.
          The larger the value, the more of the previous value will be kept.
@@ -1868,14 +1868,14 @@
        RANGE: [0.0,1.0]
        default: [0.5,0.5]
      gnrm_cv_coeff:
-       COMMENT: convergence criterion on the gradient for direct minimization
+       COMMENT: Convergence criterion on the gradient for direct minimization
        DESCRIPTION: |
          Convergence criterion on the gradient for direct minimization.
          The first entry is used for the low accuracy part, the second one for the high accuracy part.
          When the hybrid mode is used, only the first entry is taken into account.
        default: [1.e-5,1.e-5]
      rpnrm_cv:
-       COMMENT: convergence criterion (change in density/potential) for the kernel optimization
+       COMMENT: Convergence criterion (change in density/potential) for the kernel optimization
        DESCRIPTION: |
          The optimization of the density kernel is stopped as soon as the mean change
          of the charge density / potential between two iterations falls below this threshold.
@@ -1884,7 +1884,7 @@
        RANGE: [1.e-14,1.e-5]
        default: [1.e-10,1.e-10]
      linear_method:
-       COMMENT: method to optimize the density kernel
+       COMMENT: Method to optimize the density kernel
        DESCRIPTION: |
          Indicates the method with which the density kernel is optimized:
          * DIRMIN => direct minimization
@@ -1898,7 +1898,7 @@
          PEXSI: external PEXSI lbrary
        default: DIAG
      mixing_method:
-       COMMENT: quantity to be mixed
+       COMMENT: Quantity to be mixed
        DESCRIPTION: |
          Indicates which quantity should be used for the mixing procedure:
           DEN => density mixing
@@ -1908,7 +1908,7 @@
          POT: potential mixing
        default: DEN
      alpha_sd_coeff:
-       COMMENT: initial step size for SD for direct minimization
+       COMMENT: Initial step size for SD for direct minimization
        default: 0.2
      alpha_fit_coeff:
        COMMENT: Update the SD step size by fitting a quadratic polynomial
@@ -1924,28 +1924,28 @@
        RANGE: [-10.0,10.0]
        default: [-0.5,0.5]
      fscale_foe:
-       COMMENT: decay length of the error function
+       COMMENT: Decay length of the error function
        DESCRIPTION: |
          Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
          This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
      coeff_scaling_factor:
-       COMMENT: factor to scale the gradient in direct minimization
+       COMMENT: Factor to scale the gradient in direct minimization
        DESCRIPTION: |
          Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
          or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
      delta_pnrm:
-       COMMENT: stop the kernel optimization if the density/potential difference has decreased by this factor (deactivated if -1.0)
+       COMMENT: Stop the kernel optimization if the density/potential difference has decreased by this factor (deactivated if -1.0)
        DESCRIPTION: |
          stop the kernel optimization if the density/potential difference has decreased by this factor compared to the first iteration.
          The feature is deactivated for a value of -1.0
        default: -1.0
        RANGE: [-1.0,1.0]
      pexsi_npoles:
-       COMMENT: number of poles used by PEXSI
+       COMMENT: Number of poles used by PEXSI
        DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
        default: 40
        RANGE: [20,200]
@@ -1957,22 +1957,22 @@
        default: -1.0
        RANGE: [-5.0,5.0]
      pexsi_mumax:
-       COMMENT: initial guess for the upper bound of the chemical potential used by PEXSI
+       COMMENT: Initial guess for the upper bound of the chemical potential used by PEXSI
        DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
        default: 1.0
        RANGE: [-5.0,5.0]
      pexsi_mu:
-       COMMENT: initial guess for the  chemical potential used by PEXSI
+       COMMENT: Initial guess for the  chemical potential used by PEXSI
        DESCRIPTION: initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
        default: 0.5
        RANGE: [-5.0,5.0]
      pexsi_temperature:
-       COMMENT: temperature used by PEXSI
+       COMMENT: Temperature used by PEXSI
        DESCRIPTION: temperature (in atomic units?) used by PEXSI
        default: 1.e-3
        RANGE: [0.0,1.0]
      pexsi_tol_charge:
-       COMMENT: charge tolerance used PEXSI
+       COMMENT: Charge tolerance used PEXSI
        DESCRIPTION: tolerance on the number of electrons used by PEXSI
        default: 1.e-3
        RANGE: [1.e-10,1.0]
@@ -2025,7 +2025,7 @@
        RANGE: [2.0,1000.0]
        default: 9.0
      rloc_kernel_foe:
-       COMMENT: cutoff radius for the FOE matrix vector multiplications
+       COMMENT: Cutoff radius for the FOE matrix vector multiplications
        DESCRIPTION: |
                     Indicates the cutoff radius used for the matrix vector multiplications.
                     Must be at least as large as the kernel cutoff.
