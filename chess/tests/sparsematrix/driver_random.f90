@@ -32,9 +32,12 @@ program driver_random
                                     sparse_matrix_init_from_file_bigdft, &
                                     sparse_matrix_and_matrices_init_from_file_bigdft
   use sparsematrix_io, only: write_dense_matrix, write_sparse_matrix
-  use random, only: builtin_rand
+  !use random, only: builtin_rand
+  use f_random, only: f_random_number
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
+  use wrapper_MPI
+
   implicit none
 
   ! Variables
@@ -245,9 +248,11 @@ program driver_random
     
       ! Fill the matrix with random entries
       idum = 0
-      tt_real = builtin_rand(idum, reset=.true.)
+      !tt_real = builtin_rand(idum, reset=.true.)
+      call f_random_number(tt_real, seed=idum, reset=.true.)
       do i=1,smats%nvctr
-          tt_real = builtin_rand(idum)
+          !tt_real = builtin_rand(idum)
+          call f_random_number(tt_real, seed=idum)
           mat1%matrix_compr(i) = real(tt_real,kind=8)
       end do
     
@@ -266,7 +271,8 @@ program driver_random
       ! Additionally, we add to the diagonal elements a random number between 0 and the condition number.
       do i=1,smats%nfvctr
           ii = matrixindex_in_compressed(smats, i, i)
-          tt_real = builtin_rand(idum)
+          !tt_real = builtin_rand(idum)
+          call f_random_number(tt_real, seed=idum)
           tt = real(tt_real,kind=8)*condition_number
           mat2%matrix_compr(ii) = 1.0_mp + tt
       end do

@@ -37,6 +37,9 @@ program driver_foe_css
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
+  use wrapper_MPI
+  use wrapper_linalg
+
   implicit none
 
   ! Variables
