@@ -414,7 +414,7 @@ module rhopotential
     
       ! Local variables
       integer :: ipt, ii, i0, iiorb, jjorb, iorb, jorb, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
-      real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, rho_neg
+      real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, tt2, rho_neg
       integer,dimension(:),allocatable :: isend_total
       integer,dimension(:),pointer :: moduloarray
       real(kind=8),dimension(:),allocatable :: rho_local
@@ -489,31 +489,23 @@ module rhopotential
               do i=1,ii
                   iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
                   iorb=moduloarray(iiorb)
-                  !iiorb=mod(iiorb-1,denskern%nfvctr)+1
-        !ispin=spinsgn(iiorb) 
                   tt1=collcom_sr%psit_c(i0+i)
-                  !ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
                   ind=denskern%matrixindex_in_compressed_fortransposed(iorb,iorb)
-                  !ind=get_transposed_index(denskern,iiorb,iiorb)
                   ind=ind+ishift_mat-denskern%isvctrp_tg
                   tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
-        !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
+                  tt2=2.0_dp*tt1
                   do j=i+1,ii
                       jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
                       jorb=moduloarray(jjorb)
-                      !jjorb=mod(jjorb-1,denskern%nfvctr)+1
-                      !ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
                       ind=denskern%matrixindex_in_compressed_fortransposed(jorb,iorb)
-                      !ind=get_transposed_index(denskern,jjorb,iiorb)
                       if (ind==0) cycle
                       ind=ind+ishift_mat-denskern%isvctrp_tg
-                      tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
+                      tt=tt+denskern_%matrix_compr(ind)*tt2*collcom_sr%psit_c(i0+j)
                   end do
               end do
               tt=factor*tt
               total_charge=total_charge+tt
               rho_local(ipt+(ispin-1)*collcom_sr%nptsp_c)=tt
-        !rho_local(ipt,ispin)=tt(ispin)
               if (tt<0.d0) rho_neg=rho_neg+1.d0
           end do
           !$omp end do
