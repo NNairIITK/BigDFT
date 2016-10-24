@@ -249,10 +249,10 @@ program driver_random
       ! Fill the matrix with random entries
       idum = 0
       !tt_real = builtin_rand(idum, reset=.true.)
-      call f_random_number(tt_real, seed=idum, reset=.true.)
+      call f_random_number(tt_real, reset=.true.)
       do i=1,smats%nvctr
           !tt_real = builtin_rand(idum)
-          call f_random_number(tt_real, seed=idum)
+          call f_random_number(tt_real)
           mat1%matrix_compr(i) = real(tt_real,kind=8)
       end do
     
@@ -272,7 +272,7 @@ program driver_random
       do i=1,smats%nfvctr
           ii = matrixindex_in_compressed(smats, i, i)
           !tt_real = builtin_rand(idum)
-          call f_random_number(tt_real, seed=idum)
+          call f_random_number(tt_real)
           tt = real(tt_real,kind=8)*condition_number
           mat2%matrix_compr(ii) = 1.0_mp + tt
       end do
