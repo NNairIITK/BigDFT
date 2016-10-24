@@ -30,6 +30,9 @@ module io
   public :: io_files_exists
   public :: get_sparse_matrix_format
 
+  public :: writeonewave
+  public :: writemywaves
+
   contains
 
     function io_files_exists(directory,radical,orbs) result(yes)
@@ -2826,6 +2829,171 @@ module io
          call f_err_throw("unsupported value for 'iformat'")
      end if
    end subroutine get_sparse_matrix_format
+
+
+   subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxyz,  &
+        nseg_c,nvctr_c,keyg_c,keyv_c,  &
+        nseg_f,nvctr_f,keyg_f,keyv_f, &
+        psi_c,psi_f,eval)
+     use module_base
+     use yaml_output
+     implicit none
+     logical, intent(in) :: useFormattedOutput
+     integer, intent(in) :: unitwf,iorb,n1,n2,n3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f
+     real(gp), intent(in) :: hx,hy,hz
+     real(wp), intent(in) :: eval
+     integer, dimension(nseg_c), intent(in) :: keyv_c
+     integer, dimension(nseg_f), intent(in) :: keyv_f
+     integer, dimension(2,nseg_c), intent(in) :: keyg_c
+     integer, dimension(2,nseg_f), intent(in) :: keyg_f
+     real(wp), dimension(nvctr_c), intent(in) :: psi_c
+     real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
+     real(gp), dimension(3,nat), intent(in) :: rxyz
+     !local variables
+     integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j
+     real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
+   
+     if (useFormattedOutput) then
+        write(unitwf,*) iorb,eval
+        write(unitwf,*) hx,hy,hz
+        write(unitwf,*) n1,n2,n3
+        write(unitwf,*) nat
+        do iat=1,nat
+        write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
+        enddo
+        write(unitwf,*) nvctr_c, nvctr_f
+     else
+        write(unitwf) iorb,eval
+        write(unitwf) hx,hy,hz
+        write(unitwf) n1,n2,n3
+        write(unitwf) nat
+        do iat=1,nat
+        write(unitwf) (rxyz(j,iat),j=1,3)
+        enddo
+        write(unitwf) nvctr_c, nvctr_f
+     end if
+   
+     ! coarse part
+     do iseg=1,nseg_c
+        jj=keyv_c(iseg)
+        j0=keyg_c(1,iseg)
+        j1=keyg_c(2,iseg)
+        ii=j0-1
+        i3=ii/((n1+1)*(n2+1))
+        ii=ii-i3*(n1+1)*(n2+1)
+        i2=ii/(n1+1)
+        i0=ii-i2*(n1+1)
+        i1=i0+j1-j0
+        do i=i0,i1
+           tt=psi_c(i-i0+jj)
+           if (useFormattedOutput) then
+              write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
+           else
+              write(unitwf) i,i2,i3,tt
+           end if
+        enddo
+     enddo
+   
+     ! fine part
+     do iseg=1,nseg_f
+        jj=keyv_f(iseg)
+        j0=keyg_f(1,iseg)
+        j1=keyg_f(2,iseg)
+        ii=j0-1
+        i3=ii/((n1+1)*(n2+1))
+        ii=ii-i3*(n1+1)*(n2+1)
+        i2=ii/(n1+1)
+        i0=ii-i2*(n1+1)
+        i1=i0+j1-j0
+        do i=i0,i1
+           t1=psi_f(1,i-i0+jj)
+           t2=psi_f(2,i-i0+jj)
+           t3=psi_f(3,i-i0+jj)
+           t4=psi_f(4,i-i0+jj)
+           t5=psi_f(5,i-i0+jj)
+           t6=psi_f(6,i-i0+jj)
+           t7=psi_f(7,i-i0+jj)
+           if (useFormattedOutput) then
+              write(unitwf,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+           else
+              write(unitwf) i,i2,i3,t1,t2,t3,t4,t5,t6,t7
+           end if
+        enddo
+     enddo
+   
+     if (bigdft_mpi%iproc == 0 .and. verbose >= 2) &
+        & call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
+     !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
+   
+   END SUBROUTINE writeonewave
+
+
+   !> Write all my wavefunctions in files by calling writeonewave
+   subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi,iorb_shift)
+     use module_types
+     use module_base
+     use yaml_output
+     use module_interfaces, only: open_filename_of_iorb
+     use public_enums
+     implicit none
+     integer, intent(in) :: iproc,n1,n2,n3,iformat
+     real(gp), intent(in) :: hx,hy,hz
+     type(atoms_data), intent(in) :: at
+     type(orbitals_data), intent(in) :: orbs
+     type(wavefunctions_descriptors), intent(in) :: wfd
+     real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+     real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+     character(len=*), intent(in) :: filename
+     integer,intent(in),optional :: iorb_shift
+     !Local variables
+     integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf,iorb_shift_
+     real(kind=4) :: tr0,tr1
+     real(kind=8) :: tel
+   
+     unitwf=99
+   
+     iorb_shift_ = 0
+     if (present(iorb_shift)) iorb_shift_ = iorb_shift
+   
+     if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
+     !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
+     if (iformat == WF_FORMAT_ETSF) then
+        call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+     else
+        call cpu_time(tr0)
+        call system_clock(ncount1,ncount_rate,ncount_max)
+   
+        ! Plain BigDFT files.
+        do iorb=1,orbs%norbp
+           do ispinor=1,orbs%nspinor
+              call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
+                   & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
+              call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
+                   at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1:),wfd%keyvloc(1:),  &
+                   wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1:),wfd%keyvloc(wfd%nseg_c+1:), &
+                   psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
+                   orbs%eval(iorb+orbs%isorb))
+              call f_close(unitwf)
+           end do
+        enddo
+   
+        call cpu_time(tr1)
+        call system_clock(ncount2,ncount_rate,ncount_max)
+        tel=dble(ncount2-ncount1)/dble(ncount_rate)
+        if (iproc == 0) then
+           call yaml_sequence_open('Write Waves Time')
+           call yaml_sequence(advance='no')
+           call yaml_mapping_open(flow=.true.)
+           call yaml_map('Process',iproc)
+           call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
+           call yaml_mapping_close()
+           call yaml_sequence_close()
+        end if
+        !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
+        !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
+     end if
+   
+   END SUBROUTINE writemywaves
 
 
 end module io

@@ -23,8 +23,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        & XC_potential, communicate_density, copy_old_wavefunctions, &
        denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
-       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication, &
-       writemywaves
+       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
@@ -53,7 +52,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
   use orbitalbasis
-  use io, only: plot_density,io_files_exists
+  use io, only: plot_density,io_files_exists, writemywaves
   use PSbox, only: PS_gather
   use foe_common, only: init_foe
   implicit none
@@ -580,7 +579,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
          !     matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
          tmb%linmat%ovrlppowers_(i)%matrix_compr = &
-             sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
+             sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_compr')
      end do
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)

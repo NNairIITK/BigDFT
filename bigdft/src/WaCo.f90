@@ -20,7 +20,7 @@ program WaCo
    use module_atoms, only: deallocate_atoms_data
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
-   use io, only: writeonewave_linear, writeLinearCoefficients
+   use io, only: writeonewave_linear, writeLinearCoefficients, writeonewave
    use bigdft_run
    use locregs, only: copy_locreg_descriptors
    use public_enums, only: LINEAR_PARTITION_NONE, WF_FORMAT_BINARY, WF_FORMAT_ETSF, WF_FORMAT_NONE

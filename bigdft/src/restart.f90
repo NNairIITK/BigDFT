@@ -594,72 +594,6 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
 end subroutine open_filename_of_iorb
 
 
-!> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi,iorb_shift)
-  use module_types
-  use module_base
-  use yaml_output
-  use module_interfaces, only: open_filename_of_iorb
-  use public_enums
-  implicit none
-  integer, intent(in) :: iproc,n1,n2,n3,iformat
-  real(gp), intent(in) :: hx,hy,hz
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  character(len=*), intent(in) :: filename
-  integer,intent(in),optional :: iorb_shift
-  !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf,iorb_shift_
-  real(kind=4) :: tr0,tr1
-  real(kind=8) :: tel
-
-  unitwf=99
-
-  iorb_shift_ = 0
-  if (present(iorb_shift)) iorb_shift_ = iorb_shift
-
-  if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
-  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
-  if (iformat == WF_FORMAT_ETSF) then
-     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
-  else
-     call cpu_time(tr0)
-     call system_clock(ncount1,ncount_rate,ncount_max)
-
-     ! Plain BigDFT files.
-     do iorb=1,orbs%norbp
-        do ispinor=1,orbs%nspinor
-           call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
-                & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
-           call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
-                at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  &
-                wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), &
-                psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
-                orbs%eval(iorb+orbs%isorb))
-           call f_close(unitwf)
-        end do
-     enddo
-
-     call cpu_time(tr1)
-     call system_clock(ncount2,ncount_rate,ncount_max)
-     tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     if (iproc == 0) then
-        call yaml_sequence_open('Write Waves Time')
-        call yaml_sequence(advance='no')
-        call yaml_mapping_open(flow=.true.)
-        call yaml_map('Process',iproc)
-        call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-        call yaml_mapping_close()
-        call yaml_sequence_close()
-     end if
-     !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
-     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
-  end if
-
-END SUBROUTINE writemywaves
 
 
 subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
@@ -950,7 +884,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                tmb%lzd%llr(ilr)%wfd%nseg_f,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
                tmb%lzd%llr(ilr)%wfd%keygloc(1:,tmb%lzd%Llr(ilr)%wfd%nseg_c+1:), &
                tmb%lzd%llr(ilr)%wfd%keyvloc(tmb%lzd%Llr(ilr)%wfd%nseg_c+1:), &
-               phigold,tmb%psi(jstart),tmb%psi(jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c))
+               phigold,tmb%psi(jstart:),tmb%psi(jstart+tmb%lzd%llr(ilr)%wfd%nvctr_c:))
 
           if (reformat) then
 
@@ -4189,6 +4123,7 @@ subroutine writemyproj(filename,iformat,orbs,hx,hy,hz,at,rxyz,nl)
   use yaml_output
   use gaussians
   use public_enums, only: WF_FORMAT_ETSF, WF_FORMAT_BINARY
+  use io, only: writeonewave
   implicit none
   integer, intent(in) :: iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -4257,12 +4192,12 @@ subroutine writemyproj(filename,iformat,orbs,hx,hy,hz,at,rxyz,nl)
                          & nl%pspd(iat)%plr%d%n3, &
                          & hx,hy,hz, at%astruct%nat,rxyz, &
                          & mbseg_c, mbvctr_c, &
-                         & nl%pspd(iat)%plr%wfd%keyglob(1,1), &
-                         & nl%pspd(iat)%plr%wfd%keyvglob(1), &
+                         & nl%pspd(iat)%plr%wfd%keyglob, &
+                         & nl%pspd(iat)%plr%wfd%keyvglob, &
                          & mbseg_f, mbvctr_f, &
-                         & nl%pspd(iat)%plr%wfd%keyglob(1,mbseg_c+1), &
-                         & nl%pspd(iat)%plr%wfd%keyvglob(mbseg_c+1), &
-                         & nl%proj(istart), nl%proj(istart + mbvctr_c), &
+                         & nl%pspd(iat)%plr%wfd%keyglob(1,mbseg_c+1:), &
+                         & nl%pspd(iat)%plr%wfd%keyvglob(mbseg_c+1:), &
+                         & nl%proj(istart:), nl%proj(istart + mbvctr_c:), &
                          & UNINITIALIZED(1._wp))
 
                     close(99)

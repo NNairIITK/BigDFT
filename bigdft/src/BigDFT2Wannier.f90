@@ -23,6 +23,7 @@ program BigDFT2Wannier
    use communications, only: transpose_v, untranspose_v
    use bounds, only: ext_buffers
    use locreg_operations
+   use io, only: writemywaves
    implicit none
    character :: filetype*4
    !etsf
