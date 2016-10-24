@@ -11,6 +11,6 @@ Keys to ignore:
  - Parallel environment
  - penalty
 
+
 test-random:
-  Keys to ignore:
-  - Parallel environment
+ max error relative: 2.1e-9
