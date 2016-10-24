@@ -54,7 +54,7 @@ module sparsematrix_highlevel
   contains
 
     subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, comm, smat, mat, &
-               init_matmul)
+               init_matmul, filename_mult)
       use sparsematrix_init, only: read_ccs_format
       use dynamic_memory
       implicit none
@@ -65,26 +65,39 @@ module sparsematrix_highlevel
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
       logical,intent(in),optional :: init_matmul
+      character(len=*),intent(in),optional :: filename_mult
 
       ! Local variables
-      integer :: nfvctr, nvctr
-      integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=mp),dimension(:),pointer :: val
+      integer :: nfvctr, nvctr, nvctr_mult
+      integer,dimension(:),pointer :: col_ptr, row_ind, row_ind_mult, col_ptr_mult
+      real(kind=mp),dimension(:),pointer :: val, val_mult
       logical :: init_matmul_
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
-
-      ! Read in the matrix
-      call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
 
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
           init_matmul_ = .false.
       end if
+
+      ! Read in the matrix
+      call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
+
+      if(init_matmul_) then
+          if (.not.present(filename_mult)) then
+              call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          call read_ccs_format(filename_mult, nfvctr, nvctr_mult, col_ptr_mult, row_ind_mult, val_mult)
+      end if
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
+      if (init_matmul_) then
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
+               init_matmul_, nvctr_mult, row_ind_mult, col_ptr_mult)
+      else
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
+      end if
 
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -93,13 +106,19 @@ module sparsematrix_highlevel
       call f_free_ptr(col_ptr)
       call f_free_ptr(row_ind)
       call f_free_ptr(val)
+      if (init_matmul_) then
+          call f_free_ptr(col_ptr_mult)
+          call f_free_ptr(row_ind_mult)
+          call f_free_ptr(val_mult)
+      end if
 
       call f_release_routine()
 
     end subroutine sparse_matrix_and_matrices_init_from_file_ccs
 
 
-    subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat)
+    subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat, &
+               init_matmul, filename_mult)
       use sparsematrix_init, only: read_ccs_format
       use dynamic_memory
       implicit none
@@ -108,24 +127,50 @@ module sparsematrix_highlevel
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
+      character(len=*),intent(in),optional :: filename_mult
 
       ! Local variables
-      integer :: nfvctr, nvctr
-      integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=mp),dimension(:),pointer :: val
+      integer :: nfvctr, nvctr, nvctr_mult
+      integer,dimension(:),pointer :: col_ptr, row_ind, row_ind_mult, col_ptr_mult
+      real(kind=mp),dimension(:),pointer :: val, val_mult
+      logical :: init_matmul_
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .false.
+      end if
 
       ! Read in the matrix
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
 
+      if(init_matmul_) then
+          if (.not.present(filename_mult)) then
+              call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          call read_ccs_format(filename_mult, nfvctr, nvctr_mult, col_ptr_mult, row_ind_mult, val_mult)
+      end if
+
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat)
+      if (init_matmul_) then
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
+               init_matmul_, nvctr_mult, row_ind_mult, col_ptr_mult)
+      else
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
+      end if
 
       ! Deallocate the pointers
       call f_free_ptr(col_ptr)
       call f_free_ptr(row_ind)
       call f_free_ptr(val)
+      if (init_matmul_) then
+          call f_free_ptr(col_ptr_mult)
+          call f_free_ptr(row_ind_mult)
+          call f_free_ptr(val_mult)
+      end if
 
       call f_release_routine()
 
