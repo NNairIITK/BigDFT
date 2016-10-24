@@ -823,7 +823,7 @@ module ice
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, ice_obj, npl_min_fake, &
            inv_ovrlp(1)%matrix_compr, chebyshev_polynomials, &
            npl, scale_factor, shift_value, hamscal_compr, &
-           ex=ex, scaling_factor_low=2.0_mp, scaling_factor_up=0.5_mp, &
+           ex=ex, scaling_factor_low=1.2_mp, scaling_factor_up=1.0_mp/1.2_mp, &
            eval_multiplicator=eval_multiplicator, eval_multiplicator_total=eval_multiplicator_total, &
            cc=cc, max_errorx=max_error)
 
