@@ -2339,13 +2339,13 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
          nout1=nout1+atn
          nout2=nout1+after
          do j=1,nfft
-            r1=zin(1,j,nin1)
+            r1=zin(1,j,nin1)  !c1=(r1,s1)
             s1=zin(2,j,nin1)
-            r2=zin(1,j,nin2)
+            r2=zin(1,j,nin2) !c2=(r2,s2)
             s2=zin(2,j,nin2)
-            zout(1,j,nout1)= r2 + r1
+            zout(1,j,nout1)= r2 + r1  !c1+c2
             zout(2,j,nout1)= s2 + s1
-            zout(1,j,nout2)= r1 - r2
+            zout(1,j,nout2)= r1 - r2 !c1-c2
             zout(2,j,nout2)= s1 - s2
          end do
       end do

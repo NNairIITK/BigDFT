@@ -225,7 +225,11 @@ program f_buffer_allocations
   !r6=f_malloc(n6,id='r6'); call buffer_info(shape(r6),lbound(r6),ubound(r6),kind(r6),'Float'); call f_free(r6)
   !r7=f_malloc(n7,id='r7'); call buffer_info(shape(r7),lbound(r7),ubound(r7),kind(r7),'Float'); call f_free(r7)
 
-  d1=f_malloc(n1,id='d1'); call buffer_info(shape(d1),lbound(d1),ubound(d1),kind(d1),'Double'); call f_free(d1)
+  d1=f_malloc(n1,id='d1'); call buffer_info(shape(d1),lbound(d1),ubound(d1),kind(d1),'Double'); 
+  !test for allocation
+  d1=5.0_f_double
+  call allocate_test(n1(1),d1)
+  call f_free(d1)
   d2=f_malloc(n2,id='d2'); call buffer_info(shape(d2),lbound(d2),ubound(d2),kind(d2),'Double'); call f_free(d2)
   d3=f_malloc(n3,id='d3'); call buffer_info(shape(d3),lbound(d3),ubound(d3),kind(d3),'Double'); call f_free(d3)
   d4=f_malloc(n4,id='d4'); call buffer_info(shape(d4),lbound(d4),ubound(d4),kind(d4),'Double'); call f_free(d4)
@@ -531,5 +535,35 @@ program f_buffer_allocations
       if (f_nan_pad_size> 0) call yaml_map('Next value',d1_ptr(isize+1))
       
     end subroutine detect_nan
+
+    !> no way, seems impossible to modify the behaviour of an allocatable array
+    subroutine allocate_test(n,origin)
+      use iso_c_binding
+      use smpi_shared
+      implicit none
+      integer, intent(in) :: n
+      real(f_double), dimension(:), allocatable :: origin
+      real(f_double), dimension(:), allocatable, target :: array
+      type(c_ptr) :: p
+      
+      call yaml_map('Original address',f_loc(origin))
+      call yaml_map('Original shape',shape(origin))
+      call yaml_map('Original values',origin)
+
+      !allocate(array(n),source=origin)
+
+      p = smpi_shared_malloc(n*kind(origin),'id'//char(0), int(1,f_long))
+      
+      call c_f_pointer(p, array, [n])
+
+      !call move_alloc(origin,array)
+      
+      call yaml_map('Allocated address',f_loc(array))
+      call yaml_map('Allocated shape',shape(array))
+      call yaml_map('Allocated values',array)
+      
+
+      
+    end subroutine allocate_test
   
 end program f_buffer_allocations

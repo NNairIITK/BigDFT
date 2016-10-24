@@ -13,15 +13,17 @@
     implicit none
     logical :: symmetric,nearest_neighbor,symfalse
     integer :: iproc,jproc,nproc,norbp,ngroup,igroup,ndim,norb,iobj,jobj,kobj,nij_loc,nij_glob,i,j,ndimp,isdim
-    integer :: iorb_glb,jorb_glb
+    integer :: iorb_glb,jorb_glb,nsteps
     integer, dimension(:), allocatable :: nobj,nobj_p
     integer, dimension(:,:), allocatable :: nobj_par
     type(dictionary), pointer :: options
     type(OP2P_data) :: OP2P_outer,OP2P_inner
     type(OP2P_iterator) :: iter_outer,iter_inner
     type(f_progress_bar) :: bar
+    integer, dimension(:,:), allocatable :: ncouples_local
     real(f_double), dimension(:,:), allocatable :: data,res,rho_i_data,v_i_data,k_ij,v_i_data_res
     real(f_double), dimension(:,:), allocatable :: v_i_dist
+    real(f_double), dimension(:,:), allocatable :: treated_couples
 
     call f_lib_initialize()
 
@@ -101,50 +103,30 @@
 !!$
 !!$    call yaml_map('Ndimp',[ndimp,isdim,iproc])
 !!$
-!!$    call mpibarrier()
-!!$    call yaml_flush_document()
+    call mpibarrier()
+    call yaml_flush_document()
 !!$
-!!$    !from the ndimp objects calculate the number of couples which have to be formed
-!!$    !locally
-!!$    nobj_p=nobj_p*maxval(nobj_p)
-!!$
-!!$    ndim_metadata=2
-!!$    pseudopsi=f_malloc([ndim_metadata,norbp],id='pseudopsi')
-!!$    fake_res_psi=f_malloc([ndim_metadata,norbp],id='fake_res_psi')
-!!$
-!!$    !allocate these value to their maximum result in local
-!!$    !this array represents the couples that will be creted locally in each step of the outer loop
-!!$    treated_couples=f_malloc([0.to.(norbp*maxval(nobj_par),0.to.nproc-1],id='treated_couples')
-!!$
-!!$    !this array counts the number of couples created locally for each processor in each step
-!!$    ncouples_local=f_malloc0([0.to.nproc-1,0.to.nproc-1],id='ncouples_local')
-!!$    
-!!$
-!!$    !initialize data and res object
-!!$    !to calculate the couples globally let us perform a run exchanging the metadata
-!!$    !first initialize the OP2P data for the couples
-!!$    call initialize_OP2P_data(OP2P_outer,mpiworld(),mpirank(),nproc,ngroup,ndim_metadata,&
-!!$      nobj_par,0,symmetric,nearest_neighbor)
-!!$    !let us initialize two different OP2P objects, for the communication
-!!$    call set_OP2P_iterator(iproc,OP2P_outer,iter_outer,norbp,pseudopsi,fake_res_psi)
-!!$    OP2P_outer_loop_init: do
-!!$       call OP2P_communication_step(iproc,OP2P_outer,iter_outer)
-!!$       if (iter_outer%event == OP2P_EXIT) exit
-!!$       !for each step now calculate the id of the couples that will be echanged
-!!$       !and the id of the ones which will be neglected
-!!$       ncouples_step=0
-!!$       do iorb=iter_outer%isloc_i,iter_outer%nloc_i+iter_outer%isloc_i-1
-!!$          do jorb=iter_outer%isloc_j,iter_outer%nloc_j+iter_outer%isloc_j-1
-!!$            call f_increment(ncouples_step)
-!!$            treated_couples(ncouples_step,iter_outer%istep)=&
-!!$                 couple_global_id(iorb,jorb)
-!!$         end do
-!!$      end do
-!!$      ncouples_local(iproc,iter_outer%istep)=ncouples_step
-!!$    end do OP2P_outer_loop_init
-!!$
-!!$    !then reduce the results of the communication for each of the steps
-!!$    call mpiallred(ncouples_local,op=MPI_SUM)
+
+    !allocate these value to their maximum result in local
+    !this array represents the couples that will be creted locally in each step of the outer loop
+    treated_couples=f_malloc0([1.to.norbp*maxval(nobj_par),0.to.nproc-1],id='treated_couples')
+
+    !this array counts the number of couples created locally for each processor in each step
+    ncouples_local=f_malloc0([0.to.nproc-1,0.to.nproc-1],id='ncouples_local')
+   
+
+    call warmup(nproc,ngroup,nobj_par,norb,norbp,norbp*maxval(nobj_par),symmetric,nearest_neighbor,&
+         ncouples_local,treated_couples,nsteps)
+
+    if (iproc==0) then
+       call yaml_mapping_open('Test of the warmup procedure')
+       call yaml_map('Number of steps',nsteps)
+       call yaml_map('Total number of local couples',ncouples_local(:,0:nsteps))
+       call yaml_map('Id of treated couples locally',treated_couples(:,0:nsteps))
+       call yaml_mapping_close()
+    end if
+
+
 !!$
 !!$    !at this point we know the list of couples tht are been treated per processor and per
 !!$    !step. Therefore we might infer which kind of matrix indices have to be
@@ -314,6 +296,8 @@
 
     call f_free(nobj_par)
     call f_free(nobj_p)
+    call f_free(treated_couples)
+    call f_free(ncouples_local)
 
     call mpifinalize()
     call f_lib_finalize()
@@ -529,3 +513,77 @@
 !!$    end do
 !!$  end subroutine fill_coupling_matrix
 
+  subroutine warmup(nproc,ngroup,nobj_par,norb,norbp,ncouples_local_max,symmetric,nearest_neighbor,&
+       ncouples_local,treated_couples,nsteps)
+    use futile
+    use wrapper_MPI
+    use overlap_point_to_point
+    implicit none
+    logical, intent(in) :: nearest_neighbor
+    integer, intent(in) :: norbp,ngroup,ncouples_local_max,nproc,norb
+    logical, intent(inout) :: symmetric
+    integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+    integer, intent(out) :: nsteps
+    integer, dimension(0:nproc-1,0:nproc-1), intent(inout) :: ncouples_local
+    real(f_double), dimension(ncouples_local_max,0:nproc-1), intent(inout) :: treated_couples
+    !local variables
+    integer :: iorb,jorb,ncouples_step,ndim_metadata,iproc,iorb_glb,jorb_glb
+    type(OP2P_data) :: OP2P_outer
+    type(OP2P_iterator) :: iter_outer
+    real(f_double), dimension(:,:), allocatable :: fake_res_psi,pseudopsi
+  
+    ndim_metadata=2
+
+    pseudopsi=f_malloc0([ndim_metadata,norbp],id='pseudopsi')
+    fake_res_psi=f_malloc0([ndim_metadata,norbp],id='fake_res_psi')
+
+    iproc=mpirank()
+    !initialize data and res object
+    !to calculate the couples globally let us perform a run exchanging the metadata
+    !first initialize the OP2P data for the couples
+    call initialize_OP2P_data(OP2P_outer,mpiworld(),iproc,nproc,ngroup,ndim_metadata,&
+      nobj_par,0,symmetric,nearest_neighbor)
+    !let us initialize two different OP2P objects, for the communication
+    call set_OP2P_iterator(iproc,OP2P_outer,iter_outer,norbp,pseudopsi,fake_res_psi)
+    nsteps=0
+    OP2P_outer_loop_init: do
+       call OP2P_communication_step(iproc,OP2P_outer,iter_outer)
+       if (iter_outer%event == OP2P_EXIT) exit
+       nsteps=iter_outer%istep
+       !for each step now calculate the id of the couples that will be echanged
+       !and the id of the ones which will be neglected
+       ncouples_step=0
+       do iorb=iter_outer%isloc_i,iter_outer%nloc_i+iter_outer%isloc_i-1
+          do jorb=iter_outer%isloc_j,iter_outer%nloc_j+iter_outer%isloc_j-1
+             jorb_glb=iter_outer%phi_j%id_glb(jorb)
+             iorb_glb=iter_outer%phi_i%id_glb(iorb)
+            call f_increment(ncouples_step)
+            treated_couples(ncouples_step,iter_outer%istep)=&
+                 real(couple_global_id(iorb_glb,jorb_glb,norb),f_double)
+         end do
+      end do
+      ncouples_local(iproc,iter_outer%istep)=ncouples_step
+    end do OP2P_outer_loop_init
+    
+    call free_OP2P_data(OP2P_outer)
+    !then reduce the results of the communication for each of the steps
+    call mpiallred(ncouples_local,op=MPI_SUM)
+
+    call f_free(fake_res_psi)
+    call f_free(pseudopsi)
+
+    contains
+
+      !> constructs the unique id of the couple starting from the orbital number
+      pure function couple_global_id(iorb,jorb,norb) result(id)
+        implicit none
+        integer, intent(in) :: iorb,jorb,norb
+        integer :: id
+        !local variables
+        integer :: ii,jj
+        ii=max(iorb,jorb)
+        jj=min(iorb,jorb)
+        id=ii+(jj-1)*norb
+      end function couple_global_id
+
+  end subroutine warmup
