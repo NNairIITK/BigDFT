@@ -865,7 +865,7 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 3.1e-4
+ eF: 3.2e-4
  guess for new ef: 4.7e-7
  Epot: 3.8e-8
  EH: 4.0e-8
@@ -880,7 +880,7 @@ geopt_foe:
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
  EBS: 2.1e-7
- EBS higher temperature: 3.9e-8
+ EBS higher temperature: 4.0e-8
  difference: 2.1e-7
  Positions: 2.1e-9
  Omega: 1.3e-8
@@ -1542,8 +1542,8 @@ O2spin_diag:
  Clean forces norm (Ha/Bohr): 3.09e-6
  Raw forces norm (Ha/Bohr): 2.51e-6
  Orbitals: 2.9e-7
- EBS: 9.5e-10
- EBS higher temperature: 9.4e-10
+ EBS: 1.7e-9
+ EBS higher temperature: 1.7e-9
  EH: 1.9e-6
  EXC: 3.5e-7
  Ekin: 2.3e-6
@@ -1561,13 +1561,13 @@ O2spin_diag:
  delta: 1.1e-10
  Fermi Energy: 1.8e-09
  Suggested Fermi Level: 1.8e-09
- HOMO energy: 2.3e-10
- LUMO energy: 4.8e-10
- HOMO-LUMO gap (Ha): 3.5e-10
- HOMO-LUMO gap (eV): 9.4e-09
+ HOMO energy: 3.5e-10
+ LUMO energy: 6.3e-10
+ HOMO-LUMO gap (Ha): 3.8e-10
+ HOMO-LUMO gap (eV): 1.1e-08
  Asymmetry of kernel: 0.00025
  difference: 1.2e-11
- relative difference: 3.8e-11
+ relative difference: 5.9e-11
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7
