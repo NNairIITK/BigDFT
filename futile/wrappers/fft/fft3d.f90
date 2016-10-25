@@ -441,7 +441,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    real(kind=8), intent(inout) :: z(2,nd1*nd2*nd3,2)
    !Local variables
    integer, dimension(n_factors) :: after,now,before
-   real(kind=8), dimension(:,:,:), save, allocatable :: zw  
+   real(kind=8), dimension(:), save, allocatable :: zw  
    real(kind=8), dimension(:,:), save, allocatable :: trig
    !local variables
    integer :: iam,ic,mm,npr,ntrig,nfft
@@ -462,15 +462,8 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
    ntrig=max(n1,n2,n3)
 
-
-   ! Intel IFC does not understand default(private)
-!!!!!$omp parallel  default(private) &
-!!!!$omp parallel & 
-!!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-     
    npr=1
    iam=0
-!!!!$  
 
    !$omp parallel default(none) &
    !$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache,ntrig,npr,nfft,mm) &
@@ -478,7 +471,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    !$ npr=omp_get_num_threads()
    !$ iam=omp_get_thread_num()
    !$omp critical (allocate_critical_fft3d)
-   allocate(zw(2,ncache/4,2))
+   allocate(zw(ncache))
    allocate(trig(2,ntrig))
    !$omp end critical (allocate_critical_fft3d)
    !$omp barrier !make sure that here everybody is ready
@@ -492,7 +485,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
         i_sign,inzee,.true.,iam,npr,z,zw)
 
    !$omp barrier
-   if (n2.ne.n3) then
+   if (n2 /= n3) then
       call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
    end if
    nfft=nd3*n1
@@ -501,7 +494,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
         ncache,ntrig,trig,after,now,before,ic,&
         i_sign,inzee,.true.,iam,npr,z,zw)
    !$omp barrier
-   if (n1.ne.n2) then
+   if (n1 /= n2) then
       call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
    end if
    nfft=nd2*n3
