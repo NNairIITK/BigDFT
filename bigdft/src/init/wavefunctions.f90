@@ -31,6 +31,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   logical, dimension(:), allocatable :: GPU_for_orbs
   integer, dimension(:,:), allocatable :: norb_par, norbu_par, norbd_par !(with k-pts)
 
+  call f_routine(id='orbitals_descriptors')
+
   ! basedist and basedistu must both be present at the same time
   !write(*,*) 'present(basedist)',present(basedist)
   !write(*,*) 'present(basedistu)',present(basedistu)
@@ -39,7 +41,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !write(*,*) 'all((/present(basedist),present(basedistu),present(basedistd)/))',all((/present(basedist),present(basedistu),present(basedistd)/))
   if (any((/present(basedist),present(basedistu),present(basedistd)/))) then
       if (.not. all((/present(basedist),present(basedistu),present(basedistd)/))) then
-          stop 'basedist, basedistu and basedistd must all be present at the same time'
+          call f_err_throw('basedist, basedistu and basedistd must all be present at the same time')
       end if
   end if
 
@@ -300,6 +302,8 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
        call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,comm=bigdft_mpi%mpi_comm)
+
+  call f_release_routine()
 
 END SUBROUTINE orbitals_descriptors
 

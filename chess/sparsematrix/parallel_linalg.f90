@@ -1,14 +1,31 @@
 !> @file
-!! Wavefunction put into a localisation region
+!!   ScaLAPACK wrappers
 !! @author
-!!    Copyright (C) 2011-2012 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
 
 module parallel_linalg
   use sparsematrix_base
+  use dictionaries
+  use yaml_output
+  use wrapper_mpi
+  use f_utils
+  use time_profiling
+  use wrapper_linalg
   implicit none
 
   private
@@ -27,6 +44,7 @@ module parallel_linalg
     !> @warning
     !! This works only if the matrices have the same sizes for all processes!!
     subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -52,6 +70,8 @@ module parallel_linalg
 
       blocksize_if: if (blocksize<0) then
           call dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+      else if (blocksize==0) then
+          call f_err_throw('blocksize must not be zero')
       else blocksize_if
           ! Block size for scalapack
           mbrow=blocksize
@@ -75,7 +95,8 @@ module parallel_linalg
               end if
           end do
           nproccol=nproc_scalapack/nprocrow
-          if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+          !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+          if (iproc==0) call write_processor_setup('pdgemm', nproc_scalapack, nprocrow, nproccol)
           
           
           ! Initialize blacs context,
@@ -171,6 +192,7 @@ module parallel_linalg
     
     
     subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -181,10 +203,11 @@ module parallel_linalg
       real(kind=mp),dimension(n),intent(out) :: w
       
       ! Local variables
-      integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
-      integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed
+      integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall, max_cluster_size
+      integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed, ii
+      integer :: icl
       real(kind=mp) :: tt1, tt2
-      real(kind=mp),dimension(:,:),allocatable :: la, lz
+      real(kind=mp),dimension(:,:),allocatable :: la, la_tmp, lz
       real(kind=mp),dimension(:),allocatable :: work, gap
       integer,dimension(9) :: desc_lz, desc_la
       integer,dimension(:),allocatable :: iwork, ifail, icluster
@@ -195,10 +218,18 @@ module parallel_linalg
       call f_timing(TCAT_SMAT_HL_DSYEV,'ON')
       
       blocksize_if: if (blocksize<0) then
-          lwork = 100*n
+          ! Worksize query
+          lwork = -1
+          work = f_malloc(1,id='work')
+          call dsyev(jobz, uplo, n, a, lda, w, work, lwork, info)
+          lwork = work(1)
+          call f_free(work)
+
           work = f_malloc(lwork,id='work')
           call dsyev(jobz, uplo, n, a, lda, w, work, lwork, info)
           call f_free(work)
+      else if (blocksize==0) then
+          call f_err_throw('blocksize must not be zero')
       else blocksize_if
           ! Block size for scalapack
           mbrow=blocksize
@@ -211,7 +242,7 @@ module parallel_linalg
           ii2=ceiling(tt2)
           nproc_scalapack = min(ii1*ii2,nproc)
           !nproc_scalapack = nproc
-          if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+          !if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
           
           ! process grid: number of processes per row and column
           tt1=sqrt(dble(nproc_scalapack))
@@ -223,7 +254,8 @@ module parallel_linalg
               end if
           end do
           nproccol=nproc_scalapack/nprocrow
-          if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+          !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+          if (iproc==0) call write_processor_setup('pdsyevx', nproc_scalapack, nprocrow, nproccol)
     
           
           ! Initialize blacs context
@@ -251,6 +283,7 @@ module parallel_linalg
           
               ! Allocate the local array lmat
               la = f_malloc((/ lnrow, lncol /),id='la')
+              la_tmp = f_malloc((/ lnrow, lncol /),id='la_tmp')
           
               ! Copy the global array mat to the local array lmat.
               ! The same for loverlap and overlap, respectively.
@@ -279,23 +312,63 @@ module parallel_linalg
                            -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
                            ifail, icluster, gap, info)
               lwork=ceiling(work(1))
-              lwork=lwork+n**2 !to be sure to have enough workspace, to be optimized later.
+              lwork=lwork!+n**2 !to be sure to have enough workspace, to be optimized later.
               liwork=iwork(1)
-              liwork=liwork+n**2 !to be sure to have enough workspace, to be optimized later.
+              liwork=liwork!+n**2 !to be sure to have enough workspace, to be optimized later.
               !write(*,*) 'iproc, lwork, liwork', iproc, lwork, liwork
-              call f_free(work)
               call f_free(iwork)
-              work = f_malloc(lwork,id='work')
               iwork = f_malloc(liwork,id='iwork')
+
+              max_cluster_size = 1
+              repeat_loop: do icl=1,2
+                  call f_free(work)
+                  lwork = lwork + (max_cluster_size-1)*n
+                  work = f_malloc(lwork,id='work')
           
-              call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
-                           0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
-                           -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
-                           ifail, icluster, gap, info)
-              if(info/=0) then
-                  write(*,'(2(a,i0))') 'ERROR in pdsyevx on process ',iproc,', info=', info
-                  !stop
-              end if
+                  call f_memcpy(src=la, dest=la_tmp)
+
+                  call pdsyevx(jobz, 'a', 'l', n, la_tmp(1,1), 1, 1, desc_la, &
+                               0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
+                               -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
+                               ifail, icluster, gap, info)
+                  if(info==0) then
+                      ! Everything ok
+                      exit repeat_loop
+                  else if ((mod(info/2,2)/=0)) then
+                      ! This may happen if there is not enough workspace, 
+                      ! so increase the workspace and diagonalize again.
+                      if (iproc==0) then
+                          call yaml_warning('Some eigenvectors might not be orthogonal due to missing workspace, &
+                               &will repeat diagonalization')
+                          call yaml_sequence_open('Eigenvalue bounds of clusters with non-orthogonalized eigenvectors')
+                      end if
+                      ii = 0
+                      cluster_loop: do
+                          ii = ii + 1
+                          if (icluster(2*ii-1)/=0 .and. icluster(2*ii)/=0) then
+                              if (iproc==0) then
+                                  call yaml_sequence(advance='no')
+                                  call yaml_map('cluster boundary indices',(/icluster(2*ii-1),icluster(2*ii)/))
+                              end if
+                              max_cluster_size = max(max_cluster_size,icluster(2*ii)-icluster(2*ii-1)+1)
+                              if (icluster(2*ii+1)==0) then
+                                  exit cluster_loop
+                              end if
+                          else
+                              call f_err_throw('invalid values of icluster')
+                          end if
+                      end do cluster_loop
+                      if (iproc==0) then
+                          call yaml_sequence_close()
+                          call yaml_map('Maximal cluster size',max_cluster_size)
+                      end if
+                      !write(*,'(2(a,i0))') 'ERROR in pdsyevx on process ',iproc,', info=', info
+                      !stop
+                  else
+                      ! The error is not related to the workspace size, so let the calling routine handle it
+                      exit repeat_loop
+                  end if
+              end do repeat_loop
     
           
               ! Gather together the eigenvectors from all processes and store them in mat.
@@ -307,6 +380,7 @@ module parallel_linalg
           
           
               call f_free(la)
+              call f_free(la_tmp)
               call f_free(lz)
               call f_free(work)
               call f_free(iwork)
@@ -319,9 +393,14 @@ module parallel_linalg
           end if processIF
           
           ! Gather the eigenvectors on all processes.
+          ! SM: An allreduce of the total a led to problenms, therefore do each row separately...
           if (nproc > 1) then
-             call mpiallred(a, mpi_sum, comm=comm)
+             !call mpiallred(a, mpi_sum, comm=comm)
+             do i=1,n
+                 call mpiallred(a(1:lda,i), mpi_sum, comm=comm)
+             end do
           end if
+          !write(*,*) 'after mpiallred, iproc', iproc
           
           ! Broadcast the eigenvalues if required. If nproc_scalapack==nproc, then all processes
           ! diagonalized the matrix and therefore have the eigenvalues.
@@ -329,7 +408,7 @@ module parallel_linalg
               call mpi_bcast(w(1), n, mpi_double_precision, 0, comm, ierr)
               call mpi_bcast(info, 1, mpi_integer, 0, comm, ierr)
           end if
-    
+
           !call blacs_exit(0)
       end if blocksize_if
 
@@ -344,6 +423,7 @@ module parallel_linalg
     
     
     subroutine dsygv_parallel(iproc, nproc, comm, blocksize, nprocMax, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -381,7 +461,7 @@ module parallel_linalg
       !nproc_scalapack = min(ii1*ii2,nproc)
       nproc_scalapack = min(ii1*ii2,nprocMax)
       !nproc_scalapack = nproc
-      if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+      !if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
       
       ! process grid: number of processes per row and column
       tt1=sqrt(dble(nproc_scalapack))
@@ -393,7 +473,8 @@ module parallel_linalg
           end if
       end do
       nproccol=nproc_scalapack/nprocrow
-      if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      if (iproc==0) call write_processor_setup('pdsygvx', nproc_scalapack, nprocrow, nproccol)
       
       
       ! Initialize blacs context
@@ -517,6 +598,7 @@ module parallel_linalg
     
     
     subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb, info)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -549,7 +631,7 @@ module parallel_linalg
       ii2=ceiling(tt2)
       nproc_scalapack = min(ii1*ii2,nproc)
       !nproc_scalapack = nproc
-      if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
+      !if(iproc==0) write(*,'(a,i0,a)') 'scalapack will use ',nproc_scalapack,' processes.'
       
       ! process grid: number of processes per row and column
       tt1=sqrt(dble(nproc_scalapack))
@@ -561,7 +643,8 @@ module parallel_linalg
           end if
       end do
       nproccol=nproc_scalapack/nprocrow
-      if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      if (iproc==0) call write_processor_setup('pdgesv', nproc_scalapack, nprocrow, nproccol)
     
       
       ! Initialize blacs context
@@ -650,6 +733,7 @@ module parallel_linalg
     
     
     subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -692,7 +776,8 @@ module parallel_linalg
           end if
       end do
       nproccol=nproc_scalapack/nprocrow
-      if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      if (iproc==0) call write_processor_setup('pdpotrf', nproc_scalapack, nprocrow, nproccol)
       
       
       ! Initialize blacs context,
@@ -765,6 +850,7 @@ module parallel_linalg
     
     
     subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -807,7 +893,8 @@ module parallel_linalg
           end if
       end do
       nproccol=nproc_scalapack/nprocrow
-      if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
+      if (iproc==0) call write_processor_setup('pdpotri', nproc_scalapack, nprocrow, nproccol)
       
       
       ! Initialize blacs context,
@@ -876,5 +963,16 @@ module parallel_linalg
       call f_release_routine()
     
     end subroutine dpotri_parallel
+
+
+    subroutine write_processor_setup(routine_name, nproc_scalapack, nprocrow, nproccol)
+      implicit none
+      character(len=*),intent(in) :: routine_name
+      integer,intent(in) :: nproc_scalapack, nprocrow, nproccol
+      call yaml_mapping_open('ScaLAPACK setup for '//trim(routine_name))
+      call yaml_map('Number of processes',nproc_scalapack)
+      call yaml_map('Processor grid dimension',(/nprocrow,nproccol/))
+      call yaml_mapping_close()
+    end subroutine write_processor_setup
 
 end module parallel_linalg

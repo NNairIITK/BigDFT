@@ -202,9 +202,9 @@ void FC_FUNC_(bigdft_python_finalize, BIGDFT_PYTHON_FINALIZE)()
  **/
 void bigdft_lib_err_severe_override(BigdftErrorCallback func)
 {
-  FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(&func);
-  /*FC_FUNC_(err_severe_override, ERR_SEVERE_OVERRIDE)(func);*/
   fprintf(stderr, "%lld\n", (long long int)func);
+  func();
+  /*FC_FUNC_(err_severe_override, ERR_SEVERE_OVERRIDE)(func);*/
 }
 
 guint bigdft_get_count(GObject *obj)

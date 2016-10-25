@@ -223,7 +223,7 @@ subroutine initialize()
 
                                       ! our real starting point
      pos(:)  = pos_b(:)
-     box(:)  = boxref_(:)
+     box  = boxref_
 
      deallocate(typ_b)
      deallocate(pos_b)

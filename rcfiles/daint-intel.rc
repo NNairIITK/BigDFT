@@ -16,8 +16,10 @@ module_autogenargs.update({
 'futile': env_configuration(),
    
 'psolver': env_configuration(),
-   
+
 'libxc': env_configuration(),
+
+'chess': env_configuration(),
    
 'libABINIT': env_configuration(),
    

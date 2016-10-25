@@ -4,6 +4,7 @@ program test_hooks
   use yaml_parse
   use yaml_output
   use dictionaries
+  use module_f_objects
   implicit none 
   !input variables
   type(run_objects) :: runObj
@@ -100,10 +101,10 @@ contains
   subroutine runMix(obj, outs, subouts)
     type(run_objects), intent(in) :: obj
     type(state_properties), intent(out) :: outs
-    type(state_properties), dimension(size(obj%sections), intent(in) :: subouts
+    type(state_properties), dimension(size(obj%sections)), intent(in) :: subouts
 
     !...
-  end subroutine runPost
+  end subroutine runMix
 
   subroutine runDestroy(obj)
     type(run_objects), intent(in) :: obj

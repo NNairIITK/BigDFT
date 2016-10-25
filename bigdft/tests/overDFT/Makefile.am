@@ -33,6 +33,8 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	testforces\
 	IO-wf
 
+#LONG_TESTDIRS += QMMMplugins
+
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
 GEOPT-BFGS.psp: HGH/psppar.Mg
@@ -106,6 +108,9 @@ InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
+QMMMplugins-test.post-in:
+	$(MAKE) -f ../Makefile libmix.so
+
 # Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
@@ -129,6 +134,9 @@ IO-wf_ETSF.cube:
 	--i-band 3 --i-spin 2 --i-kpt 2 --i-complex 2 >> IO-wf-ETSF_write.out.out
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
+
+libmix.so: $(abs_top_srcdir)/tests/overDFT/QMMMplugins/mix.f90
+	$(FC) -shared -fPIC -o $@ $(FCFLAGS) $(AM_FCFLAGS) $< $(AM_LDFLAGS) $(LDFLAGS)
 
 # Define the precision for specific directories.
 %.report: %.ref

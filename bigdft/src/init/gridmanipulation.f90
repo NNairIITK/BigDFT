@@ -11,10 +11,11 @@
 !> Calculates the overall size of the simulation cell 
 !! and shifts the atoms such that their position is the most symmetric possible.
 !! Assign these values to the global localisation region descriptor.
-subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
+subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
    use module_base
    use module_types
    use yaml_strings, only: yaml_toa
+   use locregs
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
@@ -23,7 +24,6 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    real(gp), intent(inout) :: hx,hy,hz
    logical, intent(in) :: OCLconv
    type(locreg_descriptors), intent(out) :: Glr
-   real(gp), dimension(3), intent(out) :: shift
    !Local variables
    !character(len=*), parameter :: subname='system_size'
    integer, parameter :: lupfil=14
@@ -161,15 +161,15 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    end select
 
    !assign the shift to the atomic positions
-   shift(1)=cxmin
-   shift(2)=cymin
-   shift(3)=czmin
+   atoms%astruct%shift(1)=cxmin
+   atoms%astruct%shift(2)=cymin
+   atoms%astruct%shift(3)=czmin
 
    !here we can put a modulo operation for periodic directions
    do iat=1,atoms%astruct%nat
-      rxyz(1,iat)=rxyz(1,iat)-shift(1)
-      rxyz(2,iat)=rxyz(2,iat)-shift(2)
-      rxyz(3,iat)=rxyz(3,iat)-shift(3)
+      rxyz(1,iat)=rxyz(1,iat)-atoms%astruct%shift(1)
+      rxyz(2,iat)=rxyz(2,iat)-atoms%astruct%shift(2)
+      rxyz(3,iat)=rxyz(3,iat)-atoms%astruct%shift(3)
    enddo
 
    ! fine grid size (needed for creation of input wavefunction, preconditioning)
@@ -234,7 +234,6 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
       nfl3=n3/2
       nfu3=n3/2
    end if
-
    !assign the values
    Glr%geocode=atoms%astruct%geocode
    Glr%d%n1  =n1  
@@ -587,7 +586,7 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 
    ! MPI parallelization over the atoms, ony if there are many atoms.
    ! Maybe 200 is too low, but in this way there is a test for this feature.
-   if (nat>200) then
+   if (nat>2000) then
        call distribute_on_tasks(nat, bigdft_mpi%iproc, bigdft_mpi%nproc, natp, isat)
        parallel = .true.
    else

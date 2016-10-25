@@ -51,9 +51,9 @@ contains
     integer(kind=8), intent(in) :: callback,callback_data
 
     if (callback_data /=0 .and. callback /=0) then
-       call call_external_c_fromadd(callback) !for the moment data are ignored
+       call callable_void(callback) !for the moment data are ignored
     else if (callback /=0) then
-       call call_external_c_fromadd(callback)
+       call callable_void(callback)
     else
        call f_err_severe()
     end if
@@ -86,8 +86,7 @@ contains
 
   subroutine f_err_unset_callback()
     implicit none
-    !$ include 'halt_omp-inc.f90'
-
+    !!$ include 'halt_omp-inc.f90'
     callback_add=0
     callback_data_add=0
   end subroutine f_err_unset_callback
@@ -104,7 +103,7 @@ contains
 
   subroutine f_err_severe_restore()
     implicit none
-    !$ include 'halt_omp-inc.f90'
+    !!$ include 'halt_omp-inc.f90'
     severe_callback_add=0
   end subroutine f_err_severe_restore
 
@@ -121,7 +120,7 @@ contains
     if (severe_callback_add == 0) then
        call f_err_severe_internal()
     else
-       call call_external_c_fromadd(severe_callback_add)
+       call callable_void(severe_callback_add)
     end if
   end subroutine f_err_severe
 

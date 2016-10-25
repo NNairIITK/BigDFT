@@ -1,9 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
-SHORT_CHECK = test-ccs.report.yaml test-foeccs.report.yaml test-random.report.yaml
-LONG_CHECK = $(SHORT_CHECK)
+CHECKS = test-ccs.report.yaml test-foeccs.report.yaml test-random.report.yaml
 
 #include $(srcdir)/../check.mk
+
+check: $(CHECKS) report
 
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1-base.dat matrix2-base.dat \

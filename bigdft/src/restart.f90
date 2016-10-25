@@ -329,7 +329,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
-                   & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
+                   & orbs,iorb,ispinor,iorb_out, iiorb=orblist(iorb+orbs%isorb))
            else
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
@@ -448,7 +448,7 @@ end subroutine verify_file_presence
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
-subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift,iiorb)
   use module_base
   use module_types
   implicit none
@@ -459,7 +459,7 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   type(orbitals_data), intent(in) :: orbs
   character(len=*), intent(out) :: filename_out
   integer, intent(out) :: iorb_out
-  integer, intent(in), optional :: iiorb
+  integer, intent(in), optional :: iorb_shift,iiorb
   !local variables
   character(len=1) :: spintype,realimag
   character(len=4) :: f3
@@ -511,6 +511,8 @@ subroutine filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_ou
   !print *,"ikpt (filename_of_iorb) = ", ikpt
   !print *,"orbs%isorb (filename_of_iorb) = ", orbs%isorb
 
+  if (present(iorb_shift)) iorb_out = iorb_out + iorb_shift
+
   if(present(iiorb)) iorb_out = iiorb
   !purge the value from the spin sign
   if (spins==-1.0_gp) iorb_out=iorb_out-orbs%norbu
@@ -556,7 +558,7 @@ end subroutine wfn_filename
 
 !> Associate to the absolute value of orbital a filename which depends of the k-point and
 !! of the spin sign
-subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
+subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iorb_shift,iiorb)
   use module_base
   use module_types
   use module_interfaces, only: filename_of_iorb
@@ -568,16 +570,24 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   !>on entry, it suggests the opening unit. On exit, returns the first valid value to which the unit can be associated
   integer, intent(inout) :: unitfile
   integer, intent(out) :: iorb_out
-  integer, intent(in), optional :: iiorb
+  integer, intent(in), optional :: iorb_shift,iiorb
   !local variables
   character(len=500) :: filename_out
 
   if(present(iiorb)) then
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb)
+     if (present(iorb_shift)) then
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift=iorb_shift,iiorb=iiorb)
+     else
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iiorb=iiorb)
+     end if
      !restore previous behaviour even though the wannier construction can be compromised
      !call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   else
-     call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+     if (present(iorb_shift)) then
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out,iorb_shift=iorb_shift)
+     else
+         call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
+     end if
   end if
   call f_open_file(unitfile,file=filename_out,binary=lbin)
 
@@ -585,7 +595,7 @@ end subroutine open_filename_of_iorb
 
 
 !> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi,iorb_shift)
   use module_types
   use module_base
   use yaml_output
@@ -600,12 +610,16 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
+  integer,intent(in),optional :: iorb_shift
   !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf,iorb_shift_
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
 
   unitwf=99
+
+  iorb_shift_ = 0
+  if (present(iorb_shift)) iorb_shift_ = iorb_shift
 
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
@@ -619,7 +633,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
            call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
-                & orbs,iorb,ispinor,iorb_out)
+                & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
            call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
                 at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  &
                 wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), &
@@ -1223,12 +1237,15 @@ subroutine tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz, ref_fra
      ! find environment atoms
      ! don't think we care about keeping track of which atoms they were so we can immediately destroy the mapping array
      map_frag_and_env = f_malloc((/tmb%orbs%norb,3/),id='map_frag_and_env')
+     
+     ! NB not checking for ghost atoms here - don't think it's necessary
+ 
      ! version with most extensive matching
      call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic(iat),frag_map,&
-          ntmb_frag_and_env,map_frag_and_env,.false.,input%lin%frag_neighbour_cutoff)
+          ntmb_frag_and_env,map_frag_and_env,.false.,input%lin%frag_neighbour_cutoff,.false.)
      ! with only closest shell
      call find_neighbours(num_neighbours,at,rxyz,tmb%orbs,ref_frags_atomic_dfrag(iat),frag_map,&
-          ntmb_frag_and_env_dfrag,map_frag_and_env,.true.,input%lin%frag_neighbour_cutoff)
+          ntmb_frag_and_env_dfrag,map_frag_and_env,.true.,input%lin%frag_neighbour_cutoff,.false.)
      call f_free(map_frag_and_env)
 
      ! we also need nbasis_env
@@ -2181,7 +2198,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions
+  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions, plot_wf
   use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix
   use locreg_operations, only: lpsi_to_global2
   use public_enums
@@ -2297,7 +2314,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
-                   & tmb%orbs,iorbp,ispinor,iorb_out,iforb)
+                   & tmb%orbs,iorbp,ispinor,iorb_out,iiorb=iforb)
                    !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
               ! read headers, reading lzd info directly into lzd_old, which is otherwise nullified
@@ -2305,8 +2322,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                    Lzd_old%Llr(ilr)%d%n1,Lzd_old%Llr(ilr)%d%n2,Lzd_old%Llr(ilr)%d%n3, &
                    Lzd_old%Llr(ilr)%ns1,Lzd_old%Llr(ilr)%ns2,Lzd_old%Llr(ilr)%ns3, lzd_old%hgrids, &
                    lstat, error, onwhichatom_tmp, Lzd_old%Llr(ilr)%locrad, Lzd_old%Llr(ilr)%locregCenter, &
-                   confPotOrder, confPotprefac, Lzd_old%Llr(ilr)%wfd%nvctr_c, Lzd_old%Llr(ilr)%wfd%nvctr_f, &
-                   ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat))
+                   confPotOrder, confPotprefac, nvctr_c=Lzd_old%Llr(ilr)%wfd%nvctr_c, nvctr_f=Lzd_old%Llr(ilr)%wfd%nvctr_f, &
+                   nat=ref_frags(ifrag_ref)%astruct_frg%nat, &
+                   rxyz_old=rxyz_old(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat))
                    !ref_frags(ifrag_ref)%astruct_frg%nat, rxyz_old(1,isfat+1))
 
               ! in general this might point to a different tmb
@@ -2652,8 +2670,10 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         !should fragments have some knowledge of spin?
         !assume kernel is in binary if tmbs are...
         binary=(iformat == WF_FORMAT_BINARY)
+        !!call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+        !!     ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat)
         call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-             ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat)
+             ref_frags(ifrag_ref)%kernel)
 
 
         if (ref_frags(ifrag_ref)%nbasis_env/=0) then
@@ -2661,8 +2681,10 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            !should fragments have some knowledge of spin?
            !assume kernel is in binary if tmbs are...
            binary=(iformat == WF_FORMAT_BINARY)
+           !!call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%nbasis_env, &
+           !!     ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat)
            call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%nbasis_env, &
-                ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat)
+                ref_frags(ifrag_ref)%kernel_env)
         end if
 
         !!if (iproc==0) then
@@ -2714,6 +2736,7 @@ END SUBROUTINE readmywaves_linear_new
       use module_base
       use module_types
       use module_fragments
+      use module_atoms, only: deallocate_atomic_structure, nullify_atomic_structure, set_astruct_from_file
       use io, only: dist_and_shift
       implicit none
       integer, intent(in) :: isfat
@@ -2728,24 +2751,62 @@ END SUBROUTINE readmywaves_linear_new
 
       !local variables
       integer :: iat, ityp, ipiv_shift, iatt, iatf, num_env, np, c, itmb, iorb, i, minperm, num_neighbours
+      integer :: ntypes, nat_not_frag, ia
       integer, allocatable, dimension(:) :: ipiv, array_tmp, num_neighbours_type
       integer, dimension(:,:), allocatable :: permutations
+      integer, pointer, dimension(:) :: iatype
 
       real(kind=gp) :: minerror, mintheta, err_tol, rot_tol
       real(kind=gp), allocatable, dimension(:) :: dist
       real(kind=gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_new_trial, rxyz_ref, rxyz_new
 
-      logical :: perx, pery, perz, wrong_atom
+      type(atomic_structure) :: astruct_ghost
+
+      logical :: perx, pery, perz, wrong_atom, check_for_ghosts, ghosts_exist
 
       character(len=2) :: atom_ref, atom_trial
 
+      ! we only want to check for ghost atoms if they appear in the enviornment coordinates
+      ! AND if we aren't ignoring species
+      check_for_ghosts=.false.
+      if (.not. ignore_species) then
+         do ityp=1,ref_frag%astruct_env%ntypes
+            if (trim(ref_frag%astruct_env%atomnames(ityp))=='X') then
+               check_for_ghosts=.true.
+               exit
+            end if
+        end do
+      end if
+
+      astruct_ghost%nat=0
+
+      !first need to check for and read in ghost atoms if required
+      !might be better to move this outside routine, and just pass in astruct_ghost to avoid re-reading file for each fragment?
+      if (check_for_ghosts) then
+         !ghost atoms in ghost.xyz - would be better if this was seed_ghost.xyz but since we don't have seed here at the moment come back to this point later
+         call nullify_atomic_structure(astruct_ghost)
+
+         !first check if ghost file exists
+         inquire(FILE = 'ghost.xyz', EXIST = ghosts_exist)
+
+         if (ghosts_exist) then
+            call set_astruct_from_file('ghost',bigdft_mpi%iproc,astruct_ghost)
+         else
+            !could ignore all environment ghost atoms but easier to flag as an error
+            stop 'Error missing ghost atom file in match_environment_atoms'
+         end if
+
+      end if
+
+
+      nat_not_frag = at%astruct%nat-ref_frag%astruct_frg%nat + astruct_ghost%nat
 
       !from _env file - includes fragment and environment
       rxyz_ref = f_malloc((/ 3,ref_frag%astruct_env%nat /),id='rxyz_ref')
       !all coordinates in new system, except those in fragment
-      rxyz_new_all = f_malloc((/ 3,at%astruct%nat-ref_frag%astruct_frg%nat /),id='rxyz_new_all')
-      dist = f_malloc(at%astruct%nat-ref_frag%astruct_frg%nat,id='dist')
-      ipiv = f_malloc(at%astruct%nat-ref_frag%astruct_frg%nat,id='ipiv')
+      rxyz_new_all = f_malloc((/ 3,nat_not_frag /),id='rxyz_new_all')
+      dist = f_malloc(nat_not_frag,id='dist')
+      ipiv = f_malloc(nat_not_frag,id='ipiv')
       !just the fragment in the new system
       rxyz_frg_new = f_malloc((/ 3,ref_frag%astruct_frg%nat /),id='rxyz_frg_new')
 
@@ -2754,16 +2815,40 @@ END SUBROUTINE readmywaves_linear_new
          rxyz_ref(:,iat)=ref_frag%astruct_env%rxyz(:,iat)
       end do
 
+
       !also add up how many atoms of each type (don't include fragment itself)
-      num_neighbours_type=f_malloc0(at%astruct%ntypes,id='num_neighbours_type')
-      do iat=ref_frag%astruct_frg%nat+1,ref_frag%astruct_env%nat
-         !be careful here as atom types not necessarily in same order in env file as in main file (or even same number thereof)
-         do ityp=1,at%astruct%ntypes
-            if (trim(at%astruct%atomnames(ityp))==trim(ref_frag%astruct_env%atomnames(ref_frag%astruct_env%iatype(iat)))) then
-               num_neighbours_type(ityp) = num_neighbours_type(ityp)+1
-               exit
-            end if
+      if (astruct_ghost%nat>0) then
+         ntypes=at%astruct%ntypes+1
+      else
+         ntypes=at%astruct%ntypes
+      end if
+     
+      if (astruct_ghost%nat>0) then
+         iatype=f_malloc_ptr(at%astruct%nat+astruct_ghost%nat,id='iatype')
+         call vcopy(at%astruct%nat,at%astruct%iatype(1),1,iatype(1),1)
+         do iat=at%astruct%nat+1,at%astruct%nat+astruct_ghost%nat
+            iatype(iat)=at%astruct%ntypes+1
          end do
+      else
+         iatype => at%astruct%iatype
+      end if
+
+
+      num_neighbours_type=f_malloc0(ntypes,id='num_neighbours_type')
+      do iat=ref_frag%astruct_frg%nat+1,ref_frag%astruct_env%nat
+
+         !if it's a ghost atom the atom won't appear in the main atomnames file
+         if (trim(ref_frag%astruct_env%atomnames(ref_frag%astruct_env%iatype(iat)))=='X') then
+            num_neighbours_type(ntypes) = num_neighbours_type(ntypes)+1
+         else 
+            !be careful here as atom types not necessarily in same order in env file as in main file (or even same number thereof)
+            do ityp=1,at%astruct%ntypes
+               if (trim(at%astruct%atomnames(ityp))==trim(ref_frag%astruct_env%atomnames(ref_frag%astruct_env%iatype(iat)))) then
+                  num_neighbours_type(ityp) = num_neighbours_type(ityp)+1
+                  exit
+               end if
+            end do
+         end if
       end do
       num_neighbours=sum(num_neighbours_type)
       if (sum(num_neighbours_type)/=ref_frag%astruct_env%nat-ref_frag%astruct_frg%nat) &
@@ -2778,6 +2863,12 @@ END SUBROUTINE readmywaves_linear_new
       do iat=isfat+ref_frag%astruct_frg%nat+1,at%astruct%nat
          rxyz_new_all(:,iat-ref_frag%astruct_frg%nat)=rxyz(:,iat)
       end do
+
+      !also add ghost atoms if necessary
+      do iat=1,astruct_ghost%nat
+         rxyz_new_all(:,at%astruct%nat-ref_frag%astruct_frg%nat+iat)=astruct_ghost%rxyz(:,iat)
+      end do
+
 
       !just take those in the fragment
       do iat=1,ref_frag%astruct_frg%nat
@@ -2802,7 +2893,7 @@ END SUBROUTINE readmywaves_linear_new
       !if coordinates wrap around (in periodic), correct before shifting
       !assume that the fragment itself doesn't, just the environment...
       !think about other periodic cases that might need fixing...
-      do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
+      do iat=1,nat_not_frag
          dist(iat) = dist_and_shift(perx,at%astruct%cell_dim(1),frag_trans%rot_center_new(1),rxyz_new_all(1,iat))**2
          dist(iat) = dist(iat) + dist_and_shift(pery,at%astruct%cell_dim(2),frag_trans%rot_center_new(2),rxyz_new_all(2,iat))**2
          dist(iat) = dist(iat) + dist_and_shift(perz,at%astruct%cell_dim(3),frag_trans%rot_center_new(3),rxyz_new_all(3,iat))**2
@@ -2818,7 +2909,7 @@ END SUBROUTINE readmywaves_linear_new
       end do
 
       ! sort atoms into neighbour order
-      call sort_positions(at%astruct%nat-ref_frag%astruct_frg%nat,dist,ipiv)
+      call sort_positions(nat_not_frag,dist,ipiv)
 
       rxyz_new = f_malloc((/ 3,ref_frag%astruct_env%nat /),id='rxyz_new')
 
@@ -2830,17 +2921,17 @@ END SUBROUTINE readmywaves_linear_new
       end do
 
       iatf=0
-      do ityp=1,at%astruct%ntypes
+      do ityp=1,ntypes
          iatt=0
          if (num_neighbours_type(ityp)==0 .and. (.not. ignore_species)) cycle
-         do iat=1,at%astruct%nat-ref_frag%astruct_frg%nat
+         do iat=1,nat_not_frag
             !ipiv_shift needed for quantities which reference full rxyz, not rxyz_new_all which has already eliminated frag atoms
             if (ipiv(iat)<=isfat) then
                ipiv_shift=ipiv(iat)
             else
                ipiv_shift=ipiv(iat)+ref_frag%astruct_frg%nat
             end if
-            if (at%astruct%iatype(ipiv_shift)/=ityp .and. (.not. ignore_species)) cycle
+            if (iatype(ipiv_shift)/=ityp .and. (.not. ignore_species)) cycle
             iatf=iatf+1
             iatt=iatt+1
             rxyz_new(:,iatf+ref_frag%astruct_frg%nat)=rxyz_new_all(:,ipiv(iat))
@@ -2848,7 +2939,7 @@ END SUBROUTINE readmywaves_linear_new
             if ((ignore_species.and.iatt==num_neighbours) &
                  .or. ((.not. ignore_species) .and. iatt==num_neighbours_type(ityp))) exit
          end do
-         !write(*,'(a,7(i3,2x))')'ityp',ityp,at%astruct%ntypes,iatt,iatf,num_neighbours_type(ityp),ifrag,ifrag_ref
+         !write(*,'(a,5(i3,2x))')'ityp',ityp,ntypes,iatt,iatf,num_neighbours_type(ityp)
          if (ignore_species) exit
       end do
 
@@ -2908,10 +2999,14 @@ END SUBROUTINE readmywaves_linear_new
          !first check that the atom types are coherent - if not reject this transformation
          do iat=ref_frag%astruct_frg%nat+1,ref_frag%astruct_env%nat
             atom_ref = trim(ref_frag%astruct_env%atomnames(ref_frag%astruct_env%iatype(iat)))
-            atom_trial = trim(at%astruct%atomnames(at%astruct%iatype&
-                 (frag_env_mapping(permutations(iat-ref_frag%astruct_frg%nat,i)+ref_frag%astruct_frg%nat,2))))
-            !write(*,'(a,4(i3,2x),2(a2,2x),3(i3,2x))') 'ifrag,ifrag_ref,i,iat,atom_ref,atom_trial',ifrag,ifrag_ref,i,iat,&
-            !     trim(atom_ref),trim(atom_trial),&
+            ia=frag_env_mapping(permutations(iat-ref_frag%astruct_frg%nat,i)+ref_frag%astruct_frg%nat,2)
+            if (iatype(ia)==ntypes .and. astruct_ghost%nat>0) then
+               atom_trial='X'
+            else
+               atom_trial = trim(at%astruct%atomnames(iatype(ia)))
+            end if
+            !write(*,'(a,4(i3,2x),2(a2,2x),3(i3,2x))') 'i,np,iat,nat,atom_ref,atom_trial',i,np,iat,ref_frag%astruct_env%nat,&
+            !      trim(atom_ref),trim(atom_trial),&
             !      frag_env_mapping(iat,2),permutations(iat-ref_frag%astruct_frg%nat,i),&
             !      frag_env_mapping(permutations(iat-ref_frag%astruct_frg%nat,i)+ref_frag%astruct_frg%nat,2)
             if (trim(atom_ref)/=trim(atom_trial) .and. (.not. ignore_species)) then
@@ -3006,6 +3101,18 @@ END SUBROUTINE readmywaves_linear_new
       call f_free(permutations)
       call f_free(rxyz_ref)
       call f_free(rxyz_new)
+
+      if (astruct_ghost%nat>0) then
+         call f_free_ptr(iatype)
+      else
+         nullify(iatype)
+      end if
+
+      if (check_for_ghosts) then
+         call deallocate_atomic_structure(astruct_ghost)
+         call nullify_atomic_structure(astruct_ghost)
+      end if
+
 
    contains
 
@@ -3131,7 +3238,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                  full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
                  call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
-                      & orbs,iorbp,ispinor,iorb_out,iforb)
+                      & orbs,iorbp,ispinor,iorb_out,iiorb=iforb)
                       !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
                  !print *,'before crash',iorbp,trim(full_filename),iiorb,iforb

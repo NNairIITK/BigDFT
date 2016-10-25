@@ -776,12 +776,12 @@
  Iteration for Davidson convergence    :  24
  Complete list of energy eigenvalues:
     #Kpt #0001  BZ coord. =  [  0.000000,  0.000000,  0.000000 ]
- - e_occupied                          : -4.99645054941314E-01 # 0001
+ - e_occ                          : -4.99645054941314E-01 # 0001
  - HOMO LUMO gap (AU, eV)              :  [  3.74658267393664E-01,  1.01949703762148E+01 ]
- - e_virtual                           : -1.24986787547650E-01 # 0001
- - e_virtual                           : -1.24985897400660E-01 # 0002
- - e_virtual                           : -1.24985896539563E-01 # 0003
- - e_virtual                           : -1.24951137627381E-01 # 0004
+ - e_vrt                           : -1.24986787547650E-01 # 0001
+ - e_vrt                           : -1.24985897400660E-01 # 0002
+ - e_vrt                           : -1.24985896539563E-01 # 0003
+ - e_vrt                           : -1.24951137627381E-01 # 0004
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Chosen Grid spacings seem too high for the H atom type. At you own risk!

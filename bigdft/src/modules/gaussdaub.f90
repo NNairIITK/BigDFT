@@ -498,7 +498,7 @@ module gaussdaub
       real(gp), intent(in) :: gau_cen !< center of gaussian function
       real(gp), intent(in) :: gau_a   !< parameter of gaussian
       real(wp), dimension(0:nwork,2), intent(inout) :: ww !< work arrays that have to be 17 times larger than C
-      integer, intent(out) :: n_left,n_right !< interval where the gaussian is larger than the machine precision
+      integer, intent(inout) :: n_left,n_right !< interval where the gaussian is larger than the machine precision
       real(gp), intent(out) :: err_norm      !< normalisation error
       real(wp), dimension(0:nmax,2), intent(out) :: c !< c(:,1) array of scaling function coefficients
                                                       !! c(:,2) array of wavelet coefficients:

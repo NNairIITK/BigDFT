@@ -212,7 +212,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
    integer :: iat,ierr
    real :: tcpu0,tcpu1
-   real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
    type(memory_estimation) :: mem
 !   real(kind=8) :: eion,epot_sum,ekin_sum,eproj_sum
@@ -414,8 +413,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    ! Determine size alat of overall simulation cell and shift atom positions
    ! then calculate the size in units of the grid space
 
-   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr,shift)
-   if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, shift, hx, hy, hz)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,KSwfn%Lzd%Glr)
+   if (iproc == 0) call print_atoms_and_grid(KSwfn%Lzd%Glr, atoms, rxyz, hx, hy, hz)
 
    if ( KSwfn%orbs%nspinor.gt.1) then
       !!  hybrid_on is not compatible with kpoints

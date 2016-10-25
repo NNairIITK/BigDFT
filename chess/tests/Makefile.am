@@ -17,6 +17,9 @@ endif
 
 smatmul_SOURCES = smatmul.f90
 smatmul_LDADD = $(chess_library) @LINALG_LIBS@
+if BUILD_DYNAMIC_LIBS
+smatmul_LDADD += @LIB_FUTILE_LIBS@
+endif
 
 CLEANFILES = *.dat *.yaml report
 

@@ -1,0 +1,23 @@
+mode:
+  method: multi
+  sections: [QM, MM]
+  section_buffer: 1
+  section_passivation: [Yes, No]
+QM:
+  mode:
+    method: dft
+  dft:
+    hgrids: 0.5
+    rmult: [5, 5]
+    ixc: PBE
+    itermax: 4
+MM:
+  mode:
+    method: sw
+    sw_eqfactor: PBE_Si
+posinp: Small_Dimere_QM-MM.ascii
+geopt:
+  method: FIRE
+  ncount_cluster_x: 3
+plugins:
+  mix: mix.f90

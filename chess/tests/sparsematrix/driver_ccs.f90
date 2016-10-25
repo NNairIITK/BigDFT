@@ -1,4 +1,25 @@
 !> @file
+!!   Test of the matrix power expansion using the CSS format
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
+!> @file
 !! Test of the sparsematrix library
 !! @author
 !!    Copyright (C) 2015-2016 BigDFT group
@@ -42,6 +63,8 @@ program driver_css
   call mpiinit()
   iproc=mpirank()
   nproc=mpisize()
+
+  call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
 
   ! Initialize the sparsematrix error handling and timing.
   call sparsematrix_init_errors()
@@ -144,9 +167,7 @@ program driver_css
   call mpifinalize()
 
   ! Finalize flib
-  ! SM: I have the impression that every task should call this routine, but if I do so
-  ! some things are printed nproc times instead of once.
-  if (iproc==0) call f_lib_finalize()
+  call f_lib_finalize()
 
 
 end program driver_css

@@ -27,15 +27,16 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
   call f_routine(id='init_foe_wrapper')
 
   charges(1) = 0.d0
-  do iorb=1,orbs_KS%norbu
+  do iorb=1,orbs_KS%norb
       charges(1) = charges(1) + orbs_KS%occup(iorb)
   end do
-  if (input%nspin==2) then
-      charges(2) = 0.d0
-      do iorb=orbs_KS%norbu+1,orbs_KS%norb
-          charges(2) = charges(2) + orbs_KS%occup(iorb)
-      end do
-  end if
+  !!if (input%nspin==2) then
+  !!    charges(2) = 0.d0
+  !!    do iorb=orbs_KS%norbu+1,orbs_KS%norb
+  !!        charges(2) = charges(2) + orbs_KS%occup(iorb)
+  !!    end do
+  !!end if
+  !!write(*,*) 'charges',charges
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
   call init_foe(iproc, nproc, input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
        input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
@@ -1293,8 +1294,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      ! calculate psi in new locreg
      lphilarge = f_malloc0(tmb%npsidim_orbs,id='lphilarge')
      !call to_zero(tmb%npsidim_orbs, lphilarge(1))
-     call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
-          tmb%orbs, tmb%psi, lphilarge)
+     call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+          npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
+          tmb%psi, lphilarge)
 
      call deallocate_local_zone_descriptors(lzd_tmp)
      call f_free_ptr(tmb%psi)

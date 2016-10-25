@@ -34,7 +34,7 @@ AC_DEFUN([AX_FLAG_PIC],
     AC_LANG_POP(Fortran)
   }
 
-  AC_MSG_CHECKING([for position-independant code option flag for $FC])
+  AC_MSG_CHECKING([for position-independent code option flag for $FC])
   dnl -qpic should be before -fPIC because -fPIC means something for xlf...
   f90_search_pic "-qpic" "-PIC" "-fPIC"
   AC_MSG_RESULT([$ax_fc_pic])

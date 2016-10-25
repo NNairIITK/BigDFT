@@ -147,6 +147,7 @@ def main(args):
 
     warn_local_modulesets(config)
 
+
     try:
         rc = jhbuild.commands.run(command, config, args, help=lambda: print_help(parser))
     except UsageError, exc:
@@ -168,4 +169,3 @@ def main(args):
         sys.exit(0)
     if rc:
         sys.exit(rc)
-

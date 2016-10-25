@@ -225,8 +225,6 @@ recursive subroutine f_utils_test()
   call yaml_mapping_close()
   call yaml_newline()
 
-
-
   !create a directory (we should add the test to remove it)
   !call f_mkdir('testdir',path)
 

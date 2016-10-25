@@ -11,6 +11,8 @@
   integer :: ierror
   ! integer :: sizeof
   integer(kind=8) :: iadd
+  character(len=info_length) :: val
+  type(dictionary), pointer :: info
   ! integer(kind=8) :: ilsize
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested

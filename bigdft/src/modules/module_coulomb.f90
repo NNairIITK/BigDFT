@@ -18,7 +18,7 @@ module module_coulomb
 	public :: get_coulomb_force_count
 	public :: coulomb_energyandforces
 
-	type(coulomb_force_parameters), private :: cfp
+	type(coulomb_force_parameters), save, private :: cfp
 
 	contains
 

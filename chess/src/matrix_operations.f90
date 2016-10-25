@@ -1,5 +1,31 @@
+!> @file
+!!   File containing high level matrix operations
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module matrix_operations
-    use sparsematrix_base
+  use sparsematrix_base
+  use dictionaries, only: f_err_throw
+  use time_profiling
+  use wrapper_mpi
+  use wrapper_linalg
+  use f_utils
     implicit none
 
     private
@@ -12,6 +38,7 @@ module matrix_operations
     public :: overlap_power_minus_one_half_parallel
     public :: check_taylor_order
     public :: calculate_S_minus_one_half_onsite
+    public :: matrix_for_orthonormal_basis
 
 
     contains
@@ -38,6 +65,7 @@ module matrix_operations
         use ice, only: inverse_chebyshev_expansion_new
         use foe_base, only: foe_data
         use yaml_output
+        use dynamic_memory
         implicit none
         
         ! Calling arguments
@@ -840,7 +868,6 @@ module matrix_operations
                                 !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'FIRST ovrlpminonep_new(1), invovrlpp_arr_new(1,icalc)', ovrlpminonep_new(1), invovrlpp_arr_new(1,icalc)
                             end do
                         end if
-                        call f_free(ovrlp_large_compr)
       
                         do i=2,iorder
                             !call timing(iproc,'lovrlp^-1     ','OF')
@@ -884,6 +911,8 @@ module matrix_operations
                         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
       
                     end do
+
+                    call f_free(ovrlp_large_compr)
       
                     call f_free(factor_arr)
       
@@ -1110,6 +1139,7 @@ module matrix_operations
                  amat_seq, bmatp, power, &
                  max_error, mean_error, dmat_seq, cmatp)
         use sparsematrix, only: sparsemm_new
+        use dynamic_memory
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, nseq, nout, power
         type(sparse_matrix) :: smat
@@ -1173,6 +1203,7 @@ module matrix_operations
                  norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
                  smat, max_error, mean_error)
         use yaml_output
+        use dynamic_memory
         implicit none
         
         ! Calling arguments
@@ -1357,6 +1388,7 @@ module matrix_operations
 
       subroutine check_accur_overlap_minus_one(iproc,nproc,comm,norb,norbp,isorb,power,ovrlp,inv_ovrlp,&
                  smat,max_error,mean_error)
+        use dynamic_memory
         implicit none
         integer,intent(in) :: iproc, nproc, comm, norb, norbp, isorb, power
         real(kind=mp),dimension(norb,norb),intent(in) :: ovrlp, inv_ovrlp
@@ -1417,6 +1449,7 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel_new(iproc, nproc, comm, ovrlp, smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -1643,6 +1676,7 @@ module matrix_operations
 
 
       subroutine first_order_taylor_sparse_new(power, smat, ovrlpp, inv_ovrlpp)
+        use dynamic_memory
         implicit none
         !!integer,intent(in) :: norb, isorb, norbp, power
         !!real(kind=mp),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -1746,6 +1780,7 @@ module matrix_operations
 
 
       subroutine overlap_minus_one_exact_serial(norb,inv_ovrlp)
+        use dynamic_memory
         implicit none
         integer,intent(in) :: norb
         real(kind=mp),dimension(norb,norb),intent(inout) :: inv_ovrlp
@@ -1781,6 +1816,8 @@ module matrix_operations
 
       subroutine overlap_plus_minus_one_half_exact(iproc,nproc,comm,norb,blocksize,plusminus,inv_ovrlp_half,smat)
         use parallel_linalg, only: dgemm_parallel, dsyev_parallel
+        use f_utils
+        use dynamic_memory
         implicit none
         integer,intent(in) :: iproc,nproc,comm,norb,blocksize
         real(kind=mp),dimension(norb,norb) :: inv_ovrlp_half
@@ -2038,6 +2075,7 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel(iproc, nproc, comm, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2102,6 +2140,7 @@ module matrix_operations
 
       subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2142,6 +2181,7 @@ module matrix_operations
       subroutine max_matrix_diff_parallel(iproc, nproc, comm, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2200,6 +2240,7 @@ module matrix_operations
       subroutine max_matrix_diff_parallel_new(iproc, nproc, comm, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use sparsematrix_init, only: matrixindex_in_compressed
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2283,6 +2324,7 @@ module matrix_operations
                  inv_ovrlp_half, inv_ovrlp_half_)
         use sparsematrix_init, only: matrixindex_in_compressed
         use sparsematrix, only: synchronize_matrix_taskgroups
+        use dynamic_memory
         implicit none
       
         ! Calling arguments
@@ -2577,10 +2619,11 @@ module matrix_operations
 
 
     !< Calculate "local versions" of S^{-1/2}, i.e. take only the small subblocks of all support functions
-    !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
+    !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of the matrix are empty.
     subroutine calculate_S_minus_one_half_onsite(iproc, nproc, comm, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: extract_taskgroup
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2590,7 +2633,7 @@ module matrix_operations
       type(matrices),intent(inout) :: ovrlp_, inv_ovrlp_
 
       ! Local variables
-      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
+      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb, isshift, ilshift, ispin
       real(kind=mp),dimension(:,:),allocatable :: matrix
       real(kind=mp),dimension(:),allocatable :: matrix_compr_notaskgroup
 
@@ -2616,37 +2659,44 @@ module matrix_operations
       call f_zero(inv_ovrlp_%matrix_compr)
       matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
 
-      iorb = 1
-      do
-          iiat = onwhichatom(iorb)
-          n = 0
-          !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
-          if (iiat>=isat+1 .and. iiat<=isat+natp) then
-              do jorb=iorb,norb
-                  jjat = onwhichatom(jorb)
-                  if (jjat/=iiat) exit
-                  n = n + 1
-              end do
-              matrix = f_malloc((/n,n/),id='matrix')
-              do jorb=iorb,iorb+n-1
-                  do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg
-                      matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+      do ispin=1,smats%nspin
+
+          isshift = (ispin-1)*smats%nvctrp_tg
+          ilshift = (ispin-1)*smatl%nvctrp_tg
+
+          iorb = 1
+          do
+              iiat = onwhichatom(iorb)
+              n = 0
+              !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
+              if (iiat>=isat+1 .and. iiat<=isat+natp) then
+                  do jorb=iorb,norb
+                      jjat = onwhichatom(jorb)
+                      if (jjat/=iiat) exit
+                      n = n + 1
                   end do
-              end do
-              ! Passing 0 as comm... not best practice
-              call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
-              do jorb=iorb,iorb+n-1
-                  do korb=iorb,iorb+n-1
-                      ind = matrixindex_in_compressed(smatl, korb, jorb)! - smatl%isvctrp_tg
-                      !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
-                      matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                  matrix = f_malloc((/n,n/),id='matrix')
+                  do jorb=iorb,iorb+n-1
+                      do korb=iorb,iorb+n-1
+                          ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg + isshift
+                          matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+                      end do
                   end do
-              end do
-              call f_free(matrix)
-          end if
-          iorb = iorb + max(n,1)
-          if (iorb>norb) exit
+                  ! Passing 0 as comm... not best practice
+                  call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
+                  do jorb=iorb,iorb+n-1
+                      do korb=iorb,iorb+n-1
+                          ind = matrixindex_in_compressed(smatl, korb, jorb) - smatl%isvctrp_tg + ilshift
+                          !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                          matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      end do
+                  end do
+                  call f_free(matrix)
+              end if
+              iorb = iorb + max(n,1)
+              if (iorb>norb) exit
+          end do
+
       end do
 
       !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -2658,6 +2708,106 @@ module matrix_operations
       call f_release_routine()
 
     end subroutine calculate_S_minus_one_half_onsite
+
+
+    !> Calculate either:
+    !! - S^1/2 * K * S^1/2, which is the kernel corresponding to a orthonormal set of support functions.
+    !! - S^-1/2 * S * S^-1/2, which is the overlap corresponding to a orthonormal set of support functions.
+    !! To keep it simple, always call the matrix in the middle matrix
+    subroutine matrix_for_orthonormal_basis(iproc, nproc, comm, meth_overlap, smats, smatl, &
+               ovrlp, matrix, operation, weight_matrix_compr, inv_ovrlp_ext)
+      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, SPARSE_TASKGROUP, &
+                                   matrices_null, assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
+                                   deallocate_matrices
+      use sparsematrix, only: matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
+      use yaml_output
+      use dynamic_memory
+      implicit none
+
+      ! Calling arguments
+      integer :: iproc, nproc, comm, meth_overlap
+      type(sparse_matrix),intent(in) :: smats, smatl
+      type(matrices),intent(in) :: matrix
+      type(matrices),intent(in) :: ovrlp
+      character(len=*),intent(in) :: operation
+      real(kind=8),dimension(smatl%nvctrp_tg*smatl%nspin),intent(out) :: weight_matrix_compr
+      type(matrices),dimension(1),target,optional :: inv_ovrlp_ext
+
+      ! Local variables
+      type(matrices),dimension(:),pointer :: inv_ovrlp
+      type(matrices),dimension(1),target :: inv_ovrlp_
+      real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
+      real(kind=8) :: max_error, mean_error
+      integer :: ioperation
+      integer, dimension(1) :: power
+      logical :: inv_ovrlp_ext_present
+
+      call f_routine(id='matrix_for_orthonormal_basis')
+
+      select case (trim(operation))
+      case ('plus')
+          ioperation = 2
+      case ('minus')
+          ioperation = -2
+      case ('none')
+          ioperation = 0
+      case default
+          call f_err_throw('wrong value of operation')
+      end select
+
+      !!if (iproc==0) then
+      !!    call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
+      !!end if
+
+      inv_ovrlp_ext_present = present(inv_ovrlp_ext)
+
+      if (inv_ovrlp_ext_present) then
+          inv_ovrlp => inv_ovrlp_ext
+      else
+          inv_ovrlp => inv_ovrlp_
+          inv_ovrlp(1) = matrices_null()
+          inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+      end if
+
+      if (ioperation/=0) then
+          power(1)=ioperation
+          call overlapPowerGeneral(iproc, nproc, comm, &
+               meth_overlap, 1, power, -1, &
+               imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
+          !call f_free_ptr(ovrlp%matrix)
+      end if
+
+      proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
+      !if (norbp>0) then
+         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+              matrix%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
+      !end if
+      !weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
+      !if (norbp>0) then
+         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+              inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr)
+      !end if
+      call f_free(proj_ovrlp_half_compr)
+
+      if (.not.inv_ovrlp_ext_present) then
+          call deallocate_matrices(inv_ovrlp(1))
+      end if
+
+      !!! Maybe this can be improved... not really necessary to gather the entire matrix
+      !!!weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
+      !!call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+
+      !call f_free(weight_matrix_compr_tg)
+
+      !!if (iproc==0) then
+      !!    call yaml_comment('Kernel calculated',hfill='~')
+      !!end if
+
+      call f_release_routine()
+
+    end subroutine matrix_for_orthonormal_basis
+
 
 
 end module matrix_operations

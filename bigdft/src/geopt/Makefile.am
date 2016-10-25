@@ -15,7 +15,7 @@ else
 modules = minpar.@MODULE_EXT@ scfloop_api.@MODULE_EXT@ nose_hoover_chains.@MODULE_EXT@ wfn_extrap.@MODULE_EXT@
 endif
 
-CLEANFILES = $(modules)
+CLEANFILES = *.@MODULE_EXT@
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 
