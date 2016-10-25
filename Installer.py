@@ -423,6 +423,7 @@ class BigDFTInstaller():
         "Build the sourcefile that the installation of BigDFT require to run python modules and related activities"
         sflist=[]
         
+        
 
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
@@ -492,15 +493,7 @@ class BigDFTInstaller():
         except:
             print 'Goodbye...'
 
-#import the uniparse module from futile
-##Now follows the available actions, argparse might be called
-##Now follows the available actions, argparse might be called
-import os
-import sys
-FUTILE_UNIPARSEDIR=os.path.abspath(
-    os.path.join(os.path.dirname(__file__),'futile','tests'))
-if FUTILE_UNIPARSEDIR not in sys.path: sys.path+=[FUTILE_UNIPARSEDIR]
-
+#import the uniparse module
 import UniParse
 
 #Redefine ArgumentParser to have the help message if no arguments

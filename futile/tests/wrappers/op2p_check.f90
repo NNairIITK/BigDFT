@@ -97,10 +97,14 @@ program OP2P_check
   call OP2P_unitary_test(mpiworld(),mpirank(),nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
 
   call calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim)
- 
+
   call yaml_map('Ndimp',[ndimp,isdim,iproc])
+
   call mpibarrier()
   call yaml_flush_document()
+
+  !from the ndimp objects calculate the number of couples which have to be formed
+
 
   nij_glob=norb*norb !too much for the moment
   nij_loc=norbp*maxval(nobj_par)
@@ -124,8 +128,8 @@ program OP2P_check
   rho_i_data=f_malloc([ndim,nij_loc],id='rho_i_data')
   V_i_data=f_malloc([ndim+2,nij_loc],id='V_i_data')
   V_i_data_res=f_malloc([ndim+2,nij_loc],id='V_i_data_res')
-    
-  
+
+
   data=1.0_f_double
   symfalse=.false.
 
@@ -149,7 +153,7 @@ program OP2P_check
      iorb_glb=iter_outer%phi_i%id_glb(iter_outer%isloc_i)
 
      call OP2P_unitary_test(mpiworld(),mpirank(),nproc,1,ndim+2,nobj_p,symfalse,nearest_neighbor,assert=.true.)
-       
+
           !first initialize the OP2P data
      call initialize_OP2P_data(OP2P_inner,mpiworld(),mpirank(),nproc,1,ndim+2,nobj_p,0,symfalse,nearest_neighbor)
 
@@ -170,18 +174,18 @@ program OP2P_check
              iter_inner%phi_i,iter_inner%phi_j,&
              nij_loc,nij_glob,iorb_glb-1,jorb_glb-1,norb,ndimp,isdim,&
              rho_I_data,k_ij,v_i_dist)
-        
+
      end do OP2P_inner_loop
      call free_OP2P_data(OP2P_inner)
 
      !here we might again fill the coupling matrix in the distributed sense
      !calculate the coupling matrix
-     call f_zero(coupl)
+     !call f_zero(coupl)
      !here we only have the diagonal
 
-     do i=1,ndim
-        coupl=coupl+phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+2)+1)
-     end do
+    !  do i=1,ndim
+    !     coupl=coupl+iter_inner%phi_j%data(i+jshift)*rho_i_data(i,ishift/(ndim+2)+1)
+    !  end do
 
 
      if (iproc==0) then
@@ -291,16 +295,14 @@ subroutine OP2P_check_options(parser)
 
 end subroutine OP2P_Check_options
 
-subroutine calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim)
+subroutine calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim,ndim_p)
   use futile
   implicit none
   integer, intent(in) :: ndim,nproc,iproc
   integer, intent(out) :: ndimp,isdim
+  integer, dimension(0:nproc-1), intent(out) :: ndim_p
   !local variables
   integer :: jproc,i
-  integer, dimension(:), allocatable :: ndim_p
-
-  ndim_p=f_malloc0(0.to.nproc-1, id='ndim_p')
 
   do i=0,ndim-1
      jproc=modulo(i,nproc)
@@ -316,7 +318,6 @@ subroutine calculate_ndimp_and_isdim(ndim,nproc,iproc,ndimp,isdim)
      call f_increment(isdim,inc=ndim_p(jproc))
   end do
   ndimp=ndim_p(iproc)
-  call f_free(ndim_p)
 
 end subroutine calculate_ndimp_and_isdim
 
@@ -392,7 +393,7 @@ subroutine fill_coupling_matrix(ndim,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
 !!$        jorbj=(jc-1)/ncouples_local+1
 !!$        iorbj=(jc-(jorbj-1)*ncouples_local)+iglob_shift
 !!$        jorbj=jorbj+jglob_shift
-!!$        
+!!$
 !!$        jorbi=(ic-1)/ncouples_local+1
 !!$        iorbi=(ic-(jorbi-1)*ncouples_local)+iglob_shift
 !!$        jorbi=jorbi+jglob_shift
@@ -406,11 +407,11 @@ subroutine fill_coupling_matrix(ndim,isloc_i,isloc_j,nloc_i,nloc_j,phi_i,phi_j,&
         jorbi=int(phi_i%data(ndim+2+ishift))
         iorbj=int(phi_j%data(ndim+1+jshift))
         jorbj=int(phi_j%data(ndim+2+jshift))
-        
+
         jc_glb=iorbj+(jorbj-1)*norb
         ic_glb=iorbi+(jorbi-1)*norb
 
-        !store in the distributed array the potentials 
+        !store in the distributed array the potentials
         !of the couples which have been calculalted already
         do i=1,ndimp
            v_i_dist(i,jc_glb)=phi_j%data(i+jshift+isdim)
