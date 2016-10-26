@@ -9,7 +9,8 @@ check: $(CHECKS) report
 EXTRA_DIST = test-ccs.ref.yaml \
 	matrix1-base.dat matrix2-base.dat \
 	test-foeccs.ref.yaml \
-    overlap_ccs-base.dat hamiltonian_ccs-base.dat density_kernel_ccs-base.dat \
+    overlap_ccs-base.txt hamiltonian_ccs-base.txt \
+	density_kernel_ccs-base.txt density_kernel_matmul_ccs-base.txt \
 	data1_base.dat data2_base.dat
 
 check_PROGRAMS = driver_ccs driver_foe_ccs driver_single driver_random
