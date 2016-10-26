@@ -565,7 +565,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
       if (wrtmsg) then
        call yaml_newline()
        call yaml_sequence(advance='no')
-       call EPS_iter_output(1,normb,normr,ratio,1.d0,1.d0)
+       call EPS_iter_output(1,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
       end if
       if (normr < kernel%minres) iinit=kernel%max_iter+10
  
@@ -617,7 +617,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         if (wrtmsg) then
            call yaml_newline()
            call yaml_sequence(advance='no')
-           call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+           !call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+           call EPS_iter_output(ip,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
         end if
         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
      end do PCG_loop
