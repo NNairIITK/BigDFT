@@ -205,14 +205,14 @@ END SUBROUTINE fft2d
 !!$      !reverse index ordering, leaving the planes to be transformed at the end
 !!$      !input: I1,J2,j3,Jp2,(jp3)
 !!$      if (nproc > 1) then
-         call G_mpiswitch_upcorn2(j3,nfft,Jp2stb,J2stb,lot,&
-              n1,n1dim,md2,nd3,n3pr1,n3pr2,zmpi1,zw(1,1,1,ithread))
+!!$         call G_mpiswitch_upcorn2(j3,nfft,Jp2stb,J2stb,lot,&
+!!$              n1,n1dim,md2,nd3,n3pr1,n3pr2,zmpi1,zw(1,1,1,ithread))
 !!$         call put_planes_incache(n3pr2,n1,n1dim,md2/(n3pr1*n3pr2),nd3,nfft,lot,&
 !!$              Jp2stb,J2stb,zmpi1,zw(1,1,1,ithread))
 !!$
 !!$      else
-         call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-              n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1,ithread))
+!!$         call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
+!!$              n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1,ithread))
 !!$         call put_planes_incache(n3pr2,n1,n1dim,n1dim,md2/(n3pr1*n3pr2),nd3,nfft,lot,&
 !!$              Jp2stb,J2stb,zmpi2,zw(1,1,1,ithread))
 !!$
@@ -242,7 +242,7 @@ END SUBROUTINE fft2d
 !!$      nfft=min(j+(lot-1),n1p/n3pr1)-j+1
 !!$      !reverse ordering
 !!$      !input: I2,i1,j3,(jp3)
-      call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j,ithread),zw(1,1,1,ithread))
+!!$      call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j,ithread),zw(1,1,1,ithread))
 !!$      one1=1
 !!$      one2=1
 !!$      call put_planes_incache(1,n2,n2dim,lzt,nfft,1,nfft,lot,&

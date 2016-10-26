@@ -38,8 +38,6 @@ driver_single_LDADD = $(chess_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 driver_random_SOURCES = utilities.f90 driver_random.f90
 driver_random_LDADD = $(chess_library) @LINALG_LIBS@
 
-driver_SOURCES = driver.f90
-
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report \
              test-foeccs.out.yaml test-foeccs.report.yaml test-foeccs.report \
 			 test-random.out.yaml test-random.report.yaml test-random.report *.@MODULE_EXT@

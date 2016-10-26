@@ -788,109 +788,75 @@ subroutine zhalf_to_z(n_left_in,n_left_out,ldl_in,ldl_out,&
   end if
 END SUBROUTINE zhalf_to_z
 
-!> base wrapper for FFT, not to be called in public routines
-!! @warning: for transa='t' nwork must be > 0
-subroutine fft_1d_base(transa,transb,ndat_in,ld_in,ndat_out,ld_out,ninout,nfft,n,&
-     ntrig,trig,after,now,before,ic,i_sign,&
-     input_provided,za,&
-     output_provided,zb,&
-     inout_provided,zab,inzee,&
-     nwork,zw,iam,nthread)
+
+subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
+     ncache,ntrig,trig,after,now,before,ic,&
+     i_sign,inzee,transpose,iam,nthread,z,zw)
   use f_precisions
   use module_fft_sg, only: n_factors
   implicit none
+  logical, intent(in) :: transpose
   integer, intent(in) :: ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n
-  integer, intent(in) :: nwork,ntrig,ic
+  integer, intent(in) :: ncache,ntrig,ic
   integer, intent(in) :: i_sign,iam,nthread
-  character(len=1), intent(in) :: transa,transb
   integer, intent(inout) :: inzee
   integer, dimension(n_factors) :: after,now,before
   real(f_double), dimension(2,ntrig), intent(in) :: trig
-  real(f_double), dimension(2,ndat_in*ld_in), intent(in) :: za
-  real(f_double), dimension(2,ndata_out*ld_out), intent(inout) :: zb
-  real(f_double), dimension(2,ninout,2), intent(inout) :: zab
-  real(f_double), dimension(2,nwork/4,2), intent(inout) :: zw
+  real(f_double), dimension(2,ninout,2), intent(inout) :: z
+  real(f_double), dimension(2,ncache/4,2), intent(inout) :: zw
   !local variables
-  logical :: real_input = .false.,transpose_output,transpose_input,nowork
+  logical :: real_input = .false.
   integer :: i,lotomp,ma,mb,nfft_th,j,jj,jompa,jompb,inzeep,inzet,lot,nn
 
-  !set of fft to be treated by the present thread
-  transpose_input=transa=='T' .or. transa=='t'
-  transpose_output=transb=='T' .or. transb=='t'
-
-  !check on arguments
-  call f_assert(input_provided .and. (output_provided .or. nwork>0),id='Error on input work')
-  call f_assert(transpose_input .and. input_provided .and. nwork >0,id='Transposition needs workarray')
-
-
-  lotomp=nfft/nthread+1
-  jompa=iam*lotomp+1
-  jompb=min((iam+1)*lotomp,nfft)
-  nowork= ic == 1 .or. nwork == 0 !work array cannot be used for only one step
-  if (nowork) then
-     lot=jompb-jompa 
-  else
-     lot=max(1,nwork/(4*n))
-  end if
-
-  !here we might put the treatment for the input and the output
-  !in case they are necessary
+  lot=max(1,ncache/(4*n))
+  nn=lot
 
   inzet=inzee
-  loop_on_lines: do j=jompa,jompb,lot !this loop is internal to the threads, it might be further parallelised
-     ma=j
-     mb=min(j+(lot-1),jompb)
+  if (ic.eq.1 .or. ncache==0) then
+     i=ic
+     lotomp=nfft/nthread+1
+     ma=iam*lotomp+1
+     mb=min((iam+1)*lotomp,nfft)
      nfft_th=mb-ma+1
-
-     !then it follows the treatments for the different cases
-     if (nowork) then
-        if (
-        !we need that z is large enough to contain max(ndat_in*ld_in,ndat_out*ld_out)
-        do i=1,ic-1
-           call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
-                zab(1,j,inzet),zab(1,j,3-inzet), &
-                ntrig,trig,after(i),now(i),before(i),i_sign)
+     j=ma
+     if (transpose) then
+        jj=j*ld_out-ld_out+1
+        !input z(2,ndat_in,ld_in,inzet)
+        !output z(2,ld_out,ndat_out,3-inzet)          
+        call fftrot_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
+             z(1,j,inzet),z(1,jj,3-inzet), &
+             ntrig,trig,after(i),now(i),before(i),i_sign)
+        if (real_input) then !only works when ld_out==n
            inzet=3-inzet
-        end do
-        i=ic    
-        if (transpose_output) then
-           jj=j*ld_out-ld_out+1
-           !input z(2,ndat_in,ld_in,inzet)
-           !output z(2,ld_out,ndat_out,3-inzet)          
-           call fftrot_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
-                zab(1,j,inzet),zab(1,jj,3-inzet), &
-                ntrig,trig,after(i),now(i),before(i),i_sign)
-           if (real_input) then !only works when ld_out==n
-              inzet=3-inzet
-              call unpack_rfft(ndat_out,n,&
-                   z(1,jj,inzet),z(1,jj,3-inzet))
-           end if
-        else
-           !input z(2,ndat_in,ld_in,inzet)
-           !output z(2,ndat_out,ld_out,3-inzet)
-           call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
-                zab(1,j,inzet),zab(1,j,3-inzet), &
-                ntrig,trig,after(i),now(i),before(i),i_sign)
-           if (real_input) then !only works when ld_out==n
-              inzet=3-inzet
-              !here maybe the ndat_out has to be rethought
-              call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
-                   z(1,j,inzet),z(1,j,3-inzet))
-           end if
+           call unpack_rfft(ndat_out,n,&
+                z(1,jj,inzet),z(1,jj,3-inzet))
         end if
      else
-        nn=lot
+        !input z(2,ndat_in,ld_in,inzet)
+        !output z(2,ndat_out,ld_out,3-inzet)
+        call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
+             z(1,j,inzet),z(1,j,3-inzet), &
+             ntrig,trig,after(i),now(i),before(i),i_sign)
+        if (real_input) then !only works when ld_out==n
+           inzet=3-inzet
+           !here maybe the ndat_out has to be rethought
+           call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
+                z(1,j,inzet),z(1,j,3-inzet))
+        end if
+     end if
+  else
+     lotomp=(nfft)/nthread+1
+     jompa=iam*lotomp+1
+     jompb=min((iam+1)*lotomp,nfft)
+     do j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
+        nfft_th=mb-ma+1
         i=1
         inzeep=2
-        if (input_provided) then
-           call fftstp_sg(ndat_in,nfft_th,ld_in,nn,n,&
-                za,zw(1,1,3-inzeep), &
-                ntrig,trig,after(i),now(i),before(i),i_sign)
-        else if (inout_provided) then
-           call fftstp_sg(ndat_in,nfft_th,ld_in,nn,n,&
-                zab(1,j,inzet),zw(1,1,3-inzeep), &
-                ntrig,trig,after(i),now(i),before(i),i_sign)
-        end if
+        call fftstp_sg(ndat_in,nfft_th,ld_in,nn,n,&
+             z(1,j,inzet),zw(1,1,3-inzeep), &
+             ntrig,trig,after(i),now(i),before(i),i_sign)
         inzeep=1
         do i=2,ic-1
            call fftstp_sg(nn,nfft_th,n,nn,n,&
@@ -899,10 +865,10 @@ subroutine fft_1d_base(transa,transb,ndat_in,ld_in,ndat_out,ld_out,ninout,nfft,n
            inzeep=3-inzeep
         end do
         i=ic
-        if (transpose_output) then
+        if (transpose) then
            jj=j*ld_out-ld_out+1
            call fftrot_sg(nn,nfft_th,n,ndat_out,ld_out,&
-                zw(1,1,inzeep),zab(1,jj,3-inzet), &
+                zw(1,1,inzeep),z(1,jj,3-inzet), &
                 ntrig,trig,after(i),now(i),before(i),i_sign)
            if (real_input) then !only works when ld_out==n
               inzet=3-inzet
@@ -911,7 +877,7 @@ subroutine fft_1d_base(transa,transb,ndat_in,ld_in,ndat_out,ld_out,ninout,nfft,n
            end if
         else
            call fftstp_sg(nn,nfft_th,n,ndat_out,ld_out,&
-                zw(1,1,inzeep),zab(1,j,3-inzet), &
+                zw(1,1,inzeep),z(1,j,3-inzet), &
                 ntrig,trig,after(i),now(i),before(i),i_sign)
            if (real_input) then !only works when ld_out==n
               inzet=3-inzet
@@ -919,8 +885,8 @@ subroutine fft_1d_base(transa,transb,ndat_in,ld_in,ndat_out,ld_out,ninout,nfft,n
                    z(1,j,inzet),z(1,j,3-inzet))
            end if
         end if
-     end if
-  end do loop_on_lines
+     end do
+  end if
   inzet=3-inzet
   if (iam==0) inzee=inzet !as it is a shared variable
 
