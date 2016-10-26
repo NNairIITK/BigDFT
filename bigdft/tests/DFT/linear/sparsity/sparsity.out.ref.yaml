@@ -869,10 +869,6 @@
    -  {atom type: N, value:  3.90E-02, origin: file}
    -  {atom type: H, value:  3.90E-02, origin: file}
    Total No. of Atomic Input Orbitals  :  136
-   Inputguess Orbitals Repartition:
-     Minimum                           :  66
-     Maximum                           :  70
-     Average                           :  68.0
    Atomic Input Orbital Generation:
    -  {Atom Type: C, Electronic configuration: {
  s: [ 2.00], 

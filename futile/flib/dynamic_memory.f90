@@ -810,9 +810,6 @@ contains
   subroutine f_malloc_initialize()
     use f_environment
     implicit none
-    !local variables
-    integer :: istat
-    character(len=1) :: val
     !increase the number of active instances
     ictrl=ictrl+1
     if (f_err_raise(ictrl > max_ctrl,&
