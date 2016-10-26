@@ -2969,8 +2969,8 @@ module io
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
               call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
-                   at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1:),wfd%keyvloc(1:),  &
-                   wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1:),wfd%keyvloc(wfd%nseg_c+1:), &
+                   at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,  &
+                   wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1:,wfd%nseg_c+1:),wfd%keyvloc(wfd%nseg_c+1:), &
                    psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                    orbs%eval(iorb+orbs%isorb))
               call f_close(unitwf)
