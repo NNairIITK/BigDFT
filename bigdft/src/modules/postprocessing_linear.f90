@@ -537,7 +537,7 @@ module postprocessing_linear
                energy, energyDiff, energyold, ref_frags, frag_coeffs)
       use module_base
       use module_types
-      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density, writemywaves
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -547,6 +547,7 @@ module postprocessing_linear
       use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
       use locregs_init, only: small_to_large_locreg
       use module_fragments
+      use io, only: writemywaves
       implicit none
       
       ! Calling arguments
@@ -810,7 +811,7 @@ module postprocessing_linear
                nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, psi, coeff)
       use module_base
       use module_types
-      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density, writemywaves
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
       use communications_base, only: comms_cubic, comms_cubic_null
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -819,6 +820,7 @@ module postprocessing_linear
       ! It's very bad practice to oblige the use of module_interfaces.
       ! If it is not done, it crashes with segfault due to the optional arguments
       use module_interfaces, only: orbitals_descriptors
+      use io, only: writemywaves
       implicit none
       
       ! Calling arguments

@@ -1756,7 +1756,7 @@ module foe_common
 
 
     subroutine find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-               foe_verbosity, label, smatl, ispin, foe_obj, kernel_)
+               foe_verbosity, label, smatl, ispin, foe_obj, kernel_, calculate_spin_channels)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               max_asymmetry_of_matrix
@@ -1779,6 +1779,7 @@ module foe_common
       character(len=*),intent(in) :: label
       type(foe_data),intent(inout) :: foe_obj
       type(matrices),intent(inout) :: kernel_
+      logical,dimension(smatl%nspin),intent(in) :: calculate_spin_channels
 
       ! Local variables
       integer :: jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
@@ -1848,7 +1849,7 @@ module foe_common
       fermi_small_new = f_malloc((/max(smatl%smmm%nvctrp_mm,1),smatl%nspin/),id='fermi_small_new')
 
 
-      occupations = f_malloc(smatl%nspin,id='occupations')
+      occupations = f_malloc0(smatl%nspin,id='occupations')
 
 
       !hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
@@ -2000,6 +2001,8 @@ module foe_common
 
                       sumn = 0.0_mp
                       do jspin=1,smatl%nspin
+                      
+                          if (.not. calculate_spin_channels(jspin)) cycle
 
                           !call timing(iproc, 'FOE_auxiliary ', 'OF')
                           call f_timing(TCAT_CME_AUXILIARY,'OF')

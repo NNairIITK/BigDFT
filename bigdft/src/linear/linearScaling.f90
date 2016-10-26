@@ -168,9 +168,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   ! extra states must be equal to number of empty states
   ! could overwrite norbsempty, but instead leave it to user
-  if (input%lin%extra_states /= input%norbsempty) then
-      stop 'ERROR: input%lin%extra_states /= input%norbsempty'
-  end if
+  !if (input%lin%extra_states /= input%norbsempty) then
+  !    !stop 'ERROR: input%lin%extra_states /= input%norbsempty'
+  !    call f_err_throw(trim(yaml_toa(input%lin%extra_states))//'=input%lin%extra_states /=&
+  !         & input%norbsempty'//trim(yaml_toa(input%norbsempty)))
+  !end if
 
   ! Allocate the communications buffers needed for the communications of the potential and
   ! post the messages. This will send to each process the part of the potential that this process
