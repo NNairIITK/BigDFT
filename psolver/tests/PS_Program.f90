@@ -812,7 +812,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      a=0.5d0/a_gauss**2
      !test functions in the three directions
      ifx=FUNC_EXP_COSINE
-     ifz=FUNC_CONSTANT
+     ifz=FUNC_EXP_COSINE
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
      !parameters of the test functions
@@ -1432,7 +1432,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      g=dexp(-y**2) !<checked
      g1=-2.d0*y*yp*g !<checked
      !g2=factor*dexp(-y**2)
-     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*f !<che
+     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*g !<check
      sigma=length/10.0d0
      agauss=0.5d0/sigma**2
      r2=agauss*x**2
