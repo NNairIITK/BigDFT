@@ -112,10 +112,13 @@ define F_REGTEST_INSTRUCTIONS
 - Generalized_PSolver:
    runs:
     - |  #this is important to avoid misunderstanding with the yaml in the command line
-      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI -i '{environment: {input_guess: No}}'
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG
     - cat log.yaml > Generalized_PSolver.out.yaml
     - |
-      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG -i '{environment: {input_guess: No}}'
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |
+      $(run_parallel) ./Generalized_PSolver -n 100 -m PCG -f [90,41,90] -g S
     - cat log.yaml >> Generalized_PSolver.out.yaml
 #    - |
 #      $(run_parallel) ./Generalized_PSolver -n 100 -m PCG -p yes 

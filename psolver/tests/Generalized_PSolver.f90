@@ -108,6 +108,7 @@ program GPS_3D
    usegpu = options // 'accel'
    logyes= options // 'logfile'
    mPB= options // 'mPBe'
+   angdeg=options // 'angdeg'
    delta=0.3d0
    delta= options .get. 'deltacav'
    lin_PB = SetEps == 17
@@ -141,7 +142,7 @@ program GPS_3D
    hgrids=(/hx,hy,hz/)
    mesh=cell_new(geocode,ndims,hgrids) 
 
-   angdeg=(/60.0, 90.0, 90.0/)
+!   angdeg=(/90.0, 60.0, 90.0/)
  
    alpha = angdeg(1)/180.0_f_double*pi!2.0_dp*datan(1.0_dp) !to be modified
    beta  = angdeg(2)/180.0_f_double*pi!2.0_dp*datan(1.0_dp)
@@ -240,43 +241,35 @@ program GPS_3D
     rhoion(:,:,:,:) = 0.d0
    end if
 
-   call SetEpsilon(mesh,n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,&
-          4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz,radii,delta,&
-          beta,alpha,gamma)
 
-     if (SetEps.lt.5) then
-      if ( trim(PSol)=='VAC') then
-       eps=1.d0
-       erfL=1.d0
-       dlogeps=0.d0
-       oneoeps=1.d0
-       oneosqrteps=1.d0
-       corr=0.d0
-      end if
-     end if
-
-    !call print_PB_function(n01,n02,n03,iproc,hx,hy,hz,nord,acell)
 !------------------------------------------------------------------------
-! Vacuum
-!   eps=1.d0
-!   dlogeps=0.d0
-!   oneoeps=1.d0
-!   oneosqrteps=1.d0
-!   corr=0.d0
-! Water
-!   eps=78.36d0
-!   dlogeps=0.d0
-!   oneoeps=1.d0/78.36d0
-!   oneosqrteps=1.d0/sqrt(78.36d0)
-!   corr=0.d0
+!!! Old set up for input analytical functions.
+   if (.false.) then
+    call SetEpsilon(mesh,n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,&
+           4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz,radii,delta,&
+           beta,alpha,gamma)
+ 
+    if (SetEps.lt.5) then
+     if ( trim(PSol)=='VAC') then
+      eps=1.d0
+      erfL=1.d0
+      dlogeps=0.d0
+      oneoeps=1.d0
+      oneosqrteps=1.d0
+      corr=0.d0
+     end if
+    end if
+    call SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,&
+         erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz,lin_PB,mPB)
+   end if
+!------------------------------------------------------------------------
 
-   ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
+!------------------------------------------------------------------------
+! New set up for input analytical functions.
 
-!   call SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,&
-!        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz,lin_PB,mPB)
      call test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,0.0d0,beta,alpha,gamma,iproc,&
-          eps,dlogeps,oneoeps,oneosqrteps,corr,PSol) !onehalf*pi,onehalf*pi,onehalf*pi)!
+          density,potential,rhopot,pot_ion,0.0d0,alpha,beta,gamma,iproc,&
+          eps,dlogeps,oneoeps,oneosqrteps,corr,PSol) 
 
      if (SetEps.lt.5) then
       if ( trim(PSol)=='VAC') then
@@ -311,7 +304,7 @@ program GPS_3D
    geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace(mesh,geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,&
-        .false.,multp,beta,alpha,gamma)
+        .false.,multp,alpha,beta,gamma)
 
   if (iproc==0) then
    call yaml_mapping_open('Comparison between Generalized Poisson operator and analytical density')
@@ -322,7 +315,7 @@ program GPS_3D
    geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,dlogeps,nord,.false.,multp,&
-        beta,alpha,gamma)
+        alpha,beta,gamma)
 
   if (iproc==0) then
      call yaml_mapping_open('Comparison between Generalized Poisson operator 2 and analytical density')
@@ -338,7 +331,7 @@ program GPS_3D
    geocodeprova='F'
    ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
    call ApplyLaplace_corr(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,corr,oneosqrteps,nord,&
-        .false.,multp,beta,alpha,gamma)
+        .false.,multp,alpha,beta,gamma)
      i1=n01/2
      i2=n02/2
      do i3=1,n03
@@ -354,7 +347,7 @@ program GPS_3D
    geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace(mesh,geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,&
-        .false.,multp,beta,alpha,gamma)
+        .false.,multp,alpha,beta,gamma)
 
   if (iproc==0) then
      call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
@@ -396,7 +389,7 @@ program GPS_3D
    else if (Fgrid) then
     pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsf,hgridsf)
    else
-    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/alpha,beta,gamma/))
+    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/beta,alpha,gamma/))
    end if
 
 !!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
@@ -467,7 +460,7 @@ program GPS_3D
    geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace(mesh,geocode,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,nord,&
-        .false.,multp,beta,alpha,gamma)
+        .false.,multp,alpha,beta,gamma)
 
   if (iproc==0) then
    call yaml_mapping_open('Comparison between numerical and starting analytical density with old GPoperator')
@@ -477,7 +470,7 @@ program GPS_3D
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
    call ApplyLaplace2(geocode,n01,n02,n03,nspden,hx,hy,hz,rhopot(:,:,:,1),rvApp,acell,eps,dlogeps,nord,&
-        .false.,multp,beta,alpha,gamma)
+        .false.,multp,alpha,beta,gamma)
 
   if (iproc==0) then
    call yaml_mapping_open('Comparison between numerical and starting analytical density witn new 2 GPoperator')
@@ -487,7 +480,7 @@ program GPS_3D
 
    ! Calculate the charge starting from the potential applying the improved ISF Laplace operator PCG-style.
    call ApplyLaplace_corr(geocode,n01,n02,n03,nspden,hx,hy,hz,&
-        rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp,beta,alpha,gamma)
+        rhopot(:,:,:,1),rvApp,acell,eps,corr,oneosqrteps,nord,.false.,multp,alpha,beta,gamma)
 
   if (iproc==0) then
    call yaml_mapping_open('Comparison between Generalized Poisson operator PCG-style and analytical density')
@@ -657,6 +650,12 @@ subroutine PS_Check_options(parser)
        'Allowed values' .is. &
        'yaml Dictionary'))
 
+  call yaml_cl_parse_option(parser,'angdeg','90.0',&
+       'Angles','f',&
+       dict_new('Usage' .is. &
+       'Angles between box basis vectors',&
+       'Allowed values' .is. &
+       'Yaml list of reals. If a real value is given, all the angles will be identical.'))
 
 end subroutine PS_Check_options
 
@@ -3559,8 +3558,8 @@ subroutine ApplyLaplace(mesh,geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,n
 
   do i=1,3
    do j=1,3
-    if (gd(i,j).lt.1.0d-11) gd(i,j)=0.d0
-    if (gu(i,j).lt.1.0d-11) gu(i,j)=0.d0
+    if (abs(gd(i,j)).lt.1.0d-15) gd(i,j)=0.d0
+    if (abs(gu(i,j)).lt.1.0d-15) gu(i,j)=0.d0
    end do
   end do
 
@@ -4160,8 +4159,8 @@ subroutine fssnord3DmatNabla_nonortho(geocode,n01,n02,n03,nspden,hx,hy,hz,u,du,&
     
       do i=1,3
        do j=1,3
-        if (gd(i,j).lt.1.0d-11) gd(i,j)=0.d0
-        if (gu(i,j).lt.1.0d-11) gu(i,j)=0.d0
+        if (abs(gd(i,j)).lt.1.0d-15) gd(i,j)=0.d0
+        if (abs(gu(i,j)).lt.1.0d-15) gu(i,j)=0.d0
        end do
       end do
 
@@ -5163,6 +5162,7 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   integer, parameter :: FUNC_ATAN = 8
   integer, parameter :: FUNC_ERF = 9
   integer, parameter :: FUNC_ERF2 = 10
+  integer, parameter :: FUNC_ERF3 = 11
   logical :: wrtfiles = .true.
 
   !mode = "charged_thin_wire"
@@ -5202,8 +5202,8 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
   do i=1,3
    do j=1,3
-    if (gd(i,j).lt.1.0d-11) gd(i,j)=0.d0
-    if (gu(i,j).lt.1.0d-11) gu(i,j)=0.d0
+    if (abs(gd(i,j)).lt.1.0d-15) gd(i,j)=0.d0
+    if (abs(gu(i,j)).lt.1.0d-15) gu(i,j)=0.d0
    end do
   end do
 
@@ -5365,12 +5365,12 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      length=acell
      a=0.5d0/a_gauss**2
      !test functions in the three directions
-     ifx=FUNC_GAUSSIAN!_SHRINKED !FUNC_SHRINK_GAUSSIAN
-     ifz=FUNC_CONSTANT
+     ifx=FUNC_EXP_COSINE!FUNC_GAUSSIAN!_SHRINKED !FUNC_SHRINK_GAUSSIAN
+     ifz=FUNC_EXP_COSINE!FUNC_CONSTANT
      !non-periodic dimension
-     ify=FUNC_GAUSSIAN!_SHRINKED !FUNC_SHRINK_GAUSSIAN
+     ify=FUNC_GAUSSIAN !FUNC_SHRINK_GAUSSIAN
      !parameters of the test functions
-     ax=length*0.05d0
+     ax=length!*0.05d0
      ay=length*0.05d0
      az=length!*0.05d0
      !b are used for FUNC_GAUSSIAN_SHRINKED
@@ -5854,10 +5854,10 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      !parameters for the test functions
      length=acell
      !test functions in the three directions
-     ifx=FUNC_ERF2 !GAUSSIAN_SHRINKED
-     ifz=FUNC_CONSTANT !ERF2 !GAUSSIAN_SHRINKED
+     ifx=FUNC_ERF3 !GAUSSIAN_SHRINKED
+     ifz=FUNC_ERF3 !GAUSSIAN_SHRINKED
      !non-periodic dimension
-     ify=FUNC_ERF2 !GAUSSIAN_SHRINKED
+     ify=FUNC_ERF3 !GAUSSIAN_SHRINKED
      !parameters of the test functions
      ax=length
      ay=length
@@ -6120,9 +6120,10 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
   integer, parameter :: FUNC_ATAN = 8
   integer, parameter :: FUNC_ERF = 9
   integer, parameter :: FUNC_ERF2 = 10
+  integer, parameter :: FUNC_ERF3 = 11
 
   real(kind=8) :: r,r2,y,yp,ys,factor,g,h,g1,g2,h1,h2
-  real(kind=8) :: c,c1,c2,z,z1
+  real(kind=8) :: c,c1,c2,z,z1,z2
   real(kind=8) :: length,frequency,nu,sigma,agauss,derf
   integer :: n,m
   select case(whichone)
@@ -6247,6 +6248,17 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
         f=2.d0/c
         f1=-2.d0*c1/c**2
         f2=-2.d0*(c2*c-2.d0*c1**2)/c**3
+  case(FUNC_ERF3)
+        !0.5*(1+erf(((x/5)**4)))
+        y=x/b
+        n=4
+        z=y**n
+        z1=n*y**(n-1)/b
+        z2=n*(n-1)*y**(n-2)/b**2
+        c=-2.d0/dsqrt(pi)
+        f=1.d0-derf(z)
+        f1=c*safe_exp(-z**2)*z1
+        f2=c*safe_exp(-z**2)*(-2.d0*z*z1**2+z2)
   case default
      !print *,"Unknow function:",whichone
      !stop
