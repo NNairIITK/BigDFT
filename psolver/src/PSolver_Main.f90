@@ -106,6 +106,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
    poisson_boltzmann=.not. (kernel%method .hasattr. PS_PB_NONE_ENUM)
   
 
+   wrtmsg=.true.
   select case(kernel%opt%verbosity_level)
   case(0)
      !call f_strcpy(quiet,'YES')
@@ -242,6 +243,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
         if (kernel%method == PS_PCG_ENUM) call f_memcpy(src=kernel%w%rho_pb,dest=kernel%w%res)
         res_PB=sqrt(res_PB/product(kernel%ndims))
         if (wrtmsg) then
+           call yaml_newline()
            call EPS_iter_output(i_PB,0.0_dp,res_PB,0.0_dp,0.0_dp,0.0_dp)
            call yaml_mapping_close()
         end if
@@ -617,8 +619,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
         if (wrtmsg) then
            call yaml_newline()
            call yaml_sequence(advance='no')
-           !call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
-           call EPS_iter_output(ip,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
+           call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+           !call EPS_iter_output(ip,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
         end if
         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
      end do PCG_loop
@@ -963,7 +965,7 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
 
   !call yaml_newline()
   call yaml_mapping_open('Iteration quality',flow=.true.)
-  if (beta /= 0.0_dp) call yaml_comment('Iteration '+iter,hfill='_')
+  if (beta /= 0.0_dp) call yaml_comment('GPS Iteration '+iter,hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)
