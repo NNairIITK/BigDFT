@@ -699,7 +699,7 @@ molecule_dmix:
  Average noise forces: 1.1e-8
  e: 1.4e-10
  Total charge: 1.1e-08
- Energy (Hartree): 1.5e-10
+ Energy (Hartree): 1.6e-10
  Maxdiff for transpose (checksum): 1.9e-09
  Force Norm (Hartree/Bohr): 1.3e-11
 
@@ -737,7 +737,7 @@ molecule_dmin:
  eBS: 8.6e-9
  e: 1.4e-10
  Average noise forces: 4.1e-11
- Energy (Hartree): 1.3e-10
+ Energy (Hartree): 1.4e-10
  Maxdiff for transpose (checksum): 1.9e-09
  Force Norm (Hartree/Bohr): 2.7e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
@@ -928,7 +928,7 @@ water_foe:
  Tr(K): 1.1e-7
  EBS: 4.96e-9
  EBS higher temperature: 4.97e-9
- Energy (Hartree): 5.0e-11
+ Energy (Hartree): 1.4e-10
  difference: 1.4e-11
  Maxdiff for transpose (checksum): 2.4e-10
 
@@ -940,14 +940,14 @@ water_dirmin:
  EH: 1.1e-9
  Epot: 1.1e-9
  Enl: 1.1e-10
- Ekin: 1.0e-9
+ Ekin: 1.1e-9
  eBS: 2.99e-11
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
- energydiff: 2.6e-11
+ energydiff: 3.3e-11
  D: 1.1e-09
- Energy (Hartree): 8.2e-11
+ Energy (Hartree): 1.5e-10
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -966,7 +966,7 @@ water_mixdens:
  energydiff: 2.5e-11
  etot: 1.7e-10
  Omega: 1.7e-10
- Energy (Hartree): 7.9e-11
+ Energy (Hartree): 1.5e-10
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -982,7 +982,7 @@ water_mixpot:
  energy: 1.8e-10
  Omega: 1.8e-10
  etot: 1.8e-10
- Energy (Hartree): 9.3e-11
+ Energy (Hartree): 1.7e-10
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -993,7 +993,7 @@ deltascf_read_charge:
  EvXC: 1.1e-10
  Epot: 1.1e-09
  Enl: 1.1e-9
- eBS: 2.9e-10
+ eBS: 3.4e-10
  Total ionic charge: 1.5e-11
  energy: 3.4e-10
  Atomic Forces (Ha/Bohr): 2.1e-10
@@ -1006,7 +1006,8 @@ deltascf_read_charge:
  Energy (Hartree): 1.4e-10
  D: 1.01e-9
  Maxdiff for transpose (checksum): 9.4e-10
- Total charge: 2.0e-11
+ Total charge: 2.1e-11
+ Force Norm (Hartree/Bohr): 4.0e-11
 
 deltascf_write_neut:
  eBS: 6.1e-9
@@ -1019,10 +1020,11 @@ deltascf_write_neut:
  Total ionic charge: 1.4e-11
  e: 1.1e-10
  Enl: 4.1e-9
- energy: 2.4e-10
+ energy: 2.5e-10
  D: 6.1e-9
- Energy (Hartree): 1.1e-10
+ Energy (Hartree): 2.0e-10
  Maxdiff for transpose (checksum): 2.8e-9
+ Total charge: 2.1e-11
 
 foe:
  Epot: 1.1e-10
