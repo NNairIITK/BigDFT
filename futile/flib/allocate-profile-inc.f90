@@ -13,6 +13,8 @@
   integer(kind=8) :: iadd
   character(len=info_length) :: val
   type(dictionary), pointer :: info
+  logical :: c_allocation
+  integer :: padding
   ! integer(kind=8) :: ilsize
   !$ logical :: not_omp
   !$ logical, external :: omp_in_parallel,omp_get_nested
@@ -21,6 +23,8 @@
        'ERROR (f_malloc): the routine f_malloc_initialize has not been called',&
        ERR_MALLOC_INTERNAL)) return
 
+  !no padding by default
+  padding=ndebug !which is always zero so far
   !$ not_omp=.not. (omp_in_parallel() .or. omp_get_nested())
 
   !here we should add a control of the OMP behaviour of allocation

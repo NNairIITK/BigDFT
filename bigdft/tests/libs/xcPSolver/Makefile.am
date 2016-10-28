@@ -58,6 +58,3 @@ PS_Check.out.yaml.report: PS_Check.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
-
-report: 
-	python $(pythondir)/report.py

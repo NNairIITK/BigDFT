@@ -1167,7 +1167,8 @@ contains
     implicit none
     character(len=*), intent(in) :: mapname             !< @copydoc doc::mapname
     character(len=*), intent(in) :: mapvalue            !< scalar value of the mapping may be of any scalar type
-                                                        !! it is internally converted to character with the usage of @link yaml_output::yaml_toa @endlink function
+                                                        !! it is internally converted to character with the usage 
+                                                        !! of @link yaml_output::yaml_toa @endlink function
     character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
     character(len=*), optional, intent(in) :: tag       !< @copydoc doc::tag
     character(len=*), optional, intent(in) :: advance   !< @copydoc doc::advance

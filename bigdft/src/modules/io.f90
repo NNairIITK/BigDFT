@@ -2872,7 +2872,6 @@ module io
         enddo
         write(unitwf) nvctr_c, nvctr_f
      end if
-   
      ! coarse part
      do iseg=1,nseg_c
         jj=keyv_c(iseg)
@@ -2949,6 +2948,8 @@ module io
      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf,iorb_shift_
      real(kind=4) :: tr0,tr1
      real(kind=8) :: tel
+     integer, dimension(:), pointer :: keyv_fine
+     integer, dimension(:,:), pointer :: keyg_fine
    
      unitwf=99
    
@@ -2966,11 +2967,13 @@ module io
         ! Plain BigDFT files.
         do iorb=1,orbs%norbp
            do ispinor=1,orbs%nspinor
+              keyg_fine=>wfd%keygloc(:,wfd%nseg_c+1:)
+              keyv_fine=>wfd%keyvloc(wfd%nseg_c+1:)
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
               call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
                    at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc,wfd%keyvloc,  &
-                   wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1:,wfd%nseg_c+1:),wfd%keyvloc(wfd%nseg_c+1:), &
+                   wfd%nseg_f,wfd%nvctr_f,keyg_fine,keyv_fine, &
                    psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                    orbs%eval(iorb+orbs%isorb))
               call f_close(unitwf)

@@ -396,7 +396,7 @@ subroutine FFT_1d(n,nfft,zinout,isign,inzee,transpose,real_input)
   integer, intent(out) :: inzee
   real(kind=8), dimension(2,nfft*n,2), intent(inout) :: zinout
   !local variables
-  integer :: ic,i,ntrig,npr,iam
+  integer :: ic,ntrig,npr,iam
   !automatic arrays for the FFT
   integer, dimension(n_factors) :: after,now,before
   real(kind=8), dimension(:,:), allocatable :: trig
@@ -441,10 +441,12 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    real(kind=8), intent(inout) :: z(2,nd1*nd2*nd3,2)
    !Local variables
    integer, dimension(n_factors) :: after,now,before
-   real(kind=8), allocatable, dimension(:,:,:) :: zw  
-   real(kind=8), dimension(:,:), allocatable :: trig
+   real(kind=8), dimension(:), save, allocatable :: zw  
+   real(kind=8), dimension(:,:), save, allocatable :: trig
    !local variables
    integer :: iam,ic,mm,npr,ntrig,nfft
+   !$omp threadprivate(zw,trig)
+   !$ integer :: omp_get_num_threads,omp_get_thread_num
 
    if (max(n1,n2,n3).gt.nfft_max) then
       write(*,*) 'One of the dimensions:',n1,n2,n3,' is bigger than ',nfft_max
@@ -459,32 +461,31 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    if (n3.gt.nd3) stop 'n3>nd3'
 
    ntrig=max(n1,n2,n3)
-   allocate(trig(2,ntrig))
 
-   ! Intel IFC does not understand default(private)
-!!!!!$omp parallel  default(private) &
-!!!!$omp parallel & 
-!!!!$omp private(zw,trig,before,after,now,i,j,iam,npr,jj,ma,mb,mm,ic,n,m,jompa,jompb,lot,lotomp,inzeep,inzet,nn,nfft) &
-!!!!$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache) 
-   
    npr=1
-!!!!$       npr=omp_get_num_threads()
    iam=0
-!!!!$       iam=omp_get_thread_num()
 
-!!!!$omp critical
-   allocate(zw(2,ncache/4,2))
-!!!!$omp end critical
+   !$omp parallel default(none) &
+   !$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache,ntrig,npr,nfft,mm) &
+   !$omp private(ic,before,after,now,iam)
+   !$ npr=omp_get_num_threads()
+   !$ iam=omp_get_thread_num()
+   !$omp critical (allocate_critical_fft3d)
+   allocate(zw(ncache))
+   allocate(trig(2,ntrig))
+   !$omp end critical (allocate_critical_fft3d)
+   !$omp barrier !make sure that here everybody is ready
 
    call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
    nfft=nd1*n2
    mm=nd1*nd2
+
    call fft_1d_base(mm,nd3,mm,nd3,nfft,nd1*nd2*nd3,n3,&
         ncache,ntrig,trig,after,now,before,ic,&
         i_sign,inzee,.true.,iam,npr,z,zw)
 
-!!!!!!!!!$omp barrier
-   if (n2.ne.n3) then
+   !$omp barrier
+   if (n2 /= n3) then
       call ctrig_sg(n2,ntrig,trig,after,before,now,i_sign,ic)
    end if
    nfft=nd3*n1
@@ -492,8 +493,8 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    call fft_1d_base(mm,nd2,mm,nd2,nfft,nd1*nd2*nd3,n2,&
         ncache,ntrig,trig,after,now,before,ic,&
         i_sign,inzee,.true.,iam,npr,z,zw)
-!!!!!!!!!$omp barrier
-   if (n1.ne.n2) then
+   !$omp barrier
+   if (n1 /= n2) then
       call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
    end if
    nfft=nd2*n3
@@ -501,9 +502,13 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    call fft_1d_base(mm,nd1,mm,nd1,nfft,nd1*nd2*nd3,n1,&
         ncache,ntrig,trig,after,now,before,ic,&
         i_sign,inzee,.true.,iam,npr,z,zw)
+
+   !$omp critical (deallocate_critical_fft3d)
    deallocate(zw)
-!!!!!!!!!!$omp end parallel  
    deallocate(trig)
+   !$omp end critical (deallocate_critical_fft3d)
+   !$omp end parallel  
+
  END SUBROUTINE FFT_3D
 
 !!$ subroutine FFT_3d_rtoc(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
@@ -802,59 +807,68 @@ subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
   !local variables
   logical :: real_input = .false.
   integer :: i,lotomp,ma,mb,nfft_th,j,jj,jompa,jompb,inzeep,inzet,lot,nn
-  
-  if (ncache == 0) then
-     do i=1,ic-1
-        !input z(2,ndat_in,ld_in,inzee)
-        !output z(2,ndat_out,ld_out,3-inzee)
-        call fftstp_sg(ndat_in,nfft,ld_in,ndat_out,ld_out,&
-             z(1,1,inzee),z(1,1,3-inzee), &
-             ntrig,trig,after(i),now(i),before(i),i_sign)
-        inzee=3-inzee
-     end do
+
+  lot=max(1,ncache/(4*n))
+  nn=lot
+
+  inzet=inzee
+  if (ic.eq.1 .or. ncache==0) then
      i=ic
+     lotomp=nfft/nthread+1
+     ma=iam*lotomp+1
+     mb=min((iam+1)*lotomp,nfft)
+     nfft_th=mb-ma+1
+     j=ma
      if (transpose) then
-        !input z(2,ndat_in,ld_in,inzee)
-        !output z(2,ld_out,ndat_out,3-inzee)       
-        call fftrot_sg(ndat_in,nfft,ld_in,ndat_out,ld_out,&
-             z(1,1,inzee),z(1,1,3-inzee), &
+        jj=j*ld_out-ld_out+1
+        !input z(2,ndat_in,ld_in,inzet)
+        !output z(2,ld_out,ndat_out,3-inzet)          
+        call fftrot_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
+             z(1,j,inzet),z(1,jj,3-inzet), &
              ntrig,trig,after(i),now(i),before(i),i_sign)
         if (real_input) then !only works when ld_out==n
-           inzee=3-inzee
+           inzet=3-inzet
            call unpack_rfft(ndat_out,n,&
-                z(1,1,inzee),z(1,1,3-inzee))
+                z(1,jj,inzet),z(1,jj,3-inzet))
         end if
      else
-        !input z(2,ndat_in,ld_in,inzee)
-        !output z(2,ndat_out,ld_out,3-inzee)       
-        call fftstp_sg(ndat_in,nfft,ld_in,ndat_out,ld_out,&
-             z(1,1,inzee),z(1,1,3-inzee), &
+        !input z(2,ndat_in,ld_in,inzet)
+        !output z(2,ndat_out,ld_out,3-inzet)
+        call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
+             z(1,j,inzet),z(1,j,3-inzet), &
              ntrig,trig,after(i),now(i),before(i),i_sign)
         if (real_input) then !only works when ld_out==n
-           inzee=3-inzee
+           inzet=3-inzet
+           !here maybe the ndat_out has to be rethought
            call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
-                z(1,1,inzee),z(1,1,3-inzee))
+                z(1,j,inzet),z(1,j,3-inzet))
         end if
      end if
-     inzee=3-inzee
   else
-     lot=max(1,ncache/(4*n))
-     nn=lot
-
-     inzet=inzee
-     if (ic.eq.1) then
-        i=ic
-        lotomp=nfft/nthread+1
-        ma=iam*lotomp+1
-        mb=min((iam+1)*lotomp,nfft)
+     lotomp=(nfft)/nthread+1
+     jompa=iam*lotomp+1
+     jompb=min((iam+1)*lotomp,nfft)
+     do j=jompa,jompb,lot
+        ma=j
+        mb=min(j+(lot-1),jompb)
         nfft_th=mb-ma+1
-        j=ma
+        i=1
+        inzeep=2
+        call fftstp_sg(ndat_in,nfft_th,ld_in,nn,n,&
+             z(1,j,inzet),zw(1,1,3-inzeep), &
+             ntrig,trig,after(i),now(i),before(i),i_sign)
+        inzeep=1
+        do i=2,ic-1
+           call fftstp_sg(nn,nfft_th,n,nn,n,&
+                zw(1,1,inzeep),zw(1,1,3-inzeep), &
+                ntrig,trig,after(i),now(i),before(i),i_sign)
+           inzeep=3-inzeep
+        end do
+        i=ic
         if (transpose) then
            jj=j*ld_out-ld_out+1
-           !input z(2,ndat_in,ld_in,inzet)
-           !output z(2,ld_out,ndat_out,3-inzet)          
-           call fftrot_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
-                z(1,j,inzet),z(1,jj,3-inzet), &
+           call fftrot_sg(nn,nfft_th,n,ndat_out,ld_out,&
+                zw(1,1,inzeep),z(1,jj,3-inzet), &
                 ntrig,trig,after(i),now(i),before(i),i_sign)
            if (real_input) then !only works when ld_out==n
               inzet=3-inzet
@@ -862,64 +876,19 @@ subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
                    z(1,jj,inzet),z(1,jj,3-inzet))
            end if
         else
-           !input z(2,ndat_in,ld_in,inzet)
-           !output z(2,ndat_out,ld_out,3-inzet)
-           call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
-                z(1,j,inzet),z(1,j,3-inzet), &
+           call fftstp_sg(nn,nfft_th,n,ndat_out,ld_out,&
+                zw(1,1,inzeep),z(1,j,3-inzet), &
                 ntrig,trig,after(i),now(i),before(i),i_sign)
            if (real_input) then !only works when ld_out==n
               inzet=3-inzet
-              !here maybe the ndat_out has to be rethought
               call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
                    z(1,j,inzet),z(1,j,3-inzet))
            end if
         end if
-     else
-        lotomp=(nfft)/nthread+1
-        jompa=iam*lotomp+1
-        jompb=min((iam+1)*lotomp,nfft)
-        do j=jompa,jompb,lot
-           ma=j
-           mb=min(j+(lot-1),jompb)
-           nfft_th=mb-ma+1
-           i=1
-           inzeep=2
-           call fftstp_sg(ndat_in,nfft_th,ld_in,nn,n,&
-                z(1,j,inzet),zw(1,1,3-inzeep), &
-                ntrig,trig,after(i),now(i),before(i),i_sign)
-           inzeep=1
-           do i=2,ic-1
-              call fftstp_sg(nn,nfft_th,n,nn,n,&
-                   zw(1,1,inzeep),zw(1,1,3-inzeep), &
-                   ntrig,trig,after(i),now(i),before(i),i_sign)
-              inzeep=3-inzeep
-           end do
-           i=ic
-           if (transpose) then
-              jj=j*ld_out-ld_out+1
-              call fftrot_sg(nn,nfft_th,n,ndat_out,ld_out,&
-                   zw(1,1,inzeep),z(1,jj,3-inzet), &
-                   ntrig,trig,after(i),now(i),before(i),i_sign)
-              if (real_input) then !only works when ld_out==n
-                 inzet=3-inzet
-                 call unpack_rfft(ndat_out,n,&
-                      z(1,jj,inzet),z(1,jj,3-inzet))
-              end if
-           else
-              call fftstp_sg(nn,nfft_th,n,ndat_out,ld_out,&
-                   zw(1,1,inzeep),z(1,j,3-inzet), &
-                   ntrig,trig,after(i),now(i),before(i),i_sign)
-              if (real_input) then !only works when ld_out==n
-                 inzet=3-inzet
-                 call unpack_rfft_t((ndat_out-1)/2+1,ndat_out,n,&
-                      z(1,j,inzet),z(1,j,3-inzet))
-              end if
-           end if
-        end do
-     end if
-     inzet=3-inzet
-     if (iam==0) inzee=inzet !as it is a shared variable
+     end do
   end if
+  inzet=3-inzet
+  if (iam==0) inzee=inzet !as it is a shared variable
 
 end subroutine fft_1d_base
 
@@ -2339,13 +2308,13 @@ subroutine fftstp_sg(mm,nfft,m,nn,n,zin,zout,ntrig,trig,after,now,before,i_sign)
          nout1=nout1+atn
          nout2=nout1+after
          do j=1,nfft
-            r1=zin(1,j,nin1)
+            r1=zin(1,j,nin1)  !c1=(r1,s1)
             s1=zin(2,j,nin1)
-            r2=zin(1,j,nin2)
+            r2=zin(1,j,nin2) !c2=(r2,s2)
             s2=zin(2,j,nin2)
-            zout(1,j,nout1)= r2 + r1
+            zout(1,j,nout1)= r2 + r1  !c1+c2
             zout(2,j,nout1)= s2 + s1
-            zout(1,j,nout2)= r1 - r2
+            zout(1,j,nout2)= r1 - r2 !c1-c2
             zout(2,j,nout2)= s1 - s2
          end do
       end do

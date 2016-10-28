@@ -17,11 +17,11 @@
      return
   end if
   if (size(shape(array))==m%rank) then
-     call pad_array(array,m%put_to_zero,m%shape,ndebug)
+     call pad_array(array,m%put_to_zero,m%shape,padding)
      !also fill the array with the values of the source if the address is identified in the source
      if (m%srcdata_add > int(0,kind=8)) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
      !profile the array allocation
-     iadd=int(0,kind=8)
+     iadd=int(0,f_address)
      !write the address of the first element in the address string
      if (m%profile .and. track_origins) iadd=loc_arr(array)!call getlongaddress(array,iadd)
 
