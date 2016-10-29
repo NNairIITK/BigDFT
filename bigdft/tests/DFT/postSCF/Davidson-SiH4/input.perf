@@ -1,2 +1,0 @@
-verbosity 2           verbosity of the output 0=low, 2=high
-psp_onfly .false.     Calculate once-for-all pseudopotential projectors
