@@ -1,7 +1,7 @@
 ---
  rad_cav                     :  1.7
  multp                       :  1.0
- detg                        :  1.0
+ detgd                       :  1.0
  Angles                      :  [  90.0,  90.0,  90.0 ]
  Contravariant Metric:
  -  [ 1.0,  0.0,  0.0]
@@ -137,7 +137,7 @@
 ---
  rad_cav                     :  1.7
  multp                       :  1.0
- detg                        :  1.0
+ detgd                       :  1.0
  Angles                      :  [  90.0,  90.0,  90.0 ]
  Contravariant Metric:
  -  [ 1.0,  0.0,  0.0]
@@ -283,7 +283,7 @@
 ---
  rad_cav                     :  1.7
  multp                       :  1.0
- detg                        :  0.4304134495199673
+ detgd                       :  0.4304134495199673
  Angles                      :  [  90.0,  41.0,  90.0 ]
  Contravariant Metric:
  -  [ 2.323347472332202,  0.0, -1.753452595555475]
@@ -298,7 +298,7 @@
  -  [ 0.0,  0.9999999999999999,  0.0]
  -  [-2.2204460492503131E-016,  0.0,  0.9999999999999998]
  monopole                    : -2.3938842839519788E-010
- dipole: [-2088.143164122294, -1.3776272527637181E-008, -2088.143164123299]
+ dipole: [-1369.945176647238, -9.0380479775902495E-009, -1369.945176647897]
  offset                      : -1656.247850210205
  Comparison between Generalized Poisson operator and analytical density:
    Inf. Norm difference with reference:
