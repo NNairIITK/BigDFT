@@ -20,6 +20,7 @@ Default tolerances:
   Expected hartree energy: 1.88e-15
   Integral of the density in the nonvacuum region: 6.06e-15
   minres: 1.e-6
+  monopole: 1e-8
 #  Energies: 2.1e-10
 
 Keys to ignore:

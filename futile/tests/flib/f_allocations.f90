@@ -217,7 +217,10 @@ program f_buffer_allocations
   !li6=f_malloc(n6,id='li6'); call buffer_info(shape(li6),lbound(li6),ubound(li6),kind(li6),'Long'); call f_free(li6)
   !li7=f_malloc(n7,id='li7'); call buffer_info(shape(li7),lbound(li7),ubound(li7),kind(li7),'Long'); call f_free(li7)
 
-  r1=f_malloc(n1,id='r1'); call buffer_info(shape(r1),lbound(r1),ubound(r1),kind(r1),'Float'); call f_free(r1)
+  r1=f_malloc(n1,id='r1'); call buffer_info(shape(r1),lbound(r1),ubound(r1),kind(r1),'Float'); 
+  call f_zero(r1)
+  call detect_rnan(r1,shape(r1))
+  call f_free(r1)
   r2=f_malloc(n2,id='r2'); call buffer_info(shape(r2),lbound(r2),ubound(r2),kind(r2),'Float'); call f_free(r2)
   r3=f_malloc(n3,id='r3'); call buffer_info(shape(r3),lbound(r3),ubound(r3),kind(r3),'Float'); call f_free(r3)
   r4=f_malloc(n4,id='r4'); call buffer_info(shape(r4),lbound(r4),ubound(r4),kind(r4),'Float'); call f_free(r4)
@@ -225,17 +228,34 @@ program f_buffer_allocations
   !r6=f_malloc(n6,id='r6'); call buffer_info(shape(r6),lbound(r6),ubound(r6),kind(r6),'Float'); call f_free(r6)
   !r7=f_malloc(n7,id='r7'); call buffer_info(shape(r7),lbound(r7),ubound(r7),kind(r7),'Float'); call f_free(r7)
 
-  d1=f_malloc(n1,id='d1'); call buffer_info(shape(d1),lbound(d1),ubound(d1),kind(d1),'Double'); 
-  !test for allocation
-  d1=5.0_f_double
-  call allocate_test(n1(1),d1)
+  d1=f_malloc(n1,id='d1'); call buffer_info(shape(d1),lbound(d1),ubound(d1),kind(d1),'Double')
+  call f_zero(d1)
+  call detect_dnan(d1,shape(d1))
   call f_free(d1)
-  d2=f_malloc(n2,id='d2'); call buffer_info(shape(d2),lbound(d2),ubound(d2),kind(d2),'Double'); call f_free(d2)
-  d3=f_malloc(n3,id='d3'); call buffer_info(shape(d3),lbound(d3),ubound(d3),kind(d3),'Double'); call f_free(d3)
-  d4=f_malloc(n4,id='d4'); call buffer_info(shape(d4),lbound(d4),ubound(d4),kind(d4),'Double'); call f_free(d4)
-  d5=f_malloc(n5,id='d5'); call buffer_info(shape(d5),lbound(d5),ubound(d5),kind(d5),'Double'); call f_free(d5)
-  d6=f_malloc(n6,id='d6'); call buffer_info(shape(d6),lbound(d6),ubound(d6),kind(d6),'Double'); call f_free(d6)
-  d7=f_malloc(n7,id='d7'); call buffer_info(shape(d7),lbound(d7),ubound(d7),kind(d7),'Double'); call f_free(d7)
+  d2=f_malloc(n2,id='d2'); call buffer_info(shape(d2),lbound(d2),ubound(d2),kind(d2),'Double')
+  call f_zero(d2)
+  call detect_dnan(d2,shape(d2))
+  call f_free(d2)
+  d3=f_malloc(n3,id='d3'); call buffer_info(shape(d3),lbound(d3),ubound(d3),kind(d3),'Double')
+  call f_zero(d3)
+  call detect_dnan(d3,shape(d3))
+  call f_free(d3)
+  d4=f_malloc(n4,id='d4'); call buffer_info(shape(d4),lbound(d4),ubound(d4),kind(d4),'Double'); 
+  call f_zero(d4)
+  call detect_dnan(d4,shape(d4))
+  call f_free(d4)
+  d5=f_malloc(n5,id='d5'); call buffer_info(shape(d5),lbound(d5),ubound(d5),kind(d5),'Double')
+  call f_zero(d5)
+  call detect_dnan(d5,shape(d5))
+  call f_free(d5)
+  d6=f_malloc(n6,id='d6'); call buffer_info(shape(d6),lbound(d6),ubound(d6),kind(d6),'Double')
+  call f_zero(d6)
+  call detect_dnan(d6,shape(d6))
+  call f_free(d6)
+  d7=f_malloc(n7,id='d7'); call buffer_info(shape(d7),lbound(d7),ubound(d7),kind(d7),'Double')
+  call f_zero(d7)
+  call detect_dnan(d7,shape(d7))
+ call f_free(d7)
 
   !q1=f_malloc(n1,id='q1'); call buffer_info(shape(q1),lbound(q1),ubound(q1),kind(q1),'Quadruple'); call f_free(q1)
   !q2=f_malloc(n2,id='q2'); call buffer_info(shape(q2),lbound(q2),ubound(q2),kind(q2),'Quadruple'); call f_free(q2)
@@ -399,22 +419,34 @@ program f_buffer_allocations
   call buffer_info(shape(d1_ptr),lbound(d1_ptr),ubound(d1_ptr),kind(d1_ptr),'Double_ptr')
   !here we might detect some NaN
   call f_zero(d1_ptr)
-  call detect_nan(d1_ptr,shape(d1_ptr))
+  call detect_dnan(d1_ptr,shape(d1_ptr))
   call f_free_ptr(d1_ptr)
   d2_ptr=f_malloc_ptr(n2,id='d2_ptr')
   call buffer_info(shape(d2_ptr),lbound(d2_ptr),ubound(d2_ptr),kind(d2_ptr),'Double_ptr')
+  !here we might detect some NaN
+  call f_zero(d2_ptr)
+  call detect_dnan(d2_ptr,shape(d2_ptr))
   call f_free_ptr(d2_ptr)
   d3_ptr=f_malloc_ptr(n3,id='d3_ptr')
   call buffer_info(shape(d3_ptr),lbound(d3_ptr),ubound(d3_ptr),kind(d3_ptr),'Double_ptr')
+  !here we might detect some NaN
+  call f_zero(d3_ptr)
+  call detect_dnan(d3_ptr,shape(d3_ptr))
   call f_free_ptr(d3_ptr)
   d4_ptr=f_malloc_ptr(n4,id='d4_ptr')
   call buffer_info(shape(d4_ptr),lbound(d4_ptr),ubound(d4_ptr),kind(d4_ptr),'Double_ptr')
+  call f_zero(d4_ptr)
+  call detect_dnan(d4_ptr,shape(d4_ptr))
   call f_free_ptr(d4_ptr)
   d5_ptr=f_malloc_ptr(n5,id='d5_ptr')
   call buffer_info(shape(d5_ptr),lbound(d5_ptr),ubound(d5_ptr),kind(d5_ptr),'Double_ptr')
+  call f_zero(d5_ptr)
+  call detect_dnan(d5_ptr,shape(d5_ptr))
   call f_free_ptr(d5_ptr)
   d6_ptr=f_malloc_ptr(n6,id='d6_ptr')
   call buffer_info(shape(d6_ptr),lbound(d6_ptr),ubound(d6_ptr),kind(d6_ptr),'Double_ptr')
+  call f_zero(d6_ptr)
+  call detect_dnan(d6_ptr,shape(d6_ptr))
   call f_free_ptr(d6_ptr)
   !d7_ptr=f_malloc_ptr(n7,id='d7_ptr')
   !call buffer_info(shape(d7_ptr),lbound(d7_ptr),ubound(d7_ptr),kind(d7_ptr),'Double_ptr')
@@ -521,7 +553,7 @@ program f_buffer_allocations
       call yaml_mapping_close()     
     end subroutine buffer_info
 
-    subroutine detect_nan(d1_ptr,shp)
+    subroutine detect_dnan(d1_ptr,shp)
       implicit none
       real(f_double), dimension(*), intent(in) :: d1_ptr
       integer, dimension(:), intent(in) :: shp
@@ -534,7 +566,23 @@ program f_buffer_allocations
       call yaml_map('Official Final value',d1_ptr(isize))
       if (f_nan_pad_size> 0) call yaml_map('Next value',d1_ptr(isize+1))
       
-    end subroutine detect_nan
+    end subroutine detect_dnan
+
+    subroutine detect_rnan(d1_ptr,shp)
+      implicit none
+      real(f_simple), dimension(*), intent(in) :: d1_ptr
+      integer, dimension(:), intent(in) :: shp
+      !local variable
+      integer(f_long) ::  isize
+
+      isize=product(int(shp,f_long))
+
+      call yaml_map('Initial value',d1_ptr(1))
+      call yaml_map('Official Final value',d1_ptr(isize))
+      if (f_nan_pad_size> 0) call yaml_map('Next value',d1_ptr(isize+1))
+
+    end subroutine detect_rnan
+
 
     !> no way, seems impossible to modify the behaviour of an allocatable array
     subroutine allocate_test(n,origin)
@@ -552,17 +600,11 @@ program f_buffer_allocations
 
       !allocate(array(n),source=origin)
 
-      p = smpi_shared_malloc(n*kind(origin),'id'//char(0), int(1,f_long))
-      
-      call c_f_pointer(p, array, [n])
-
       !call move_alloc(origin,array)
       
       call yaml_map('Allocated address',f_loc(array))
       call yaml_map('Allocated shape',shape(array))
       call yaml_map('Allocated values',array)
-      
-
       
     end subroutine allocate_test
   

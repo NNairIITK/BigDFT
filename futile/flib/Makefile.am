@@ -1,6 +1,37 @@
 # To be installed:
-noinst_LIBRARIES = libflib.a
+noinst_LIBRARIES = libflib.a libfmalloc.a
 module_DATA      = $(modules)
+
+#malloc override tools
+dynlibdir        = $(libdir)
+dynlib_DATA      = $(fmalloc_dynamic_library)
+noinst_DATA      = $(fmalloc_library_soname)
+
+libfmalloc_a_SOURCES = override_malloc.c
+
+fmalloc_dynamic_library = libfmalloc-1.so.@FUTILE_MINOR_VERSION@.0.@FUTILE_MICRO_VERSION@
+fmalloc_library_soname = libfmalloc-1.so.@FUTILE_MINOR_VERSION@
+
+libfmalloc.a: $(libfmalloc_a_OBJECTS)
+	$(AR) $(ARFLAGS) $@ $(libfmalloc_a_OBJECTS)
+	$(RANLIB) $@
+
+override_malloc.o: override_malloc.c
+	$(CC) -I. -I$(top_builddir) $(CFLAGS) @CC_PIC_FLAG@ -c $< -o $@
+
+$(fmalloc_dynamic_library): $(libfmalloc_a_OBJECTS)
+	$(CC) $(CFLAGS) @CC_BUILD_SHARED@ $(LDFLAGS) @CC_RPATH@$(DESTDIR)$(dynlibdir) -Wl,-soname=$(fmalloc_library_soname) -o $@ $(libfmalloc_a_OBJECTS)
+	@chmod a+x $@
+
+$(fmalloc_library_soname): $(fmalloc_dynamic_library)
+	ln -fs $^ $@
+	ln -fs $@ libfmalloc-1.so
+
+install-data-hook: 
+	cd $(DESTDIR)$(dynlibdir); \
+	chmod a+x $(fmalloc_dynamic_library); \
+	ln -fs $(fmalloc_dynamic_library) $(fmalloc_library_soname); \
+	ln -fs $(fmalloc_library_soname) libfmalloc-1.so
 
 if USE_CUDA_GPU
 CUDA_PROF = nvtx_fake.f90 #nvtx.f90
@@ -47,7 +78,7 @@ getarg_files =
 else
 getarg_files = get_command_argument_fake.f90
 endif
-libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c \
+libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c malloc_repad.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
 	f_enums.f90 f_precisions.f90 \
@@ -145,7 +176,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	module_razero.@MODULE_EXT@ $(CUDA_MODS)
 endif
 
-CLEANFILES = *.@MODULE_EXT@ memstatus.yaml
+CLEANFILES = libfmalloc-1.so* *.@MODULE_EXT@ memstatus.yaml
 
 SUFFIXES = .cu
 

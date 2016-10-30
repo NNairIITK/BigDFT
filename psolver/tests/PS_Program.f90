@@ -814,7 +814,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      a=0.5d0/a_gauss**2
      !test functions in the three directions
      ifx=FUNC_EXP_COSINE
-     ifz=FUNC_EXP_COSINE
+     ifz=FUNC_EXP_COSINE !FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
      !parameters of the test functions

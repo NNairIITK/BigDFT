@@ -179,6 +179,7 @@ wrappers/Makefile
 c-bindings/Makefile
 c-bindings/futile_cst.h
 src/configure.inc
+src/f_memcheck
 src/Makefile
 tests/Makefile
 tests/fft/Makefile

@@ -79,6 +79,7 @@ module f_utils
      module procedure put_to_zero_integer3
      module procedure put_to_zero_long,put_to_zero_long1,put_to_zero_long2
      module procedure put_to_zero_long3
+     module procedure put_to_zero_r1
   end interface f_zero
 
   interface f_increment
@@ -1105,6 +1106,16 @@ contains
     call setzero(int(n,f_long)*kind(da),da)
     call f_timer_resume()
   end subroutine put_to_zero_simple
+
+  subroutine put_to_zero_r1(da)
+    implicit none
+    real(f_simple), dimension(:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    !call razero(size(da),da(lbound(da,1)))
+    call setzero(int(size(da),f_long)*kind(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_r1
+
 
   subroutine put_to_zero_double(n,da)
     implicit none

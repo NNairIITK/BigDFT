@@ -37,6 +37,7 @@ AC_DEFUN([AX_FLAG_PIC],
   AC_MSG_CHECKING([for position-independent code option flag for $FC])
   dnl -qpic should be before -fPIC because -fPIC means something for xlf...
   f90_search_pic "-qpic" "-PIC" "-fPIC"
+  AC_SUBST([FC_PIC_FLAG], [$ax_fc_pic])
   AC_MSG_RESULT([$ax_fc_pic])
 
   cc_test_pic()
@@ -63,8 +64,9 @@ int api_func()
     AC_LANG_POP(C)
   }
 
-  AC_MSG_CHECKING([for position-independant code option flag for $CC])
+  AC_MSG_CHECKING([for position-independent code option flag for $CC])
   cc_search_pic "-qpic" "-PIC" "-fPIC"
+  AC_SUBST([CC_PIC_FLAG], [$ax_cc_pic])
   AC_MSG_RESULT([$ax_cc_pic])
 ])
 
