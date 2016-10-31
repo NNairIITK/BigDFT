@@ -111,23 +111,26 @@ define F_REGTEST_INSTRUCTIONS
     - $(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
 - Generalized_PSolver:
    runs:
-    - |  #this is important to avoid misunderstanding with the yaml in the command line
+    - |  # PCG from psolver, ortho
       $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG
     - cat log.yaml > Generalized_PSolver.out.yaml
-    - |
+    - |  # PCG from psolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -f [90,41,90] -g S
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PI from psolver, ortho
       $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI
     - cat log.yaml >> Generalized_PSolver.out.yaml
-    - |
-      $(run_parallel) ./Generalized_PSolver -n 100 -m PCG -f [90,41,90] -g S
+    - |  # PCG from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 5 -g S -f [90,41,90]
     - cat log.yaml >> Generalized_PSolver.out.yaml
-#    - |
-#      $(run_parallel) ./Generalized_PSolver -n 100 -m PCG -p yes 
-#    - cat log.yaml >> Generalized_PSolver.out.yaml
-#    - |
-#      $(run_parallel) ./Generalized_PSolver -n 100 -m PI -p yes 
-#    - cat log.yaml >> Generalized_PSolver.out.yaml
-#    - |
-#      $(run_parallel) ./Generalized_PSolver -n 80 -m VAC -e 6 -p yes
-#    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PI from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 6 -g S -f [90,41,90]
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # mPB from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -g S -p yes -i "{psolver: {cavity: modified}}"
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # mPB from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 8 -g S -f [90,41,90] -p yes
+    - cat log.yaml >> Generalized_PSolver.out.yaml
 endef
 export F_REGTEST_INSTRUCTIONS
