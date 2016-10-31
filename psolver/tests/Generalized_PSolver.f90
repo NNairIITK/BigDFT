@@ -7006,7 +7006,9 @@ end if
       i3=(n03-1)/2+1
       do i2=1,n02
        y=hy*real(i2-1,kind=8)
-       write(22,'(1x,I8,6(1x,e22.15))') i2,y,eps(i1,i2,i3),dlogeps(1,i1,i2,i3),dlogeps(2,i1,i2,i3),dlogeps(3,i1,i2,i3),corr(i1,i2,i3)
+       write(22,'(1x,I8,6(1x,e22.15))') i2,y,eps(i1,i2,i3),&
+            dlogeps(1,i1,i2,i3),dlogeps(2,i1,i2,i3),dlogeps(3,i1,i2,i3),&
+            corr(i1,i2,i3)
       end do
  
    close(unit=21)
