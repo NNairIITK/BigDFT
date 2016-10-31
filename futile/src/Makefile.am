@@ -6,7 +6,13 @@ dynlib_DATA      = $(futile_dynlib)
 noinst_DATA      = $(futile_linklib)
 module_DATA      = $(modules)
 pyexec_DATA      = $(pymodule)
-dist_bin_SCRIPTS = f_memcheck
+dist_bin_SCRIPTS = $(memcheck_script)
+
+if CC_AUTOBUILD_DYNAMIC_LIBS
+memcheck_script = f_memcheck
+else
+memcheck_script =
+endif 
 
 if HAVE_PYTHON
 if BUILD_DYNAMIC_LIBS

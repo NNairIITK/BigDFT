@@ -4,10 +4,18 @@ module_DATA      = $(modules)
 
 #malloc override tools
 dynlibdir        = $(libdir)
-dynlib_DATA      = $(fmalloc_dynamic_library)
-noinst_DATA      = $(fmalloc_library_soname)
+dynlib_DATA      = $(fmalloc_dynlib)
+noinst_DATA      = $(fmalloc_linklib)
 
 libfmalloc_a_SOURCES = override_malloc.c
+
+if CC_AUTOBUILD_DYNAMIC_LIBS
+fmalloc_dynlib = $(fmalloc_dynamic_library)
+fmalloc_linklib = $(fmalloc_library_soname)
+else
+fmalloc_dynlib = 
+fmalloc_linklib = 
+endif
 
 fmalloc_dynamic_library = libfmalloc-1.so.@FUTILE_MINOR_VERSION@.0.@FUTILE_MICRO_VERSION@
 fmalloc_library_soname = libfmalloc-1.so.@FUTILE_MINOR_VERSION@
@@ -28,10 +36,12 @@ $(fmalloc_library_soname): $(fmalloc_dynamic_library)
 	ln -fs $@ libfmalloc-1.so
 
 install-data-hook: 
+	if test -n "$(fmalloc_dynlib)" ; then \
 	cd $(DESTDIR)$(dynlibdir); \
 	chmod a+x $(fmalloc_dynamic_library); \
 	ln -fs $(fmalloc_dynamic_library) $(fmalloc_library_soname); \
-	ln -fs $(fmalloc_library_soname) libfmalloc-1.so
+	ln -fs $(fmalloc_library_soname) libfmalloc-1.so ;\
+	fi
 
 if USE_CUDA_GPU
 CUDA_PROF = nvtx_fake.f90 #nvtx.f90
