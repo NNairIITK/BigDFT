@@ -1,0 +1,36 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+#List the module the this rcfile will build
+modules = ['spred',]
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    return """"FC=gfortran" "FCFLAGS=-O2 -fopenmp -m64"  "CFLAGS=-ldl" "-with-ext-linalg=-l/usr/lib/liblapack.so" "-with-ext-blas=-l/usr/lib/liblas.so" """
+def shrt_configuration():
+    return """"FC=gfortran" "FCFLAGS=-O2 -fopenmp -m64"  "CFLAGS=-ldl" "-with-ext-linalg=-l/usr/lib/liblapack.so" "-with-ext-blas=-l/usr/lib/liblas.so" """
+
+
+#here follow the configuration instructions for the modules built
+module_autogenargs.update({
+   
+'libyaml': shrt_configuration(),
+   
+'futile': env_configuration(),
+   
+'psolver': env_configuration(),
+   
+'libxc': shrt_configuration(),
+   
+'libABINIT': env_configuration(),
+
+'chess': env_configuration(),
+   
+'GaIn': shrt_configuration(),
+   
+'bigdft': env_configuration(),
+   
+'spred': env_configuration(),
+   
+})

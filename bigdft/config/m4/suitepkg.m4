@@ -56,7 +56,7 @@ AC_DEFUN([AX_PACKAGE],
   fi
   AC_MSG_RESULT(
   "LIB_$1_LIBS= $LIB_$1_LIBS" 
-  "LIB_$1_CFLAGS=$LIB_$1_CFLAGS" "have=" $ax_have_$1 "hello=" lcv)
+  "LIB_$1_CFLAGS=$LIB_$1_CFLAGS") dnl "have=" $ax_have_$1 "hello=" lcv)
 
   dnl try by hand search if failed
   if test "$ax_have_$1" != "yes" ; then
