@@ -14,7 +14,7 @@ program GPS_3D
    use f_utils
    use yaml_strings
    use box
-   use module_base
+   use PSbase
    use numerics
    implicit none
    
@@ -5064,9 +5064,10 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,PSol,SetEps,mPB,eps0)
   use yaml_output
   use f_utils
-  use module_base
+  use PSbase
   use numerics
   use box
+  use dictionaries, only: f_err_throw
   implicit none
   type(cell), intent(in) :: mesh
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
@@ -6242,7 +6243,7 @@ subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigm
   use f_utils
   use box
   use numerics
-  use module_base
+  use PSbase
 
   implicit none
   type(cell), intent(in) :: mesh
