@@ -129,8 +129,8 @@
      Peak Value (MB)         :  149.389
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 83.116 MB
- Walltime since initialization:  00:00:01.209836830
+     Memory Peak of process  : 83.204 MB
+ Walltime since initialization:  00:00:00.964388078
  Max No. of dictionaries used:  577 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -273,8 +273,8 @@
      Peak Value (MB)         :  276.402
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 131.908 MB
- Walltime since initialization:  00:00:02.268026012
+     Memory Peak of process  : 131.912 MB
+ Walltime since initialization:  00:00:01.876213967
  Max No. of dictionaries used:  577 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -421,8 +421,8 @@
      Peak Value (MB)         :  152.074
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 90.940 MB
- Walltime since initialization:  00:00:01.921279946
+     Memory Peak of process  : 90.336 MB
+ Walltime since initialization:  00:00:01.606319649
  Max No. of dictionaries used:  580 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -501,194 +501,144 @@
      Full Grid Arrays (MB)   :  2.50
  rpoints                     :  327600.0
  Embedded PSolver, Preconditioned Conjugate Gradient Method:
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   -------------------------------: ---
-   Starting PCG iteration    :  1
  - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  5.6018E+01, ratio:  5.9574E-01, alpha:  4.6227E-01, beta:  2.0487E+08}
+ iter:  1, normr:  5.6018E+01, alpha:  4.6227E-01, beta:  2.0487E+08}
    Inf. Norm difference with reference:
      Value                   :  7.392615947030153E+01
      Point                   :  [  33,  39,  38 ]
      Some values: [-7.320399940537112E+01,  1.079128703061180E+01,  1.334306117313248E+01]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
  - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  2.6533E+01, ratio:  2.8217E-01, alpha:  6.4289E-01, beta:  5.0209E+07}
+ iter:  2, normr:  2.6533E+01, alpha:  6.4289E-01, beta:  5.0209E+07}
    Inf. Norm difference with reference:
      Value                   :  2.543155877132803E+01
      Point                   :  [  31,  43,  36 ]
      Some values: [ 2.284453621773969E+01, -2.316153015608551E+00, -1.130246082200141E+00]
-   -------------------------------: ---
-   Starting PCG iteration    :  3
  - Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  1.1534E+01, ratio:  1.2266E-01, alpha:  5.5571E-01, beta:  1.0332E+07}
+ iter:  3, normr:  1.1534E+01, alpha:  5.5571E-01, beta:  1.0332E+07}
    Inf. Norm difference with reference:
      Value                   :  1.037413503581090E+01
      Point                   :  [  28,  43,  32 ]
      Some values: [ 5.342409942084927E+00, -3.343832651820938E+00, -2.657913896785796E+00]
-   -------------------------------: ---
-   Starting PCG iteration    :  4
  - Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  3.9675E+00, ratio:  4.2193E-02, alpha:  7.8465E-01, beta: -8.6091E+05}
+ iter:  4, normr:  3.9675E+00, alpha:  7.8465E-01, beta: -8.6091E+05}
    Inf. Norm difference with reference:
      Value                   :  4.145270334783561E+00
      Point                   :  [  35,  40,  40 ]
      Some values: [ 3.058140245077112E-01,  3.960605329558273E-01,  4.946825532479657E-01]
-   -------------------------------: ---
-   Starting PCG iteration    :  5
  - Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  2.3393E+00, ratio:  2.4878E-02, alpha:  5.1265E-01, beta:  2.4354E+05}
+ iter:  5, normr:  2.3393E+00, alpha:  5.1265E-01, beta:  2.4354E+05}
    Inf. Norm difference with reference:
      Value                   :  2.166572790437925E+00
      Point                   :  [  27,  38,  32 ]
      Some values: [ 2.618942114590652E-01, -3.666426758593868E-01, -2.193440892174117E-01]
-   -------------------------------: ---
-   Starting PCG iteration    :  6
  - Iteration quality: { #_____________________________________________________ Iteration  6
- iter:  6, normr:  3.2861E-01, ratio:  3.4947E-03, alpha:  1.0206E+00, beta:  2.7251E+04}
+ iter:  6, normr:  3.2861E-01, alpha:  1.0206E+00, beta:  2.7251E+04}
    Inf. Norm difference with reference:
      Value                   :  3.584396018560057E-01
      Point                   :  [  34,  40,  33 ]
      Some values: [ 2.150346850585265E-01, -6.672552397638754E-03,  2.028048386932824E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  7
  - Iteration quality: { #_____________________________________________________ Iteration  7
- iter:  7, normr:  9.0341E-02, ratio:  9.6076E-04, alpha:  7.8203E-01, beta:  1.6675E+03}
+ iter:  7, normr:  9.0341E-02, alpha:  7.8203E-01, beta:  1.6675E+03}
    Inf. Norm difference with reference:
      Value                   :  1.168911871021834E-01
      Point                   :  [  33,  40,  34 ]
      Some values: [-9.806659148540575E-02, -5.204536762484224E-04, -2.067216065242405E-03]
-   -------------------------------: ---
-   Starting PCG iteration    :  8
  - Iteration quality: { #_____________________________________________________ Iteration  8
- iter:  8, normr:  1.8730E-02, ratio:  1.9919E-04, alpha:  8.5893E-01, beta:  7.1483E+01}
+ iter:  8, normr:  1.8730E-02, alpha:  8.5893E-01, beta:  7.1483E+01}
    Inf. Norm difference with reference:
      Value                   :  1.947682177376464E-02
      Point                   :  [  31,  40,  36 ]
      Some values: [ 1.782770761496977E-02,  3.137428478954263E-04, -3.115412073029233E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  9
  - Iteration quality: { #_____________________________________________________ Iteration  9
- iter:  9, normr:  3.3089E-03, ratio:  3.5189E-05, alpha:  8.7064E-01, beta:  2.6561E+00}
+ iter:  9, normr:  3.3089E-03, alpha:  8.7064E-01, beta:  2.6561E+00}
    Inf. Norm difference with reference:
      Value                   :  1.987567740229679E-03
      Point                   :  [  31,  40,  42 ]
      Some values: [-6.508121410604417E-04, -2.148904910068694E-04, -2.830800387734200E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  10
  - Iteration quality: { #____________________________________________________ Iteration  10
- iter:  10, normr:  7.8669E-04, ratio:  8.3663E-06, alpha:  8.8285E-01, beta:  1.0866E-01}
+ iter:  10, normr:  7.8669E-04, alpha:  8.8285E-01, beta:  1.0866E-01}
    Inf. Norm difference with reference:
      Value                   :  6.148020817988709E-04
      Point                   :  [  30,  35,  37 ]
      Some values: [-1.353059135880130E-04, -5.047499054100513E-05, -5.934851896327586E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  11
  - Iteration quality: { #____________________________________________________ Iteration  11
- iter:  11, normr:  1.4336E-04, ratio:  1.5246E-06, alpha:  9.6937E-01, beta:  4.6990E-03}
+ iter:  11, normr:  1.4336E-04, alpha:  9.6937E-01, beta:  4.6990E-03}
    Inf. Norm difference with reference:
      Value                   :  1.203604700954486E-04
      Point                   :  [  30,  46,  37 ]
      Some values: [-6.171733510029753E-05, -1.270314656487415E-05, -1.368603163953708E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  12
  - Iteration quality: { #____________________________________________________ Iteration  12
- iter:  12, normr:  2.0503E-05, ratio:  2.1804E-07, alpha:  9.2425E-01, beta:  1.6549E-04}
+ iter:  12, normr:  2.0503E-05, alpha:  9.2425E-01, beta:  1.6549E-04}
    Inf. Norm difference with reference:
      Value                   :  4.599661981785630E-05
      Point                   :  [  33,  42,  39 ]
      Some values: [-5.208054773220283E-06, -1.819205586173211E-07, -7.097692495960928E-07]
-   -------------------------------: ---
-   Starting PCG iteration    :  13
  - Iteration quality: { #____________________________________________________ Iteration  13
- iter:  13, normr:  3.0056E-06, ratio:  3.1964E-08, alpha:  8.6502E-01, beta:  2.8818E-06}
+ iter:  13, normr:  3.0056E-06, alpha:  8.6502E-01, beta:  2.8818E-06}
    Inf. Norm difference with reference:
      Value                   :  3.669139954354250E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.177142458492654E-05,  3.138418769310647E-07, -1.158542382029282E-07]
-   -------------------------------: ---
-   Starting PCG iteration    :  14
  - Iteration quality: { #____________________________________________________ Iteration  14
- iter:  14, normr:  3.6216E-07, ratio:  3.8515E-09, alpha:  8.8108E-01, beta:  4.8893E-08}
+ iter:  14, normr:  3.6216E-07, alpha:  8.8108E-01, beta:  4.8893E-08}
    Inf. Norm difference with reference:
      Value                   :  3.689855991240165E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.209569957756230E-05,  3.351426016706682E-07, -3.939017645393506E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  15
  - Iteration quality: { #____________________________________________________ Iteration  15
- iter:  15, normr:  4.6530E-08, ratio:  4.9483E-10, alpha:  8.5642E-01, beta:  8.6732E-10}
+ iter:  15, normr:  4.6530E-08, alpha:  8.5642E-01, beta:  8.6732E-10}
    Inf. Norm difference with reference:
      Value                   :  3.717222438126555E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.176312770529876E-05,  3.269026898067295E-07, -4.148675003534663E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  16
  - Iteration quality: { #____________________________________________________ Iteration  16
- iter:  16, normr:  8.3250E-09, ratio:  8.8534E-11, alpha:  8.2197E-01, beta:  1.6107E-11}
+ iter:  16, normr:  8.3250E-09, alpha:  8.2197E-01, beta:  1.6107E-11}
    Inf. Norm difference with reference:
      Value                   :  3.711663488559225E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179929492740484E-05,  3.295544885872914E-07, -3.868496278869316E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  17
  - Iteration quality: { #____________________________________________________ Iteration  17
- iter:  17, normr:  4.3702E-09, ratio:  4.6476E-11, alpha:  3.9454E-01, beta:  9.1225E-13}
+ iter:  17, normr:  4.3702E-09, alpha:  3.9454E-01, beta:  9.1225E-13}
    Inf. Norm difference with reference:
      Value                   :  3.710774149112694E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.178699848798260E-05,  3.291636616609139E-07, -3.893847733138500E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  18
  - Iteration quality: { #____________________________________________________ Iteration  18
- iter:  18, normr:  6.9678E-10, ratio:  7.4101E-12, alpha:  6.9520E-01, beta:  1.5734E-13}
+ iter:  18, normr:  6.9678E-10, alpha:  6.9520E-01, beta:  1.5734E-13}
    Inf. Norm difference with reference:
      Value                   :  3.711268686856783E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179027383419907E-05,  3.293569879048164E-07, -3.870823661600298E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  19
  - Iteration quality: { #____________________________________________________ Iteration  19
- iter:  19, normr:  1.0110E-10, ratio:  1.0752E-12, alpha:  9.2764E-01, beta:  3.5103E-15}
+ iter:  19, normr:  1.0110E-10, alpha:  9.2764E-01, beta:  3.5103E-15}
    Inf. Norm difference with reference:
      Value                   :  3.711265300410105E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179014552439185E-05,  3.294229404815496E-07, -3.864408881781856E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  20
  - Iteration quality: { #____________________________________________________ Iteration  20
- iter:  20, normr:  1.1090E-11, ratio:  1.1794E-13, alpha:  9.3230E-01, beta:  4.6115E-17}
+ iter:  20, normr:  1.1090E-11, alpha:  9.3230E-01, beta:  4.6115E-17}
    Inf. Norm difference with reference:
      Value                   :  3.711263681793753E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179016713910187E-05,  3.294232300277145E-07, -3.864269970677014E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  21
  - Iteration quality: { #____________________________________________________ Iteration  21
- iter:  21, normr:  1.1340E-12, ratio:  1.2060E-14, alpha:  9.0287E-01, beta:  5.8497E-19}
+ iter:  21, normr:  1.1340E-12, alpha:  9.0287E-01, beta:  5.8497E-19}
    Inf. Norm difference with reference:
      Value                   :  3.711264031380779E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179016087211494E-05,  3.294232140405029E-07, -3.864259312535978E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  22
  - Iteration quality: { #____________________________________________________ Iteration  22
- iter:  22, normr:  5.8439E-13, ratio:  6.2149E-15, alpha:  4.3745E-01, beta:  1.5093E-20}
+ iter:  22, normr:  5.8439E-13, alpha:  4.3745E-01, beta:  1.5093E-20}
    Inf. Norm difference with reference:
      Value                   :  3.711263910588514E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179016142633827E-05,  3.294231927242208E-07, -3.864263220521025E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  23
  - Iteration quality: { #____________________________________________________ Iteration  23
- iter:  23, normr:  8.2589E-14, ratio:  8.7832E-16, alpha:  6.5486E-01, beta:  2.9853E-21}
+ iter:  23, normr:  8.2589E-14, alpha:  6.5486E-01, beta:  2.9853E-21}
    Inf. Norm difference with reference:
      Value                   :  3.711263933325881E-05
      Point                   :  [  34,  41,  40 ]
      Some values: [-2.179016151160340E-05,  3.294231714079388E-07, -3.864263931063761E-08]
- Termination of Preconditioned Conjugate Gradient: ---
- -------------------------------: ---
  Inf. Norm difference with reference:
    Value                     :  3.711263933325881E-05
    Point                     :  [  34,  41,  40 ]
@@ -719,8 +669,8 @@
      Peak Value (MB)         :  263.905
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 121.308 MB
- Walltime since initialization:  00:00:04.084697672
+     Memory Peak of process  : 122.328 MB
+ Walltime since initialization:  00:00:03.212178097
  Max No. of dictionaries used:  542 #( 173 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -794,250 +744,188 @@
      Density (MB)            :  2.56
      Kernel (MB)             :  1.34
      Full Grid Arrays (MB)   :  2.50
- -------------------------------: ---
- Starting Polarization Iteration: ---
  rpoints                     :  327600.0
  Embedded PSolver, Polarization Iteration Method:
-   -------------------------------: ---
-   Starting PI iteration     :  1
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  1
+ iter:  1, normr:  5.3984E+01}
+   Inf. Norm difference with reference:
      Value                   :  1.089897406845028E+02
      Point                   :  [  48,  1,  53 ]
      Some values: [-7.406200828062731E+01,  3.967164085468891E+01,  2.948248924231139E+01]
-   Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  5.3984E+01}
-   -------------------------------: ---
-   Starting PI iteration     :  2
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  2
+ iter:  2, normr:  3.7717E+01}
+   Inf. Norm difference with reference:
      Value                   :  8.659349394208738E+01
      Point                   :  [  15,  1,  17 ]
      Some values: [ 8.055865657174195E-01, -3.594441621115092E+01, -2.995238204502704E+01]
-   Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  3.7717E+01}
-   -------------------------------: ---
-   Starting PI iteration     :  3
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  3
+ iter:  3, normr:  8.2544E+00}
+   Inf. Norm difference with reference:
      Value                   :  1.627666438905324E+01
      Point                   :  [  48,  1,  55 ]
      Some values: [ 5.676845020898938E+00,  6.459232700844037E+00,  5.191625746070610E+00]
-   Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  8.2544E+00}
-   -------------------------------: ---
-   Starting PI iteration     :  4
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  4
+ iter:  4, normr:  3.2304E+00}
+   Inf. Norm difference with reference:
      Value                   :  6.428083577711514E+00
      Point                   :  [  48,  1,  53 ]
      Some values: [ 1.350549141218096E-01,  2.792662873950182E+00,  2.365784022141288E+00]
-   Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  3.2304E+00}
-   -------------------------------: ---
-   Starting PI iteration     :  5
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  5
+ iter:  5, normr:  7.8288E-01}
+   Inf. Norm difference with reference:
      Value                   :  1.133388306562224E+00
      Point                   :  [  25,  31,  43 ]
      Some values: [-6.058292863469177E-01, -9.769499331231124E-02, -1.912190180504680E-02]
-   Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  7.8288E-01}
-   -------------------------------: ---
-   Starting PI iteration     :  6
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  6
+ iter:  6, normr:  4.2521E-01}
+   Inf. Norm difference with reference:
      Value                   :  7.776587663924900E-01
      Point                   :  [  15,  1,  16 ]
      Some values: [-1.786737836919912E-01, -3.044608781271858E-01, -2.377544262037610E-01]
-   Iteration quality: { #_____________________________________________________ Iteration  6
- iter:  6, normr:  4.2521E-01}
-   -------------------------------: ---
-   Starting PI iteration     :  7
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  7
+ iter:  7, normr:  1.5331E-01}
+   Inf. Norm difference with reference:
      Value                   :  2.006468624075076E-01
      Point                   :  [  48,  1,  52 ]
      Some values: [ 2.279027069727135E-02, -9.746029957057267E-02, -8.711553021842633E-02]
-   Iteration quality: { #_____________________________________________________ Iteration  7
- iter:  7, normr:  1.5331E-01}
-   -------------------------------: ---
-   Starting PI iteration     :  8
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  8
+ iter:  8, normr:  6.1412E-02}
+   Inf. Norm difference with reference:
      Value                   :  6.813461997535741E-02
      Point                   :  [  23,  31,  45 ]
      Some values: [ 3.586297230381774E-02, -6.019610090731931E-03, -1.127661856175521E-02]
-   Iteration quality: { #_____________________________________________________ Iteration  8
- iter:  8, normr:  6.1412E-02}
-   -------------------------------: ---
-   Starting PI iteration     :  9
- - Inf. Norm difference with reference:
+ - Iteration quality: { #_____________________________________________________ Iteration  9
+ iter:  9, normr:  2.6882E-02}
+   Inf. Norm difference with reference:
      Value                   :  3.162517697638911E-02
      Point                   :  [  38,  48,  28 ]
      Some values: [ 1.208021105333046E-02,  8.888907357089693E-03,  5.281938727343061E-03]
-   Iteration quality: { #_____________________________________________________ Iteration  9
- iter:  9, normr:  2.6882E-02}
-   -------------------------------: ---
-   Starting PI iteration     :  10
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  10
+ iter:  10, normr:  1.1137E-02}
+   Inf. Norm difference with reference:
      Value                   :  1.187634432152008E-02
      Point                   :  [  14,  1,  20 ]
      Some values: [-5.868203870278421E-04,  5.344132881507591E-03,  4.539999944348949E-03]
-   Iteration quality: { #____________________________________________________ Iteration  10
- iter:  10, normr:  1.1137E-02}
-   -------------------------------: ---
-   Starting PI iteration     :  11
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  11
+ iter:  11, normr:  5.2101E-03}
+   Inf. Norm difference with reference:
      Value                   :  5.138810508512393E-03
      Point                   :  [  24,  40,  38 ]
      Some values: [-2.667331288876085E-03,  1.752054642743417E-03,  1.933446014948714E-03]
-   Iteration quality: { #____________________________________________________ Iteration  11
- iter:  11, normr:  5.2101E-03}
-   -------------------------------: ---
-   Starting PI iteration     :  12
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  12
+ iter:  12, normr:  2.4328E-03}
+   Inf. Norm difference with reference:
      Value                   :  2.290344528584232E-03
      Point                   :  [  22,  31,  46 ]
      Some values: [-1.396682481143330E-03,  2.465579235551019E-04,  4.623355807567009E-04]
-   Iteration quality: { #____________________________________________________ Iteration  12
- iter:  12, normr:  2.4328E-03}
-   -------------------------------: ---
-   Starting PI iteration     :  13
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  13
+ iter:  13, normr:  1.0352E-03}
+   Inf. Norm difference with reference:
      Value                   :  9.483557986684765E-04
      Point                   :  [  24,  31,  44 ]
      Some values: [-2.662040975849322E-04, -1.258732392361850E-04, -4.721204691549019E-05]
-   Iteration quality: { #____________________________________________________ Iteration  13
- iter:  13, normr:  1.0352E-03}
-   -------------------------------: ---
-   Starting PI iteration     :  14
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  14
+ iter:  14, normr:  4.5447E-04}
+   Inf. Norm difference with reference:
      Value                   :  5.083458452830314E-04
      Point                   :  [  40,  40,  32 ]
      Some values: [ 1.376774714998419E-04, -1.230572510610983E-04, -1.186249455074062E-04]
-   Iteration quality: { #____________________________________________________ Iteration  14
- iter:  14, normr:  4.5447E-04}
-   -------------------------------: ---
-   Starting PI iteration     :  15
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  15
+ iter:  15, normr:  2.1408E-04}
+   Inf. Norm difference with reference:
      Value                   :  2.912031517681157E-04
      Point                   :  [  25,  40,  43 ]
      Some values: [ 1.424931315625599E-04, -5.909528763581307E-05, -7.026055523340347E-05]
-   Iteration quality: { #____________________________________________________ Iteration  15
- iter:  15, normr:  2.1408E-04}
-   -------------------------------: ---
-   Starting PI iteration     :  16
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  16
+ iter:  16, normr:  1.0227E-04}
+   Inf. Norm difference with reference:
      Value                   :  1.078983961093627E-04
      Point                   :  [  26,  40,  42 ]
      Some values: [ 5.775305737643066E-05, -1.739830492830663E-05, -2.424129741029901E-05]
-   Iteration quality: { #____________________________________________________ Iteration  16
- iter:  16, normr:  1.0227E-04}
-   -------------------------------: ---
-   Starting PI iteration     :  17
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  17
+ iter:  17, normr:  5.0314E-05}
+   Inf. Norm difference with reference:
      Value                   :  4.059728386351935E-05
      Point                   :  [  22,  40,  47 ]
      Some values: [ 3.623112689865593E-06, -1.056986654646153E-06, -2.869943042327350E-06]
-   Iteration quality: { #____________________________________________________ Iteration  17
- iter:  17, normr:  5.0314E-05}
-   -------------------------------: ---
-   Starting PI iteration     :  18
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  18
+ iter:  18, normr:  2.3602E-05}
+   Inf. Norm difference with reference:
      Value                   :  3.646868114515200E-05
      Point                   :  [  23,  40,  45 ]
      Some values: [-1.142009935506394E-05,  2.378678527037437E-06,  2.583715357218352E-06]
-   Iteration quality: { #____________________________________________________ Iteration  18
- iter:  18, normr:  2.3602E-05}
-   -------------------------------: ---
-   Starting PI iteration     :  19
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  19
+ iter:  19, normr:  9.9868E-06}
+   Inf. Norm difference with reference:
      Value                   :  1.946414404585539E-05
      Point                   :  [  25,  40,  44 ]
      Some values: [-8.420080561677423E-06,  1.775627398004076E-06,  2.224223049296370E-06]
-   Iteration quality: { #____________________________________________________ Iteration  19
- iter:  19, normr:  9.9868E-06}
-   -------------------------------: ---
-   Starting PI iteration     :  20
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  20
+ iter:  20, normr:  4.9337E-06}
+   Inf. Norm difference with reference:
      Value                   :  6.485966608238414E-06
      Point                   :  [  26,  40,  42 ]
      Some values: [-2.799119542373774E-06,  7.821563539067711E-07,  1.010616191621239E-06]
-   Iteration quality: { #____________________________________________________ Iteration  20
- iter:  20, normr:  4.9337E-06}
-   -------------------------------: ---
-   Starting PI iteration     :  21
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  21
+ iter:  21, normr:  2.9571E-06}
+   Inf. Norm difference with reference:
      Value                   :  3.427095862207352E-06
      Point                   :  [  41,  40,  25 ]
      Some values: [ 2.467692610252925E-07,  2.270550734095877E-07,  2.841463846436909E-07]
-   Iteration quality: { #____________________________________________________ Iteration  21
- iter:  21, normr:  2.9571E-06}
-   -------------------------------: ---
-   Starting PI iteration     :  22
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  22
+ iter:  22, normr:  1.4974E-06}
+   Inf. Norm difference with reference:
      Value                   :  2.671972595180705E-06
      Point                   :  [  23,  40,  45 ]
      Some values: [ 9.200306152479243E-07,  2.255393205530254E-08,  1.750067823991230E-08]
-   Iteration quality: { #____________________________________________________ Iteration  22
- iter:  22, normr:  1.4974E-06}
-   -------------------------------: ---
-   Starting PI iteration     :  23
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  23
+ iter:  23, normr:  6.0267E-07}
+   Inf. Norm difference with reference:
      Value                   :  1.389875023960485E-06
      Point                   :  [  24,  40,  44 ]
      Some values: [ 6.100221554561358E-07, -2.401701948429036E-08, -3.628397848842724E-08]
-   Iteration quality: { #____________________________________________________ Iteration  23
- iter:  23, normr:  6.0267E-07}
-   -------------------------------: ---
-   Starting PI iteration     :  24
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  24
+ iter:  24, normr:  2.9408E-07}
+   Inf. Norm difference with reference:
      Value                   :  4.825897548244029E-07
      Point                   :  [  36,  40,  30 ]
      Some values: [ 2.158685532549498E-07, -2.152778932895671E-08, -2.748683058939605E-08]
-   Iteration quality: { #____________________________________________________ Iteration  24
- iter:  24, normr:  2.9408E-07}
-   -------------------------------: ---
-   Starting PI iteration     :  25
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  25
+ iter:  25, normr:  1.9396E-07}
+   Inf. Norm difference with reference:
      Value                   :  2.314638152256521E-07
      Point                   :  [  21,  42,  48 ]
      Some values: [ 1.391946113926679E-08, -1.066620392009554E-08, -1.149771478026196E-08]
-   Iteration quality: { #____________________________________________________ Iteration  25
- iter:  25, normr:  1.9396E-07}
-   -------------------------------: ---
-   Starting PI iteration     :  26
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  26
+ iter:  26, normr:  1.0357E-07}
+   Inf. Norm difference with reference:
      Value                   :  1.801974178761157E-07
      Point                   :  [  39,  38,  26 ]
      Some values: [-2.904170059991884E-08, -2.233901952308770E-09, -8.406146889683441E-10]
-   Iteration quality: { #____________________________________________________ Iteration  26
- iter:  26, normr:  1.0357E-07}
-   -------------------------------: ---
-   Starting PI iteration     :  27
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  27
+ iter:  27, normr:  4.2019E-08}
+   Inf. Norm difference with reference:
      Value                   :  1.013103627656164E-07
      Point                   :  [  38,  43,  28 ]
      Some values: [-7.227512810459302E-09,  2.415212918549514E-09,  4.444714818419016E-09]
-   Iteration quality: { #____________________________________________________ Iteration  27
- iter:  27, normr:  4.2019E-08}
-   -------------------------------: ---
-   Starting PI iteration     :  28
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  28
+ iter:  28, normr:  1.9245E-08}
+   Inf. Norm difference with reference:
      Value                   :  5.101678368646390E-08
      Point                   :  [  36,  37,  30 ]
      Some values: [ 2.022044043314963E-08,  4.250951590734076E-09,  6.352252057695296E-09]
-   Iteration quality: { #____________________________________________________ Iteration  28
- iter:  28, normr:  1.9245E-08}
-   -------------------------------: ---
-   Starting PI iteration     :  29
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  29
+ iter:  29, normr:  1.2919E-08}
+   Inf. Norm difference with reference:
      Value                   :  5.890329646263126E-08
      Point                   :  [  31,  40,  36 ]
      Some values: [ 3.482227839413099E-08,  4.546357956769498E-09,  6.579533362582879E-09]
-   Iteration quality: { #____________________________________________________ Iteration  29
- iter:  29, normr:  1.2919E-08}
-   -------------------------------: ---
-   Starting PI iteration     :  30
- - Inf. Norm difference with reference:
+ - Iteration quality: { #____________________________________________________ Iteration  30
+ iter:  30, normr:  7.2377E-09}
+   Inf. Norm difference with reference:
      Value                   :  6.309242905899737E-08
      Point                   :  [  31,  40,  36 ]
      Some values: [ 3.845863716378517E-08,  4.273958964517988E-09,  6.229207372143719E-09]
-   Iteration quality: { #____________________________________________________ Iteration  30
- iter:  30, normr:  7.2377E-09}
  Inf. Norm difference with reference:
    Value                     :  6.309242905899737E-08
    Point                     :  [  31,  40,  36 ]
@@ -1074,8 +962,8 @@
      Peak Value (MB)         :  263.905
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 120.996 MB
- Walltime since initialization:  00:00:03.647231660
+     Memory Peak of process  : 118.952 MB
+ Walltime since initialization:  00:00:03.112572159
  Max No. of dictionaries used:  542 #( 173 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -1284,8 +1172,8 @@
      Peak Value (MB)         :  278.250
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 131.788 MB
- Walltime since initialization:  00:00:04.190045620
+     Memory Peak of process  : 133.820 MB
+ Walltime since initialization:  00:00:03.326438663
  Max No. of dictionaries used:  606 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
@@ -1362,517 +1250,427 @@
      Kernel (MB)             :  1.34
      Full Grid Arrays (MB)   :  2.50
  rpoints                     :  327600.0
- Embedded PSolver, Preconditioned Conjugate Gradient Method:
-   -------------------------------: ---
-   Starting a Poisson-Bolzmann run: ---
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  1
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  5.6017E+01, ratio:  5.9573E-01, alpha:  4.6227E-01, beta:  2.0487E+08}
-   Inf. Norm difference with reference:
-     Value                   :  7.392674765411307E+01
-     Point                   :  [  33,  39,  38 ]
-     Some values: [-7.320456607958604E+01,  1.079138441956638E+01,  1.334311844949257E+01]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
- - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  2.6532E+01, ratio:  2.8216E-01, alpha:  6.4288E-01, beta:  5.0210E+07}
-   Inf. Norm difference with reference:
-     Value                   :  2.543078099743917E+01
-     Point                   :  [  31,  37,  36 ]
-     Some values: [ 2.284367160473805E+01, -2.315675128590634E+00, -1.129774658025273E+00]
-   -------------------------------: ---
-   Starting PCG iteration    :  3
- - Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  1.1533E+01, ratio:  1.2265E-01, alpha:  5.5571E-01, beta:  1.0332E+07}
-   Inf. Norm difference with reference:
-     Value                   :  1.037390258902324E+01
-     Point                   :  [  28,  43,  32 ]
-     Some values: [ 5.342011973082492E+00, -3.343367518481646E+00, -2.657440214664387E+00]
-   -------------------------------: ---
-   Starting PCG iteration    :  4
- - Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  3.9674E+00, ratio:  4.2192E-02, alpha:  7.8466E-01, beta: -8.6072E+05}
-   Inf. Norm difference with reference:
-     Value                   :  4.144939636142837E+00
-     Point                   :  [  35,  40,  40 ]
-     Some values: [ 3.060912569007286E-01,  3.962464141198705E-01,  4.948684663663023E-01]
-   -------------------------------: ---
-   Starting PCG iteration    :  5
- - Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  2.3394E+00, ratio:  2.4879E-02, alpha:  5.1263E-01, beta:  2.4353E+05}
-   Inf. Norm difference with reference:
-     Value                   :  2.166947927893261E+00
-     Point                   :  [  27,  38,  32 ]
-     Some values: [ 2.622147117752291E-01, -3.664963472883915E-01, -2.191766159570143E-01]
-   -------------------------------: ---
-   Starting PCG iteration    :  6
- - Iteration quality: { #_____________________________________________________ Iteration  6
- iter:  6, normr:  3.2861E-01, ratio:  3.4947E-03, alpha:  1.0207E+00, beta:  2.7252E+04}
-   Inf. Norm difference with reference:
-     Value                   :  3.587040129174284E-01
-     Point                   :  [  34,  40,  33 ]
-     Some values: [ 2.153145720605210E-01, -6.485194875748945E-03,  3.980142503188233E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  7
- - Iteration quality: { #_____________________________________________________ Iteration  7
- iter:  7, normr:  9.0341E-02, ratio:  9.6076E-04, alpha:  7.8203E-01, beta:  1.6675E+03}
-   Inf. Norm difference with reference:
-     Value                   :  1.166194883008984E-01
-     Point                   :  [  33,  40,  34 ]
-     Some values: [-9.778879030623955E-02, -3.324420100661030E-04, -1.871445501816282E-03]
-   -------------------------------: ---
-   Starting PCG iteration    :  8
- - Iteration quality: { #_____________________________________________________ Iteration  8
- iter:  8, normr:  1.8730E-02, ratio:  1.9919E-04, alpha:  8.5893E-01, beta:  7.1483E+01}
-   Inf. Norm difference with reference:
-     Value                   :  1.975541613836640E-02
-     Point                   :  [  31,  40,  36 ]
-     Some values: [ 1.810584786333891E-02,  5.015639021159757E-04, -1.159049493359987E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  9
- - Iteration quality: { #_____________________________________________________ Iteration  9
- iter:  9, normr:  3.3089E-03, ratio:  3.5189E-05, alpha:  8.7064E-01, beta:  2.6561E+00}
-   Inf. Norm difference with reference:
-     Value                   :  2.008005515264699E-03
-     Point                   :  [  25,  40,  29 ]
-     Some values: [-3.726495536398033E-04, -2.705239793243663E-05, -8.741840338188922E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  10
- - Iteration quality: { #____________________________________________________ Iteration  10
- iter:  10, normr:  7.8669E-04, ratio:  8.3663E-06, alpha:  8.8285E-01, beta:  1.0866E-01}
-   Inf. Norm difference with reference:
-     Value                   :  1.351402125438649E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 1.428909166776293E-04,  1.373603048779870E-04,  1.363115389096947E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  11
- - Iteration quality: { #____________________________________________________ Iteration  11
- iter:  11, normr:  1.4336E-04, ratio:  1.5246E-06, alpha:  9.6937E-01, beta:  4.6990E-03}
-   Inf. Norm difference with reference:
-     Value                   :  1.327429885713041E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.164791570464786E-04,  1.751317856317769E-04,  1.819736714416820E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  12
- - Iteration quality: { #____________________________________________________ Iteration  12
- iter:  12, normr:  2.0503E-05, ratio:  2.1804E-07, alpha:  9.2424E-01, beta:  1.6549E-04}
-   Inf. Norm difference with reference:
-     Value                   :  1.324874950132876E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.729865002066845E-04,  1.876533162317173E-04,  1.949500376845492E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  13
- - Iteration quality: { #____________________________________________________ Iteration  13
- iter:  13, normr:  3.0056E-06, ratio:  3.1964E-08, alpha:  8.6502E-01, beta:  2.8817E-06}
-   Inf. Norm difference with reference:
-     Value                   :  1.324637240877047E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.564250937382440E-04,  1.881489861421670E-04,  1.955438608263194E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  14
- - Iteration quality: { #____________________________________________________ Iteration  14
- iter:  14, normr:  3.6219E-07, ratio:  3.8518E-09, alpha:  8.8107E-01, beta:  4.8893E-08}
-   Inf. Norm difference with reference:
-     Value                   :  1.324622480687770E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.560978293075777E-04,  1.881704005253226E-04,  1.956204169282216E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  15
- - Iteration quality: { #____________________________________________________ Iteration  15
- iter:  15, normr:  4.6581E-08, ratio:  4.9537E-10, alpha:  8.5625E-01, beta:  8.6745E-10}
-   Inf. Norm difference with reference:
-     Value                   :  1.324619210419253E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.564358336343275E-04,  1.881619551404867E-04,  1.956181501334697E-04]
-   -------------------------------: ---
-   Starting PCG iteration    :  16
- - Iteration quality: { #____________________________________________________ Iteration  16
- iter:  16, normr:  9.2561E-09, ratio:  9.8437E-11, alpha:  7.9595E-01, beta:  1.6412E-11}
-   Inf. Norm difference with reference:
-     Value                   :  1.324625206108916E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.563914529929434E-04,  1.881648752242171E-04,  1.956211558642451E-04]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  1
-   iter PB                   :  1
-   normrPB                   :  5.4046147808280631E-004
-   rhores2                   :  9.5691504403879607E-002
-   Inf. Norm difference with reference:
-     Value                   :  1.324625206108916E-03
-     Point                   :  [  31,  1,  36 ]
-     Some values: [ 2.563914529929434E-04,  1.881648752242171E-04,  1.956211558642451E-04]
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  2
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  8.2841E-03, ratio:  8.8100E-05, alpha:  6.5437E+00, beta: -3.2811E-02}
-   Inf. Norm difference with reference:
-     Value                   :  1.935252795969689E-02
-     Point                   :  [  31,  38,  36 ]
-     Some values: [-1.924732208611601E-02, -1.177816798978881E-03, -1.258717017865507E-03]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
- - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  5.4990E-04, ratio:  5.8481E-06, alpha:  3.1548E-02, beta:  5.8979E+00}
-   Inf. Norm difference with reference:
-     Value                   :  5.463175625948224E-04
-     Point                   :  [  31,  40,  35 ]
-     Some values: [ 4.977592335677627E-04, -4.331292775283657E-05, -2.259130496540251E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  3
- - Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  1.6425E-04, ratio:  1.7468E-06, alpha:  7.0886E-01, beta:  4.5592E-03}
-   Inf. Norm difference with reference:
-     Value                   :  2.658413220331113E-04
-     Point                   :  [  32,  40,  35 ]
-     Some values: [-2.524771802541181E-04,  8.537208101344618E-06,  2.123374074258777E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  4
- - Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  6.0442E-05, ratio:  6.4279E-07, alpha:  7.7107E-01, beta:  9.8217E-04}
-   Inf. Norm difference with reference:
-     Value                   :  1.030115358986450E-04
-     Point                   :  [  29,  42,  38 ]
-     Some values: [ 4.675792591513073E-05,  3.719973646809649E-05,  3.545502022817004E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  5
- - Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  2.2786E-05, ratio:  2.4232E-07, alpha:  6.1739E-01, beta:  7.9680E-05}
-   Inf. Norm difference with reference:
-     Value                   :  9.148012713922071E-05
-     Point                   :  [  27,  40,  32 ]
-     Some values: [ 2.159414624713918E-05,  4.099755442155129E-05,  3.904496250228817E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  6
- - Iteration quality: { #_____________________________________________________ Iteration  6
- iter:  6, normr:  4.0597E-06, ratio:  4.3174E-08, alpha:  8.7958E-01, beta:  3.5181E-06}
-   Inf. Norm difference with reference:
-     Value                   :  6.847160112499751E-05
-     Point                   :  [  33,  42,  39 ]
-     Some values: [ 1.662302138072391E-05,  4.107377991502403E-05,  4.020281225791678E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  7
- - Iteration quality: { #_____________________________________________________ Iteration  7
- iter:  7, normr:  1.0215E-06, ratio:  1.0863E-08, alpha:  8.9048E-01, beta:  2.5425E-07}
-   Inf. Norm difference with reference:
-     Value                   :  7.355372231643287E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [ 1.943894444877969E-05,  4.101398868883166E-05,  4.060634208258307E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  8
- - Iteration quality: { #_____________________________________________________ Iteration  8
- iter:  8, normr:  2.8323E-07, ratio:  3.0121E-09, alpha:  7.3626E-01, beta:  7.7322E-09}
-   Inf. Norm difference with reference:
-     Value                   :  7.308644583758905E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [ 1.857435150043329E-05,  4.098495963056337E-05,  4.059982948589891E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  9
- - Iteration quality: { #_____________________________________________________ Iteration  9
- iter:  9, normr:  1.0294E-07, ratio:  1.0948E-09, alpha:  5.3335E-01, beta:  8.8038E-10}
-   Inf. Norm difference with reference:
-     Value                   :  7.296491318697917E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [ 1.866682407580811E-05,  4.097890998799869E-05,  4.059722886751160E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  10
- - Iteration quality: { #____________________________________________________ Iteration  10
- iter:  10, normr:  2.1688E-08, ratio:  2.3064E-10, alpha:  6.9163E-01, beta:  1.3576E-10}
-   Inf. Norm difference with reference:
-     Value                   :  7.295796808648447E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [ 1.874154845893372E-05,  4.097558088034248E-05,  4.059467358530355E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  11
- - Iteration quality: { #____________________________________________________ Iteration  11
- iter:  11, normr:  6.1019E-09, ratio:  6.4893E-11, alpha:  8.2157E-01, beta:  7.0870E-12}
-   Inf. Norm difference with reference:
-     Value                   :  7.298655299337042E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [ 1.872526061674762E-05,  4.097453364515502E-05,  4.059303483217036E-05]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  2
-   iter PB                   :  2
-   normrPB                   :  2.0504468323502427E-005
-   rhores2                   :  1.3773392327478892E-004
-   Inf. Norm difference with reference:
-     Value                   :  7.298655299337042E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [ 1.872526061674762E-05,  4.097453364515502E-05,  4.059303483217036E-05]
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  3
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  1.1976E-04, ratio:  1.2737E-06, alpha: -9.2493E-01, beta: -2.0713E-04}
-   Inf. Norm difference with reference:
-     Value                   :  3.829685814338291E-04
-     Point                   :  [  31,  42,  35 ]
-     Some values: [ 3.375614121665649E-04,  7.714119075963310E-05,  7.674311290273295E-05]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
- - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  6.2865E-05, ratio:  6.6856E-07, alpha: -2.3224E-01, beta:  1.8741E-03}
-   Inf. Norm difference with reference:
-     Value                   :  7.483117676088114E-05
-     Point                   :  [  33,  40,  39 ]
-     Some values: [ 2.877238335941001E-05,  1.411496493020081E-06,  3.617256769672395E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  3
- - Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  1.8622E-05, ratio:  1.9804E-07, alpha:  6.4808E-01, beta:  4.5388E-05}
-   Inf. Norm difference with reference:
-     Value                   :  5.086503645657103E-05
-     Point                   :  [  30,  39,  33 ]
-     Some values: [-4.735231817676322E-05,  4.874006972244160E-06,  6.256146608762947E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  4
- - Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  6.9678E-06, ratio:  7.4102E-08, alpha:  8.4628E-01, beta:  1.0884E-05}
-   Inf. Norm difference with reference:
-     Value                   :  4.313866611482808E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-1.705363834503260E-05,  2.626846340447742E-06,  2.506673549618199E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  5
- - Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  2.6100E-06, ratio:  2.7757E-08, alpha:  6.4965E-01, beta:  1.2177E-06}
-   Inf. Norm difference with reference:
-     Value                   :  3.656058312628829E-05
-     Point                   :  [  29,  40,  32 ]
-     Some values: [-1.961200901234861E-05,  2.185622106409824E-06,  1.861793158752789E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  6
- - Iteration quality: { #_____________________________________________________ Iteration  6
- iter:  6, normr:  4.4292E-07, ratio:  4.7104E-09, alpha:  9.3208E-01, beta:  6.6571E-08}
-   Inf. Norm difference with reference:
-     Value                   :  3.607615374789930E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.003523485427650E-05,  2.147658706874722E-06,  1.782056511245855E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  7
- - Iteration quality: { #_____________________________________________________ Iteration  7
- iter:  7, normr:  1.0843E-07, ratio:  1.1532E-09, alpha:  7.4151E-01, beta:  4.3160E-09}
-   Inf. Norm difference with reference:
-     Value                   :  3.527526892810329E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-1.998425933891212E-05,  2.166717731455492E-06,  1.798302108113603E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  8
- - Iteration quality: { #_____________________________________________________ Iteration  8
- iter:  8, normr:  4.7931E-08, ratio:  5.0974E-10, alpha:  4.3368E-01, beta:  5.2318E-10}
-   Inf. Norm difference with reference:
-     Value                   :  3.522543298117853E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-1.992633900727014E-05,  2.170247803690017E-06,  1.802414050899870E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  9
- - Iteration quality: { #_____________________________________________________ Iteration  9
- iter:  9, normr:  8.3237E-09, ratio:  8.8521E-11, alpha:  8.4102E-01, beta:  1.6916E-11}
-   Inf. Norm difference with reference:
-     Value                   :  3.526752624338769E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-1.994173834418689E-05,  2.171165611741799E-06,  1.804309665232040E-06]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  3
-   iter PB                   :  3
-   normrPB                   :  1.3075503020784942E-006
-   rhores2                   :  5.6009372081171784E-007
-   Inf. Norm difference with reference:
-     Value                   :  3.526752624338769E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-1.994173834418689E-05,  2.171165611741799E-06,  1.804309665232040E-06]
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  4
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  7.1721E-06, ratio:  7.6274E-08, alpha: -1.1726E+00, beta: -4.8698E-07}
-   Inf. Norm difference with reference:
-     Value                   :  5.093047850834864E-05
-     Point                   :  [  33,  42,  39 ]
-     Some values: [-1.402294998342768E-06,  4.253541705523389E-06,  3.888782245553557E-06]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
- - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  2.9074E-06, ratio:  3.0919E-08, alpha: -1.8653E-01, beta:  6.0466E-06}
-   Inf. Norm difference with reference:
-     Value                   :  3.554926789206547E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-1.938037961224381E-05,  3.466842724009211E-07,  9.873680895111647E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  3
- - Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  8.9097E-07, ratio:  9.4753E-09, alpha:  6.2971E-01, beta:  9.6016E-08}
-   Inf. Norm difference with reference:
-     Value                   :  3.738037877099032E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.284823293052796E-05,  5.103372764381220E-07,  2.246000079253463E-07]
-   -------------------------------: ---
-   Starting PCG iteration    :  4
- - Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  3.0887E-07, ratio:  3.2848E-09, alpha:  8.4097E-01, beta:  2.0325E-08}
-   Inf. Norm difference with reference:
-     Value                   :  3.737156531258279E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.157597991470084E-05,  4.367489783163592E-07,  8.089510572517611E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  5
- - Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  1.1823E-07, ratio:  1.2573E-09, alpha:  6.5868E-01, beta:  2.4164E-09}
-   Inf. Norm difference with reference:
-     Value                   :  3.690294849434395E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.168315580775015E-05,  4.199501049129140E-07,  5.348401543869841E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  6
- - Iteration quality: { #_____________________________________________________ Iteration  6
- iter:  6, normr:  1.9928E-08, ratio:  2.1193E-10, alpha:  9.2622E-01, beta:  1.3058E-10}
-   Inf. Norm difference with reference:
-     Value                   :  3.705700133593837E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.170811627877356E-05,  4.177368957414274E-07,  4.965279032376202E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  7
- - Iteration quality: { #_____________________________________________________ Iteration  7
- iter:  7, normr:  3.8241E-09, ratio:  4.0669E-11, alpha:  8.3137E-01, beta:  7.7674E-12}
-   Inf. Norm difference with reference:
-     Value                   :  3.702116899262364E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.169889064873587E-05,  4.185123394506718E-07,  5.042294048962503E-08]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  4
-   iter PB                   :  4
-   normrPB                   :  6.0492036247268248E-008
-   rhores2                   :  1.1987822408040511E-009
-   Inf. Norm difference with reference:
-     Value                   :  3.702116899262364E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.169889064873587E-05,  4.185123394506718E-07,  5.042294048962503E-08]
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  5
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  3.3549E-07, ratio:  3.5679E-09, alpha: -1.1389E+00, beta: -1.1277E-09}
-   Inf. Norm difference with reference:
-     Value                   :  3.627462835709139E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.082291834426542E-05,  5.164825775949566E-07,  1.484238083548917E-07]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
- - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  1.4067E-07, ratio:  1.4960E-09, alpha: -1.9165E-01, beta:  1.3450E-08}
-   Inf. Norm difference with reference:
-     Value                   :  3.703711888647376E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.167408658237946E-05,  3.302779081337803E-07, -3.201462206448014E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  3
- - Iteration quality: { #_____________________________________________________ Iteration  3
- iter:  3, normr:  4.3009E-08, ratio:  4.5739E-10, alpha:  6.3190E-01, beta:  2.2512E-10}
-   Inf. Norm difference with reference:
-     Value                   :  3.712580669912313E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.184187360398937E-05,  3.381977098371181E-07, -2.591450964928299E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  4
- - Iteration quality: { #_____________________________________________________ Iteration  4
- iter:  4, normr:  1.5055E-08, ratio:  1.6011E-10, alpha:  8.4200E-01, beta:  4.8408E-11}
-   Inf. Norm difference with reference:
-     Value                   :  3.712537608180355E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.177994846874753E-05,  3.344953256601002E-07, -3.299184569982572E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  5
- - Iteration quality: { #_____________________________________________________ Iteration  5
- iter:  5, normr:  5.7725E-09, ratio:  6.1390E-11, alpha:  6.5787E-01, beta:  5.7241E-12}
-   Inf. Norm difference with reference:
-     Value                   :  3.710264134326735E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.178510820272095E-05,  3.336688223498641E-07, -3.431940598375149E-08]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  5
-   iter PB                   :  5
-   normrPB                   :  2.927380392398077E-009
-   rhores2                   :  2.807386533084605E-012
-   Inf. Norm difference with reference:
-     Value                   :  3.710264134326735E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.178510820272095E-05,  3.336688223498641E-07, -3.431940598375149E-08]
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  6
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  1.7463E-08, ratio:  1.8572E-10, alpha: -8.7051E-01, beta: -2.3024E-12}
-   Inf. Norm difference with reference:
-     Value                   :  3.706669302516730E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.175227868406182E-05,  3.373102348547263E-07, -3.063725273477758E-08]
-   -------------------------------: ---
-   Starting PCG iteration    :  2
- - Iteration quality: { #_____________________________________________________ Iteration  2
- iter:  2, normr:  6.4877E-09, ratio:  6.8996E-11, alpha: -2.4494E-01, beta:  1.9307E-11}
-   Inf. Norm difference with reference:
-     Value                   :  3.710912105248099E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.178480963266338E-05,  3.294689889798974E-07, -3.828283823281708E-08]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  6
-   iter PB                   :  6
-   normrPB                   :  1.5452127724959966E-010
-   rhores2                   :  7.8220479102448882E-015
-   Inf. Norm difference with reference:
-     Value                   :  3.710912105248099E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.178480963266338E-05,  3.294689889798974E-07, -3.828283823281708E-08]
-   -------------------------------: ---
-   Starting Poisson-Boltzmann iteration:  7
-   -------------------------------: ---
-   Starting Preconditioned Conjugate Gradient: ---
-   errorvar                  :  1.0E-008
-   -------------------------------: ---
-   Starting PCG iteration    :  1
- - Iteration quality: { #_____________________________________________________ Iteration  1
- iter:  1, normr:  3.3229E-09, ratio:  3.5338E-11, alpha:  7.0107E-01, beta:  5.0535E-13}
-   Inf. Norm difference with reference:
-     Value                   :  3.711730414579506E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.179751227515681E-05,  3.290955028489861E-07, -3.874797727121404E-08]
-   -------------------------------: ---
-   End Poisson-Boltzmann iteration:  7
-   iter PB                   :  7
-   normrPB                   :  1.2028382086478168E-011
-   rhores2                   :  4.7397815212557994E-017
-   Inf. Norm difference with reference:
-     Value                   :  3.711730414579506E-05
-     Point                   :  [  34,  41,  40 ]
-     Some values: [-2.179751227515681E-05,  3.290955028489861E-07, -3.874797727121404E-08]
- Termination of Preconditioned Conjugate Gradient: ---
- -------------------------------: ---
+ Embedded PSolver, modified Poisson-Boltzmann solver:
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  5.6017E+01, alpha:  4.6227E-01, beta:  2.0487E+08}
+       Inf. Norm difference with reference:
+         Value               :  7.392674765411307E+01
+         Point               :  [  33,  39,  38 ]
+         Some values: [-7.320456607958604E+01,  1.079138441956638E+01, 
+                        1.334311844949257E+01]
+     - Iteration quality: { #_________________________________________________ Iteration  2
+ iter:  2, normr:  2.6532E+01, alpha:  6.4288E-01, beta:  5.0210E+07}
+       Inf. Norm difference with reference:
+         Value               :  2.543078099743917E+01
+         Point               :  [  31,  37,  36 ]
+         Some values: [ 2.284367160473805E+01, -2.315675128590634E+00, 
+                       -1.129774658025273E+00]
+     - Iteration quality: { #_________________________________________________ Iteration  3
+ iter:  3, normr:  1.1533E+01, alpha:  5.5571E-01, beta:  1.0332E+07}
+       Inf. Norm difference with reference:
+         Value               :  1.037390258902324E+01
+         Point               :  [  28,  43,  32 ]
+         Some values: [ 5.342011973082492E+00, -3.343367518481646E+00, 
+                       -2.657440214664387E+00]
+     - Iteration quality: { #_________________________________________________ Iteration  4
+ iter:  4, normr:  3.9674E+00, alpha:  7.8466E-01, beta: -8.6072E+05}
+       Inf. Norm difference with reference:
+         Value               :  4.144939636142837E+00
+         Point               :  [  35,  40,  40 ]
+         Some values: [ 3.060912569007286E-01,  3.962464141198705E-01, 
+                        4.948684663663023E-01]
+     - Iteration quality: { #_________________________________________________ Iteration  5
+ iter:  5, normr:  2.3394E+00, alpha:  5.1263E-01, beta:  2.4353E+05}
+       Inf. Norm difference with reference:
+         Value               :  2.166947927893261E+00
+         Point               :  [  27,  38,  32 ]
+         Some values: [ 2.622147117752291E-01, -3.664963472883915E-01, 
+                       -2.191766159570143E-01]
+     - Iteration quality: { #_________________________________________________ Iteration  6
+ iter:  6, normr:  3.2861E-01, alpha:  1.0207E+00, beta:  2.7252E+04}
+       Inf. Norm difference with reference:
+         Value               :  3.587040129174284E-01
+         Point               :  [  34,  40,  33 ]
+         Some values: [ 2.153145720605210E-01, -6.485194875748945E-03, 
+                        3.980142503188233E-04]
+     - Iteration quality: { #_________________________________________________ Iteration  7
+ iter:  7, normr:  9.0341E-02, alpha:  7.8203E-01, beta:  1.6675E+03}
+       Inf. Norm difference with reference:
+         Value               :  1.166194883008984E-01
+         Point               :  [  33,  40,  34 ]
+         Some values: [-9.778879030623955E-02, -3.324420100661030E-04, 
+                       -1.871445501816282E-03]
+     - Iteration quality: { #_________________________________________________ Iteration  8
+ iter:  8, normr:  1.8730E-02, alpha:  8.5893E-01, beta:  7.1483E+01}
+       Inf. Norm difference with reference:
+         Value               :  1.975541613836640E-02
+         Point               :  [  31,  40,  36 ]
+         Some values: [ 1.810584786333891E-02,  5.015639021159757E-04, 
+                       -1.159049493359987E-04]
+     - Iteration quality: { #_________________________________________________ Iteration  9
+ iter:  9, normr:  3.3089E-03, alpha:  8.7064E-01, beta:  2.6561E+00}
+       Inf. Norm difference with reference:
+         Value               :  2.008005515264699E-03
+         Point               :  [  25,  40,  29 ]
+         Some values: [-3.726495536398033E-04, -2.705239793243663E-05, 
+                       -8.741840338188922E-05]
+     - Iteration quality: { #________________________________________________ Iteration  10
+ iter:  10, normr:  7.8669E-04, alpha:  8.8285E-01, beta:  1.0866E-01}
+       Inf. Norm difference with reference:
+         Value               :  1.351402125438649E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 1.428909166776293E-04,  1.373603048779870E-04, 
+                        1.363115389096947E-04]
+     - Iteration quality: { #________________________________________________ Iteration  11
+ iter:  11, normr:  1.4336E-04, alpha:  9.6937E-01, beta:  4.6990E-03}
+       Inf. Norm difference with reference:
+         Value               :  1.327429885713041E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 2.164791570464786E-04,  1.751317856317769E-04, 
+                        1.819736714416820E-04]
+     - Iteration quality: { #________________________________________________ Iteration  12
+ iter:  12, normr:  2.0503E-05, alpha:  9.2424E-01, beta:  1.6549E-04}
+       Inf. Norm difference with reference:
+         Value               :  1.324874950132876E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 2.729865002066845E-04,  1.876533162317173E-04, 
+                        1.949500376845492E-04]
+     - Iteration quality: { #________________________________________________ Iteration  13
+ iter:  13, normr:  3.0056E-06, alpha:  8.6502E-01, beta:  2.8817E-06}
+       Inf. Norm difference with reference:
+         Value               :  1.324637240877047E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 2.564250937382440E-04,  1.881489861421670E-04, 
+                        1.955438608263194E-04]
+     - Iteration quality: { #________________________________________________ Iteration  14
+ iter:  14, normr:  3.6219E-07, alpha:  8.8107E-01, beta:  4.8893E-08}
+       Inf. Norm difference with reference:
+         Value               :  1.324622480687770E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 2.560978293075777E-04,  1.881704005253226E-04, 
+                        1.956204169282216E-04]
+     - Iteration quality: { #________________________________________________ Iteration  15
+ iter:  15, normr:  4.6581E-08, alpha:  8.5625E-01, beta:  8.6745E-10}
+       Inf. Norm difference with reference:
+         Value               :  1.324619210419253E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 2.564358336343275E-04,  1.881619551404867E-04, 
+                        1.956181501334697E-04]
+     - Iteration quality: { #________________________________________________ Iteration  16
+ iter:  16, normr:  9.2561E-09, alpha:  7.9595E-01, beta:  1.6412E-11}
+       Inf. Norm difference with reference:
+         Value               :  1.324625206108916E-03
+         Point               :  [  31,  1,  36 ]
+         Some values: [ 2.563914529929434E-04,  1.881648752242171E-04, 
+                        1.956211558642451E-04]
+     Iteration quality: { #___________________________________________________ Iteration  1
+ iter:  1, normr:  5.4046E-04}
+     Inf. Norm difference with reference:
+       Value                 :  1.324625206108916E-03
+       Point                 :  [  31,  1,  36 ]
+       Some values: [ 2.563914529929434E-04,  1.881648752242171E-04, 
+                      1.956211558642451E-04]
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  8.2841E-03, alpha:  6.5437E+00, beta: -3.2811E-02}
+       Inf. Norm difference with reference:
+         Value               :  1.935252795969689E-02
+         Point               :  [  31,  38,  36 ]
+         Some values: [-1.924732208611601E-02, -1.177816798978881E-03, 
+                       -1.258717017865507E-03]
+     - Iteration quality: { #_________________________________________________ Iteration  2
+ iter:  2, normr:  5.4990E-04, alpha:  3.1548E-02, beta:  5.8979E+00}
+       Inf. Norm difference with reference:
+         Value               :  5.463175625948224E-04
+         Point               :  [  31,  40,  35 ]
+         Some values: [ 4.977592335677627E-04, -4.331292775283657E-05, 
+                       -2.259130496540251E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  3
+ iter:  3, normr:  1.6425E-04, alpha:  7.0886E-01, beta:  4.5592E-03}
+       Inf. Norm difference with reference:
+         Value               :  2.658413220331113E-04
+         Point               :  [  32,  40,  35 ]
+         Some values: [-2.524771802541181E-04,  8.537208101344618E-06, 
+                        2.123374074258777E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  4
+ iter:  4, normr:  6.0442E-05, alpha:  7.7107E-01, beta:  9.8217E-04}
+       Inf. Norm difference with reference:
+         Value               :  1.030115358986450E-04
+         Point               :  [  29,  42,  38 ]
+         Some values: [ 4.675792591513073E-05,  3.719973646809649E-05, 
+                        3.545502022817004E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  5
+ iter:  5, normr:  2.2786E-05, alpha:  6.1739E-01, beta:  7.9680E-05}
+       Inf. Norm difference with reference:
+         Value               :  9.148012713922071E-05
+         Point               :  [  27,  40,  32 ]
+         Some values: [ 2.159414624713918E-05,  4.099755442155129E-05, 
+                        3.904496250228817E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  6
+ iter:  6, normr:  4.0597E-06, alpha:  8.7958E-01, beta:  3.5181E-06}
+       Inf. Norm difference with reference:
+         Value               :  6.847160112499751E-05
+         Point               :  [  33,  42,  39 ]
+         Some values: [ 1.662302138072391E-05,  4.107377991502403E-05, 
+                        4.020281225791678E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  7
+ iter:  7, normr:  1.0215E-06, alpha:  8.9048E-01, beta:  2.5425E-07}
+       Inf. Norm difference with reference:
+         Value               :  7.355372231643287E-05
+         Point               :  [  29,  40,  32 ]
+         Some values: [ 1.943894444877969E-05,  4.101398868883166E-05, 
+                        4.060634208258307E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  8
+ iter:  8, normr:  2.8323E-07, alpha:  7.3626E-01, beta:  7.7322E-09}
+       Inf. Norm difference with reference:
+         Value               :  7.308644583758905E-05
+         Point               :  [  29,  40,  32 ]
+         Some values: [ 1.857435150043329E-05,  4.098495963056337E-05, 
+                        4.059982948589891E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  9
+ iter:  9, normr:  1.0294E-07, alpha:  5.3335E-01, beta:  8.8038E-10}
+       Inf. Norm difference with reference:
+         Value               :  7.296491318697917E-05
+         Point               :  [  29,  40,  32 ]
+         Some values: [ 1.866682407580811E-05,  4.097890998799869E-05, 
+                        4.059722886751160E-05]
+     - Iteration quality: { #________________________________________________ Iteration  10
+ iter:  10, normr:  2.1688E-08, alpha:  6.9163E-01, beta:  1.3576E-10}
+       Inf. Norm difference with reference:
+         Value               :  7.295796808648447E-05
+         Point               :  [  29,  40,  32 ]
+         Some values: [ 1.874154845893372E-05,  4.097558088034248E-05, 
+                        4.059467358530355E-05]
+     - Iteration quality: { #________________________________________________ Iteration  11
+ iter:  11, normr:  6.1019E-09, alpha:  8.2157E-01, beta:  7.0870E-12}
+       Inf. Norm difference with reference:
+         Value               :  7.298655299337042E-05
+         Point               :  [  29,  40,  32 ]
+         Some values: [ 1.872526061674762E-05,  4.097453364515502E-05, 
+                        4.059303483217036E-05]
+     Iteration quality: { #___________________________________________________ Iteration  2
+ iter:  2, normr:  2.0504E-05}
+     Inf. Norm difference with reference:
+       Value                 :  7.298655299337042E-05
+       Point                 :  [  29,  40,  32 ]
+       Some values: [ 1.872526061674762E-05,  4.097453364515502E-05, 
+                      4.059303483217036E-05]
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  1.1976E-04, alpha: -9.2493E-01, beta: -2.0713E-04}
+       Inf. Norm difference with reference:
+         Value               :  3.829685814338291E-04
+         Point               :  [  31,  42,  35 ]
+         Some values: [ 3.375614121665649E-04,  7.714119075963310E-05, 
+                        7.674311290273295E-05]
+     - Iteration quality: { #_________________________________________________ Iteration  2
+ iter:  2, normr:  6.2865E-05, alpha: -2.3224E-01, beta:  1.8741E-03}
+       Inf. Norm difference with reference:
+         Value               :  7.483117676088114E-05
+         Point               :  [  33,  40,  39 ]
+         Some values: [ 2.877238335941001E-05,  1.411496493020081E-06, 
+                        3.617256769672395E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  3
+ iter:  3, normr:  1.8622E-05, alpha:  6.4808E-01, beta:  4.5388E-05}
+       Inf. Norm difference with reference:
+         Value               :  5.086503645657103E-05
+         Point               :  [  30,  39,  33 ]
+         Some values: [-4.735231817676322E-05,  4.874006972244160E-06, 
+                        6.256146608762947E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  4
+ iter:  4, normr:  6.9678E-06, alpha:  8.4628E-01, beta:  1.0884E-05}
+       Inf. Norm difference with reference:
+         Value               :  4.313866611482808E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-1.705363834503260E-05,  2.626846340447742E-06, 
+                        2.506673549618199E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  5
+ iter:  5, normr:  2.6100E-06, alpha:  6.4965E-01, beta:  1.2177E-06}
+       Inf. Norm difference with reference:
+         Value               :  3.656058312628829E-05
+         Point               :  [  29,  40,  32 ]
+         Some values: [-1.961200901234861E-05,  2.185622106409824E-06, 
+                        1.861793158752789E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  6
+ iter:  6, normr:  4.4292E-07, alpha:  9.3208E-01, beta:  6.6571E-08}
+       Inf. Norm difference with reference:
+         Value               :  3.607615374789930E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.003523485427650E-05,  2.147658706874722E-06, 
+                        1.782056511245855E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  7
+ iter:  7, normr:  1.0843E-07, alpha:  7.4151E-01, beta:  4.3160E-09}
+       Inf. Norm difference with reference:
+         Value               :  3.527526892810329E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-1.998425933891212E-05,  2.166717731455492E-06, 
+                        1.798302108113603E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  8
+ iter:  8, normr:  4.7931E-08, alpha:  4.3368E-01, beta:  5.2318E-10}
+       Inf. Norm difference with reference:
+         Value               :  3.522543298117853E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-1.992633900727014E-05,  2.170247803690017E-06, 
+                        1.802414050899870E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  9
+ iter:  9, normr:  8.3237E-09, alpha:  8.4102E-01, beta:  1.6916E-11}
+       Inf. Norm difference with reference:
+         Value               :  3.526752624338769E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-1.994173834418689E-05,  2.171165611741799E-06, 
+                        1.804309665232040E-06]
+     Iteration quality: { #___________________________________________________ Iteration  3
+ iter:  3, normr:  1.3076E-06}
+     Inf. Norm difference with reference:
+       Value                 :  3.526752624338769E-05
+       Point                 :  [  34,  41,  40 ]
+       Some values: [-1.994173834418689E-05,  2.171165611741799E-06, 
+                      1.804309665232040E-06]
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  7.1721E-06, alpha: -1.1726E+00, beta: -4.8698E-07}
+       Inf. Norm difference with reference:
+         Value               :  5.093047850834864E-05
+         Point               :  [  33,  42,  39 ]
+         Some values: [-1.402294998342768E-06,  4.253541705523389E-06, 
+                        3.888782245553557E-06]
+     - Iteration quality: { #_________________________________________________ Iteration  2
+ iter:  2, normr:  2.9074E-06, alpha: -1.8653E-01, beta:  6.0466E-06}
+       Inf. Norm difference with reference:
+         Value               :  3.554926789206547E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-1.938037961224381E-05,  3.466842724009211E-07, 
+                        9.873680895111647E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  3
+ iter:  3, normr:  8.9097E-07, alpha:  6.2971E-01, beta:  9.6016E-08}
+       Inf. Norm difference with reference:
+         Value               :  3.738037877099032E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.284823293052796E-05,  5.103372764381220E-07, 
+                        2.246000079253463E-07]
+     - Iteration quality: { #_________________________________________________ Iteration  4
+ iter:  4, normr:  3.0887E-07, alpha:  8.4097E-01, beta:  2.0325E-08}
+       Inf. Norm difference with reference:
+         Value               :  3.737156531258279E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.157597991470084E-05,  4.367489783163592E-07, 
+                        8.089510572517611E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  5
+ iter:  5, normr:  1.1823E-07, alpha:  6.5868E-01, beta:  2.4164E-09}
+       Inf. Norm difference with reference:
+         Value               :  3.690294849434395E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.168315580775015E-05,  4.199501049129140E-07, 
+                        5.348401543869841E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  6
+ iter:  6, normr:  1.9928E-08, alpha:  9.2622E-01, beta:  1.3058E-10}
+       Inf. Norm difference with reference:
+         Value               :  3.705700133593837E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.170811627877356E-05,  4.177368957414274E-07, 
+                        4.965279032376202E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  7
+ iter:  7, normr:  3.8241E-09, alpha:  8.3137E-01, beta:  7.7674E-12}
+       Inf. Norm difference with reference:
+         Value               :  3.702116899262364E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.169889064873587E-05,  4.185123394506718E-07, 
+                        5.042294048962503E-08]
+     Iteration quality: { #___________________________________________________ Iteration  4
+ iter:  4, normr:  6.0492E-08}
+     Inf. Norm difference with reference:
+       Value                 :  3.702116899262364E-05
+       Point                 :  [  34,  41,  40 ]
+       Some values: [-2.169889064873587E-05,  4.185123394506718E-07, 
+                      5.042294048962503E-08]
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  3.3549E-07, alpha: -1.1389E+00, beta: -1.1277E-09}
+       Inf. Norm difference with reference:
+         Value               :  3.627462835709139E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.082291834426542E-05,  5.164825775949566E-07, 
+                        1.484238083548917E-07]
+     - Iteration quality: { #_________________________________________________ Iteration  2
+ iter:  2, normr:  1.4067E-07, alpha: -1.9165E-01, beta:  1.3450E-08}
+       Inf. Norm difference with reference:
+         Value               :  3.703711888647376E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.167408658237946E-05,  3.302779081337803E-07, 
+                       -3.201462206448014E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  3
+ iter:  3, normr:  4.3009E-08, alpha:  6.3190E-01, beta:  2.2512E-10}
+       Inf. Norm difference with reference:
+         Value               :  3.712580669912313E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.184187360398937E-05,  3.381977098371181E-07, 
+                       -2.591450964928299E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  4
+ iter:  4, normr:  1.5055E-08, alpha:  8.4200E-01, beta:  4.8408E-11}
+       Inf. Norm difference with reference:
+         Value               :  3.712537608180355E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.177994846874753E-05,  3.344953256601002E-07, 
+                       -3.299184569982572E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  5
+ iter:  5, normr:  5.7725E-09, alpha:  6.5787E-01, beta:  5.7241E-12}
+       Inf. Norm difference with reference:
+         Value               :  3.710264134326735E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.178510820272095E-05,  3.336688223498641E-07, 
+                       -3.431940598375149E-08]
+     Iteration quality: { #___________________________________________________ Iteration  5
+ iter:  5, normr:  2.9274E-09}
+     Inf. Norm difference with reference:
+       Value                 :  3.710264134326735E-05
+       Point                 :  [  34,  41,  40 ]
+       Some values: [-2.178510820272095E-05,  3.336688223498641E-07, 
+                     -3.431940598375149E-08]
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  1.7463E-08, alpha: -8.7051E-01, beta: -2.3024E-12}
+       Inf. Norm difference with reference:
+         Value               :  3.706669302516730E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.175227868406182E-05,  3.373102348547263E-07, 
+                       -3.063725273477758E-08]
+     - Iteration quality: { #_________________________________________________ Iteration  2
+ iter:  2, normr:  6.4877E-09, alpha: -2.4494E-01, beta:  1.9307E-11}
+       Inf. Norm difference with reference:
+         Value               :  3.710912105248099E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.178480963266338E-05,  3.294689889798974E-07, 
+                       -3.828283823281708E-08]
+     Iteration quality: { #___________________________________________________ Iteration  6
+ iter:  6, normr:  1.5452E-10}
+     Inf. Norm difference with reference:
+       Value                 :  3.710912105248099E-05
+       Point                 :  [  34,  41,  40 ]
+       Some values: [-2.178480963266338E-05,  3.294689889798974E-07, 
+                     -3.828283823281708E-08]
+ - 
+     Embedded PSolver, Preconditioned Conjugate Gradient Method:
+     - Iteration quality: { #_________________________________________________ Iteration  1
+ iter:  1, normr:  3.3229E-09, alpha:  7.0107E-01, beta:  5.0535E-13}
+       Inf. Norm difference with reference:
+         Value               :  3.711730414579506E-05
+         Point               :  [  34,  41,  40 ]
+         Some values: [-2.179751227515681E-05,  3.290955028489861E-07, 
+                       -3.874797727121404E-08]
+     Iteration quality: { #___________________________________________________ Iteration  7
+ iter:  7, normr:  1.2028E-11}
+     Inf. Norm difference with reference:
+       Value                 :  3.711730414579506E-05
+       Point                 :  [  34,  41,  40 ]
+       Some values: [-2.179751227515681E-05,  3.290955028489861E-07, 
+                     -3.874797727121404E-08]
  Inf. Norm difference with reference:
    Value                     :  3.711730414579506E-05
    Point                     :  [  34,  41,  40 ]
@@ -1903,7 +1701,7 @@
      Peak Value (MB)         :  263.905
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 126.312 MB
- Walltime since initialization:  00:00:04.349529251
+     Memory Peak of process  : 126.308 MB
+ Walltime since initialization:  00:00:03.653069008
  Max No. of dictionaries used:  542 #( 173 still in use)
  Number of dictionary folders allocated:  1
