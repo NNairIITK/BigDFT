@@ -171,6 +171,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+futile_environment.sh
 doc/Makefile
 doc/Doxyfile
 flib/Makefile

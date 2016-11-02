@@ -324,6 +324,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 bigdft.pc
+bigdft_environment.sh
 config/Doxyfile
 utils/Makefile
 utils/PSPfiles/Makefile

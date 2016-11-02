@@ -1,3 +1,13 @@
+#!/usr/bin/env python
+# -*- coding: us-ascii -*-
+
+#--------------------------------------------------------------------------------
+# Copyright (C) 2015-2016 BigDFT group
+# This file is distributed under the terms of the
+# GNU General Public License, see
+# or http://www.gnu.org/copyleft/gpl.txt .
+#--------------------------------------------------------------------------------
+
 #Redefine ArgumentParser to have the help message if no arguments
 class UniParser():
     def __init__(self,*args,**kwargs):

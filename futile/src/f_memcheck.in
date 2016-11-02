@@ -22,4 +22,4 @@ echo "#Executable command: " "$@"
 #\
 echo "#End of f_memcheck utility"
 #\
-exec tclsh "$0" "$@"  "> $LOGFILE 2>$ERRFILE && tail -f $LOGFILE"
+exec tclsh "$0" "$@"  #"> $LOGFILE 2>$ERRFILE && tail -f $LOGFILE"
