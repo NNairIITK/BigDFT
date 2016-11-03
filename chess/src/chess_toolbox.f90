@@ -37,7 +37,7 @@ program chess_toolbox
                                 write_sparsematrix_info
    use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2, &
-                           transform_sparse_matrix
+                           transform_sparse_matrix, compress_matrix
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
                                      sparse_matrix_metadata_init_from_file, &
@@ -59,8 +59,10 @@ program chess_toolbox
    character(len=1) :: geocode
    character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
-   character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file, metadata_file
+   character(len=128) :: method_name, overlap_file, hamiltonian_file, hamiltonian_manipulated_file
+   character(len=128) :: kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
+   character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_
    !!character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
    character(len=128) :: kernel_matmul_file, fragment_file
    logical :: multipole_analysis = .false.
@@ -69,6 +71,7 @@ program chess_toolbox
    logical :: convert_matrix_format = .false.
    logical :: calculate_selected_eigenvalues = .false.
    logical :: kernel_purity = .false.
+   logical :: manipulate_eigenvalue_spectrum = .false.
    !!type(atoms_data) :: at
    type(sparse_matrix_metadata) :: smmd
    integer :: iproc, nproc
@@ -87,7 +90,7 @@ program chess_toolbox
    real(kind=8),dimension(:),pointer :: matrix_compr, eval_ptr
    real(kind=8),dimension(:,:),pointer :: rxyz, coeff_ptr
    real(kind=8),dimension(:),allocatable :: eval, energy_arr, occups
-   real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr
+   real(kind=8),dimension(:,:),allocatable :: denskernel, pdos, occup_arr, hamiltonian_tmp, ovrlp_tmp, matrix_tmp
    real(kind=8),dimension(:,:),allocatable :: kernel_fragment, overlap_fragment, ksk_fragment, tmpmat
    logical,dimension(:,:),allocatable :: calc_array
    logical :: file_exists, found, found_a_fragment, found_icol, found_irow
@@ -98,12 +101,14 @@ program chess_toolbox
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
-   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state
    character(len=20),dimension(:),pointer :: atomnames
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
-   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, maxdiff, meandiff, tt, tracediff, totdiff
+   real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, scale_value, shift_value
+   real(kind=8) :: maxdiff, meandiff, tt, tracediff, totdiff
+   real(kind=8) :: homo_value, lumo_value, smallest_value, largest_value, gap, gap_target
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    character(len=1024) :: outfile_base, outfile_extension, matrix_format
@@ -155,6 +160,7 @@ program chess_toolbox
    end if
 
    if (iproc==0) then
+       call yaml_map('Timestamp of the run',yaml_date_and_time_toa())
        call yaml_mapping_open('Parallel environment')
        call yaml_map('MPI tasks',nproc)
        nthread = 1
@@ -282,6 +288,33 @@ program chess_toolbox
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = fragment_file)
             kernel_purity = .true.
+        else if (trim(tatonam)=='manipulate-eigenvalue-spectrum') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = matrix_format)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = metadata_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_manipulated_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = ihomo_state_)
+            read(ihomo_state_,fmt=*,iostat=ierr) ihomo_state
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = homo_value_)
+            read(homo_value_,fmt=*,iostat=ierr) homo_value
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = lumo_value_)
+            read(lumo_value_,fmt=*,iostat=ierr) lumo_value
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = smallest_value_)
+            read(smallest_value_,fmt=*,iostat=ierr) smallest_value
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = largest_value_)
+            read(largest_value_,fmt=*,iostat=ierr) largest_value
+            manipulate_eigenvalue_spectrum = .true.
          end if
          i_arg = i_arg + 1
       end do loop_getargs
@@ -438,7 +471,7 @@ program chess_toolbox
        end if
        call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
        if (iproc==0) then
-           call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+           call yaml_comment('Matrix successfully diagonalized',hfill='~')
        end if
        iunit=99
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
@@ -1117,6 +1150,159 @@ program chess_toolbox
 
        call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&
                     gather_routine=gather_timings)
+
+
+   end if
+
+
+   if (manipulate_eigenvalue_spectrum) then
+       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+            init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
+            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+            init_matmul=.false.)
+
+       if (iproc==0) then
+           call yaml_mapping_open('Matrix properties')
+           call write_sparsematrix_info(smat_m, 'Hamiltonian')
+           call write_sparsematrix_info(smat_s, 'Overlap matrix')
+           call yaml_mapping_close()
+       end if
+
+       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
+       call uncompress_matrix(iproc, nproc, &
+            smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
+       call uncompress_matrix(iproc, nproc, &
+            smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+       eval = f_malloc(smat_s%nfvctr,id='eval')
+
+       ! Diagonalize the original Hamiltonian matrix
+       if (iproc==0) then
+           call yaml_comment('Diagonalizing the matrix',hfill='~')
+       end if
+       hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
+       ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
+       call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       if (iproc==0) then
+           call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+       end if
+
+       if (iproc==0) then
+           call yaml_mapping_open('Eigenvalue spectrum')
+           call yaml_map('Smallest value',eval(1))
+           call yaml_map('Largest value',eval(smat_s%nfvctr))
+           call yaml_map('HOMO value',eval(ihomo_state))
+           call yaml_map('LUMO value',eval(ihomo_state+1))
+           call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
+           call yaml_mapping_close()
+       end if
+
+       ! Manipulate the Hamiltonian matrix such that it has the desired spectral properteis
+
+       ! Scale the gap to the desired value
+       gap = eval(ihomo_state+1)-eval(ihomo_state)
+       gap_target = lumo_value-homo_value
+       scale_value = gap_target/gap
+       call vscal(smat_s%nfvctr**2, scale_value, hamiltonian_mat%matrix(1,1,1), 1)
+
+       ! Move the HOMO level to the desired value
+       call f_zero(ovrlp_tmp)
+       shift_value=homo_value-scale_value*eval(ihomo_state)
+       do i=1,smat_s%nfvctr
+           ovrlp_tmp(i,i)=shift_value*ovrlp_mat%matrix(i,i,1)
+       end do
+       call axpy(smat_s%nfvctr**2, 1.0_mp, ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+
+       ! Move the lowest eigenvalue to the desired value
+       matrix_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='matrix_tmp')
+       call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+            1.0_mp, hamiltonian_tmp(1,1), smat_s%nfvctr, &
+            hamiltonian_tmp(1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+            1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+            ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+            1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+            ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+       call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(1)+shift_value), &
+            ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+
+       call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+            1.0_mp, hamiltonian_tmp(1,smat_s%nfvctr), smat_s%nfvctr, &
+            hamiltonian_tmp(1,smat_s%nfvctr), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+            1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+            ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+            1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+            ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+       call axpy(smat_s%nfvctr**2, largest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
+            ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+       !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
+       !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+
+
+
+       ! Diagonalize the modified Hamiltonian matrix
+       if (iproc==0) then
+           call yaml_comment('Diagonalizing the matrix',hfill='~')
+       end if
+       !hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
+       !ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
+       call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       if (iproc==0) then
+           call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+       end if
+
+       if (iproc==0) then
+           call yaml_mapping_open('Eigenvalue spectrum')
+           call yaml_map('Smallest value',eval(1))
+           call yaml_map('Largest value',eval(smat_s%nfvctr))
+           call yaml_map('HOMO value',eval(ihomo_state))
+           call yaml_map('LUMO value',eval(ihomo_state+1))
+           call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
+           call yaml_mapping_close()
+       end if
+
+       index_dot = index(hamiltonian_manipulated_file,'.',back=.true.)
+       outfile_base = hamiltonian_manipulated_file(1:index_dot-1)
+       outfile_extension = hamiltonian_manipulated_file(index_dot:)
+       if (trim(matrix_format)=='serial_text') then
+           if (trim(outfile_extension)/='.txt') then
+               call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
+           end if
+       else if (trim(matrix_format)=='parallel_mpi-native') then
+           if (trim(outfile_extension)/='.mpi') then
+               call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
+           end if
+       else
+           call f_err_throw('Wrong matrix format')
+       end if
+       call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
+       call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
+            smat_m, hamiltonian_mat, trim(outfile_base))
+
+       call deallocate_sparse_matrix(smat_s)
+       call deallocate_sparse_matrix(smat_m)
+       call deallocate_matrices(ovrlp_mat)
+       call deallocate_matrices(hamiltonian_mat)
+       call deallocate_sparse_matrix_metadata(smmd)
+       call f_free(eval)
+       call f_free(hamiltonian_tmp)
+       call f_free(ovrlp_tmp)
+       call f_free(matrix_tmp)
+
+       !!call timing(mpiworld(),'LAST','PR')
+       call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&
+                    gather_routine=gather_timings)
+
 
 
    end if
