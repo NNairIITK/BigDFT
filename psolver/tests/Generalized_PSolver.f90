@@ -14,7 +14,7 @@ program GPS_3D
    use f_utils
    use yaml_strings
    use box
-   use module_base
+   use PSbase
    use numerics
    implicit none
    
@@ -840,9 +840,9 @@ subroutine PolarizationIteration(mesh,n01,n02,n03,nspden,iproc,&
 
   if (iproc ==0) then
   if (wrtfiles)  write(18,'(1x,a)')'iter normr rhores2'
-  if (wrtfiles)  write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
-   call yaml_map('-------------------------------','---')
-   call yaml_map('Starting Polarization Iteration','---')
+!  if (wrtfiles)  write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
+!   call yaml_map('-------------------------------','---')
+!   call yaml_map('Starting Polarization Iteration','---')
   end if
 
   if (iproc ==0) then
@@ -874,10 +874,10 @@ subroutine PolarizationIteration(mesh,n01,n02,n03,nspden,iproc,&
 
     do ip=1,maxiterpol
 
-     if (iproc ==0) then
-      call yaml_map('-------------------------------','---')
-      call yaml_map('Starting PI iteration',ip)
-     end if
+!     if (iproc ==0) then
+!      call yaml_map('-------------------------------','---')
+!      call yaml_map('Starting PI iteration',ip)
+!     end if
 
      isp=1
      do i3=1,n03
@@ -891,12 +891,11 @@ subroutine PolarizationIteration(mesh,n01,n02,n03,nspden,iproc,&
       end do
      end do
      
-     call yaml_sequence(advance='no')
      call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.,quiet='yes')
 
-     if (iproc ==0) then
-      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
-     end if
+!     if (iproc ==0) then
+!      call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
+!     end if
 
      !call fssnord3DmatNabla_LG2(n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,pkernel%dlogeps,rhopol,rhores2)
      call fssnord3DmatNabla_LG2(mesh,n01,n02,n03,hx,hy,hz,lv,nord,acell,eta,dlogeps,eps,rhopol,rhores2)
@@ -906,13 +905,13 @@ subroutine PolarizationIteration(mesh,n01,n02,n03,nspden,iproc,&
 
     if (iproc ==0) then
      if (wrtfiles) write(18,'(1x,I8,2(1x,e14.7))')ip,normr,rhores2
-    end if
-     !write(*,'(1x,I8,1x,e14.7)')ip,rhores2
-
+     call yaml_newline()
+     call yaml_sequence(advance='no')
      call EPS_iter_output_LG(ip,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
-     if (normr.lt.taupol) exit
+     call writeroutinePot(n01,n02,n03,nspden,lv,ip,potential)
+    end if
 
-!     call writeroutine(n01,n02,n03,nspden,rhores,ip)
+    if (normr.lt.taupol) exit
 
   end do
 
@@ -1252,7 +1251,6 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    if (wrtfiles)  write(18,'(1x,a)')'iter normr ratio beta'
    if (wrtfiles)  write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    call yaml_map('rpoints',rpoints)
-   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
 
   switch=0.0d0
@@ -1284,8 +1282,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
   end if
 
   if (iproc==0) then
-   call yaml_map('-------------------------------','---')
-   call yaml_map('Starting Preconditioned Conjugate Gradient','---')
+   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
 
 !------------------------------------------------------------------------------------
@@ -1362,16 +1359,16 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    if (normr.lt.error) exit
    if (normr.gt.max_ratioex) exit
 
-   if (iproc==0) then
-    call yaml_map('-------------------------------','---')
-    call yaml_map('Starting PCG iteration',i)
-   end if
+!   if (iproc==0) then
+!    call yaml_map('-------------------------------','---')
+!    call yaml_map('Starting PCG iteration',i)
+!   end if
 
 !  Apply the Preconditioner
 
-   if (iproc ==0) then
-    call yaml_sequence(advance='no')
-   end if
+!   if (iproc ==0) then
+!    call yaml_sequence(advance='no')
+!   end if
    
    if (CFgrid) then
     call H_potential('G',pkernel,lvc,pot_ion,ehartree,0.0_dp,.false.)
@@ -1477,7 +1474,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    if (iproc ==0) then
    if (wrtfiles)  write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
-   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
+   call yaml_newline()
+   call yaml_sequence(advance='no')
+   call EPS_iter_output_LG(i,0.0,normr,0.0d0,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
    call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
    end if
@@ -1498,10 +1497,10 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
    if (wrtfiles) close(unit=18)
    if (wrtfiles) close(unit=38)
 
-  if (iproc==0) then
-   call yaml_map('Termination of Preconditioned Conjugate Gradient','---')
-   call yaml_map('-------------------------------','---')
-  end if
+!  if (iproc==0) then
+!   call yaml_map('Termination of Preconditioned Conjugate Gradient','---')
+!   call yaml_map('-------------------------------','---')
+!  end if
 
   call f_free(x)
   call f_free(r)
@@ -2357,7 +2356,7 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 !   write(18,'(1x,a)')'iter_PB normrPB rhores2'
 !   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    call yaml_map('rpoints',rpoints)
-   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+   call yaml_sequence_open('Embedded PSolver, modified Poisson-Boltzmann solver')
   end if
 
   switch=0.0d0
@@ -2383,11 +2382,11 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 !  end do
 !--------------------------------------------------------------------------------------------
 
-  if (iproc==0) then
+!  if (iproc==0) then
    !write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   call yaml_map('-------------------------------','---')
-   call yaml_map('Starting a Poisson-Bolzmann run','---')
-  end if
+!   call yaml_map('-------------------------------','---')
+!   call yaml_map('Starting a Poisson-Bolzmann run','---')
+!  end if
   
   call f_zero(x)
   call f_zero(r_PB)
@@ -2401,15 +2400,17 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 
    if (iproc==0) then
     !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    call yaml_map('-------------------------------','---')
-    call yaml_map('Starting Poisson-Boltzmann iteration ',i_PB)
+!    call yaml_map('-------------------------------','---')
+!    call yaml_map('Starting Poisson-Boltzmann iteration ',i_PB)
+    call yaml_sequence(advance='no')
+    call yaml_mapping_open()
    end if
 
 
   if (iproc==0) then
    !write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   call yaml_map('-------------------------------','---')
-   call yaml_map('Starting Preconditioned Conjugate Gradient','---')
+!   call yaml_map('-------------------------------','---')
+!   call yaml_map('Starting Preconditioned Conjugate Gradient','---')
   end if
 
   normb=0.d0
@@ -2454,8 +2455,13 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   else
    errorvar=error
   end if
-  if (iproc ==0) then
-   call yaml_map('errorvar',errorvar)
+!  if (iproc ==0) then
+!   call yaml_map('errorvar',errorvar)
+!  end if
+
+  if (iproc==0) then
+   call yaml_newline()
+   call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
 
   do i=1,max_iter
@@ -2463,17 +2469,17 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
    if (normr.lt.errorvar) exit
    if (normr.gt.max_ratioex) exit
 
-   if (iproc==0) then
+!   if (iproc==0) then
     !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    call yaml_map('-------------------------------','---')
-    call yaml_map('Starting PCG iteration ',i)
-   end if
+!    call yaml_map('-------------------------------','---')
+!    call yaml_map('Starting PCG iteration ',i)
+!   end if
 
 !  Apply the Preconditioner
 
-   if (iproc ==0) then
-    call yaml_sequence(advance='no')
-   end if
+!   if (iproc ==0) then
+!    call yaml_sequence(advance='no')
+!   end if
    call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.,quiet='yes')
 
    beta0 = beta
@@ -2550,16 +2556,28 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
    normr=sqrt(normr/rpoints)
 
    ratio=normr/normb
-   if (iproc ==0) then
+!   if (iproc ==0) then
 !   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
-   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
+!   call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
+!   call writeroutine(n01,n02,n03,nspden,r,i)
+!   call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
+!   end if
+
+   if (iproc ==0) then
+   call yaml_newline()
+   call yaml_sequence(advance='no')
+   call EPS_iter_output_LG(i,0.0,normr,0.0d0,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
    call writeroutinePot(n01,n02,n03,nspden,x,i,potential)
    end if
 
+
   end do ! PCG loop
 
+   if (iproc ==0) then
+    call yaml_sequence_close()
+   end if
    rhores2=0.d0
    isp=1
    do i3=1,n03
@@ -2582,18 +2600,20 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 
   normrPB=sqrt(rhores2/rpoints)
 
-   if (iproc==0) then
+!   if (iproc==0) then
     !write(*,'(a)')'--------------------------------------------------------------------------------------------!'
-    call yaml_map('-------------------------------','---')
-    call yaml_map('End Poisson-Boltzmann iteration ',i_PB)
-   end if
+!    call yaml_map('-------------------------------','---')
+!    call yaml_map('End Poisson-Boltzmann iteration ',i_PB)
+!   end if
 
   if (iproc ==0) then
-   call yaml_map('iter PB',i_PB)
-   call yaml_map('normrPB',normrPB)
-   call yaml_map('rhores2',rhores2)
+!   call yaml_map('iter PB',i_PB)
+!   call yaml_map('normrPB',normrPB)
+!   call yaml_map('rhores2',rhores2)
 !   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+   call EPS_iter_output_LG(i_PB,0.0_dp,normrPB,0.0_dp,0.0_dp,0.0_dp)
    call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
+   call yaml_mapping_close()
   end if
 
    if (normrPB.lt.tauPB) exit
@@ -2624,11 +2644,11 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 !  close(unit=18)
 !  close(unit=38)
 
-  if (iproc==0) then
-   call yaml_map('Termination of Preconditioned Conjugate Gradient','---')
-   call yaml_map('-------------------------------','---')
-   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
-  end if
+!  if (iproc==0) then
+!   call yaml_map('Termination of Preconditioned Conjugate Gradient','---')
+!   call yaml_map('-------------------------------','---')
+!   !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+!  end if
 
   call f_free(x)
   call f_free(r)
@@ -5066,9 +5086,10 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,PSol,SetEps,mPB,eps0)
   use yaml_output
   use f_utils
-  use module_base
+  use PSbase
   use numerics
   use box
+  use dictionaries, only: f_err_throw
   implicit none
   type(cell), intent(in) :: mesh
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
@@ -6244,7 +6265,7 @@ subroutine SetInitDensPot(mesh,n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigm
   use f_utils
   use box
   use numerics
-  use module_base
+  use PSbase
 
   implicit none
   type(cell), intent(in) :: mesh
