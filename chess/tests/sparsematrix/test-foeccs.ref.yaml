@@ -4,12 +4,14 @@
  Parallel environment:
    MPI tasks                           :  1
    OpenMP threads                      :  4
-  #------------------------------------------------------------- Initializing overlap matrix
- Reading from file                     : overlap_ccs.txt
-  #--------------------------------------------------------- Initializing Hamiltonian matrix
- Reading from file                     : hamiltonian_ccs.txt
-  #------------------------------------------------------ Initializing density kernel matrix
- Reading from file                     : density_kernel_ccs.txt
+ Input parameters:
+   Sparsity format                     : ccs
+   Matrix format                       : serial_text
+   Metadata file                       : sparsematrix_metadata.dat
+   Overlap matrix file                 : overlap_ccs.txt
+   Hamiltonian matrix file             : hamiltonian_ccs.txt
+   Density kernel matrix file          : density_kernel_ccs.txt
+   Density kernel matrix multiplication file: density_kernel_matmul_ccs.txt
  Matrix properties:
    Overlap matrix:
      total elements                    :  360000
