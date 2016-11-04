@@ -2876,6 +2876,7 @@ module sparsematrix
           end do
 
           if (imode==2) then
+              tempmat2 = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
               do iseg=1,smat2%nseg
                   ii=smat2%keyv(iseg)
                   do i=smat2%keyg(1,1,iseg),smat2%keyg(2,1,iseg)

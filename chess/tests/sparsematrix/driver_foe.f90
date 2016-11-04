@@ -475,7 +475,7 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'Integer'))
 
-  call yaml_cl_parse_option(parser,'check_spectrum','-1',&
+  call yaml_cl_parse_option(parser,'check_spectrum','.false.',&
        'Indicate whether the spectral properties of the Hamiltonian shall be calculated',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagoanlization)',&
