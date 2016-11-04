@@ -1156,6 +1156,22 @@ program chess_toolbox
 
 
    if (manipulate_eigenvalue_spectrum) then
+
+       if (iproc==0) then
+           call yaml_mapping_open('Input parameters')
+           call yaml_map('Matrix format',trim(matrix_format))
+           call yaml_map('Matrix metadata file',trim(metadata_file))
+           call yaml_map('Input hamiltonian file',trim(hamiltonian_file))
+           call yaml_map('Input overlap file',trim(overlap_file))
+           call yaml_map('Output manipulated hamiltonian file',trim(hamiltonian_manipulated_file))
+           call yaml_map('HOMO state',ihomo_state)
+           call yaml_map('Target HOMO eigenvalue',homo_value)
+           call yaml_map('Target LUMO eigenvalue',lumo_value)
+           call yaml_map('Target lowest eigenvalue',smallest_value)
+           call yaml_map('Target highest eigenvalue',largest_value)
+           call yaml_mapping_close()
+       end if
+
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
        call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
             iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
@@ -1213,8 +1229,14 @@ program chess_toolbox
        ! Move the HOMO level to the desired value
        call f_zero(ovrlp_tmp)
        shift_value=homo_value-scale_value*eval(ihomo_state)
+       !if (iproc==0) then
+       !    call yaml_map('shift_value',shift_value)
+       !end if
        do i=1,smat_s%nfvctr
-           ovrlp_tmp(i,i)=shift_value*ovrlp_mat%matrix(i,i,1)
+           do j=1,smat_s%nfvctr
+               !ovrlp_tmp(i,i)=shift_value*ovrlp_mat%matrix(i,i,1)
+               hamiltonian_mat%matrix(j,i,1) = hamiltonian_mat%matrix(j,i,1) + shift_value*ovrlp_mat%matrix(j,i,1)
+           end do
        end do
        call axpy(smat_s%nfvctr**2, 1.0_mp, ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
 
