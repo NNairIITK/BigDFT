@@ -32,7 +32,7 @@ program driver_foe
                                     matrix_matrix_multiplication, matrix_fermi_operator_expansion, &
                                     trace_A, trace_AB, sparse_matrix_metadata_init_from_file, &
                                     sparse_matrix_and_matrices_init_from_file_bigdft
-  use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix
+  use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix, get_minmax_eigenvalues
   use sparsematrix_init, only: matrixindex_in_compressed, write_sparsematrix_info, &
                                get_number_of_electrons
   ! The following module is an auxiliary module for this test
@@ -48,10 +48,10 @@ program driver_foe
   type(matrices) :: mat_s, mat_h, mat_k, mat_ek
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
-  integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult
+  integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
-  real(mp),dimension(:),allocatable :: charge
+  real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max
   real(mp) :: energy, tr_KS, tr_KS_check
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr
@@ -59,6 +59,7 @@ program driver_foe
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
   character(len=1024) :: sparsity_format, matrix_format
+  logical :: check_spectrum
   external :: gather_timings
   !$ integer :: omp_get_max_threads
 
@@ -116,6 +117,8 @@ program driver_foe
       kernel_matmul_file = options//'kernel_matmul_file'
       sparsity_format = options//'sparsity_format'
       matrix_format = options//'matrix_format'
+      scalapack_blocksize = options//'scalapack_blocksize'
+      check_spectrum = options//'check_spectrum'
      
       call dict_free(options)
 
@@ -127,6 +130,8 @@ program driver_foe
       call yaml_map('Hamiltonian matrix file',trim(hamiltonian_file))
       call yaml_map('Density kernel matrix file',trim(kernel_file))
       call yaml_map('Density kernel matrix multiplication file',trim(kernel_matmul_file))
+      call yaml_map('Blocksize for ScaLAPACK',scalapack_blocksize)
+      call yaml_map('Check the Hamiltonian spectrum',check_spectrum)
       call yaml_mapping_close()
   end if
 
@@ -138,6 +143,23 @@ program driver_foe
   call mpibcast(hamiltonian_file, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_file, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
+  call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  ! Since there is no wrapper for logicals...
+  if (iproc==0) then
+      if (check_spectrum) then
+          icheck = 1
+      else
+          icheck = 0
+      end if
+  end if
+  call mpibcast(icheck, root=0, comm=mpi_comm_world)
+  if (icheck==1) then
+      check_spectrum = .true.
+  else
+      check_spectrum = .false.
+  end if
+
 
 
   ! Read in the overlap matrix and create the type containing the sparse matrix descriptors (smat_s) as well as
@@ -223,6 +245,27 @@ program driver_foe
 
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
+
+  if(check_spectrum) then
+      evals = f_malloc(smat_h%nfvctr,id='evals')
+      eval_min = f_malloc(smat_h%nspin,id='eval_min')
+      eval_max = f_malloc(smat_h%nspin,id='eval_max')
+      call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'generalized', scalapack_blocksize, &
+           smat_h, mat_h, eval_min, eval_max, quiet=.true., smat2=smat_s, mat2=mat_s, evals=evals)
+      if (iproc==0) then
+          call yaml_mapping_open('Hamiltonian spectrum')
+          call yaml_map('Lowest eigenvalue',evals(1))
+          call yaml_map('Highest eigenvalue',evals(smat_h%nfvctr))
+          call yaml_map('HOMO eigenvalue',evals(ncharge))
+          call yaml_map('LUMO eigenvalue',evals(ncharge+1))
+          call yaml_map('Spectral width',evals(smat_h%nfvctr)-evals(1))
+          call yaml_map('HOMO-lUMO gap',evals(ncharge+1)-evals(ncharge))
+          call yaml_mapping_close()
+      end if
+      call f_free(evals)
+      call f_free(eval_min)
+      call f_free(eval_max)
+  end if
 
   ! Calculate the density kernel for the system described by the pair smat_s/mat_s and smat_h/mat_h and 
   ! store the result in smat_k/mat_k.
@@ -424,5 +467,19 @@ subroutine commandline_options(parser)
        'Indicate the format of the input matrices',&
        'Allowed values' .is. &
        'String'))
+
+  call yaml_cl_parse_option(parser,'scalapack_blocksize','-1',&
+       'Indicate the blocksize for ScaLAPACK (negative for LAPACK)',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the blocksize for ScaLAPACK (negative for LAPACK)',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'check_spectrum','-1',&
+       'Indicate whether the spectral properties of the Hamiltonian shall be calculated',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagoanlization)',&
+       'Allowed values' .is. &
+       'Logical'))
 
 end subroutine commandline_options

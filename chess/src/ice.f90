@@ -780,7 +780,7 @@ module ice
       betax = foe_data_get_real(ice_obj,"betax")
 
       !!@ TEMPORARY: eigenvalues of  the overlap matrix ###################
-      !!call get_minmax_eigenvalues(iproc, nproc, comm, -8, &
+      !!call get_minmax_eigenvalues(iproc, nproc, comm, 'standard', -8, &
       !!     ovrlp_smat, ovrlp_mat, eval_min, eval_max)
 
 
