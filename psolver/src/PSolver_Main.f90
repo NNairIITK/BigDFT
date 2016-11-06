@@ -548,18 +548,21 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
  
       call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
 
-      !$omp parallel do default(shared) private(i1,i23)
+      normr=0.0_dp
+      !$omp parallel do default(shared) private(i1,i23) &
+      !$omp reduction(+:normr)
       do i23=1,n23
          do i1=1,n1
             kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
             kernel%w%z(i1,i23)=kernel%w%res(i1,i23)
             kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
             kernel%w%q(i1,i23)=0.d0
+            normr=normr+kernel%w%res(i1,i23)
          end do
       end do
       !$omp end parallel do
- 
-      normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+      !print *,'here',sum(kernel%w%res)
+      !normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
       call PS_reduce(normr,kernel)
       normr=sqrt(normr/rpoints)
       ratio=normr/normb

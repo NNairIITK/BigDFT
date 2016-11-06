@@ -113,6 +113,7 @@ program GPS_3D
    delta=0.3d0
    delta= options .get. 'deltacav'
    lin_PB = SetEps == 17
+   call f_zero(einit)
 
    call dict_init(dict_input)
 

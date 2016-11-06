@@ -652,7 +652,7 @@ contains
   !! following the definitions given in J. J. López-García, J. Horno, C. Grosse Langmuir 27, 13970-13974 (2011).
   pure function PB_charge(epsilon,cavity,pot) result(ions_conc)
 
-    use numerics, only: safe_exp
+    use numerics, only: safe_exp,pi
 
     implicit none
 
@@ -681,7 +681,6 @@ contains
     integer, parameter :: PBeq=3 ! Set 1 for linear, 2 for standard, 3 for
     ! modified Poisson-Boltzmann equation.
 
-    pi = 4.d0*datan(1.d0)
     k_bT = k_b*Temp
     vol_bohr=bohr*bohr*bohr
     fact=n_avo*vol_bohr
