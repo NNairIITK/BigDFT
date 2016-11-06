@@ -392,7 +392,6 @@ program GPS_3D
     pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/beta,alpha,gamma/))
    end if
 
-!!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
 
@@ -2299,6 +2298,7 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   use yaml_output
   use f_utils
   use dynamic_memory
+  use numerics, only: safe_identity
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
@@ -2543,7 +2543,7 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
     do i2=1,n02
      do i1=1,n01
       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
-      r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
+      r(i1,i2,i3,isp) = safe_identity(r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp))
       normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
       !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
       !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)*pkernel%oneoeps(i1,i2,i3)
@@ -5200,23 +5200,19 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   end if
 
   if (wrtfiles) then
-   if (cavity) then
     unit=200
-    call f_open_file(unit=unit,file='references_xz_cav.dat')
     unit2=201
+    unit3=202
+    unit4=203
+   if (cavity) then
+    call f_open_file(unit=unit,file='references_xz_cav.dat')
     call f_open_file(unit=unit2,file='references_xy_cav.dat')
-    unit=202
     call f_open_file(unit=unit3,file='references_line_y_cav.dat')
-    unit2=203
     call f_open_file(unit=unit4,file='references_line_x_cav.dat')
    else
-    unit=200
     call f_open_file(unit=unit,file='references_xz_vac.dat')
-    unit2=201
     call f_open_file(unit=unit2,file='references_xy_vac.dat')
-    unit=202
     call f_open_file(unit=unit3,file='references_line_y_vac.dat')
-    unit2=203
     call f_open_file(unit=unit4,file='references_line_x_vac.dat')
    end if
   end if
@@ -5900,7 +5896,7 @@ subroutine test_functions(mesh,geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
                    2.0_dp*(mesh%gu(1,2)*fx1*fy1*fz+mesh%gu(1,3)*fx1*fy*fz1+mesh%gu(2,3)*fx*fy1*fz1)
 !              dd = fx2*fy*fz+fx*fy2*fz+fx*fy*fz2
               dd = -eps0m1*dd
-              corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/e-dd)
+              corr(i1,i2,i3)=safe_identity(-oneoeightpi*(0.5d0*d12/e-dd))
            end do
         end do
      end do
@@ -6162,7 +6158,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      r=pi*nu/a*x
      y=cos(r)
      yp=-sin(r)
-     f=exp(y) !<checked /dexp(1.0_dp) !<to be checked
+     f=safe_exp(y) !<checked /dexp(1.0_dp) !<to be checked
      factor=(pi*nu/a)**2*(-y+yp**2)
      f1 = f*pi*nu/a*yp !<checked
      f2 = factor*f !<checked
@@ -6247,7 +6243,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
         z1=n*y**(n-1)/b
         z2=n*(n-1)*y**(n-2)/b**2
         c=-2.d0/dsqrt(pi)
-        f=1.d0-derf(z)
+        f=1.d0-safe_erf(z)
         f1=c*safe_exp(-z**2)*z1
         f2=c*safe_exp(-z**2)*(-2.d0*z*z1**2+z2)
   case default

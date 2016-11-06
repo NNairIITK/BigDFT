@@ -676,7 +676,7 @@ contains
     real(dp), parameter :: bohr = 5.291772109217d-11 ! m
     !local variables
     integer :: i,j
-    real(dp) :: pi,fact,vol_bohr,K_bT,t,fact1,sumc,y,h,l
+    real(dp) :: fact,vol_bohr,K_bT,t,fact1,sumc,y,h,l
     real(dp), dimension(n_ions) :: c_ratio  !< c_ions/c_max
     integer, parameter :: PBeq=3 ! Set 1 for linear, 2 for standard, 3 for
     ! modified Poisson-Boltzmann equation.

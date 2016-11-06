@@ -556,8 +556,15 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
             kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
             kernel%w%z(i1,i23)=kernel%w%res(i1,i23)
             kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
+!!$            if (kernel%w%res(i1,i23) /= 0.0_dp) then
+!!$               print *,'facs',kernel%w%q(i1,i23)
+!!$               print *,'facs2',kernel%w%pot(i1,i23)
+!!$               print *,'facs3',kernel%w%corr(i1,i23)
+!!$               print *,'here',kernel%w%res(i1,i23)
+!!$               print *,'there',kernel%w%res(i1,i23)**2
+!!$            end if
             kernel%w%q(i1,i23)=0.d0
-            normr=normr+kernel%w%res(i1,i23)
+            normr=normr+kernel%w%res(i1,i23)**2
          end do
       end do
       !$omp end parallel do
