@@ -924,7 +924,7 @@ if __name__ == "__main__":
             searchfor = options.find_key
             matching_keys = closest_keys(allkeys, searchfor)
             print 'matching', searchfor, 'in:', matching_keys
-            print 'keys wich match the most with', searchfor
+            print 'keys which match the most with', searchfor
             foundkeys = []
             doc = []
             for (i, ratio) in matching_keys:
