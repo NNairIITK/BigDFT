@@ -227,7 +227,7 @@ recursive subroutine test_functions_box(mesh,nspden,a_gauss,&
   !local variables
   integer, parameter :: nrep=10
   logical ::  separable=.true.,old=.false. !save attribute for the profiling
-  integer :: i1,i2,i3,ifx,ify,ifz,i,irep,n01,n02,n03
+  integer :: i1,i2,i3,ifx,ify,ifz,i,n01,n02,n03
   
   real(kind=8) :: x1,x2,x3,length,denval,a2,derf_tt,factor,r,r2,hx,hy,hz
   real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,acell
@@ -446,6 +446,7 @@ subroutine functions(x,a,b,f,f2,whichone)
   real(kind=8) :: r,r2,y,yp,ys,factor,pi,g,h,g1,g2,h1,h2
   real(kind=8) :: length,frequency,nu,sigma,agauss
 
+  factor=0.d0
   pi = 4.d0*datan(1.d0)
   select case(whichone)
   case(1)
