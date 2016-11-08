@@ -49,6 +49,7 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
+  integer :: ispin, ihomo, imax
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max
@@ -254,13 +255,28 @@ program driver_foe
            smat_h, mat_h, eval_min, eval_max, quiet=.true., smat2=smat_s, mat2=mat_s, evals=evals)
       if (iproc==0) then
           call yaml_mapping_open('Hamiltonian spectrum')
-          call yaml_map('Lowest eigenvalue',evals(1))
-          call yaml_map('Highest eigenvalue',evals(smat_h%nfvctr))
-          call yaml_map('HOMO eigenvalue',evals(ncharge))
-          call yaml_map('LUMO eigenvalue',evals(ncharge+1))
-          call yaml_map('Spectral width',evals(smat_h%nfvctr)-evals(1))
-          call yaml_map('HOMO-lUMO gap',evals(ncharge+1)-evals(ncharge))
-          call yaml_mapping_close()
+          do ispin=1,smat_h%nspin
+              if (smat_h%nspin>1) then
+                  if (ispin==1) then
+                      call yaml_mapping_open('Spin up')
+                  else if (ispin==2) then
+                      call yaml_mapping_open('Spin down')
+                  end if
+                  ihomo = ncharge
+              else
+                  ihomo = ncharge/2
+              end if
+              call yaml_map('Lowest eigenvalue',evals(1))
+              call yaml_map('Highest eigenvalue',evals(smat_h%nfvctr))
+              call yaml_map('HOMO eigenvalue',evals(ihomo))
+              call yaml_map('LUMO eigenvalue',evals(ihomo+1))
+              call yaml_map('Spectral width',evals(smat_h%nfvctr)-evals(1))
+              call yaml_map('HOMO-lUMO gap',evals(ihomo+1)-evals(ihomo))
+              if (smat_h%nspin>1) then
+                  call yaml_mapping_close()
+              end if
+              call yaml_mapping_close()
+          end do
       end if
       call f_free(evals)
       call f_free(eval_min)

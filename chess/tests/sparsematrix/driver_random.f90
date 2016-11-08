@@ -306,7 +306,7 @@ program driver_random
        gather_routine=gather_timings)
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), scalapack_blocksize, &
+  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'standard', scalapack_blocksize, &
        smats, mat2, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
       call yaml_mapping_open('Eigenvalue properties')
