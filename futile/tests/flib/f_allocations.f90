@@ -529,10 +529,6 @@ program f_buffer_allocations
   d1_ptr_exotic=f_malloc_ptr(-1.to.34,id='d1_ptr_exotic',&
        info='{Type: SHARED}')
 
-  call output("Exotic",d1_ptr_exotic)
-
-  call mpibarrier()
-
   call yaml_mapping_open('Status of the database',advance='no')
   call yaml_comment('Database status',hfill='~')
   call f_malloc_dump_status()
