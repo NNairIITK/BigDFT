@@ -1809,7 +1809,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     real(kind=8)::x(nr),f(nr),epot,work(nwork)
     !real(kind=8), allocatable::eval(:),umat(:)
     type(parameterminimization_sp)::parmin
-    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent,beta
+    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm_ss,fmax,calmaxforcecomponent_ss,beta
     real(kind=8)::tt3,tt4,tt5,tt6
     real(kind=8), save::epotold,alpha,alphamax,zeta
     logical, save::reset
@@ -1841,7 +1841,7 @@ subroutine bfgs_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         parmin%iter=parmin%iter+1
     endif
     de=epot-epotold
-    fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
+    fnrm=calnorm_ss(nr,f);fmax=calmaxforcecomponent_ss(nr,f)
     if(iproc==0) then
     write(*,'(a10,i4,es23.15,es11.3,2es12.5,1es12.4)') &
         'BFGSMIN   ',parmin%iter,epot,de,fnrm,fmax,zeta
@@ -1965,7 +1965,7 @@ subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
     integer, allocatable::ipiv(:)
     !type(parameterminimization)::parmin
     type(parameterminimization_sp)::parmin
-    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm,fmax,calmaxforcecomponent,dx
+    real(kind=8)::DDOT,tt1,tt2,de,fnrm,calnorm_ss,fmax,calmaxforcecomponent_ss,dx
     real(kind=8), save::epotold,alpha,alphamax,zeta,zetaold
     logical, save::reset
     if(nwork/=nr*nr+3*nr+3*nr*nr+2*nr) then
@@ -1993,7 +1993,7 @@ subroutine dfp_splsad(iproc,nr,x,epot,f,nwork,work,parmin)
         parmin%iter=parmin%iter+1
     endif
     de=epot-epotold
-    fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
+    fnrm=calnorm_ss(nr,f);fmax=calmaxforcecomponent_ss(nr,f)
     if(iproc==0) then
     write(*,'(a10,i4,es23.15,es11.3,2es12.5,1es12.4)') &
         'DFPMIN    ',parmin%iter,epot,de,fnrm,fmax,alpha
@@ -4393,8 +4393,8 @@ subroutine fire_splsad(iproc,nr,x,epot,f,work,parmin)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,nr
-    real(kind=8)::x(nr),epot,f(nr),de,DDOT,fnrm,fmax,vnrm,dt,p,calnorm
-    real(kind=8)::tt,calmaxforcecomponent,vnrmmax
+    real(kind=8)::x(nr),epot,f(nr),de,DDOT,fnrm,fmax,vnrm,dt,p,calnorm_ss
+    real(kind=8)::tt,calmaxforcecomponent_ss,vnrmmax
     real(kind=8)::work(3*nr) !1:nr velocities, nr+1:2*nr previous force
     real(kind=8), save::epotold,alpha
     integer, save::ndown
@@ -4435,7 +4435,7 @@ subroutine fire_splsad(iproc,nr,x,epot,f,work,parmin)
         work(1:nr)=work(1:nr)+0.5d0*dt*(f(1:nr)+work(nr+1:2*nr))
     endif
     p=DDOT(nr,f,1,work,1)
-    vnrm=calnorm(nr,work);fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
+    vnrm=calnorm_ss(nr,work);fnrm=calnorm_ss(nr,f);fmax=calmaxforcecomponent_ss(nr,f)
     de=epot-epotold
     if(iproc==0) &
     write(*,'(a10,i4,es23.15,es11.3,2es12.5,3es12.4,i4,1es12.4)') &
@@ -4461,7 +4461,7 @@ subroutine fire_splsad(iproc,nr,x,epot,f,work,parmin)
     tt=min(alpha*vnrm/fnrm,5.d-1*parmin%alphax)
     work(1:nr)=(1.d0-alpha)*work(1:nr)+tt*f(1:nr) !min(alpha*vnrm,3.d0*parmin%alphax*fnrm)
     !-------------------------------------------------------
-    tt=calnorm(nr,work)
+    tt=calnorm_ss(nr,work)
     if(iproc==0) write(*,'(a,2es19.10)') 'fort56 ',tt,fnrm
     vnrmmax=20.d0*fnrm
     if(tt>vnrmmax) then
@@ -4494,12 +4494,12 @@ subroutine sdminimum(iproc,n,nr,x,f,epot,parmin,nwork,work)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::iproc,n,nr,nwork
-    real(kind=8)::x(n),f(n),epot,work(nwork),calmaxforcecomponent,calnorm,fmax,fnrm
+    real(kind=8)::x(n),f(n),epot,work(nwork),calmaxforcecomponent_ss,calnorm_ss,fmax,fnrm
     type(parameterminimization_sp)::parmin
     real(kind=8)::de1,de2,df1,df2
     logical::xmoved
     if(parmin%iflag==0) call initsdminimum(n,nr,x,parmin,nwork,work)
-    fnrm=calnorm(nr,f);fmax=calmaxforcecomponent(nr,f)
+    fnrm=calnorm_ss(nr,f);fmax=calmaxforcecomponent_ss(nr,f)
     de1=epot-parmin%epotitm1;de2=epot-2.d0*parmin%epotitm1+parmin%epotitm2
     df1=fnrm-parmin%fnrmitm1;df2=fnrm-2.d0*parmin%fnrmitm1+parmin%fnrmitm2
     if(parmin%itsd==0) de1=0.d0
@@ -4601,7 +4601,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
     use minimization_sp, only:parameterminimization_sp
     implicit none
     integer::n,nr,nwork,i,info,id,jd,iproc
-    real(kind=8)::x(n),f(n),epot,work(nwork),fnrm,dnrm2,ddot,fmax,calmaxforcecomponent
+    real(kind=8)::x(n),f(n),epot,work(nwork),fnrm,dnrm2,ddot,fmax,calmaxforcecomponent_ss
     type(parameterminimization_sp)::parmin
     character(28), parameter::frt1='(a10,i4,e23.15,e11.3,2e12.5)'
     if(parmin%iflag==0) then
@@ -4635,7 +4635,7 @@ subroutine diisminimum(iproc,n,nr,x,epot,f,parmin,nwork,work)
         call vcopy(nr,x(1),1,work((3*parmin%idsx+2)*nr+1),1)
     endif
     call vcopy(nr,f(1),1,work((parmin%idsx+1)*nr+parmin%ld*nr+1),1)
-    fmax=calmaxforcecomponent(nr,f)
+    fmax=calmaxforcecomponent_ss(nr,f)
     if(iproc==0) then
         write(parmin%ifile,frt1) 'DIISMIN   ',parmin%itdiis,epot,epot-parmin%epotitm1,fnrm,fmax
         write(*           ,frt1) 'DIISMIN   ',parmin%itdiis,epot,epot-parmin%epotitm1,fnrm,fmax
@@ -4701,22 +4701,22 @@ function mydot(n,v1,v2)
 end function mydot
 
 
-function calmaxforcecomponent(n,v)
+function calmaxforcecomponent_ss(n,v)
     implicit none
     integer::n,i
-    real(kind=8)::v(n),calmaxforcecomponent
-    calmaxforcecomponent=0.d0
-    do i=1,n;calmaxforcecomponent=max(calmaxforcecomponent,abs(v(i)));enddo
-end function calmaxforcecomponent
+    real(kind=8)::v(n),calmaxforcecomponent_ss
+    calmaxforcecomponent_ss=0.d0
+    do i=1,n;calmaxforcecomponent_ss=max(calmaxforcecomponent_ss,abs(v(i)));enddo
+end function calmaxforcecomponent_ss
 
 
-function calnorm(n,v)
+function calnorm_ss(n,v)
     implicit none
     integer::n,i
-    real(kind=8)::v(n),calnorm
-    calnorm=0.d0
-    do i=1,n;calnorm=calnorm+v(i)**2;enddo;calnorm=sqrt(calnorm)
-end function calnorm
+    real(kind=8)::v(n),calnorm_ss
+    calnorm_ss=0.d0
+    do i=1,n;calnorm_ss=calnorm_ss+v(i)**2;enddo;calnorm_ss=sqrt(calnorm_ss)
+end function calnorm_ss
 
 
 subroutine writepathway(n,np,x,filename,astruct)

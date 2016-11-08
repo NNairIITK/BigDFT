@@ -110,6 +110,7 @@ dnl This will be added in libs, on top, therefore care should be taken for a lin
 AC_LANG_PUSH(C)
 AC_CHECK_HEADERS([time.h])
 AC_CHECK_LIB([rt], [clock_gettime])
+AC_CHECK_LIB([dl], [dlopen])
 AC_CHECK_FUNCS([clock_gettime])
 AC_CHECK_FUNCS([strndup])
 AC_LANG_POP(C)
@@ -170,6 +171,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+futile_environment.sh
 doc/Makefile
 doc/Doxyfile
 flib/Makefile
@@ -178,6 +180,7 @@ wrappers/Makefile
 c-bindings/Makefile
 c-bindings/futile_cst.h
 src/configure.inc
+src/f_memcheck
 src/Makefile
 tests/Makefile
 tests/fft/Makefile

@@ -1,3 +1,13 @@
+!> @file
+!! Test the argument parsing of the library.
+!! @author
+!!    Copyright (C) 2015-2016 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS
+
+
 program yaml_argparse_main
   use futile
   implicit none

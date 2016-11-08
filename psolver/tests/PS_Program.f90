@@ -27,7 +27,7 @@ program PSolver_Program
   !Order of interpolating scaling function
   !integer, parameter :: itype_scf=8
   character(len=*), parameter :: subname='Poisson_Solver'
-  real(kind=8), parameter :: a_gauss = 1.0d-2, a2 = a_gauss**2
+  real(kind=8), parameter :: a_gauss = 1.0d0, a2 = a_gauss**2
   !Length of the box
   real(kind=8), parameter :: acell = 10.0d0
   real(kind=8), parameter :: EulerGamma = 0.5772156649015328d0
@@ -96,9 +96,7 @@ program PSolver_Program
   call mpiinit()
   iproc=mpirank()
   nproc=mpisize()
-
-  iproc=0
-  nproc=1
+  call f_malloc_set_status(iproc=iproc)
 
   nullify(dict,input)
   call yaml_argparse(options,inputs)
@@ -127,72 +125,6 @@ program PSolver_Program
 
   detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
-
-!!$  !Use arguments
-!!$  call get_command_argument(1,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) n01
-!!$
-!!$  call get_command_argument(2,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) n02
-!!$
-!!$  call get_command_argument(3,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) n03
-!!$
-!!$  call get_command_argument(4,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) ixc
-!!$
-!!$  call get_command_argument(5,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) geocode
-!!$
-!!$  call get_command_argument(6,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) datacode
-!!$
-!!$  call get_command_argument(7,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) itype_scf
-!!$
-!!$  call get_command_argument(8,chain)
-!!$  if(trim(chain)=='') then
-!!$     mu0 = 0.0_dp
-!!$  else
-!!$     read(unit=chain,fmt=*) mu0
-!!$  end if
-
-
   !write(*,*) 'mu0 =', mu0
 
   !perform also the comparison with the serial case
@@ -200,11 +132,6 @@ program PSolver_Program
   onlykernel=.false.
   !code for the Poisson Solver in the parallel case
   !datacode='G'
-
-!!$  call MPI_INIT(ierr)
-!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
 
   select case(geocode)
   
@@ -300,6 +227,8 @@ program PSolver_Program
      !ionic potential
      pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
 
+     if (iproc==0) call yaml_map('ixc',ixc)
+
      call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
           density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
 
@@ -369,7 +298,9 @@ program PSolver_Program
 
      !print *,'potential integral',sum(density)
      !this has to be corrected with the volume element of mesh
-     if (iproc==0) call yaml_map('potential integral',sum(density)*hx*hy*hx*sqrt(detg))
+     eexcu=sum(density)*hx*hy*hx*sqrt(detg)
+     if (nproc >1) call mpiallred(eexcu,1,op=MPI_SUM)
+     if (iproc==0) call yaml_map('potential integral',eexcu)
 
      i3=n03/2
      do i2=1,n02
@@ -431,13 +362,6 @@ program PSolver_Program
         call yaml_map('Result',density(i1_max,i2_max,i3_max))
         call yaml_map('Original',potential(i1_max,i2_max,i3_max))
         call yaml_mapping_close()
-!!$        write(*,*) '--------------------'
-!!$        write(*,*) 'Parallel calculation '
-!!$        write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
-!!$        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-!!$        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
-!!$             '      result:',density(i1_max,i2_max,i3_max),&
-!!$             '    original:',potential(i1_max,i2_max,i3_max)
      end if
 
   end if
@@ -707,7 +631,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         y = hz*real(i1-n03/2-1,kind=8) 
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(y,az,bz,fz,fz1,fz2,ifz)
-        write(20,*) i1,fx,fx2,fz,fz2
+        write(20,'(1x,I8,4(1x,e22.15))') i1,fx,fx2,fz,fz2
      end do
 
      !Initialization of density and potential
@@ -774,7 +698,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            !j1=n01/2+1-abs(n01/2+1-i1)
            !j2=n02/2+1-abs(n02/2+1-i2)
            !j3=n03/2+1-abs(n03/2+1-i3)
-           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+           write(unit,'(2(1x,I8),2(1x,e22.15))') i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
 
@@ -812,7 +736,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      a=0.5d0/a_gauss**2
      !test functions in the three directions
      ifx=FUNC_EXP_COSINE
-     ifz=FUNC_CONSTANT
+     ifz=FUNC_EXP_COSINE !FUNC_CONSTANT
      !non-periodic dimension
      ify=FUNC_SHRINK_GAUSSIAN
      !parameters of the test functions
@@ -836,9 +760,11 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      do i1=1,n02
         x = hx*real(i1-n02/2-1,kind=8)!valid if hy=hz
         y = hy*real(i1-n02/2-1,kind=8) 
+        z = hz*real(i1-n02/2-1,kind=8)
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(y,ay,by,fy,fy1,fy2,ify)
-        write(20,*) i1,fx,fx2,fy,fy2
+        call functions(z,az,bz,fz,fz1,fz2,ifz)
+        write(20,'(1x,I8,6(1x,e22.15))') i1,fx,fx2,fy,fy2,fz,fz2
      end do
 
      !Initialisation of density and potential
@@ -905,45 +831,45 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      if (ixc==0) denval=0.d0
 
   
-!   else if (trim(geocode) == 'F') then
+   else if (trim(geocode) == 'F') then
 
-!      !grid for the free BC case
-!      !hgrid=max(hx,hy,hz)
+      !grid for the free BC case
+      !hgrid=max(hx,hy,hz)
 
 !      pi = 4.d0*atan(1.d0)
-!      a2 = a_gauss**2
+      a2 = a_gauss**2
 
-!      !Normalization
-!      factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
-!      !gaussian function
-!      do i3=1,n03
-!         x3 = hz*real(i3-n03/2,kind=8)
-!         do i2=1,n02
-!            x2 = hy*real(i2-n02/2,kind=8)
-!            do i1=1,n01
-!               x1 = hx*real(i1-n01/2,kind=8)
-!               r2 = x1*x1+x2*x2+x3*x3
-!               density(i1,i2,i3) = factor*exp(-r2/a2)
-!               r = sqrt(r2)
-!               !Potential from a gaussian
-!               if (r == 0.d0) then
-!                  potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
-!               else
-!                  potential(i1,i2,i3) = derf(r/a_gauss)/r
-!               end if
-!            end do
-!         end do
-!      end do
+      !Normalization
+      factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
+      !gaussian function
+      do i3=1,n03
+         x3 = hz*real(i3-n03/2,kind=8)
+         do i2=1,n02
+            x2 = hy*real(i2-n02/2,kind=8)
+            do i1=1,n01
+               x1 = hx*real(i1-n01/2,kind=8)
+               r2 = x1*x1+x2*x2+x3*x3
+               density(i1,i2,i3) = factor*exp(-r2/a2)
+               r = sqrt(r2)
+               !Potential from a gaussian
+               if (r == 0.d0) then
+                  potential(i1,i2,i3) = 2.d0/(sqrt(pi)*a_gauss)
+               else
+                  potential(i1,i2,i3) = derf(r/a_gauss)/r
+               end if
+            end do
+         end do
+      end do
 
-!      i2=n02/2
-!      do i3=1,n03
-!         do i1=1,n01
-!            !j1=n01/2+1-abs(n01/2+1-i1)
-!            !j2=n02/2+1-abs(n02/2+1-i2)
-!            !j3=n03/2+1-abs(n03/2+1-i3)
-!            write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
-!         end do
-!      end do
+      i2=n02/2
+      do i3=1,n03
+         do i1=1,n01
+            !j1=n01/2+1-abs(n01/2+1-i1)
+            !j2=n02/2+1-abs(n02/2+1-i2)
+            !j3=n03/2+1-abs(n03/2+1-i3)
+            write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+         end do
+      end do
 
    
 ! !plane capacitor oriented along the y direction
@@ -969,7 +895,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 ! !!        end if
 ! !!     end do
      
-!      denval=0.d0
+      denval=0.d0
 
 
   else if (trim(geocode) == 'H' .or. trim(geocode) == 'F') then
@@ -1432,7 +1358,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      g=dexp(-y**2) !<checked
      g1=-2.d0*y*yp*g !<checked
      !g2=factor*dexp(-y**2)
-     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*f !<che
+     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*g !<check
      sigma=length/10.0d0
      agauss=0.5d0/sigma**2
      r2=agauss*x**2

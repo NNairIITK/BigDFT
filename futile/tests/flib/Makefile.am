@@ -3,6 +3,7 @@ EXTRA_DIST = \
 	tols.yaml \
 	yaml_test.ref.yaml \
 	yaml_argparse.ref.yaml \
+	f_allocations.ref.yaml \
 	hooks.ref.yaml
 
 dynlibdir = $(libdir)
@@ -46,7 +47,7 @@ libpong_a_SOURCES = pong.f90
 test_plugin_SOURCES = test_plugin.f90
 test_plugin_LDADD = $(flib_libraries)
 
-CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks
+CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
@@ -84,7 +85,9 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 regtest: yaml_argparse
-	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
+	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
+	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
+	       --exclusive=$(CHECK_ONLY)
 
 define F_REGTEST_INSTRUCTIONS
 - yaml_argparse:
@@ -95,5 +98,9 @@ define F_REGTEST_INSTRUCTIONS
    - ./yaml_argparse -n 100 -d [89,90,90] >> yaml_argparse.out.yaml
    reference: $(srcdir)/yaml_argparse.ref.yaml
    output: yaml_argparse.out.yaml
+- f_allocations:
+   runs:
+   - ./f_allocations > f_allocations.out.yaml
+   - $(DESTDIR)$(bindir)/f_memcheck ./f_allocations >> f_allocations.out.yaml 2>f_allocations.err
 endef
 export F_REGTEST_INSTRUCTIONS

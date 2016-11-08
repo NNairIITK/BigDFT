@@ -302,7 +302,7 @@
      Source                            : Hard-Coded
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-PZ/
-  #----------------------------------------- Input Atomic System (file: __not_a_value__.xyz)
+  #----------------------------------------- Input Atomic System (file: posinp.xyz)
  Atomic System Properties:
    Number of atomic types              :  3
    Number of atoms                     :  3

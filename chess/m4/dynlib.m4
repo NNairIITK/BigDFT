@@ -57,7 +57,7 @@ end subroutine test])
     AC_MSG_RESULT([$ax_fc_build_shared])
   fi
   rm -f conftest.o libtest.so.0.0.0
-
+  AM_CONDITIONAL([FC_AUTOBUILD_DYNAMIC_LIBS], [test "x$ax_fc_build_shared" != "xno"])
   AC_LANG_POP(Fortran)
 ])
 
@@ -68,10 +68,11 @@ AC_DEFUN([AX_CC_BUILD_SHARED],
   AC_REQUIRE([AX_FLAG_PIC])
 
   AC_LANG_CONFTEST([AC_LANG_SOURCE([
-void test(int *a)
+extern int testint=5;
+
+void mtrace_init(int val)
 {
-  if (a)
-    *a += 1;
+testint=val;
 }])])
 
   AC_MSG_CHECKING([for option to create shared libraries with $CC])
@@ -110,7 +111,7 @@ void test(int *a)
     AC_MSG_RESULT([$ax_cc_build_shared])
   fi
   rm -f conftest.o libtest.so.0.0.0
-
+  AM_CONDITIONAL([CC_AUTOBUILD_DYNAMIC_LIBS], [test "x$ax_cc_build_shared" != "xno"])
   AC_LANG_POP(C)
 ])
 

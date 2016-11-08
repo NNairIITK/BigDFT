@@ -1926,6 +1926,8 @@ subroutine pushoff_and_relax_oneSide(spredinputs,uinp,mhgpsst,runObj,outs,rcov,s
 
     istat=0
 
+    comment=''
+
     ipush=1
     scl=scl/abs(scl)
     if(scl<0)then

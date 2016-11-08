@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 module f_functions
   use f_precisions
-  use numerics, only: pi,safe_erf
+  use numerics, only: pi,safe_erf,safe_exp
   implicit none
   private
 
@@ -124,6 +124,8 @@ module f_functions
          y=arctan(1.0_f_double/func%params(SCALE_),x,idiff)
       case(FUNC_ERF)
          y=error_function(func%params(SCALE_),x,idiff)
+      case default
+         y=0.0_f_double
       end select
     end function eval
 
@@ -136,7 +138,7 @@ module f_functions
       integer, parameter :: idiff=1
 
       select case(func%function_type)
-      case(FUNC_CONSTANT)
+      case default !(FUNC_CONSTANT)
          y=0.0_f_double
       case(FUNC_GAUSSIAN)
          y=gaussian(func%params(EXPONENT_),x,idiff)
@@ -210,6 +212,8 @@ module f_functions
          f=-dsin(r)*frequency*pi/length !<checked
       case(2)
          f=-(frequency*pi/length)**2*cos(r) !<checked
+      case default
+         f=0.0_f_double
       end select
     end function cosine
 
@@ -223,16 +227,13 @@ module f_functions
 
       r=pi*nu/a*x
       y=cos(r)
+      f=safe_exp(y) !<checked 
       select case(idiff)
-      case(0)
-         f=exp(y) !<checked 
       case(1)
-         f=exp(y)
          yp=-sin(r)
          f=f*pi*nu/a*yp !<checked
       case(2)
          yp=-sin(r)
-         f=exp(y)
          factor=(pi*nu/a)**2*(-y+yp**2)
          f= factor*f !<checked
       end select
@@ -263,6 +264,8 @@ module f_functions
          g2=gaussian_shrinked(length,x,2)
          h2=gaussian(a,x,2)
          f=g2*h+g*h2+2.d0*g1*h1 !<checked
+      case default
+         f=0.0_f_double
       end select
     end function shrinked_gaussian
 
@@ -282,6 +285,8 @@ module f_functions
          f=frequency*pi*cos(r)/length !<checked
       case(2)
          f=-(frequency*pi/length)**2*sin(r) !<checked
+      case default
+         f=0.0_f_double
       end select
     end function sine
 
@@ -303,6 +308,8 @@ module f_functions
       case(2)
          factor=r**2+1.d0
          f=-2.d0*r*a**2/factor**2 !<checked
+      case default
+         f=0.0_f_double
       end select
     end function arctan
 
@@ -315,11 +322,11 @@ module f_functions
       real(f_double) :: factor,y,g,h
 
       factor=sqrt(2.d0/pi)/a
-      if (abs(x)<=1.d-15) then
+      if (abs(x)<=1.e-15_f_double) then
          select case(idiff)
          case(0)
             f=factor
-         case(1)
+         case default !also 1
             f=0.0_f_double
          case(2)
             f=-sqrt(2.d0/pi)/(3.d0*a**3) !<checked

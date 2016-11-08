@@ -104,6 +104,7 @@ AX_LINALG()
 dnl Libraries
 AX_FLIB()
 
+
 dnl to be removed when MPI goes to flib.
 AX_PSOLVER() 
 if test "$ax_have_PSOLVER" != "yes" ; then

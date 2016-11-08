@@ -27,7 +27,6 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
-  integer, parameter :: nwrite=1 !write interval
   real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.05d0,beta_N=1.d0/1.05d0
   real(kind=8), parameter :: alpha_A=1.d0/1.05d0,alpha_R=1.05d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
@@ -696,7 +695,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
       ! write intermediate results
 
       if (bigdft_mpi%iproc == 0) then
-         if(mod(nlmin,nwrite)==0)then
+         if(mod(nlmin,spredinputs%glbl_nwrite)==0)then
          call yaml_comment('(MH) WINTER')
          call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
                                  nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
@@ -939,7 +938,7 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
+    call randdist_g(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
@@ -1366,7 +1365,7 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(idum,nat,geocode,rxyz,vxyz)
+subroutine randdist_g(idum,nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
   use f_random!, only: builtin_rand
@@ -1394,7 +1393,7 @@ subroutine randdist(idum,nat,geocode,rxyz,vxyz)
      & call elim_torque_reza(nat,rxyz,vxyz)
   !if (bigdft_mpi%iproc==0) call yaml_map('After torque',vxyz,unit=6)
 
-END SUBROUTINE randdist
+END SUBROUTINE randdist_g
 
 
 !>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
@@ -1430,26 +1429,26 @@ END SUBROUTINE gausdist
 
 
 !>  generates n random numbers distributed according to  exp(-x)
-subroutine expdist(nat,geocode,rxyz,vxyz)
-  implicit real*8 (a-h,o-z)
-  real ss
-  character(len=1) :: geocode
-  !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
-  parameter(eps=1.d-8)
-  dimension rxyz(3*nat),vxyz(3*nat)
-
-  do i=1,3*nat
-     call random_number(ss)
-     tt=eps+(1.d0-2.d0*eps)*dble(ss)
-     vxyz(i)=log(tt)
-  enddo
-
-  call elim_moment(nat,vxyz)
-  if (geocode == 'F') &
-     & call  elim_torque_reza(nat,rxyz,vxyz)
-
-  return
-END SUBROUTINE expdist
+!subroutine expdist(nat,geocode,rxyz,vxyz)
+!  implicit real*8 (a-h,o-z)
+!  real ss
+!  character(len=1) :: geocode
+!  !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
+!  parameter(eps=1.d-8)
+!  dimension rxyz(3*nat),vxyz(3*nat)
+!
+!  do i=1,3*nat
+!     call random_number(ss)
+!     tt=eps+(1.d0-2.d0*eps)*dble(ss)
+!     vxyz(i)=log(tt)
+!  enddo
+!
+!  call elim_moment(nat,vxyz)
+!  if (geocode == 'F') &
+!     & call  elim_torque_reza(nat,rxyz,vxyz)
+!
+!  return
+!END SUBROUTINE expdist
 
 
 subroutine localdist(nat,rxyz,vxyz)

@@ -1,0 +1,8 @@
+. './unienv.sh'
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+unienv BIGDFT_ROOT @bindir@
+#for dynamic libraries (commented as the if statement does not work in a .in file)
+#unienv LD_PRELOAD @libdir@/libbigdft-1.so
+#for gobject introspection
+unienv GI_TYPELIB_PATH @libdir@/girepository-1.0
