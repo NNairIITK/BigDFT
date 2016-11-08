@@ -1601,23 +1601,4 @@ module module_interfaces
      END SUBROUTINE write_orbital_density
   end interface
 
-  interface
-     subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi,iorb_shift)
-       use module_types
-       use module_base
-       use yaml_output
-       use public_enums
-       implicit none
-       integer, intent(in) :: iproc,n1,n2,n3,iformat
-       real(gp), intent(in) :: hx,hy,hz
-       type(atoms_data), intent(in) :: at
-       type(orbitals_data), intent(in) :: orbs
-       type(wavefunctions_descriptors), intent(in) :: wfd
-       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-       real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-       character(len=*), intent(in) :: filename
-       integer,intent(in),optional :: iorb_shift
-     END SUBROUTINE writemywaves
-  end interface
-
 END MODULE module_interfaces

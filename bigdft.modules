@@ -95,7 +95,7 @@
   </autotools>
 
   <autotools id="chess" autogen-sh="autoreconf">
-    <branch repo="local" module="CheSS-0.1.1.tar.gz" version="0.1.1" checkoutdir="chess"/>
+    <branch repo="local" module="CheSS-0.1.2.tar.gz" version="0.1.2" checkoutdir="chess"/>
     <dependencies>
       <dep package="futile"/>
       <if condition-set="testing">

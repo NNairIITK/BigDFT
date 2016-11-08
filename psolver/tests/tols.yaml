@@ -20,8 +20,12 @@ Default tolerances:
   Expected hartree energy: 1.88e-15
   Integral of the density in the nonvacuum region: 6.06e-15
   minres: 1.e-6
+  monopole: 1e-8
 #  Energies: 2.1e-10
-
+  Computed Hartree energy: 6.199115887284279e-09
+  Diff of expected-computed Hartree energy: 6.19e-08
+  Integral of the density in the nonvacuum region: 3.97e-12
+  dipole: 1.00e-10
 Keys to ignore:
   - Total No. of Taskgroups created
   - taskgroup_size
@@ -44,5 +48,12 @@ Patterns to ignore:
 
 Generalized_PSolver:
   itermax: 150.0
+  dipole: 4.e-9
+  value: 1.e-6
+  offset: 1.9e-10
+  normr: 2.6e-9
+  Computed Hartree energy: 7.0e-6
+  Diff of expected-computed Hartree energy: 7.0e-6
+  Integral of the density in the nonvacuum region: 3.4e-11
 PS_Check:
   itermax: 150.0

@@ -77,7 +77,7 @@ PS_Basics.out.yaml: PS_Program PS_Exercise
 
 check: regtest report #PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
 
-report: 
+report: PS_Basics.report.yaml PS_Check.report.yaml PS_Basics.out.yaml
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 PS_Basics.report.yaml: PS_Basics.ref.yaml PS_Basics.out.yaml
@@ -91,7 +91,9 @@ PS_Check.report.yaml: PS_Check.ref.yaml PS_Check.out.yaml
 	        --output $@
 
 regtest: PS_Program PS_Exercise PS_Check Generalized_PSolver
-	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
+	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
+	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
+	       --exclusive=${CHECK_ONLY}
 
 
 define F_REGTEST_INSTRUCTIONS
@@ -111,11 +113,26 @@ define F_REGTEST_INSTRUCTIONS
     - $(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
 - Generalized_PSolver:
    runs:
-    - |  #this is important to avoid misunderstanding with the yaml in the command line
-      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI -i '{environment: {input_guess: No}}'
+    - |  # PCG from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG
     - cat log.yaml > Generalized_PSolver.out.yaml
-    - |
-      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG -i '{environment: {input_guess: No}}'
+    - |  # PCG from psolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -f [90,41,90] -g S
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PI from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PCG from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 5 -g S -f [90,41,90]
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PI from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 6 -g S -f [90,41,90]
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # mPB from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -g S -p yes -i "{psolver: {cavity: modified}}"
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # mPB from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 8 -g S -f [90,41,90] -p yes
     - cat log.yaml >> Generalized_PSolver.out.yaml
 endef
 export F_REGTEST_INSTRUCTIONS

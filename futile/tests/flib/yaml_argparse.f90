@@ -1,5 +1,5 @@
 !> @file
-!! Test argparse module
+!! Test the argument parsing of the library.e
 !! @example yaml_test.f90
 !! Extensive tests command line parsing from yaml
 !! @author

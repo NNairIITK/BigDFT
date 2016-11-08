@@ -1031,7 +1031,9 @@ module sparsematrix
                  end if
              end do jloop
          end do iloop
-         if (.not.found) stop 'get_taskgroup_id did not suceed'
+         if (.not.found) then
+             call f_err_throw('get_taskgroup_id did not suceed')
+         end if
        end function get_taskgroup_id
 
 
@@ -2138,7 +2140,7 @@ module sparsematrix
 
 
 
-    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max, ispinx)
+    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max)!, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
       use dynamic_memory
       implicit none
@@ -2148,7 +2150,7 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: sparsemat
       real(kind=mp),dimension(sparsemat%nvctrp_tg),intent(in) :: mat_tg
       real(kind=mp),intent(out) :: error_max
-      integer,intent(in),optional :: ispinx
+      !integer,intent(in),optional :: ispinx
 
       ! Local variables
       real(kind=mp),dimension(:),allocatable :: mat_full
@@ -2162,11 +2164,11 @@ module sparsematrix
       !!call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
 
       error_max = 0.0_mp
-      do ispin=1,sparsemat%nspin
-          if (present(ispinx)) then
-              if (ispin/=ispinx) cycle
-          end if
-          ishift=(ispin-1)*sparsemat%nvctr
+      !!do ispin=1,sparsemat%nspin
+      !!    if (present(ispinx)) then
+      !!        if (ispin/=ispinx) cycle
+      !!    end if
+      !!    ishift=(ispin-1)*sparsemat%nvctr
           ! SM: The function matrixindex_in_compressed is rather expensive, so I think OpenMP is always worth
           !$omp parallel default(none) &
           !$omp shared(sparsemat, mat_tg, error_max) &
@@ -2194,7 +2196,7 @@ module sparsematrix
           end do
           !$omp end do
           !$omp end parallel
-      end do
+      !!end do
       call mpiallred(error_max, 1, mpi_max, comm=comm)
       !if (iproc==0) call yaml_map('max asymmetry',error_max)
 

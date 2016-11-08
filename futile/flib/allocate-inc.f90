@@ -7,6 +7,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+  if (f_nan_pad_size > 0) call togglepadding(int(0,f_long))
   if (ierror/=0) then
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS

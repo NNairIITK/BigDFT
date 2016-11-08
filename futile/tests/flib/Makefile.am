@@ -47,7 +47,7 @@ libpong_a_SOURCES = pong.f90
 test_plugin_SOURCES = test_plugin.f90
 test_plugin_LDADD = $(flib_libraries)
 
-CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks
+CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
@@ -85,7 +85,9 @@ report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 regtest: yaml_argparse
-	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
+	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
+	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
+	       --exclusive=$(CHECK_ONLY)
 
 define F_REGTEST_INSTRUCTIONS
 - yaml_argparse:
@@ -99,6 +101,6 @@ define F_REGTEST_INSTRUCTIONS
 - f_allocations:
    runs:
    - ./f_allocations > f_allocations.out.yaml
-   - FUTILE_MALLOC_NAN_PADDING=2 ./f_allocations >> f_allocations.out.yaml
+   - $(DESTDIR)$(bindir)/f_memcheck ./f_allocations >> f_allocations.out.yaml 2>f_allocations.err
 endef
 export F_REGTEST_INSTRUCTIONS

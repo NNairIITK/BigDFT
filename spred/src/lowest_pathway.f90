@@ -572,7 +572,7 @@ subroutine update_maxbarr( nv, connected, ajl, mv, maxbarr )
             endif
           endif
       else
-stop'Serious problem'
+         stop 'Serious problem'
       end if
     end if
   end do
@@ -802,11 +802,11 @@ write(*,*)'nts',nts
             if(istat/=0)exit
             i=i+1
         enddo
-        if(i/=nts)stop'Numer of files in tsfiles does not match number of TS in tsdat'
+        if(i/=nts)stop 'Numer of files in tsfiles does not match number of TS in tsdat'
         close(34)
     endif
 
-    if(nmin==huge(1))stop'too many minima'
+    if(nmin==huge(1))stop 'too many minima'
 
 !
   call cpu_time(time1)

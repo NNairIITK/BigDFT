@@ -106,6 +106,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
    poisson_boltzmann=.not. (kernel%method .hasattr. PS_PB_NONE_ENUM)
   
 
+   wrtmsg=.true.
   select case(kernel%opt%verbosity_level)
   case(0)
      !call f_strcpy(quiet,'YES')
@@ -242,6 +243,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
         if (kernel%method == PS_PCG_ENUM) call f_memcpy(src=kernel%w%rho_pb,dest=kernel%w%res)
         res_PB=sqrt(res_PB/product(kernel%ndims))
         if (wrtmsg) then
+           call yaml_newline()
            call EPS_iter_output(i_PB,0.0_dp,res_PB,0.0_dp,0.0_dp,0.0_dp)
            call yaml_mapping_close()
         end if
@@ -546,18 +548,28 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
  
       call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
 
-      !$omp parallel do default(shared) private(i1,i23)
+      normr=0.0_dp
+      !$omp parallel do default(shared) private(i1,i23) &
+      !$omp reduction(+:normr)
       do i23=1,n23
          do i1=1,n1
             kernel%w%pot(i1,i23)=kernel%w%z(i1,i23)*kernel%w%oneoeps(i1,i23)
             kernel%w%z(i1,i23)=kernel%w%res(i1,i23)
             kernel%w%res(i1,i23)=(kernel%w%q(i1,i23) - kernel%w%pot(i1,i23))*kernel%w%corr(i1,i23)
+!!$            if (kernel%w%res(i1,i23) /= 0.0_dp) then
+!!$               print *,'facs',kernel%w%q(i1,i23)
+!!$               print *,'facs2',kernel%w%pot(i1,i23)
+!!$               print *,'facs3',kernel%w%corr(i1,i23)
+!!$               print *,'here',kernel%w%res(i1,i23)
+!!$               print *,'there',kernel%w%res(i1,i23)**2
+!!$            end if
             kernel%w%q(i1,i23)=0.d0
+            normr=normr+kernel%w%res(i1,i23)**2
          end do
       end do
       !$omp end parallel do
- 
-      normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
+      !print *,'here',sum(kernel%w%res)
+      !normr=dot(n1*n23,kernel%w%res(1,1),1,kernel%w%res(1,1),1)
       call PS_reduce(normr,kernel)
       normr=sqrt(normr/rpoints)
       ratio=normr/normb
@@ -565,7 +577,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
       if (wrtmsg) then
        call yaml_newline()
        call yaml_sequence(advance='no')
-       call EPS_iter_output(1,normb,normr,ratio,1.d0,1.d0)
+       call EPS_iter_output(1,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
       end if
       if (normr < kernel%minres) iinit=kernel%max_iter+10
  
@@ -618,6 +630,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
            call yaml_newline()
            call yaml_sequence(advance='no')
            call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+           !call EPS_iter_output(ip,0.0_dp,normr,0.0_dp,0.0_dp,0.0_dp)
         end if
         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
      end do PCG_loop
@@ -962,7 +975,7 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
 
   !call yaml_newline()
   call yaml_mapping_open('Iteration quality',flow=.true.)
-  if (beta /= 0.0_dp) call yaml_comment('Iteration '+iter,hfill='_')
+  if (beta /= 0.0_dp) call yaml_comment('GPS Iteration '+iter,hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)
