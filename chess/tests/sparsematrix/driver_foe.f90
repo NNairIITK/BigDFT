@@ -222,7 +222,7 @@ program driver_foe
       call yaml_mapping_close()
   end if
 
-  call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.dat', smmd)
+  call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
   call get_number_of_electrons(smmd, ncharge)
   if (iproc==0) then
       call yaml_map('Number of electrons',ncharge)
