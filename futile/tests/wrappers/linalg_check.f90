@@ -6,7 +6,7 @@ program linalg_check
   implicit none
   logical :: symm
   integer :: norb,nvctr,ncplx,nthreads
-  integer :: iorb,jorb,icplx,ivctr,idum
+  integer :: iorb,jorb,icplx,ivctr!,idum
   !integer, parameter :: f_double = selected_real_kind(15, 307)
   real(f_double) :: diff
   real(f_double), dimension(2) :: dotp

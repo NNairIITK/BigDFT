@@ -4,7 +4,7 @@
 #--------------------------------------------------------------------------------
 # Copyright (C) 2015-2016 BigDFT group
 # This file is distributed under the terms of the
-# GNU General Public License, see ~abinit/COPYING
+# GNU General Public License, see
 # or http://www.gnu.org/copyleft/gpl.txt .
 #--------------------------------------------------------------------------------
 

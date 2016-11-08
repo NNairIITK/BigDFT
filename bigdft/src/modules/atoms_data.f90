@@ -817,6 +817,7 @@ contains
       use yaml_strings, only : yaml_toa
       use internal_coordinates, only: internal_to_cartesian
       use yaml_output, only: yaml_dict_dump
+      use yaml_parse, only: yaml_parse_from_file
       implicit none
       !Arguments
       character(len=*), intent(in) :: file                  !< File name containing the atomic positions
@@ -828,18 +829,20 @@ contains
       character(len = 1024), intent(out), optional :: comment
       logical, intent(in), optional :: disableTrans
       !Local variables
-      integer, parameter :: iunit=99
+      integer :: iunit
       integer :: l, extract
       logical :: file_exists, archive
       character(len = 128) :: filename
       character(len = 15) :: arFile
       character(len = 6) :: ext
       real(gp) :: energy_
+      type(dictionary), pointer :: yaml_file_dict
       real(gp), dimension(:,:), pointer :: fxyz_
       character(len = 1024) :: comment_, files
       external :: openNextCompress
       real(gp),parameter :: degree = 57.295779513d0
 
+      iunit=99
       file_exists = .false.
       files = ''
       archive = .false.
@@ -849,7 +852,8 @@ contains
       if (index(file, "posout_") == 1 .or. index(file, "posmd_") == 1) then
          write(arFile, "(A)") "posout.tar.bz2"
          if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
-         inquire(FILE = trim(arFile), EXIST = file_exists)
+         call f_file_exists(arFile,file_exists)
+         !inquire(FILE = trim(arFile), EXIST = file_exists)
          !arFile tested
          if (file_exists) then
 !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
@@ -868,40 +872,44 @@ contains
 
       ! Test file//'.xyz'
       if (.not. file_exists) then
-         inquire(FILE = file//'.xyz', EXIST = file_exists)
+         !inquire(FILE = file//'.xyz', EXIST = file_exists)
+         call f_file_exists(file//'.xyz',file_exists)
          files = trim(files) // "'" // trim(file)//".xyz'"
          if (file_exists) then
             write(filename, "(A)") file//'.xyz'!"posinp.xyz"
             write(astruct%inputfile_format, "(A)") "xyz"
             write(astruct%source, "(A)") trim(filename)
-            open(unit=iunit,file=trim(filename),status='old')
+            call f_open_file(unit=iunit,file=trim(filename),status='old')
          end if
       end if
 
       ! Test file//'.ascii'
       if (.not. file_exists) then
-         inquire(FILE = file//'.ascii', EXIST = file_exists)
+         !inquire(FILE = file//'.ascii', EXIST = file_exists)
+         call f_file_exists(file//'.ascii',file_exists)
          files = trim(files) // ", '" //trim(file)//".ascii'"
          if (file_exists) then
             write(filename, "(A)") file//'.ascii'!"posinp.ascii"
             write(astruct%inputfile_format, "(A)") "ascii"
             write(astruct%source, "(A)") trim(filename)
-            open(unit=iunit,file=trim(filename),status='old')
+            call f_open_file(unit=iunit,file=trim(filename),status='old')
          end if
       end if
       ! Test file//'.int'
       if (.not. file_exists) then
-         inquire(FILE = file//'.int', EXIST = file_exists)
+         !inquire(FILE = file//'.int', EXIST = file_exists)
+         call f_file_exists(file//'.int',file_exists)
          if (file_exists) then
             write(filename, "(A)") file//'.int'!"posinp.int
             write(astruct%inputfile_format, "(A)") "int"
             write(astruct%source, "(A)") trim(filename)
-            open(unit=99,file=trim(filename),status='old')
+            call f_open_file(unit=iunit,file=trim(filename),status='old')
          end if
       end if
       ! Test file//'.yaml'
       if (.not. file_exists) then
-         inquire(FILE = file//'.yaml', EXIST = file_exists)
+         !inquire(FILE = file//'.yaml', EXIST = file_exists)
+         call f_file_exists(file//'.yaml',file_exists)
          files = trim(files) // ", '" //trim(file)//".yaml'"
          if (file_exists) then
             write(filename, "(A)") file//'.yaml'!"posinp.yaml
@@ -914,13 +922,14 @@ contains
       ! Check if the format of the file detected corresponds to the specified format
       if (file_exists .and. present(pos_format)) then
          if (astruct%inputfile_format /= pos_format) &
-            & call f_err_throw("The detected filename '"//trim(filename)//"' has not the specified format '" // &
-            &      trim(pos_format) // "'.", err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+              call f_err_throw("The detected filename '"//trim(filename)//"' has not the specified format '" // &
+              trim(pos_format) // "'.", err_name='BIGDFT_INPUT_VARIABLES_ERROR')
       end if
 
       ! Test the name directly
       if (.not. file_exists) then
-         inquire(FILE = file, EXIST = file_exists)
+         !inquire(FILE = file, EXIST = file_exists)
+         call f_file_exists(file,file_exists)
          files = trim(files) // ", '" //trim(file) // "'"
          if (file_exists) then
             write(filename, "(A)") file
@@ -938,15 +947,13 @@ contains
                else
                   !We assume that the format of the file is 'xyz'
                   write(astruct%inputfile_format, "(A)") "xyz"
-                  !call f_err_throw(err_msg="Atomic input file '" // trim(file) // "', format not recognised."// &
-                  !   & " File should be *.yaml, *.int, *.ascii or *.xyz.",err_id=BIGDFT_INPUT_FILE_ERROR)
                end if
             else
                ! The format is specified
                write(astruct%inputfile_format, "(A)") trim(pos_format)
             end if
             if (trim(astruct%inputfile_format) /= "yaml") then
-               open(unit=iunit,file=trim(filename),status='old')
+               call f_open_file(unit=iunit,file=trim(filename),status='old')
             end if
          end if
       end if
@@ -976,9 +983,9 @@ contains
       case("int")
          !read atomic positions
          if (.not.archive) then
-            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
+            call read_int_positions(iproc,iunit,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
+            call read_int_positions(iproc,iunit,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
          ! Fill the ordinary rxyz array
          !!! convert to rad
@@ -987,23 +994,24 @@ contains
          astruct%rxyz_int(2:2,1:astruct%nat) = pi_param - astruct%rxyz_int(2:2,1:astruct%nat)
          call internal_to_cartesian(astruct%nat, astruct%ixyz_int(1,:), astruct%ixyz_int(2,:), astruct%ixyz_int(3,:), &
               astruct%rxyz_int, astruct%rxyz)
-         !!do i_stat=1,astruct%nat
-         !!    write(*,'(3(i4,3x,f12.5))') astruct%ixyz_int(1,i_stat),astruct%rxyz_int(1,i_stat),&
-         !!                                astruct%ixyz_int(2,i_stat),astruct%rxyz_int(2,i_stat),&
-         !!                                astruct%ixyz_int(3,i_stat),astruct%rxyz_int(3,i_stat)
-         !!end do
 
        case("yaml")
-         if (f_err_raise(index(file,'posinp') /= 0, &
-             & "Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
-             &  err_name='BIGDFT_RUNTIME_ERROR')) then
-            return
-         else
-            !There is a radical and the atomic positions are in already dict: need to raise an exception
-            call f_err_throw("Atomic input file not found. Files looked for were "//trim(files) //".", &
-           &  err_id=BIGDFT_INPUT_FILE_ERROR)
-            return
-         end if
+          nullify(yaml_file_dict)
+          call f_zero(energy_)
+          call yaml_parse_from_file(yaml_file_dict,trim(filename))
+          call astruct_set_from_dict(yaml_file_dict//0, astruct, comment_)
+          call dict_free(yaml_file_dict)
+!!$          
+!!$          if (f_err_raise(index(file,'posinp') /= 0, &
+!!$             & "Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
+!!$             &  err_name='BIGDFT_RUNTIME_ERROR')) then
+!!$            return
+!!$         else
+!!$            !There is a radical and the atomic positions are in already dict: need to raise an exception
+!!$            call f_err_throw("Atomic input file not found. Files looked for were "//trim(files) //".", &
+!!$           &  err_id=BIGDFT_INPUT_FILE_ERROR)
+!!$            return
+!!$         end if
 
       case default
          call f_err_throw(err_msg="The specified format '" // trim(astruct%inputfile_format) // "' is not recognised."// &
@@ -1013,17 +1021,14 @@ contains
       !if an error has been produced return
       if (f_err_check()) return
 
-      !Check the number of atoms
+      !Check the number of atoms (should be more a f_assert that a error raise)
       if (f_err_raise(astruct%nat < 0, &
-              &  "In the file '"//trim(filename)//"' the number of atoms ("// &
-              &  trim(yaml_toa(astruct%nat))//") should be >= 0.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
+           "In the file '"//trim(filename)//"' the number of atoms ("// &
+           trim(yaml_toa(astruct%nat))//") should be >= 0.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
 
       ! We delay the calculation of the symmetries.
       !this should be already in the atoms_null routine
       astruct%sym=symmetry_data_null()
-      !   astruct%sym%symObj = -1
-      !   nullify(astruct%sym%irrzon)
-      !   nullify(astruct%sym%phnons)
 
       ! close open file.
       if (.not.archive .and. trim(astruct%inputfile_format) /= "yaml") then

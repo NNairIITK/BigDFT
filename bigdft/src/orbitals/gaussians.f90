@@ -1542,7 +1542,7 @@ contains
     prefac=a2/prefac
     prefac=a1*prefac
     prefac=-d**2*prefac
-    prefac=dexp(prefac)
+    prefac=exp(prefac)
 
     !build the effective exponent and coefficients
     aeff=a1+a2

@@ -96,9 +96,7 @@ program PSolver_Program
   call mpiinit()
   iproc=mpirank()
   nproc=mpisize()
-
-  iproc=0
-  nproc=1
+  call f_malloc_set_status(iproc=iproc)
 
   nullify(dict,input)
   call yaml_argparse(options,inputs)
@@ -127,72 +125,6 @@ program PSolver_Program
 
   detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
-
-!!$  !Use arguments
-!!$  call get_command_argument(1,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) n01
-!!$
-!!$  call get_command_argument(2,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) n02
-!!$
-!!$  call get_command_argument(3,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) n03
-!!$
-!!$  call get_command_argument(4,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) ixc
-!!$
-!!$  call get_command_argument(5,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) geocode
-!!$
-!!$  call get_command_argument(6,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) datacode
-!!$
-!!$  call get_command_argument(7,chain)
-!!$  if(trim(chain)=='') then
-!!$     write(*,'(1x,a)')&
-!!$          'Usage: ./PS_Program n01 n02 n03 ixc geocode datacode itype_scf [mu0_screening]'
-!!$     stop
-!!$  end if
-!!$  read(unit=chain,fmt=*) itype_scf
-!!$
-!!$  call get_command_argument(8,chain)
-!!$  if(trim(chain)=='') then
-!!$     mu0 = 0.0_dp
-!!$  else
-!!$     read(unit=chain,fmt=*) mu0
-!!$  end if
-
-
   !write(*,*) 'mu0 =', mu0
 
   !perform also the comparison with the serial case
@@ -200,11 +132,6 @@ program PSolver_Program
   onlykernel=.false.
   !code for the Poisson Solver in the parallel case
   !datacode='G'
-
-!!$  call MPI_INIT(ierr)
-!!$  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-!!$  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-
 
   select case(geocode)
   
@@ -371,7 +298,9 @@ program PSolver_Program
 
      !print *,'potential integral',sum(density)
      !this has to be corrected with the volume element of mesh
-     if (iproc==0) call yaml_map('potential integral',sum(density)*hx*hy*hx*sqrt(detg))
+     eexcu=sum(density)*hx*hy*hx*sqrt(detg)
+     if (nproc >1) call mpiallred(eexcu,1,op=MPI_SUM)
+     if (iproc==0) call yaml_map('potential integral',eexcu)
 
      i3=n03/2
      do i2=1,n02
@@ -433,13 +362,6 @@ program PSolver_Program
         call yaml_map('Result',density(i1_max,i2_max,i3_max))
         call yaml_map('Original',potential(i1_max,i2_max,i3_max))
         call yaml_mapping_close()
-!!$        write(*,*) '--------------------'
-!!$        write(*,*) 'Parallel calculation '
-!!$        write(unit=*,fmt="(1x,a,3(1pe20.12))") "eht, exc, vxc:",ehartree,eexcu,vexcu
-!!$        write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-!!$        write(unit=*,fmt="(1x,a,1pe20.12)") '    Max diff:',diff_par,&
-!!$             '      result:',density(i1_max,i2_max,i3_max),&
-!!$             '    original:',potential(i1_max,i2_max,i3_max)
      end if
 
   end if
@@ -1436,7 +1358,7 @@ subroutine functions(x,a,b,f,f1,f2,whichone)
      g=dexp(-y**2) !<checked
      g1=-2.d0*y*yp*g !<checked
      !g2=factor*dexp(-y**2)
-     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*g !<che
+     g2=2.d0*pi**2*(2.d0*y**6 + y**4 - 2.d0*y**2 - 1.d0)/length**2*g !<check
      sigma=length/10.0d0
      agauss=0.5d0/sigma**2
      r2=agauss*x**2

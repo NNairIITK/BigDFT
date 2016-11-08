@@ -54,7 +54,7 @@ module sparsematrix_highlevel
   contains
 
     subroutine sparse_matrix_and_matrices_init_from_file_ccs(filename, iproc, nproc, comm, smat, mat, &
-               init_matmul)
+               init_matmul, filename_mult)
       use sparsematrix_init, only: read_ccs_format
       use dynamic_memory
       implicit none
@@ -65,26 +65,39 @@ module sparsematrix_highlevel
       type(sparse_matrix),intent(out) :: smat
       type(matrices),intent(out) :: mat
       logical,intent(in),optional :: init_matmul
+      character(len=*),intent(in),optional :: filename_mult
 
       ! Local variables
-      integer :: nfvctr, nvctr
-      integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=mp),dimension(:),pointer :: val
+      integer :: nfvctr, nvctr, nvctr_mult
+      integer,dimension(:),pointer :: col_ptr, row_ind, row_ind_mult, col_ptr_mult
+      real(kind=mp),dimension(:),pointer :: val, val_mult
       logical :: init_matmul_
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
-
-      ! Read in the matrix
-      call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
 
       if (present(init_matmul)) then
           init_matmul_ = init_matmul
       else
           init_matmul_ = .false.
       end if
+
+      ! Read in the matrix
+      call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
+
+      if(init_matmul_) then
+          if (.not.present(filename_mult)) then
+              call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          call read_ccs_format(filename_mult, nfvctr, nvctr_mult, col_ptr_mult, row_ind_mult, val_mult)
+      end if
     
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
+      if (init_matmul_) then
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
+               init_matmul_, nvctr_mult, row_ind_mult, col_ptr_mult)
+      else
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
+      end if
 
       ! Generate the matrices type
       call matrices_init_from_data(smat, val, mat)
@@ -93,13 +106,19 @@ module sparsematrix_highlevel
       call f_free_ptr(col_ptr)
       call f_free_ptr(row_ind)
       call f_free_ptr(val)
+      if (init_matmul_) then
+          call f_free_ptr(col_ptr_mult)
+          call f_free_ptr(row_ind_mult)
+          call f_free_ptr(val_mult)
+      end if
 
       call f_release_routine()
 
     end subroutine sparse_matrix_and_matrices_init_from_file_ccs
 
 
-    subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat)
+    subroutine sparse_matrix_init_from_file_ccs(filename, iproc, nproc, comm, smat, &
+               init_matmul, filename_mult)
       use sparsematrix_init, only: read_ccs_format
       use dynamic_memory
       implicit none
@@ -108,24 +127,50 @@ module sparsematrix_highlevel
       integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: filename
       type(sparse_matrix),intent(out) :: smat
+      logical,intent(in),optional :: init_matmul
+      character(len=*),intent(in),optional :: filename_mult
 
       ! Local variables
-      integer :: nfvctr, nvctr
-      integer,dimension(:),pointer :: col_ptr, row_ind
-      real(kind=mp),dimension(:),pointer :: val
+      integer :: nfvctr, nvctr, nvctr_mult
+      integer,dimension(:),pointer :: col_ptr, row_ind, row_ind_mult, col_ptr_mult
+      real(kind=mp),dimension(:),pointer :: val, val_mult
+      logical :: init_matmul_
 
       call f_routine(id='sparse_matrix_and_matrices_init_from_file_ccs')
+
+      if (present(init_matmul)) then
+          init_matmul_ = init_matmul
+      else
+          init_matmul_ = .false.
+      end if
 
       ! Read in the matrix
       call read_ccs_format(filename, nfvctr, nvctr, col_ptr, row_ind, val)
 
+      if(init_matmul_) then
+          if (.not.present(filename_mult)) then
+              call f_err_throw("'filename_mult' not present",err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
+          end if
+          call read_ccs_format(filename_mult, nfvctr, nvctr_mult, col_ptr_mult, row_ind_mult, val_mult)
+      end if
+
       ! Generate the sparse_matrix type
-      call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat)
+      if (init_matmul_) then
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, &
+               init_matmul_, nvctr_mult, row_ind_mult, col_ptr_mult)
+      else
+          call sparse_matrix_init_from_data_ccs(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, smat, init_matmul_)
+      end if
 
       ! Deallocate the pointers
       call f_free_ptr(col_ptr)
       call f_free_ptr(row_ind)
       call f_free_ptr(val)
+      if (init_matmul_) then
+          call f_free_ptr(col_ptr_mult)
+          call f_free_ptr(row_ind_mult)
+          call f_free_ptr(val_mult)
+      end if
 
       call f_release_routine()
 
@@ -744,7 +789,8 @@ module sparsematrix_highlevel
 
     subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, ice_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
-               calculate_minusonehalf, foe_verbosity, symmetrize_kernel, calculate_energy_density_kernel, energy_kernel)
+               calculate_minusonehalf, foe_verbosity, symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels, &
+               energy_kernel)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
       use dynamic_memory
@@ -761,10 +807,12 @@ module sparsematrix_highlevel
       logical,intent(in),optional :: calculate_minusonehalf, symmetrize_kernel, calculate_energy_density_kernel
       integer,intent(in),optional :: foe_verbosity
       type(matrices),intent(inout),optional :: energy_kernel
+      logical,dimension(smat_k%nspin),intent(in),optional :: calculate_spin_channels
 
       ! Local variables
       logical :: calculate_minusonehalf_, symmetrize_kernel_, calculate_energy_density_kernel_
       integer :: foe_verbosity_
+      logical,dimension(smat_k%nspin) :: calculate_spin_channels_
 
       call f_routine(id='matrix_fermi_operator_expansion')
 
@@ -776,6 +824,8 @@ module sparsematrix_highlevel
       if (present(symmetrize_kernel)) symmetrize_kernel_ = symmetrize_kernel
       calculate_energy_density_kernel_ = .false.
       if (present(calculate_energy_density_kernel)) calculate_energy_density_kernel_ = calculate_energy_density_kernel
+      calculate_spin_channels_(:) = .true.
+      if (present(calculate_spin_channels)) calculate_spin_channels_(:) = calculate_spin_channels
 
       ! Check the optional arguments
       if (calculate_energy_density_kernel_) then
@@ -826,13 +876,13 @@ module sparsematrix_highlevel
                ebs, &
                calculate_minusonehalf_, foe_verbosity_, &
                smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
-               symmetrize_kernel_, calculate_energy_density_kernel_, energy_kernel_=energy_kernel)
+               symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_, energy_kernel_=energy_kernel)
       else
           call fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
                calculate_minusonehalf_, foe_verbosity_, &
                smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
-               symmetrize_kernel_, calculate_energy_density_kernel_)
+               symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_)
       end if
 
       call f_release_routine()

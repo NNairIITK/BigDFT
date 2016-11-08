@@ -2383,7 +2383,7 @@ module sparsematrix_init
               read(iunit,*) val(i)
           end do
       else
-          stop 'file not present'
+          call f_err_throw("file '"//trim(filename)//"' not present")
       end if
       close(iunit)
     end subroutine read_ccs_format

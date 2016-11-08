@@ -21,6 +21,18 @@ cp2k_interfacemodmod = cp2k_fake module_cp2k
 cp2k_interfacemodCAPmod = CP2K_FAKE MODULE_CP2K
 endif
 
+if HAVE_ALBORZ
+alborz_interfacemod = module_alborz.f90
+alborz_interfacemodCAP = MODULE_ALBORZ.F90
+alborz_interfacemodmod = module_alborz
+alborz_interfacemodCAPmod = MODULE_ALBORZ
+else
+alborz_interfacemod = alborz_fake.f90 module_alborz.f90
+alborz_interfacemodCAP = alborz_FAKE.F90 MODULE_ALBORZ.F90
+alborz_interfacemodmod = alborz_fake module_alborz
+alborz_interfacemodCAPmod = alborz_FAKE MODULE_alborz
+endif
+
 if HAVE_PEXSI
 PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
 else
@@ -43,6 +55,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
 	module_tersoff.f90 \
+	module_alborz.f90 \
 	module_bornmayerhugginstosifumi.f90 \
 	module_tdpot.f90 \
 	module_coulomb.f90 \
@@ -79,6 +92,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	bigdft_matrices.f90 \
 	$(PEXSI_SRC) \
 	configure.c \
+	$(alborz_interfacemod) \
 	$(cp2k_interfacemod) \
 	module_dftbp.f90 \
 	sw_potential.f90
@@ -184,6 +198,7 @@ modules = module_types.@MODULE_EXT@ \
 	f90sockets.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
+	module_alborz.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
@@ -240,7 +255,7 @@ sparsematrix_wrappers.o: types.o interfaces.o
 gaussdaub.o: psp_projectors_base.o
 #module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
-		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sw_potential.o module_tdpot.o \
+		module_tersoff.o module_alborz.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sw_potential.o module_tdpot.o \
 		module_coulomb.o module_bazant.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
@@ -251,6 +266,7 @@ module_coulomb.o: types.o
 module_bazant.o: types.o
 module_dftbp.o: types.o 
 module_tersoff.o: atoms_data.o
+module_alborz.o: atoms_data.o
 module_bornmayerhugginstosifumi.o: atoms_data.o
 #module_lenosky_si.o: base.o defs.o
 transposed_operations.o: types.o bigdft_matrices.o

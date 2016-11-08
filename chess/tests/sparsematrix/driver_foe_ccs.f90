@@ -37,6 +37,9 @@ program driver_foe_css
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
+  use wrapper_MPI
+  use wrapper_linalg
+
   implicit none
 
   ! Variables
@@ -100,26 +103,27 @@ program driver_foe_css
   ! Do the same also for matrix2.dat
   if (iproc==0) then
       call yaml_scalar('Initializing overlap matrix',hfill='-')
-      call yaml_map('Reading from file','overlap_ccs.dat')
+      call yaml_map('Reading from file','overlap_ccs.txt')
   end if
-  call sparse_matrix_and_matrices_init_from_file_ccs('overlap_ccs.dat', &
+  call sparse_matrix_and_matrices_init_from_file_ccs('overlap_ccs.txt', &
        iproc, nproc, mpi_comm_world, smat_s, mat_s)
 
   if (iproc==0) then
       call yaml_scalar('Initializing Hamiltonian matrix',hfill='-')
-      call yaml_map('Reading from file','hamiltonian_ccs.dat')
+      call yaml_map('Reading from file','hamiltonian_ccs.txt')
   end if
-  call sparse_matrix_and_matrices_init_from_file_ccs('hamiltonian_ccs.dat', &
+  call sparse_matrix_and_matrices_init_from_file_ccs('hamiltonian_ccs.txt', &
        iproc, nproc, mpi_comm_world, smat_h, mat_h)
 
   ! Create another matrix type, this time directly with the CCS format descriptors.
   ! Get these descriptors from an auxiliary routine using matrix3.dat
   if (iproc==0) then
-      call yaml_scalar('Initializing Hamiltonian matrix',hfill='-')
-      call yaml_map('Reading from file','density_kernel_ccs.dat')
+      call yaml_scalar('Initializing density kernel matrix',hfill='-')
+      call yaml_map('Reading from file','density_kernel_ccs.txt')
   end if
-  call get_ccs_data_from_file('density_kernel_ccs.dat', nfvctr, nvctr, row_ind, col_ptr)
-  call get_ccs_data_from_file('density_kernel_matmul_ccs.dat', nfvctr_mult, nvctr_mult, row_ind_mult, col_ptr_mult)
+  call get_ccs_data_from_file('density_kernel_ccs.txt', nfvctr, nvctr, row_ind, col_ptr)
+  !call get_ccs_data_from_file('density_kernel_matmul_ccs.dat', nfvctr_mult, nvctr_mult, row_ind_mult, col_ptr_mult)
+  call get_ccs_data_from_file('density_kernel_matmul_ccs.txt', nfvctr_mult, nvctr_mult, row_ind_mult, col_ptr_mult)
   if (nfvctr_mult/=nfvctr) then
       call f_err_throw('nfvctr_mult/=nfvctr',err_name='SPARSEMATRIX_INITIALIZATION_ERROR')
   end if
@@ -139,7 +143,7 @@ program driver_foe_css
       call yaml_mapping_close()
   end if
 
-  call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.bin', smmd)
+  call sparse_matrix_metadata_init_from_file('sparsematrix_metadata.dat', smmd)
   call get_number_of_electrons(smmd, ncharge)
   if (iproc==0) then
       call yaml_map('Number of electrons',ncharge)

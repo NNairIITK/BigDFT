@@ -810,9 +810,6 @@ contains
   subroutine f_malloc_initialize()
     use f_environment
     implicit none
-    !local variables
-    integer :: istat
-    character(len=1) :: val
     !increase the number of active instances
     ictrl=ictrl+1
     if (f_err_raise(ictrl > max_ctrl,&
@@ -826,6 +823,7 @@ contains
     if (ictrl==1) then
        call memstate_init(memstate)
        bigdebug = f_debug_level >= 1 !we might tune the level
+       !ndebug=f_nan_pad_size
     end if
 
     !initialize the memprofiling counters

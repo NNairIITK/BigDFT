@@ -39,8 +39,7 @@ endif
 
 check: write_plain.report.yaml read_plain.report.yaml write_binary.report.yaml read_binary.report.yaml \
 	check_lib_plain.report.yaml check_lib_binary.report.yaml $(etsf_tests) $(bindings_tests)
-report:
-	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
+
 
 check_PROGRAMS = check_lib $(bindings_bin)
 
