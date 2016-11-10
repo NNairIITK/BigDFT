@@ -101,14 +101,14 @@ program chess_toolbox
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
-   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state, ieval
    character(len=20),dimension(:),pointer :: atomnames
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
    character(len=2) :: backslash, num
    real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, scale_value, shift_value
    real(kind=8) :: maxdiff, meandiff, tt, tracediff, totdiff
-   real(kind=8) :: homo_value, lumo_value, smallest_value, largest_value, gap, gap_target
+   real(kind=8) :: homo_value, lumo_value, smallest_value, largest_value, gap, gap_target, actual_eval
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    character(len=1024) :: outfile_base, outfile_extension, matrix_format
@@ -1240,31 +1240,55 @@ program chess_toolbox
        end do
        call axpy(smat_s%nfvctr**2, 1.0_mp, ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
 
-       ! Move the lowest eigenvalue to the desired value
        matrix_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='matrix_tmp')
-       call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-            1.0_mp, hamiltonian_tmp(1,1), smat_s%nfvctr, &
-            hamiltonian_tmp(1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-            1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-            ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-            1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-            ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-       call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(1)+shift_value), &
-            ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+       !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+       !     1.0_mp, hamiltonian_tmp(1,1), smat_s%nfvctr, &
+       !     hamiltonian_tmp(1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+       !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+       !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+       !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+       !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+       !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+       !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+       !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(1)+shift_value), &
+       !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+       ! Move the lowest eigenvalue to the desired value.
+       ! This is also necessary for all eigevalues that are smaller than the new target value.
+       do ieval=1,smat_s%nfvctr
+           actual_eval = scale_value*eval(ieval)+shift_value
+           if (ieval==1 .or. actual_eval<smallest_value) then
+               call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                    1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
+                    hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+                    ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+                    ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               call axpy(smat_s%nfvctr**2, smallest_value-actual_eval, &
+                    ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+           end if
+       end do
 
-       call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-            1.0_mp, hamiltonian_tmp(1,smat_s%nfvctr), smat_s%nfvctr, &
-            hamiltonian_tmp(1,smat_s%nfvctr), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-            1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-            ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-       call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-            1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-            ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-       call axpy(smat_s%nfvctr**2, largest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
-            ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+       ! Move the higest eigenvalue to the desired value.
+       ! This is also necessary for all eigevalues that are bigger than the new target value.
+       do ieval=1,smat_s%nfvctr
+           actual_eval = scale_value*eval(ieval)+shift_value
+           if (ieval==smat_s%nfvctr .or. actual_eval>largest_value) then
+               call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                    1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
+                    hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+                    ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+                    ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               call axpy(smat_s%nfvctr**2, largest_value-actual_eval, &
+                    ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+           end if
+       end do
        !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
        !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
 
