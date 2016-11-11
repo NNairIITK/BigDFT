@@ -18,7 +18,7 @@ BUILDONE=' buildone '
 TINDERBOX=' tinderbox -o buildlogs '
 DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
-DIST='  dist --dist-only bigdft-suite '
+DIST='  dist --dist-only '#bigdft-suite '
 RCFILE='buildrc'
 SETUP=' setup '
 GREP_M4_COMMENTS=" | grep -v dnl | grep -v '#' "
@@ -342,12 +342,12 @@ class BigDFTInstaller():
     def dist(self):
         "Perform make dist action"
         import os
-        tarfile=os.path.join(self.builddir,'bigdft-suite.tar.gz')
+        tarfile=os.path.join(self.builddir,self.package+'-suite.tar.gz')
         disttime0=self.filename_time(tarfile)
-        os.system(self.jhb+DIST)
+        os.system(self.jhb+DIST+self.package+"-suite")
         disttime1=self.filename_time(tarfile)
         if not (disttime1 == disttime0):
-            print 'SUCCESS: distribution file "bigdft-suite.tar.gz" generated correctly'
+            print 'SUCCESS: distribution file "'+self.package+'-suite.tar.gz" generated correctly'
         else:
             print 'WARNING: the dist file seems not have been updated or generated correctly'
 

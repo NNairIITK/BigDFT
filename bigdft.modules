@@ -212,4 +212,10 @@
     </dependencies>
   </metamodule>
 
+  <metamodule id="chess-suite">
+    <dependencies>
+      <dep package="chess"/>
+    </dependencies>
+  </metamodule>
+
 </moduleset>
