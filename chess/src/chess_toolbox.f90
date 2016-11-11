@@ -53,6 +53,7 @@ program chess_toolbox
    use sparsematrix_io, only: write_linear_coefficients, read_linear_coefficients
    !!use bigdft_run, only: bigdft_init
    use matrix_operations, only: matrix_for_orthonormal_basis
+   use parallel_linalg, only: dgemm_parallel
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
@@ -1219,11 +1220,17 @@ program chess_toolbox
        end if
 
        ! Manipulate the Hamiltonian matrix such that it has the desired spectral properteis
+       if (iproc==0) then
+           call yaml_mapping_open('Manipulate the Hamiltonian spectrum')
+       end if
 
        ! Scale the gap to the desired value
        gap = eval(ihomo_state+1)-eval(ihomo_state)
        gap_target = lumo_value-homo_value
        scale_value = gap_target/gap
+       if (iproc==0) then
+           call yaml_map('Scaling factor',scale_value)
+       end if
        call vscal(smat_s%nfvctr**2, scale_value, hamiltonian_mat%matrix(1,1,1), 1)
 
        ! Move the HOMO level to the desired value
@@ -1232,6 +1239,9 @@ program chess_toolbox
        !if (iproc==0) then
        !    call yaml_map('shift_value',shift_value)
        !end if
+       if (iproc==0) then
+           call yaml_map('Shift value',shift_value)
+       end if
        do i=1,smat_s%nfvctr
            do j=1,smat_s%nfvctr
                !ovrlp_tmp(i,i)=shift_value*ovrlp_mat%matrix(i,i,1)
@@ -1254,41 +1264,86 @@ program chess_toolbox
        !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
        ! Move the lowest eigenvalue to the desired value.
        ! This is also necessary for all eigevalues that are smaller than the new target value.
+       if (iproc==0) then
+           call yaml_sequence_open('Moving lower eigenvalues')
+       end if
        do ieval=1,smat_s%nfvctr
            actual_eval = scale_value*eval(ieval)+shift_value
            if (ieval==1 .or. actual_eval<smallest_value) then
-               call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-                    1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
-                    hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-                    ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-                    ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               if (iproc==0) then
+                   call yaml_sequence(advance='no')
+                   call yaml_mapping_open(flow=.true.)
+                   call yaml_map('eigenvalue number',ieval)
+                   call yaml_map('Shift value',smallest_value-actual_eval)
+                   call yaml_mapping_close()
+               end if
+               !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+               !     1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
+               !     hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+               !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+               !call dgemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+               !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                    1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
+                    hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
+                    ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
+               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, matrix_tmp, smat_s%nfvctr, &
+                    ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call axpy(smat_s%nfvctr**2, smallest_value-actual_eval, &
                     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
            end if
        end do
+       if (iproc==0) then
+           call yaml_sequence_close()
+       end if
 
        ! Move the higest eigenvalue to the desired value.
        ! This is also necessary for all eigevalues that are bigger than the new target value.
+       if (iproc==0) then
+           call yaml_sequence_open('Moving upper eigenvalues')
+       end if
        do ieval=1,smat_s%nfvctr
            actual_eval = scale_value*eval(ieval)+shift_value
            if (ieval==smat_s%nfvctr .or. actual_eval>largest_value) then
-               call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-                    1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
-                    hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-                    ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-               call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-                    ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               if (iproc==0) then
+                   call yaml_sequence(advance='no')
+                   call yaml_mapping_open(flow=.true.)
+                   call yaml_map('eigenvalue number',ieval)
+                   call yaml_map('Shift value',smallest_value-actual_eval)
+                   call yaml_mapping_close()
+               end if
+               !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+               !     1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
+               !     hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+               !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+               !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+               !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                    1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
+                    hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
+                    ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
+               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                    1.0_mp, matrix_tmp, smat_s%nfvctr, &
+                    ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call axpy(smat_s%nfvctr**2, largest_value-actual_eval, &
                     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
            end if
        end do
+       if (iproc==0) then
+           call yaml_sequence_close()
+           call yaml_mapping_close()
+       end if
        !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
        !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
 
