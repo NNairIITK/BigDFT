@@ -63,7 +63,7 @@ program chess_toolbox
    character(len=128) :: method_name, overlap_file, hamiltonian_file, hamiltonian_manipulated_file
    character(len=128) :: kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
-   character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_
+   character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_, scalapack_blocksize_
    !!character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
    character(len=128) :: kernel_matmul_file, fragment_file
    logical :: multipole_analysis = .false.
@@ -102,7 +102,7 @@ program chess_toolbox
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
-   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state, ieval
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state, ieval, scalapack_blocksize
    character(len=20),dimension(:),pointer :: atomnames
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
@@ -226,6 +226,9 @@ program chess_toolbox
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = scalapack_blocksize_)
+            read(scalapack_blocksize_,fmt=*,iostat=ierr) scalapack_blocksize
             !write(*,'(1x,2a)')&
             !   &   'perform a Loewdin charge analysis'
             solve_eigensystem = .true.
@@ -315,6 +318,9 @@ program chess_toolbox
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = largest_value_)
             read(largest_value_,fmt=*,iostat=ierr) largest_value
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = scalapack_blocksize_)
+            read(scalapack_blocksize_,fmt=*,iostat=ierr) scalapack_blocksize
             manipulate_eigenvalue_spectrum = .true.
          end if
          i_arg = i_arg + 1
@@ -470,7 +476,8 @@ program chess_toolbox
        if (iproc==0) then
            call yaml_comment('Diagonalizing the matrix',hfill='~')
        end if
-       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
+       call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+            smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
        if (iproc==0) then
            call yaml_comment('Matrix successfully diagonalized',hfill='~')
        end if
@@ -1204,7 +1211,8 @@ program chess_toolbox
        ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
        call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
        call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+            smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
        if (iproc==0) then
            call yaml_comment('Matrix succesfully diagonalized',hfill='~')
        end if
@@ -1286,13 +1294,16 @@ program chess_toolbox
                !call dgemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
                !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+               call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                    'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
                     1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
                     hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                    'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                     1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
                     ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                    'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                     1.0_mp, matrix_tmp, smat_s%nfvctr, &
                     ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call axpy(smat_s%nfvctr**2, smallest_value-actual_eval, &
@@ -1327,13 +1338,16 @@ program chess_toolbox
                !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
                !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+               call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                    'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
                     1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
                     hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                    'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                     1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
                     ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+               call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                    'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                     1.0_mp, matrix_tmp, smat_s%nfvctr, &
                     ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call axpy(smat_s%nfvctr**2, largest_value-actual_eval, &
@@ -1357,7 +1371,8 @@ program chess_toolbox
        !ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
        call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
        call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+            smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
        if (iproc==0) then
            call yaml_comment('Matrix succesfully diagonalized',hfill='~')
        end if

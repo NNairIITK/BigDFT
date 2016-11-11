@@ -2657,7 +2657,7 @@ module sparsematrix
     end subroutine check_deviation_from_unity_dense
 
 
-    subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
+    subroutine diagonalizeHamiltonian2(iproc, nproc, comm, blocksize, norb, HamSmall, ovrlp, eval)
       use dynamic_memory
       !
       ! Purpose:
@@ -2672,18 +2672,23 @@ module sparsematrix
       !   ----------------
       !     iproc     process ID
       !     nproc     number of MPI processes
-      !     orbs      type describing the physical orbitals psi
+      !     comm      MPI communicator
+      !     blocksize ScaLAPACK block size (negative for sequential LAPACK)
+      !     norb      size of the matrices
       !   Input / Putput arguments
       !     HamSmall  on input: the Hamiltonian
       !               on exit: the eigenvectors
+      !     ovrlp     on input: overlap matrix
+      !               on exit: overwritten
       !   Output arguments
       !     eval      the associated eigenvalues 
       !
-      use yaml_output, only: yaml_map
+      use yaml_output
+      use parallel_linalg, only: dsygv_parallel
       implicit none
     
       ! Calling arguments
-      integer, intent(in) :: iproc, norb
+      integer, intent(in) :: iproc, nproc, comm, blocksize, norb
       real(mp),dimension(norb, norb),intent(inout) :: HamSmall
       real(mp),dimension(norb, norb),intent(inout) :: ovrlp
       real(mp),dimension(norb),intent(out) :: eval
@@ -2692,125 +2697,133 @@ module sparsematrix
       integer :: lwork, info
       real(mp),dimension(:),allocatable :: work
       character(len=*),parameter :: subname='diagonalizeHamiltonian'
-      !!real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
-      !!real(8) :: tt, tt2
-      !!integer :: nproc
-      !!real(8),dimension(norb,norb) :: kernel
-    
-      !!allocate(hamtmp(norb,norb))
-      !!allocate(ovrlptmp(norb,norb))
-      !!allocate(invovrlp(norb,norb))
-      !!allocate(tmpmat(norb,norb))
-      !!allocate(tmpmat2(norb,norb))
-    
-      !!call mpi_comm_size(mpi_comm_world,nproc,istat)
-    
-      !!hamtmp=HamSmall
-      !!ovrlptmp=ovrlp
-      !!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
-    
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
-    
-      !!lwork=10000
-      !!allocate(work(lwork))
-      !!call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
-      !!deallocate(work)
-    
-      !!ovrlptmp=ovrlp
-      !!tmpmat=tmpmat2
-      !!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
-      !!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
-      !!!if (iproc==0) then
-      !!!    do istat=1,norb
-      !!!        do iall=1,norb
-      !!!            write(200,*) tmpmat2(iall,istat)
-      !!!        end do
-      !!!    end do
-      !!!end if
-    
-      !!call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
-      !!if (iproc==0) then
-      !!    tt=0.d0
-      !!    tt2=0.d0
-      !!    do istat=1,norb
-      !!        do iall=1,norb
-      !!            write(300,*) kernel(iall,istat)
-      !!            if (istat==iall) tt=tt+kernel(iall,istat)
-      !!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
-      !!        end do
-      !!    end do
-      !!    write(*,*) 'Before: trace(K)',tt
-      !!    write(*,*) 'Before: trace(KS)',tt2
-      !!end if
-    
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
-      !!if (iproc==0) then
-      !!    tt=0.d0
-      !!    tt2=0.d0
-      !!    do istat=1,norb
-      !!        do iall=1,norb
-      !!            write(305,*) kernel(iall,istat)
-      !!            if (istat==iall) tt=tt+kernel(iall,istat)
-      !!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
-      !!        end do
-      !!    end do
-      !!    write(*,*) 'After: trace(K)',tt
-      !!    write(*,*) 'After: trace(KS)',tt2
-      !!end if
-    
-    
-      !call timing(iproc,'diagonal_seq  ','ON')
-      call f_timing(TCAT_SMAT_HL_DSYGV,'ON')
-      call f_routine(id='diagonalizeHamiltonian2')
-    
-      ! DEBUG: print hamiltonian and overlap matrices
-      !if (iproc==0) then
-      !   open(10)
-      !   open(11)
-      !   do iorb=1,orbs%norb
-      !      do jorb=1,orbs%norb
-      !         write(10,*) iorb,jorb,HamSmall(iorb,jorb)
-      !         write(11,*) iorb,jorb,ovrlp(iorb,jorb)
-      !      end do
-      !      write(10,*) ''
-      !      write(11,*) ''
-      !   end do
-      !   close(10)
-      !   close(11)
-      !end if
-      ! DEBUG: print hamiltonian and overlap matrices
-    
-      !call yaml_map('Hamiltonian before',HamSmall)
-      ! Get the optimal work array size
-      lwork=-1 
-      work = f_malloc(100,id='work')
-      call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
-      lwork=int(work(1))
-    
-      ! Deallocate the work array and reallocate it with the optimal size
-      call f_free(work)
-      work = f_malloc(lwork,id='work')
-    
-      ! Diagonalize the Hamiltonian
-      call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
-      if(info/=0)then
-        write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
+
+
+      call dsygv_parallel(iproc, nproc, comm, blocksize, nproc, &
+           1, 'v', 'l', norb, HamSmall, norb, ovrlp, norb, eval, info)
+      if (info/=0) then
+          call yaml_warning('dsygv_parallel returned non-zero error code, value = '//trim(yaml_toa(info)))
       end if
-      !!if (iproc==0) then
-      !!    do istat=1,norb
-      !!        do iall=1,norb
-      !!            write(201,*) hamsmall(iall,istat)
-      !!        end do
-      !!    end do
+
+      !!!!real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
+      !!!!real(8) :: tt, tt2
+      !!!!integer :: nproc
+      !!!!real(8),dimension(norb,norb) :: kernel
+    
+      !!!!allocate(hamtmp(norb,norb))
+      !!!!allocate(ovrlptmp(norb,norb))
+      !!!!allocate(invovrlp(norb,norb))
+      !!!!allocate(tmpmat(norb,norb))
+      !!!!allocate(tmpmat2(norb,norb))
+    
+      !!!!call mpi_comm_size(mpi_comm_world,nproc,istat)
+    
+      !!!!hamtmp=HamSmall
+      !!!!ovrlptmp=ovrlp
+      !!!!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+    
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
+    
+      !!!!lwork=10000
+      !!!!allocate(work(lwork))
+      !!!!call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
+      !!!!deallocate(work)
+    
+      !!!!ovrlptmp=ovrlp
+      !!!!tmpmat=tmpmat2
+      !!!!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+      !!!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
+      !!!!!if (iproc==0) then
+      !!!!!    do istat=1,norb
+      !!!!!        do iall=1,norb
+      !!!!!            write(200,*) tmpmat2(iall,istat)
+      !!!!!        end do
+      !!!!!    end do
+      !!!!!end if
+    
+      !!!!call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
+      !!!!if (iproc==0) then
+      !!!!    tt=0.d0
+      !!!!    tt2=0.d0
+      !!!!    do istat=1,norb
+      !!!!        do iall=1,norb
+      !!!!            write(300,*) kernel(iall,istat)
+      !!!!            if (istat==iall) tt=tt+kernel(iall,istat)
+      !!!!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+      !!!!        end do
+      !!!!    end do
+      !!!!    write(*,*) 'Before: trace(K)',tt
+      !!!!    write(*,*) 'Before: trace(KS)',tt2
+      !!!!end if
+    
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
+      !!!!if (iproc==0) then
+      !!!!    tt=0.d0
+      !!!!    tt2=0.d0
+      !!!!    do istat=1,norb
+      !!!!        do iall=1,norb
+      !!!!            write(305,*) kernel(iall,istat)
+      !!!!            if (istat==iall) tt=tt+kernel(iall,istat)
+      !!!!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+      !!!!        end do
+      !!!!    end do
+      !!!!    write(*,*) 'After: trace(K)',tt
+      !!!!    write(*,*) 'After: trace(KS)',tt2
+      !!!!end if
+    
+    
+      !!!call timing(iproc,'diagonal_seq  ','ON')
+      !!call f_timing(TCAT_SMAT_HL_DSYGV,'ON')
+      !!call f_routine(id='diagonalizeHamiltonian2')
+    
+      !!! DEBUG: print hamiltonian and overlap matrices
+      !!!if (iproc==0) then
+      !!!   open(10)
+      !!!   open(11)
+      !!!   do iorb=1,orbs%norb
+      !!!      do jorb=1,orbs%norb
+      !!!         write(10,*) iorb,jorb,HamSmall(iorb,jorb)
+      !!!         write(11,*) iorb,jorb,ovrlp(iorb,jorb)
+      !!!      end do
+      !!!      write(10,*) ''
+      !!!      write(11,*) ''
+      !!!   end do
+      !!!   close(10)
+      !!!   close(11)
+      !!!end if
+      !!! DEBUG: print hamiltonian and overlap matrices
+    
+      !!!call yaml_map('Hamiltonian before',HamSmall)
+      !!! Get the optimal work array size
+      !!lwork=-1 
+      !!work = f_malloc(100,id='work')
+      !!call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
+      !!lwork=int(work(1))
+    
+      !!! Deallocate the work array and reallocate it with the optimal size
+      !!call f_free(work)
+      !!work = f_malloc(lwork,id='work')
+    
+      !!! Diagonalize the Hamiltonian
+      !!call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
+      !!if(info/=0)then
+      !!  write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
       !!end if
+      !!!!if (iproc==0) then
+      !!!!    do istat=1,norb
+      !!!!        do iall=1,norb
+      !!!!            write(201,*) hamsmall(iall,istat)
+      !!!!        end do
+      !!!!    end do
+      !!!!end if
     
-      call f_free(work)
+      !!call f_free(work)
     
-      call f_release_routine()
-      !call timing(iproc,'diagonal_seq  ','OF')
-      call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
+      !!call f_release_routine()
+      !!!call timing(iproc,'diagonal_seq  ','OF')
+      !!call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
     
     end subroutine diagonalizeHamiltonian2
 

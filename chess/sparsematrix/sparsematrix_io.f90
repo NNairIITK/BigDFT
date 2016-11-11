@@ -388,7 +388,7 @@ module sparsematrix_io
                   !filename_matmul = trim(filename_base)//'_matmul'//trim(filename_extension)
                   filename_matmul = trim(filename)//'_matmul'
                   !call f_open_file(iunit, file=trim(filename)//'_matmul', binary=.false.)
-                  call f_open_file(iunit, file=trim(filename_matmul)//'.dat', binary=.false.)
+                  call f_open_file(iunit, file=trim(filename_matmul)//'.txt', binary=.false.)
 
                   write(iunit,'(4i12,a)') smat%nspin, smat%nfvctr, smat%smmm%nseg, sum(smat%smmm%nvctr_par), &
                       '   # nspin, nfvctr, nseg, nvctr'

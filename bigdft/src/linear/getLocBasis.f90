@@ -387,24 +387,25 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
           if (iproc==0) call yaml_map('method','diagonalization')
-          if(tmb%orthpar%blocksize_pdsyev<0) then
-              if (iproc==0) call yaml_map('mode','sequential')
-              !!if (iproc==0) then
-              !!    do iorb=1,tmb%linmat%m%nfvctr
-              !!        do jorb=1,tmb%linmat%m%nfvctr
-              !!            write(690+ispin,'(a,2i8,2f15.8)') 'iorb, jorb, vals', iorb, jorb, matrixElements(jorb,iorb,:)
-              !!        end do
-              !!    end do
-              !!end if
-              call diagonalizeHamiltonian2(iproc, tmb%linmat%m%nfvctr, &
+          !!if(tmb%orthpar%blocksize_pdsyev<0) then
+          !!    if (iproc==0) call yaml_map('mode','sequential')
+          !!    !!if (iproc==0) then
+          !!    !!    do iorb=1,tmb%linmat%m%nfvctr
+          !!    !!        do jorb=1,tmb%linmat%m%nfvctr
+          !!    !!            write(690+ispin,'(a,2i8,2f15.8)') 'iorb, jorb, vals', iorb, jorb, matrixElements(jorb,iorb,:)
+          !!    !!        end do
+          !!    !!    end do
+          !!    !!end if
+              call diagonalizeHamiltonian2(iproc, nproc, bigdft_mpi%mpi_comm, &
+                   tmb%orthpar%blocksize_pdsyev, tmb%linmat%m%nfvctr, &
                    matrixElements(1,1,1), matrixElements(1,1,2), eval)
-          else
-              if (iproc==0) call yaml_map('mode','parallel')
-              call dsygv_parallel(iproc, nproc, bigdft_mpi%mpi_comm, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
-                   1, 'v', 'l', tmb%linmat%m%nfvctr, &
-                   matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
-                   eval, info)
-          end if
+          !!else
+          !!    if (iproc==0) call yaml_map('mode','parallel')
+          !!    call dsygv_parallel(iproc, nproc, bigdft_mpi%mpi_comm, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
+          !!         1, 'v', 'l', tmb%linmat%m%nfvctr, &
+          !!         matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
+          !!         eval, info)
+          !!end if
           !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr*10.d0
           !!do i=1,tmb%orbs%norb
           !!    write(*,*) 'i, eval(i)', i, eval(i)
@@ -603,7 +604,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           !SM: need to fix the spin here
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ham_%matrix(1,1,1), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%orbs%norb**2, tmb%linmat%ovrlp_%matrix(1,1,1), 1, matrixElements(1,1,2), 1)
-          call diagonalizeHamiltonian2(iproc, tmb%orbs%norb, matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
+          call diagonalizeHamiltonian2(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%orthpar%blocksize_pdsyev, tmb%orbs%norb, &
+               matrixElements(1,1,1), matrixElements(1,1,2), tmb%orbs%eval)
           if (iproc==0) call yaml_map('gap',tmb%orbs%eval(orbs%norb+1)-tmb%orbs%eval(orbs%norb))
           if (iproc==0) call yaml_map('lowest eigenvalue',tmb%orbs%eval(1))
           if (iproc==0) call yaml_map('highest eigenvalue',tmb%orbs%eval(tmb%orbs%norb))
