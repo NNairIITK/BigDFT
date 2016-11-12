@@ -14,6 +14,8 @@ else
 memcheck_script =
 endif 
 
+SUBDIRS=python
+
 if HAVE_PYTHON
 if BUILD_DYNAMIC_LIBS
 pymodule = futile.so
@@ -103,7 +105,7 @@ $(modules): $(libfutile_1_a_OBJECTS)
 
 # Copy modules in a common include directory.
 all: all-am insmod
-install: install-am insmod
+install: install-recursive install-am insmod
 check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes

@@ -1,6 +1,6 @@
-. './unienv.sh'
 prefix=@prefix@
 exec_prefix=@exec_prefix@
+. "@bindir@/unienv.sh"
 unienv BIGDFT_ROOT @bindir@
 #for dynamic libraries (commented as the if statement does not work in a .in file)
 #unienv LD_PRELOAD @libdir@/libbigdft-1.so
