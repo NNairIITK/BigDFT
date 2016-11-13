@@ -8,6 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 module f_functions
   use f_precisions
+  use f_enums
   use numerics, only: pi,safe_erf,safe_exp
   implicit none
   private
@@ -31,6 +32,16 @@ module f_functions
   integer, parameter :: FUNC_SINE = 7
   integer, parameter :: FUNC_ATAN = 8
   integer, parameter :: FUNC_ERF = 9
+
+  type(f_enumerator), public :: f_constant=f_enumerator('CONSTANT',FUNC_CONSTANT,null())
+  type(f_enumerator), public :: f_gaussian=f_enumerator('GAUSSIAN',FUNC_GAUSSIAN,null())
+  type(f_enumerator), public :: f_gaussian_shrinked=f_enumerator('GAUSSIAN_SHRINKED',FUNC_GAUSSIAN_SHRINKED,null())
+  type(f_enumerator), public :: f_cosine=f_enumerator('COSINE',FUNC_COSINE,null())
+  type(f_enumerator), public :: f_exp_cosine=f_enumerator('EXP_COSINE',FUNC_EXP_COSINE,null())
+  type(f_enumerator), public :: f_shrink_gaussian=f_enumerator('SHRINK_GAUSSIAN',FUNC_SHRINK_GAUSSIAN,null())
+  type(f_enumerator), public :: f_sine=f_enumerator('SINE',FUNC_SINE,null())
+  type(f_enumerator), public :: f_atan=f_enumerator('ATAN',FUNC_ATAN,null())
+  type(f_enumerator), public :: f_erf=f_enumerator('ERF',FUNC_ERF,null())
 
 
   type, public :: f_function
@@ -85,12 +96,12 @@ module f_functions
          f_function_new%params(EXPONENT_)=exponent
       case(FUNC_GAUSSIAN_SHRINKED,FUNC_SHRINK_GAUSSIAN)
          if (f_err_raise(.not. present(length),'f_function: length')) return
-         f_function_new%params(LENGTH_)=length_
+         f_function_new%params(LENGTH_)=length
       case(FUNC_COSINE,FUNC_EXP_COSINE,FUNC_SINE)
          if (f_err_raise(.not. present(length),'f_function: length')) return
          if (f_err_raise(.not. present(frequency),'f_function: frequency')) return
-         f_function_new%params(LENGTH_)=length_
-         f_function_new%params(FREQUENCY_)=frequency_
+         f_function_new%params(LENGTH_)=length
+         f_function_new%params(FREQUENCY_)=frequency
       case(FUNC_ATAN,FUNC_ERF)
          if (f_err_raise(.not. present(scale),'f_function: scale')) return
          f_function_new%params(SCALE_)=scale
@@ -129,13 +140,17 @@ module f_functions
       end select
     end function eval
 
-    pure function diff(func,x) result(y)
+    pure function diff(func,x,order) result(y)
       implicit none
       type(f_function), intent(in) :: func
       real(f_double), intent(in) :: x
+      integer, intent(in), optional :: order
       real(f_double) :: y
       !local variables
-      integer, parameter :: idiff=1
+      integer :: idiff
+      
+      idiff=1
+      if (present(order)) idiff=order
 
       select case(func%function_type)
       case default !(FUNC_CONSTANT)
@@ -168,7 +183,7 @@ module f_functions
       !local variables
       real(f_double) :: r2
       r2=a*x**2
-      f=dexp(-r2) !<checked
+      f=safe_exp(-r2) !<checked
       select case(idiff)
       case(1)
          f=-2.d0*a*x*f !<checked
@@ -187,7 +202,7 @@ module f_functions
 
       r=pi*x/length
       y=tan(r)
-      f=dexp(-y**2) !<checked
+      f=safe_exp(-y**2) !<checked
       select case(idiff)
       case(1)
          f=-2.d0*pi*f*y/(length*cos(r)**2) !<checked
@@ -233,7 +248,7 @@ module f_functions
          yp=-sin(r)
          f=f*pi*nu/a*yp !<checked
       case(2)
-         yp=-sin(r)
+         yp=sin(r)
          factor=(pi*nu/a)**2*(-y+yp**2)
          f= factor*f !<checked
       end select
@@ -263,7 +278,7 @@ module f_functions
          h1=gaussian(a,x,1)
          g2=gaussian_shrinked(length,x,2)
          h2=gaussian(a,x,2)
-         f=g2*h+g*h2+2.d0*g1*h1 !<checked
+         f=g2*h+g*h2+2.0_f_double*g1*h1 !<checked
       case default
          f=0.0_f_double
       end select
@@ -338,13 +353,13 @@ module f_functions
          case(1)
             y=x*x
             y=y/(2.d0*a**2)
-            g=exp(-y)
+            g=safe_exp(-y)
             h=1.d0/a**2+2.d0/x**2
             f=-f/x+factor*g/x !<checked
          case(2)
             y=x*x
             y=y/(2.d0*a**2)
-            g=exp(-y)
+            g=safe_exp(-y)
             h=1.d0/a**2+2.d0/x**2
             f=-factor*g*h+2.d0*f/x**2  !<checked
          end select
