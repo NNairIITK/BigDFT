@@ -105,21 +105,19 @@ module foe
       real(kind=mp),parameter :: CHECK_RATIO=1.25d0
       !integer,parameter :: NPL_MIN=100
       !!type(matrices) :: inv_ovrlp
-      integer,parameter :: NTEMP_ACCURATE=8!4
-      integer,parameter :: NTEMP_FAST=1
+      !integer,parameter :: NTEMP_ACCURATE=8!4
+      !integer,parameter :: NTEMP_FAST=1
       real(kind=mp) :: degree_multiplicator, ebsp_allspins
       real(kind=mp),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
-      integer,parameter :: SPARSE=1
-      integer,parameter :: DENSE=2
-      integer,parameter :: imode=SPARSE
+      !integer,parameter :: SPARSE=1
+      !integer,parameter :: DENSE=2
+      !integer,parameter :: imode=SPARSE
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
-      real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
-      real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
-      integer :: iline, icolumn, icalc, npl_min
-      real(kind=mp),dimension(:),allocatable :: ham_large
-      real(kind=mp),dimension(2) :: fscale_ispin
-      real(kind=mp),dimension(1) :: ef_arr, fscale_arr
+      real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new
+      integer :: npl_min
+      !real(kind=mp),dimension(2) :: fscale_ispin
+      real(kind=mp),dimension(1) :: fscale_arr
       real(mp) :: ebs_check_allspins
       real(mp),dimension(:),allocatable :: sumn_allspins
       !!integer,parameter :: NPL_MAX = 10000
@@ -219,7 +217,7 @@ module foe
       if (smatl%nspin>2) then
           call f_err_throw('smatl%nspin>2')
       end if
-      fscale_ispin(1:2) = huge(fscale_ispin(1:2))
+      !fscale_ispin(1:2) = huge(fscale_ispin(1:2))
 
       !spin_loop: do ispin=1,smatl%nspin
 
@@ -560,7 +558,7 @@ module foe
           ! Sum up the band structure energy
           ebs = ebs + ebsp_allspins
 
-          fscale_ispin(1) = fscale_new
+          !fscale_ispin(1) = fscale_new
 
 
           if (calculate_energy_density_kernel) then
@@ -754,7 +752,7 @@ module foe
       real(mp),dimension(iev_min:iev_max),intent(out) :: eval
 
       ! Local variables
-      integer :: iev, i, ispin, ilshift, npl, npl_min, ind
+      integer :: iev, i, ispin, ilshift, npl, npl_min, ind, npl_max, npl_stride
       real(mp) :: dq, q, scale_factor, shift_value, factor
       real(mp),dimension(:),allocatable :: charges
       type(matrices) :: kernel
@@ -762,8 +760,8 @@ module foe
       !real(mp),dimension(1),parameter :: FSCALE = 2.e-2_mp
       type(foe_data) :: foe_obj
       type(fermi_aux) :: f
-      integer,parameter :: NPL_MAX = 10000
-      integer,parameter :: NPL_STRIDE = 100
+      !integer,parameter :: NPL_MAX = 10000
+      !integer,parameter :: NPL_STRIDE = 100
       real(mp),dimension(:,:,:),pointer :: chebyshev_polynomials
       real(mp),dimension(:),allocatable :: hamscal_compr
       type(f_progress_bar) :: bar
@@ -791,6 +789,10 @@ module foe
       end do
       call init_foe(iproc, nproc, smatl%nspin, charges, foe_obj, 0.0_mp, fscale=fscale)
       call f_free(charges)
+
+      npl_min = foe_data_get_int(foe_obj,"npl_min")
+      npl_max = foe_data_get_int(foe_obj,"npl_max")
+      npl_stride = foe_data_get_int(foe_obj,"npl_stride")
 
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 

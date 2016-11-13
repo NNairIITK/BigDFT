@@ -1346,7 +1346,7 @@ module foe_common
       ! Local variables
       integer :: jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
       integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
-      integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries
+      integer :: iismall_ovrlp, iismall_ham, it_shift, npl_check, npl_boundaries
       integer,parameter :: nplx=50000
       real(kind=mp),dimension(:,:,:),allocatable :: cc, cc_check
       real(kind=mp),dimension(:,:),allocatable ::  fermip_check
@@ -1363,21 +1363,21 @@ module foe_common
       real(kind=mp),dimension(4) :: interpol_vector
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
       logical,dimension(2) :: bisection_bounds_ok
-      real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
+      real(kind=mp) :: ebs_check, ef, ebsp
       integer :: irow, icol, itemp, iflag,info, i, j, itg, ncount, istl, ists, isshift, imshift
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
-      real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
-      real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
-      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
-      real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
-      real(kind=mp),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-      real(kind=mp),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
-      real(kind=mp),parameter :: CHECK_RATIO=1.25d0
-      integer,parameter :: NPL_MIN=100
+      !real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
+      !real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
+      !real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
+      !real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
+      !real(kind=mp),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
+      !real(kind=mp),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
+      !real(kind=mp),parameter :: CHECK_RATIO=1.25d0
+      !integer,parameter :: NPL_MIN=100
       !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
-      real(kind=mp) :: degree_multiplicator, x_max_error, max_error, x_max_error_check, max_error_check
+      real(kind=mp) :: x_max_error, max_error, x_max_error_check, max_error_check
       real(kind=mp) :: mean_error, mean_error_check
       integer,parameter :: SPARSE=1
       integer,parameter :: DENSE=2
@@ -1450,9 +1450,9 @@ module foe_common
       !!    evbounds_shrinked=.false.
       !!end if
 
-      ntemp = NTEMP_ACCURATE
-      degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
-      temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
+      !ntemp = NTEMP_ACCURATE
+      !degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
+      !temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
 
       !!fscale_new=1.d100
 
@@ -1786,8 +1786,8 @@ module foe_common
       ! Local variables
       integer :: jorb, ipl, it, ii, iiorb, jjorb, iseg, iorb
       integer :: isegstart, isegend, iismall, iilarge, nsize_polynomial
-      integer :: iismall_ovrlp, iismall_ham, ntemp, it_shift, npl_check, npl_boundaries, ilshift
-      integer,parameter :: nplx=50000
+      integer :: iismall_ovrlp, iismall_ham, it_shift, npl_check, npl_boundaries, ilshift
+      !integer,parameter :: nplx=50000
       real(kind=mp),dimension(:,:,:),allocatable :: cc, cc_check
       real(kind=mp),dimension(:,:),allocatable :: fermip_check
       real(kind=mp),dimension(:,:,:),allocatable :: penalty_ev
@@ -1862,7 +1862,7 @@ module foe_common
 
 
 
-      ntemp = NTEMP_ACCURATE
+      !ntemp = NTEMP_ACCURATE
       degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
       temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
 
