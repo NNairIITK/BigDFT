@@ -49,13 +49,13 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
-  integer :: ispin, ihomo, imax
+  integer :: ispin, ihomo, imax, ntemp, npl_max
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max
-  real(mp) :: energy, tr_KS, tr_KS_check
+  real(mp) :: energy, tr_KS, tr_KS_check, ef
   type(foe_data) :: foe_obj, ice_obj
-  real(mp) :: tr
+  real(mp) :: tr, fscale_lowerbound, fscale_upperbound
   type(dictionary),pointer :: dict_timing_info, options
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
@@ -120,6 +120,11 @@ program driver_foe
       matrix_format = options//'matrix_format'
       scalapack_blocksize = options//'scalapack_blocksize'
       check_spectrum = options//'check_spectrum'
+      fscale_lowerbound = options//'fscale_lowerbound'
+      fscale_upperbound = options//'fscale_upperbound'
+      ntemp = options//'ntemp'
+      ef = options//'ef'
+      npl_max = options//'npl_max'
      
       call dict_free(options)
 
@@ -133,6 +138,11 @@ program driver_foe
       call yaml_map('Density kernel matrix multiplication file',trim(kernel_matmul_file))
       call yaml_map('Blocksize for ScaLAPACK',scalapack_blocksize)
       call yaml_map('Check the Hamiltonian spectrum',check_spectrum)
+      call yaml_map('Lower bound for decay length',fscale_lowerbound)
+      call yaml_map('Upper bound for decay length',fscale_upperbound)
+      call yaml_map('Iterations with varying temperatures',ntemp)
+      call yaml_map('Guess for Fermi energy',ef)
+      call yaml_map('Maximal polynomial degree',npl_max)
       call yaml_mapping_close()
   end if
 
@@ -146,6 +156,11 @@ program driver_foe
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  call mpibcast(fscale_lowerbound, root=0, comm=mpi_comm_world)
+  call mpibcast(fscale_upperbound, root=0, comm=mpi_comm_world)
+  call mpibcast(ntemp, root=0, comm=mpi_comm_world)
+  call mpibcast(ef, root=0, comm=mpi_comm_world)
+  call mpibcast(npl_max, root=0, comm=mpi_comm_world)
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
       if (check_spectrum) then
@@ -240,7 +255,9 @@ program driver_foe
   ! Only provide the mandatory values and take for the optional values the default ones.
   charge = f_malloc(smat_s%nspin,id='charge')
   charge(:) = real(ncharge,kind=mp)
-  call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj)
+  call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj, &
+       fscale_lowerbound=fscale_lowerbound, fscale_upperbound=fscale_upperbound, &
+       ntemp = ntemp, ef=ef, npl_max=npl_max)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
 
@@ -494,8 +511,43 @@ subroutine commandline_options(parser)
   call yaml_cl_parse_option(parser,'check_spectrum','.false.',&
        'Indicate whether the spectral properties of the Hamiltonian shall be calculated',&
        help_dict=dict_new('Usage' .is. &
-       'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagoanlization)',&
+       'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagonalization',&
        'Allowed values' .is. &
        'Logical'))
+
+  call yaml_cl_parse_option(parser,'fscale_lowerbound','5.e-3',&
+       'Indicate the minimal value for the Fermi function decay length',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the minimal value for the Fermi function decay length that should be used to calculate the density kernel',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'fscale_upperbound','5.e-2',&
+       'Indicate the maximal value for the Fermi function decay length',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the maximal value for the Fermi function decay length that should be used to calculate the density kernel',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'ntemp','4',&
+       'Indicate the maximal number of FOE iterations with various temperatures',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the maximal number of FOE iterations with various temperatures, to determine dynamically the width of the gap',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'ef','0.0',&
+       'Indicate the initial guess for the Fermi energy',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the initial guess for the Fermi energy, will then be adjusted automatically',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'npl_max','5000',&
+       'Indicate the maximal polynomial degree',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the maximal polynomial degree',&
+       'Allowed values' .is. &
+       'Integer'))
 
 end subroutine commandline_options

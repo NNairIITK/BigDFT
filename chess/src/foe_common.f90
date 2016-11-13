@@ -145,20 +145,12 @@ module foe_common
 
   !> Public routines
   public :: get_chebyshev_expansion_coefficients
-  !public :: chebft
-  !public :: chebyshev_coefficients_penalyfunction
   public :: chder
   public :: evnoise
-  !public :: erfcc
-  !public :: chebev
   public :: pltwght
   public :: pltexp
-  !public :: check_eigenvalue_spectrum_new
-  !public :: scale_and_shift_matrix
   public :: retransform_ext
-  !!public :: cheb_exp
   public :: init_foe
-  !public :: get_chebyshev_polynomials
   public :: find_fermi_level
   public :: get_polynomial_degree
   public :: calculate_trace_distributed_new
@@ -1043,10 +1035,10 @@ module foe_common
     !!##end subroutine cheb_exp
 
 
-    subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
+    subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, ef, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
                fscale_lowerbound, fscale_upperbound, eval_multiplicator, &
-               npl_min, npl_max, npl_stride, betax)
+               npl_min, npl_max, npl_stride, betax, ntemp)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       use dynamic_memory
       implicit none
@@ -1057,6 +1049,7 @@ module foe_common
       type(foe_data),intent(out) :: foe_obj
       integer,intent(in),optional :: evbounds_nsatur
       integer,intent(in),optional :: evboundsshrink_nsatur
+      real(kind=mp),intent(in),optional :: ef
       real(kind=mp),intent(in),optional :: evlow
       real(kind=mp),intent(in),optional :: evhigh
       real(kind=mp),intent(in),optional :: fscale
@@ -1070,12 +1063,14 @@ module foe_common
       integer,intent(in),optional :: npl_max
       integer,intent(in),optional :: npl_stride
       real(kind=mp),intent(in),optional :: betax
+      integer,intent(in),optional :: ntemp
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
       integer :: ispin
       integer :: evbounds_nsatur_
       integer :: evboundsshrink_nsatur_
+      real(kind=mp) :: ef_
       real(kind=mp) :: evlow_
       real(kind=mp) :: evhigh_
       real(kind=mp) :: fscale_
@@ -1089,11 +1084,13 @@ module foe_common
       integer :: npl_max_
       integer :: npl_stride_
       real(kind=mp) :: betax_
+      integer :: ntemp_
 
       !call timing(iproc,'init_matrCompr','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
 
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
+      ef_ = 0.0_mp
       evbounds_nsatur_ = 3
       evboundsshrink_nsatur_ =4
       evlow_ = -0.5_mp
@@ -1109,7 +1106,9 @@ module foe_common
       npl_max_ = 5000
       npl_stride_ = 10
       betax_ = -1000.0_mp
+      ntemp_ = 4
 
+      if (present(ef)) ef_ = ef
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
       if (present(evlow)) evlow_ = evlow
@@ -1125,9 +1124,11 @@ module foe_common
       if (present(npl_max)) npl_max_ = npl_max
       if (present(npl_stride)) npl_stride_ = npl_stride
       if (present(betax)) betax_ = betax
+      if (present(ntemp)) ntemp_ = ntemp
     
       foe_obj = foe_data_null()
 
+      call foe_data_set_real(foe_obj,"ef",ef_)
       call foe_data_set_real(foe_obj,"fscale",fscale_)
       call foe_data_set_real(foe_obj,"ef_interpol_det",ef_interpol_det_)
       call foe_data_set_real(foe_obj,"ef_interpol_chargediff",ef_interpol_chargediff_)
@@ -1142,16 +1143,15 @@ module foe_common
       call foe_data_set_int(foe_obj,"npl_max",npl_max_)
       call foe_data_set_int(foe_obj,"npl_stride",npl_stride_)
       call foe_data_set_real(foe_obj,"betax",betax_)
+      call foe_data_set_int(foe_obj,"ntemp",ntemp_)
 
       foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
-      foe_obj%ef = f_malloc0_ptr(nspin,id='(foe_obj%ef)')
       foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
       foe_obj%evhigh = f_malloc0_ptr(nspin,id='foe_obj%evhigh')
       foe_obj%bisection_shift = f_malloc0_ptr(nspin,id='foe_obj%bisection_shift')
       foe_obj%eval_multiplicator = f_malloc0_ptr(nspin,id='foe_obj%eval_multiplicator')
       do ispin=1,nspin
           call foe_data_set_real(foe_obj,"charge",charge(ispin),ispin)
-          call foe_data_set_real(foe_obj,"ef",0.d0,ispin)
           call foe_data_set_real(foe_obj,"evhigh",evhigh_,ispin)
           call foe_data_set_real(foe_obj,"evlow",evlow_,ispin)
           call foe_data_set_real(foe_obj,"bisection_shift",1.d-1,ispin)
@@ -1486,10 +1486,10 @@ module foe_common
                        "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",1),1.d-4), &
                        1)
 
-                  efarr(1)=foe_data_get_real(foe_obj,"ef",1)-foe_data_get_real(foe_obj,"bisection_shift",1)
-                  efarr(2)=foe_data_get_real(foe_obj,"ef",1)+foe_data_get_real(foe_obj,"bisection_shift",1)
+                  efarr(1)=foe_data_get_real(foe_obj,"ef")-foe_data_get_real(foe_obj,"bisection_shift",1)
+                  efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift",1)
 
-                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef",1), f, &
+                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef"), f, &
                        foe_data_get_real(foe_obj,"bisection_shift",1), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
                        foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
                   !call foe_data_set_real(foe_obj,"ef",efarr(1),ispin)
@@ -1554,7 +1554,9 @@ module foe_common
                       !!    if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
                       !!    stop
                       !!end if
-                      if (npl>nplx) stop 'npl>nplx'
+                      if (npl>nplx) then
+                          call f_err_throw('npl>nplx')
+                      end if
 
                       ! Array the holds the Chebyshev polynomials. Needs to be recalculated
                       ! every time the Hamiltonian has been modified.
@@ -1804,8 +1806,8 @@ module foe_common
       real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
       integer :: irow, icol, itemp, iflag,info, isshift, imshift, ilshift2, i, j, itg, ncount, istl, ists
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
-      real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
-      real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
+      !real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
+      !real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
       real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
       real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
       real(kind=mp),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
@@ -1883,8 +1885,8 @@ module foe_common
           !temp_loop: do itemp=1,ntemp
 
               fscale = fscale_new
-              fscale = max(fscale,FSCALE_LOWER_LIMIT)
-              fscale = min(fscale,FSCALE_UPPER_LIMIT)
+              !fscale = max(fscale,FSCALE_LOWER_LIMIT)
+              !fscale = min(fscale,FSCALE_UPPER_LIMIT)
 
               evlow_old=1.d100
               evhigh_old=-1.d100
@@ -1895,13 +1897,13 @@ module foe_common
                        "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",1),1.d-4), &
                        1)
 
-                  efarr(1)=foe_data_get_real(foe_obj,"ef",1)-foe_data_get_real(foe_obj,"bisection_shift",1)
-                  efarr(2)=foe_data_get_real(foe_obj,"ef",1)+foe_data_get_real(foe_obj,"bisection_shift",1)
+                  efarr(1)=foe_data_get_real(foe_obj,"ef")-foe_data_get_real(foe_obj,"bisection_shift",1)
+                  efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift",1)
                   !write(*,*) 'ef, efarr', foe_data_get_real(foe_obj,"ef",ispin), efarr
 
                   sumnarr(1)=0.d0
                   sumnarr(2)=1.d100
-                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef",1), f, &
+                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef"), f, &
                        foe_data_get_real(foe_obj,"bisection_shift",1), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
                        foe_data_get_real(foe_obj,"ef_interpol_det"), verbosity=foe_verbosity)
                   call foe_data_set_real(foe_obj,"ef",efarr(1),1)
@@ -1959,7 +1961,7 @@ module foe_common
                       !call timing(iproc, 'chebyshev_coef', 'ON')
                       call f_timing(TCAT_CME_COEFFICIENTS,'ON')
 
-                      call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",1), fscalex=fscale)
+                      call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef"), fscalex=fscale)
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
@@ -1991,7 +1993,10 @@ module foe_common
 
 
                       if (smatl%nspin==1) then
+                          !write(*,*) 'ef',foe_data_get_real(foe_obj,"ef",1)
+                          !write(*,*) 'fscale',fscale
                           do ipl=1,npl
+                              !write(*,*) 'cc, ipl, cc(ipl,1,1)', ipl, cc(ipl,1,1)
                               cc(ipl,1,1)=2.d0*cc(ipl,1,1)
                               cc(ipl,1,2)=2.d0*cc(ipl,1,2)
                               cc(ipl,1,3)=2.d0*cc(ipl,1,3)
@@ -2041,7 +2046,7 @@ module foe_common
                       if (iproc==0 .and. foe_verbosity>0) then
                           !call yaml_newline()
                           !call yaml_map('iter',it)
-                          call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
+                          call yaml_map('eF',foe_data_get_real(foe_obj,"ef"),fmt='(es13.6)')
                           !call yaml_map('bisec bounds ok',&
                           !     (/bisection_bounds_ok(1),bisection_bounds_ok(2)/))
                           if (smatl%nspin>1) call yaml_map('spin occupations',occupations,fmt='(es14.7)')
@@ -2070,14 +2075,12 @@ module foe_common
                           cycle
                       end if
 
-                      ! Save the new fermi energy and bisection_shift in the foe_obj structure
-                      call foe_data_set_real(foe_obj,"ef",ef,ispin)
-                      call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real(f,"bisection_shift"),1)
+                      !!! Save the new fermi energy and bisection_shift in the foe_obj structure
+                      !!call foe_data_set_real(foe_obj,"ef",ef,ispin)
+                      !!call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real(f,"bisection_shift"),1)
 
-
-
-                      ef_old=foe_data_get_real(foe_obj,"ef",ispin)
-                      sumn_old=sumn
+                      !!ef_old=foe_data_get_real(foe_obj,"ef",ispin)
+                      !!sumn_old=sumn
 
 
 
@@ -2099,12 +2102,20 @@ module foe_common
                           exit
                       end if
 
+
+                      ! Save the new fermi energy and bisection_shift in the foe_obj structure
+                      call foe_data_set_real(foe_obj,"ef",ef,ispin)
+                      call foe_data_set_real(foe_obj,"bisection_shift",fermilevel_get_real(f,"bisection_shift"),1)
+
+                      ef_old=foe_data_get_real(foe_obj,"ef")
+                      sumn_old=sumn
+
                   end do main_loop
 
                   if (iproc==0) then
                       call yaml_mapping_open('summary',flow=.true.)
                       call yaml_map('nit',it)
-                      call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es13.6)')
+                      call yaml_map('eF',foe_data_get_real(foe_obj,"ef"),fmt='(es13.6)')
                       call yaml_map('Tr(K)',sumn,fmt='(es14.7)')
                       call yaml_map('D Tr(K)',sumn-foe_data_get_real(foe_obj,"charge",ispin),fmt='(es9.2)')
                       call yaml_mapping_close()
@@ -2332,10 +2343,13 @@ module foe_common
       end if
 
       cc = f_malloc_ptr((/npl,ncalc,3/),id='cc')
+      !write(*,*) 'ef',ef
+      !write(*,*) 'fscale',fscale
       do j=1,3
           do icalc=1,ncalc
               do ipl=1,npl
                   cc(ipl,icalc,j)=cc_trial(ipl,icalc,j)
+                  !if (j==1) write(*,*) 'cc, ipl, cc(ipl,1,1)', ipl, cc(ipl,1,1)
                   !write(*,*) 'icalc, ipl, cc(ipl,icalc,1)', icalc, ipl, cc(ipl,icalc,1)
               end do
           end do
