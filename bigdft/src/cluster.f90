@@ -436,9 +436,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call init_foe_wrapper(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj)
      ! Do the same for the object which handles the calculation of the inverse.
      charge_fake = f_malloc0(in%nspin,id='charge_fake')
-     call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, 0.d0, in%evbounds_nsatur, in%evboundsshrink_nsatur, &
-            0.5d0, 1.5d0, in%lin%fscale, in%lin%ef_interpol_det, in%lin%ef_interpol_chargediff, &
-            in%fscale_lowerbound, in%fscale_upperbound, 1.d0)
+     call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, &
+          tmprtr=0.d0, evbounds_nsatur=in%evbounds_nsatur, &
+          evboundsshrink_nsatur=in%evboundsshrink_nsatur, &
+          evlow=0.5d0, evhigh=1.5d0, fscale=in%lin%fscale, &
+          ef_interpol_det=in%lin%ef_interpol_det, &
+          ef_interpol_chargediff=in%lin%ef_interpol_chargediff, &
+          fscale_lowerbound=in%fscale_lowerbound, &
+          fscale_upperbound=in%fscale_upperbound, &
+          eval_multiplicator=1.d0)
      call f_free(charge_fake)
 
      !!call f_free(locreg_centers)
