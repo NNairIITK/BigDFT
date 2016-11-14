@@ -43,7 +43,7 @@ module parallel_linalg
 
     !> @warning
     !! This works only if the matrices have the same sizes for all processes!!
-    subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+    subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc, quiet)
       use dynamic_memory
       implicit none
     
@@ -54,6 +54,7 @@ module parallel_linalg
       real(kind=mp),dimension(:,:),intent(in),target :: a
       real(kind=mp),dimension(:,:),intent(in),target :: b
       real(kind=mp),dimension(:,:),intent(out) :: c
+      logical,intent(in),optional :: quiet
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
@@ -64,10 +65,14 @@ module parallel_linalg
       real(kind=mp),dimension(:,:),pointer :: aeff, beff
       integer,dimension(9) :: desc_lc, desc_la, desc_lb
       character(len=*),parameter :: subname='dgemm_parallel'
+      logical :: quiet_
 
       call f_routine(id='dgemm_parallel')
       !call timing(iproc, 'dgemm_parallel', 'ON')
       call f_timing(TCAT_HL_DGEMM,'ON')
+
+      quiet_ = .false.
+      if (present(quiet)) quiet_ = quiet
 
       ! Check the dimensione of the array arguments...
 
@@ -121,10 +126,12 @@ module parallel_linalg
 
 
       blocksize_if: if (blocksize<0) then
+          if (iproc==0 .and. .not.quiet_) call yaml_map('mode','sequential')
           call dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
       else if (blocksize==0) then
           call f_err_throw('blocksize must not be zero')
       else blocksize_if
+          if (iproc==0 .and. .not.quiet_) call yaml_map('mode','parallel')
           ! Block size for scalapack
           mbrow=blocksize
           mbcol=blocksize
@@ -301,7 +308,7 @@ module parallel_linalg
     
     
     
-    subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
+    subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info, quiet)
       use dynamic_memory
       implicit none
       
@@ -311,6 +318,7 @@ module parallel_linalg
       character(len=1),intent(in) :: jobz, uplo
       real(kind=mp),dimension(lda,n),intent(inout) :: a
       real(kind=mp),dimension(n),intent(out) :: w
+      logical,intent(in),optional :: quiet
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall, max_cluster_size
@@ -322,12 +330,17 @@ module parallel_linalg
       integer,dimension(9) :: desc_lz, desc_la
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsyev_parallel'
+      logical :: quiet_
 
       call f_routine(id='dsyev_parallel')
       !call timing(iproc, 'dsyev_parallel', 'ON')
       call f_timing(TCAT_SMAT_HL_DSYEV,'ON')
+
+      quiet_ = .false.
+      if (present(quiet)) quiet_ = quiet
       
       blocksize_if: if (blocksize<0) then
+          if (iproc==0 .and. .not.quiet_) call yaml_map('mode','sequential')
           ! Worksize query
           lwork = -1
           work = f_malloc(1,id='work')
@@ -341,6 +354,7 @@ module parallel_linalg
       else if (blocksize==0) then
           call f_err_throw('blocksize must not be zero')
       else blocksize_if
+          if (iproc==0 .and. .not.quiet_) call yaml_map('mode','parallel')
           ! Block size for scalapack
           mbrow=blocksize
           mbcol=blocksize
@@ -532,7 +546,7 @@ module parallel_linalg
     
     
     
-    subroutine dsygv_parallel(iproc, nproc, comm, blocksize, nprocMax, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
+    subroutine dsygv_parallel(iproc, nproc, comm, blocksize, nprocMax, itype, jobz, uplo, n, a, lda, b, ldb, w, info, quiet)
       use dynamic_memory
       implicit none
       
@@ -543,6 +557,7 @@ module parallel_linalg
       real(kind=mp),dimension(lda,n),intent(inout) :: a
       real(kind=mp),dimension(ldb,n),intent(inout) :: b
       real(kind=mp),dimension(n),intent(out) :: w
+      logical,intent(in),optional :: quiet
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall
@@ -553,13 +568,18 @@ module parallel_linalg
       integer,dimension(9) :: desc_lz, desc_la, desc_lb
       integer,dimension(:),allocatable :: iwork, ifail, icluster
       character(len=*),parameter :: subname='dsygv_parallel'
+      logical :: quiet_
 
       call f_routine(id='dsygv_parallel')
       
       !call timing(iproc,'dsygv_parallel','ON') 
       call f_timing(TCAT_SMAT_HL_DSYGV,'ON')
 
+      quiet_ = .false.
+      if (present(quiet)) quiet_ = quiet
+
       blocksize_if: if (blocksize<0) then
+          if (iproc==0) call yaml_map('mode','sequential')
           ! Worksize query
           lwork = -1
           work = f_malloc(1,id='work')
@@ -573,6 +593,7 @@ module parallel_linalg
       else if (blocksize==0) then
           call f_err_throw('blocksize must not be zero')
       else blocksize_if
+          if (iproc==0 .and. .not.quiet_) call yaml_map('mode','parallel')
           ! Block size for scalapack
           mbrow=blocksize
           mbcol=blocksize
