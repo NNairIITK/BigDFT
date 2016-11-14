@@ -38,9 +38,15 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
   !!end if
   !!write(*,*) 'charges',charges
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
-  call init_foe(iproc, nproc, input%nspin, charges, foe_obj, tmprtr, input%evbounds_nsatur, input%evboundsshrink_nsatur, &
-       input%lin%evlow, input%lin%evhigh, input%lin%fscale, input%lin%ef_interpol_det, input%lin%ef_interpol_chargediff, &
-       input%fscale_lowerbound, input%fscale_upperbound, 1.d0)
+  call init_foe(iproc, nproc, input%nspin, charges, foe_obj, &
+       tmprtr=tmprtr, evbounds_nsatur=input%evbounds_nsatur, &
+       evboundsshrink_nsatur=input%evboundsshrink_nsatur, &
+       evlow=input%lin%evlow, evhigh=input%lin%evhigh, fscale=input%lin%fscale, &
+       ef_interpol_det=input%lin%ef_interpol_det, &
+       ef_interpol_chargediff=input%lin%ef_interpol_chargediff, &
+       fscale_lowerbound=input%fscale_lowerbound, &
+       fscale_upperbound=input%fscale_upperbound,  &
+       eval_multiplicator=1.d0)
 
   call f_release_routine()
 
@@ -661,11 +667,14 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, lfoe)
       ! Do the same for the object which handles the calculation of the inverse.
       charge_fake = f_malloc0(input%nspin,id='charge_fake')
-      call init_foe(iproc, nproc, input%nspin, charge_fake, lice, 0.d0, &
-           input%evbounds_nsatur, input%evboundsshrink_nsatur, &
-           0.5d0, 1.5d0, input%lin%fscale, input%lin%ef_interpol_det, &
-           input%lin%ef_interpol_chargediff, &
-           input%fscale_lowerbound, input%fscale_upperbound, 1.d0)
+      call init_foe(iproc, nproc, input%nspin, charge_fake, lice, &
+           tmprtr=0.d0, evbounds_nsatur=input%evbounds_nsatur, &
+           evboundsshrink_nsatur=input%evboundsshrink_nsatur, &
+           evlow=0.5d0, evhigh=1.5d0, fscale=input%lin%fscale, &
+           ef_interpol_det=input%lin%ef_interpol_det, &
+           ef_interpol_chargediff=input%lin%ef_interpol_chargediff, &
+           fscale_lowerbound=input%fscale_lowerbound, &
+           fscale_upperbound=input%fscale_upperbound, eval_multiplicator=1.d0)
       call f_free(charge_fake)
 
   end if

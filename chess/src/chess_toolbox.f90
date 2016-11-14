@@ -1296,16 +1296,16 @@ program chess_toolbox
                !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
                call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                     'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-                    1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
-                    hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                    1.0_mp, hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, &
+                    hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                     'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
+                    1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, &
                     ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
                call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                     'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                     1.0_mp, matrix_tmp, smat_s%nfvctr, &
-                    ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                    ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call axpy(smat_s%nfvctr**2, smallest_value-actual_eval, &
                     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
            end if
@@ -1340,16 +1340,16 @@ program chess_toolbox
                !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
                call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                     'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-                    1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
-                    hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                    1.0_mp, hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, &
+                    hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                     'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
+                    1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, &
                     ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
                call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                     'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                     1.0_mp, matrix_tmp, smat_s%nfvctr, &
-                    ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                    ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
                call axpy(smat_s%nfvctr**2, largest_value-actual_eval, &
                     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
            end if

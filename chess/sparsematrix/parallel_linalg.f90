@@ -51,22 +51,74 @@ module parallel_linalg
       integer,intent(in) :: iproc, nproc, blocksize, comm, m, n, k, lda, ldb, ldc
       character(len=1),intent(in) :: transa, transb
       real(kind=mp),intent(in) :: alpha, beta
-      real(kind=mp),dimension(lda,k),intent(in) :: a
-      real(kind=mp),dimension(ldb,n),intent(in) :: b
-      real(kind=mp),dimension(ldc,n),intent(out) :: c
+      real(kind=mp),dimension(:,:),intent(in),target :: a
+      real(kind=mp),dimension(:,:),intent(in),target :: b
+      real(kind=mp),dimension(:,:),intent(out) :: c
     
       ! Local variables
       integer :: ierr, i, j, istat, iall, ii1, ii2, mbrow, mbcol, nproc_scalapack, nprocrow, nproccol
       integer :: context, irow, icol, numroc, info
-      integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c
+      integer :: lnrow_a, lncol_a, lnrow_b, lncol_b, lnrow_c, lncol_c, ka, kb, kc, lla, llb, llc
       real(kind=mp) :: tt1, tt2
       real(kind=mp),dimension(:,:),allocatable :: la, lb, lc
+      real(kind=mp),dimension(:,:),pointer :: aeff, beff
       integer,dimension(9) :: desc_lc, desc_la, desc_lb
       character(len=*),parameter :: subname='dgemm_parallel'
 
       call f_routine(id='dgemm_parallel')
       !call timing(iproc, 'dgemm_parallel', 'ON')
       call f_timing(TCAT_HL_DGEMM,'ON')
+
+      ! Check the dimensione of the array arguments...
+
+      ! Array a
+      lla = size(a,1)
+      ka = size(a,2)
+      if (lla/=lda) then
+              call f_err_throw('wrong first dimension of a; expected '//trim(yaml_toa(lda))//' but got '//trim(yaml_toa(lla)))
+      end if
+      select case (transa)
+      case ('N','n')
+          if (ka/=k) then
+              call f_err_throw('wrong second dimension of a; expected '//trim(yaml_toa(k))//' but got '//trim(yaml_toa(ka)))
+          end if
+      case ('T','t')
+          if (ka/=m) then
+              call f_err_throw('wrong second dimension of a; expected '//trim(yaml_toa(m))//' but got '//trim(yaml_toa(ka)))
+          end if
+      case default
+          call f_err_throw("wrong argument for 'transa'")
+      end select
+
+      ! Array b
+      llb = size(b,1)
+      kb = size(b,2)
+      if (llb/=ldb) then
+              call f_err_throw('wrong first dimension of c; expected '//trim(yaml_toa(ldb))//' but got '//trim(yaml_toa(llb)))
+      end if
+      select case (transb)
+      case ('N','n')
+          if (kb/=n) then
+              call f_err_throw('wrong second dimension of c; expected '//trim(yaml_toa(n))//' but got '//trim(yaml_toa(kb)))
+          end if
+      case ('T','t')
+          if (kb/=k) then
+              call f_err_throw('wrong second dimension of c; expected '//trim(yaml_toa(k))//' but got '//trim(yaml_toa(kb)))
+          end if
+      case default
+          call f_err_throw("wrong argument for 'transb'")
+      end select
+
+      ! Array b
+      llc = size(c,1)
+      kc = size(c,2)
+      if (llc/=ldc) then
+              call f_err_throw('wrong first dimension of c; expected '//trim(yaml_toa(ldc))//' but got '//trim(yaml_toa(llc)))
+      end if
+      if (kc/=n) then
+          call f_err_throw('wrong second dimension of c; expected '//trim(yaml_toa(n))//' but got '//trim(yaml_toa(kc)))
+      end if
+
 
       blocksize_if: if (blocksize<0) then
           call dgemm(transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
@@ -112,15 +164,52 @@ module parallel_linalg
           
           ! Only execute this part if this process has a part of the matrix to work on. 
           processIf: if(irow/=-1) then
+
+              ! Use auxiliary arrays to perform transposed operations
+              select case (transa)
+              case ('N','n')
+                  aeff => a
+              case ('T','t')
+                  aeff = f_malloc_ptr((/m,k/),id='aeff')
+                  do i=1,k
+                      do j=1,m
+                          aeff(j,i) = a(i,j)
+                      end do
+                  end do
+              end select
+
+              select case (transb)
+              case ('N','n')
+                  beff => b
+              case ('T','t')
+                  beff = f_malloc_ptr((/k,n/),id='beff')
+                  do i=1,n
+                      do j=1,k
+                          beff(j,i) = b(i,j)
+                      end do
+                  end do
+              end select
     
               ! Determine the size of the local matrix la (lnrow_a x lncol_a):
-              lnrow_a = max(numroc(m, mbrow, irow, 0, nprocrow),1)
-              lncol_a = max(numroc(k, mbcol, icol, 0, nproccol),1)
+              !!select case (transa)
+              !!case ('N','n')
+                  lnrow_a = max(numroc(m, mbrow, irow, 0, nprocrow),1)
+                  lncol_a = max(numroc(k, mbcol, icol, 0, nproccol),1)
+              !!case ('T','t')
+              !!    lnrow_a = max(numroc(k, mbrow, irow, 0, nprocrow),1)
+              !!    lncol_a = max(numroc(m, mbcol, icol, 0, nproccol),1)
+              !!end select
               !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local a of size ',lnrow_a,' x ',lncol_a
     
               ! Determine the size of the local matrix lb (lnrow_b x lncol_b):
-              lnrow_b = max(numroc(k, mbrow, irow, 0, nprocrow),1)
-              lncol_b = max(numroc(n, mbcol, icol, 0, nproccol),1)
+              !!select case (transb)
+              !!case ('N','n')
+                  lnrow_b = max(numroc(k, mbrow, irow, 0, nprocrow),1)
+                  lncol_b = max(numroc(n, mbcol, icol, 0, nproccol),1)
+              !!case ('T','t')
+              !!    lnrow_b = max(numroc(n, mbrow, irow, 0, nprocrow),1)
+              !!    lncol_b = max(numroc(k, mbcol, icol, 0, nproccol),1)
+              !!end select
               !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local b of size ',lnrow_b,' x ',lncol_b
     
               ! Determine the size of the local matrix lc (lnrow_c x lncol_c):
@@ -129,8 +218,18 @@ module parallel_linalg
               !write(*,'(a,i0,a,i0,a,i0)') 'iproc ',iproc,' will have a local c of size ',lnrow_c,' x ',lncol_c
           
               ! Initialize descriptor arrays.
-              call descinit(desc_la, m, k, mbrow, mbcol, 0, 0, context, lnrow_a, info)
-              call descinit(desc_lb, k, n, mbrow, mbcol, 0, 0, context, lnrow_b, info)
+              !!select case (transa)
+              !!case ('N','n')
+                  call descinit(desc_la, m, k, mbrow, mbcol, 0, 0, context, lnrow_a, info)
+              !!case ('T','t')
+              !!    call descinit(desc_la, k, m, mbrow, mbcol, 0, 0, context, lnrow_a, info)
+              !!end select
+              !!select case (transa)
+              !!case ('N','n')
+                  call descinit(desc_lb, k, n, mbrow, mbcol, 0, 0, context, lnrow_b, info)
+              !!case ('T','t')
+              !!    call descinit(desc_lb, n, k, mbrow, mbcol, 0, 0, context, lnrow_b, info)
+              !!end select
               call descinit(desc_lc, m, n, mbrow, mbcol, 0, 0, context, lnrow_c, info)
           
               ! Allocate the local arrays
@@ -142,18 +241,29 @@ module parallel_linalg
               ! The same for b and lb, cpectively.
               do i=1,k
                   do j=1,m
-                      call pdelset(la(1,1), j, i, desc_la, a(j,i))
+                      !call pdelset(la(1,1), j, i, desc_la, a(j,i))
+                      call pdelset(la(1,1), j, i, desc_la, aeff(j,i))
                   end do
               end do
               do i=1,n
                   do j=1,k
-                      call pdelset(lb(1,1), j, i, desc_lb, b(j,i))
+                      !call pdelset(lb(1,1), j, i, desc_lb, b(j,i))
+                      call pdelset(lb(1,1), j, i, desc_lb, beff(j,i))
                   end do
               end do
+
+              select case (transa)
+              case ('T','t')
+                  call f_free_ptr(aeff)
+              end select
+              select case (transb)
+              case ('T','t')
+                  call f_free_ptr(beff)
+              end select
           
           
               ! Do the matrix matrix multiplication.
-              call pdgemm(transa, transb, m, n, k, 1.d0, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
+              call pdgemm('n', 'n', m, n, k, 1.d0, la(1,1), 1, 1, desc_la, lb(1,1), 1, 1, &
                           desc_lb, 0.d0, lc(1,1), 1, 1, desc_lc)
           
           
