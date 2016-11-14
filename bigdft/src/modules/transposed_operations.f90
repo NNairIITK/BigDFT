@@ -777,7 +777,11 @@ module transposed_operations
       end if
     
       do iorb=1,orbs%norb
-         if (norm(iorb)<=0.d0) write(*,*) 'iorb, norm', iorb, norm(iorb)
+         !if (norm(iorb)<=0.d0) write(*,*) 'iorb, norm', iorb, norm(iorb)
+         if (norm(iorb)<=0.d0) then
+             !write(*,*) 'iorb, norm', iorb, norm(iorb)
+             call yaml_warning('norm of TMB '//trim(yaml_toa(iorb)//' has norm '//trim(yaml_toa(norm(iorb))))
+         end if
          norm(iorb)=1.d0/sqrt(norm(iorb))
       end do
 
