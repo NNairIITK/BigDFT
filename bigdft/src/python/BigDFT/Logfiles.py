@@ -51,9 +51,6 @@ def get_logs(files,safe_mode=False,select_document=None):
         if safe_mode or select_document is not None:
             documents=rawfile.split('---\n')
             print 'Safe mode, Found',len(documents),'documents,try loading them separately'
-            #print 'first',documents[0]
-            #print 50*'X'
-            #print 'last',documents[-1]
             actual_doc=-1
             for i,raw_doc in enumerate(documents):
                 if len(raw_doc)==0: continue
@@ -69,7 +66,13 @@ def get_logs(files,safe_mode=False,select_document=None):
                     #print "warning, skipping logfile",filename
         else:
             try: 
-                logs+=yaml.load_all(rawfile, Loader = yaml.CLoader)
+                from futile import Yaml
+                test=Yaml.YamlDB(rawfile)
+                for a in range(len(test)):
+                    # we should use another representation for the logfile, to be changed
+                    lg=dict(test[a]) 
+                    if lg is not None: logs+=[lg]
+                #logs+=yaml.load_all(rawfile, Loader = yaml.CLoader)
             except Exception,e:
                 print e
                 print 'WARNING: Usual loading of the document have some errors, some documents might not be there'

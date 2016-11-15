@@ -22,6 +22,7 @@ program PSolver_Program
   use yaml_parse
   use yaml_strings
   use numerics
+  use PSbox
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function
@@ -61,22 +62,19 @@ program PSolver_Program
        "  help_dict: {Allowed values: dictionary in yaml format (mapping)}}"
 
 
-  character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-  character(len=1) :: datacode
-  character(len=30) :: mode
+  character(len=30) :: mode,info
   real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion
   type(coulomb_operator) :: karray
   integer, dimension(3) :: ndims
   real(f_double), dimension(3) :: angdeg
   type(dictionary), pointer :: dict
-  real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset
-  real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
-  integer :: n01,n02,n03,itype_scf
-  integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
-  integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s
-  logical :: alsoserial,onlykernel
-  integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+  real(kind=8) :: hx,hy,hz,hgrid,offset
+  real(kind=8) :: ehartree,eexcu,diff_par,e1
+  integer :: n01,n02,n03
+  integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,i3sd,ncomp
+  integer :: n_cell,ixc,i3s
+  !integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
   !triclinic lattice
   real(kind=8) :: alpha,beta,gamma,detg
   real(kind=8), dimension(:,:,:,:), pointer :: rhocore_fake
@@ -125,64 +123,23 @@ program PSolver_Program
 
   detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
-  !write(*,*) 'mu0 =', mu0
-
   !perform also the comparison with the serial case
-  alsoserial=.false.
-  onlykernel=.false.
   !code for the Poisson Solver in the parallel case
-  !datacode='G'
-
   select case(geocode)
-  
   case('P')
-
-     !if (iproc==0) print *,"PSolver, periodic BC: ",n01,n02,n03,'processes',nproc
-     if (iproc==0) then
-        call yaml_map('PSolver, periodic BC', (/ n01,n02,n03 /))
-        call yaml_map('processes',nproc)
-     end if
-     call P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,.false.)
-  
+     info='periodic BC'
   case('S')
-
-     !if (iproc==0) print *,"PSolver for surfaces: ",n01,n02,n03,'processes',nproc
-     if (iproc==0) then
-        call yaml_map('PSolver, surface BC', (/ n01,n02,n03/))
-        call yaml_map('processes',nproc)
-     end if
-     call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-  
+     info='surface BC'
   case('F')
-
-     !if (iproc==0) print *,"PSolver, free BC: ",n01,n02,n03,'processes',nproc
-     if (iproc==0) then
-        call yaml_map('PSolver, free BC', (/ n01,n02,n03 /))
-        call yaml_map('processes',nproc)
-     end if
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-  
+     info='free BC'
   case('W')
-    
-     !if (iproc==0) print *,"PSolver, wires BC: ",n01,n02,n03,'processes',nproc
-     if (iproc==0) then
-        call yaml_map('PSolver, wire BC', (/ n01,n02,n03 /))
-        call yaml_map('processes',nproc)
-     end if
-     call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-     
-  case('H')
-   
-     !if (iproc==0) print *,"PSolver, Helmholtz Equation Solver: ",n01,n02,n03,'processes',nproc
-     if (iproc==0) then
-        call yaml_map('PSolver, Helmholtz Equation Solver', (/ n01,n02,n03 /))
-        call yaml_map('processes',nproc)
-     end if
-     call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
-  
+     info='wires BC'
   end select
 
-  !write(*,*) n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+  if (iproc==0) then
+     call yaml_map('PSolver, '//trim(info),ndims)
+     call yaml_map('processes',nproc)
+  end if
 
   !initialize memory counting
   !call memocc(0,iproc,'count','start')
@@ -206,325 +163,130 @@ program PSolver_Program
 
   call f_timing_reset(filename='time.yaml',master=iproc==0)
   !call timing(nproc,'time.prc','IN')
-
-  !dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
-  
-
+ 
   karray=pkernel_init(iproc,nproc,dict,&
-       geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
-!  call dict_free(input)
+       geocode,ndims,(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
   call pkernel_set(karray,verbose=.true.)
 
-  !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
-  !print *,'sum',sum(karray%kernel)
-  if (.not. onlykernel) then
-     !Allocations
-     !Density
-     density = f_malloc((/ n01, n02, n03 /),id='density')
-     !Density then potential
-     rhopot = f_malloc((/ n01, n02, n03 /),id='rhopot')
-     potential = f_malloc((/ n01, n02, n03 /),id='potential')
-     !ionic potential
-     pot_ion = f_malloc((/ n01, n02, n03 /),id='pot_ion')
+  !Allocations
+  !Density
+  density = f_malloc(ndims,id='density')
+  !Density then potential
+  rhopot = f_malloc(ndims,id='rhopot')
+  potential = f_malloc(ndims,id='potential')
+  !ionic potential
+  pot_ion = f_malloc(ndims,id='pot_ion')
 
-     if (iproc==0) call yaml_map('ixc',ixc)
+  if (iproc==0) call yaml_map('ixc',ixc)
 
-     call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma) !onehalf*pi,onehalf*pi,onehalf*pi)!
+  call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
+       density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma)
 
-     !calculate expected hartree enegy
+  !calculate expected hartree enegy
 
-      i2=n02/2
-      do i3=1,n03
-         do i1=1,n01
-            j1=n01/2+1-abs(n01/2+1-i1)
-            j2=n02/2+1-abs(n02/2+1-i2)
-            j3=n03/2+1-abs(n03/2+1-i3)
-            write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
-         end do
-      end do
+  i2=n02/2
+  do i3=1,n03
+     do i1=1,n01
+        j1=n01/2+1-abs(n01/2+1-i1)
+        j2=n02/2+1-abs(n02/2+1-i2)
+        j3=n03/2+1-abs(n03/2+1-i3)
+        write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
+     end do
+  end do
 
 
-     !offset, used only for the periodic solver case
-     if (ixc==0) then
-        offset=0.0_gp!potential(1,1,1)!-pot_ion(1,1,1)
-        do i3=1,n03
-           do i2=1,n02
-              do i1=1,n01
-                 offset=offset+potential(i1,i2,i3)
-              end do
-           end do
-        end do
-        offset=offset*hx*hy*hz*sqrt(detg) ! /// to be fixed ///
-        !write(*,*) 'offset = ',offset
-        if (iproc==0) call yaml_map('offset',offset)
-     end if
-
-!!$     !dimension needed for allocations
-!!$     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,(ixc>10),.false.,0,n3d,n3p,n3pi,i3xcsh,i3s)
-!!$
-!!$     !dimension for comparison in the global or distributed poisson solver
-!!$     if (datacode == 'G') then
-!!$        i3sd=1
-!!$        ncomp=n03
-!!$     else if (datacode == 'D') then
-!!$        i3sd=i3s
-!!$        ncomp=n3p
-!!$     end if
-
-     if (karray%opt%datacode=='G') then
-        i3sd=1
-        ncomp=n03
-     else
-        i3sd=karray%grid%istart+1
-        ncomp=karray%grid%n3p
-     end if
-     i3s=i3sd
-     i3xcsh=0
-
-!!  print *,'iproc,i3xcsh,i3s',iproc,i3xcsh,i3s
-
-!!$     print *,'density',density(25,25,25)
-!!$     print *,'potential',potential(25,25,25)
-!!$     print *,'rhopot',rhopot(25,25,25)
-!!$     print *,'pot_ion',pot_ion(25,25,25)
-
-     !apply the Poisson Solver (case with distributed potential)
-     eexcu=0.0_gp
-     vexcu=0.0_gp
-     call H_potential(datacode,karray,density(1,1,i3sd),pot_ion(1,1,i3s+i3xcsh),ehartree,offset,.false.)
-!!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-!!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
-
-     !print *,'potential integral',sum(density)
-     !this has to be corrected with the volume element of mesh
-     eexcu=sum(density)*hx*hy*hx*sqrt(detg)
-     if (nproc >1) call mpiallred(eexcu,1,op=MPI_SUM)
-     if (iproc==0) call yaml_map('potential integral',eexcu)
-
-     i3=n03/2
+  !offset, used only for the periodic solver case
+  offset=0.0_gp!potential(1,1,1)!-pot_ion(1,1,1)
+  do i3=1,n03
      do i2=1,n02
         do i1=1,n01
-           !j1=n01/2+1-abs(n01/2+1-i1)
-           !j2=n02/2+1-abs(n02/2+1-i2)
-           !j3=n03/2+1-abs(n03/2+1-i3)
-           write(111,'(2(1x,i6),3(1x,1pe25.16e3))') i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
-           !write(111,*) i1*hx+hy*i2*dcos(alpha)+i3*hz*dcos(beta), &
-           !     i2*hy*dsin(alpha)+i3*hz*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha), &
-           !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
-           !     density(i1,i2,i3)
+           offset=offset+potential(i1,i2,i3)
         end do
      end do
+  end do
+  offset=offset*hx*hy*hz*sqrt(detg) ! /// to be fixed ///
+  !write(*,*) 'offset = ',offset
+  if (iproc==0) call yaml_map('offset',offset)
+  call PS_set_options(karray,potential_integral=offset)
 
-     i2=n02/2
-     do i3=1,n03
-        !do i2=1,n02
-           do i1=1,n01
-              !j1=n01/2+1-abs(n01/2+1-i1)
-              !j2=n02/2+1-abs(n02/2+1-i2)
-              !j3=n03/2+1-abs(n03/2+1-i3)
-              write(112,'(2(1x,i6),3(1x,1pe25.16e3))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
-           end do
-        !end do
-     end do
-!!$     print *,'density2',density(25,25,25)
-!!$     print *,'potential2',potential(25,25,25)
-!!$     print *,'rhopot2',rhopot(25,25,25)
-!!$     print *,'pot_ion2',pot_ion(25,25,25)
-
+  ncomp=n03  
+  if (karray%opt%datacode=='G') then
+     i3sd=1
+  else
+     i3sd=karray%grid%istart+1
+     !ncomp=karray%grid%n3p
   end if
+  i3s=i3sd
 
+  !apply the Poisson Solver (case with distributed potential)
+  eexcu=0.0_gp
+  call Electrostatic_Solver(karray,density(1,1,i3sd),ehartree=ehartree)
+
+  call PS_gather(density,karray)
+  !this has to be corrected with the volume element of mesh
+  eexcu=sum(density)*hx*hy*hx*sqrt(detg)
+  if (iproc==0) call yaml_map('potential integral',eexcu)
+
+  i3=n03/2
+  do i2=1,n02
+     do i1=1,n01
+        !j1=n01/2+1-abs(n01/2+1-i1)
+        !j2=n02/2+1-abs(n02/2+1-i2)
+        !j3=n03/2+1-abs(n03/2+1-i3)
+        write(111,'(2(1x,i6),3(1x,1pe25.16e3))') i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+        !write(111,*) i1*hx+hy*i2*dcos(alpha)+i3*hz*dcos(beta), &
+        !     i2*hy*dsin(alpha)+i3*hz*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha), &
+        !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
+        !     density(i1,i2,i3)
+     end do
+  end do
+
+  i2=n02/2
+  do i3=1,n03
+     !do i2=1,n02
+     do i1=1,n01
+        !j1=n01/2+1-abs(n01/2+1-i1)
+        !j2=n02/2+1-abs(n02/2+1-i2)
+        !j3=n03/2+1-abs(n03/2+1-i3)
+        write(112,'(2(1x,i6),3(1x,1pe25.16e3))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+     end do
+     !end do
+  end do
   
   call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm,nproc=karray%mpi_env%nproc,gather_routine=gather_timings)
   call pkernel_free(karray)
-  if (.not. onlykernel) then
+  !comparison (each process compare its own part)
+  !call compare(n01,n02,ncomp,potential(1,1,i3sd),density(1,1,i3sd),&
+  !     i1_max,i2_max,i3_max,max_diff)
+  call compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,diff_par)
 
-     !comparison (each process compare its own part)
-     call compare(n01,n02,ncomp,potential(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
-          i1_max,i2_max,i3_max,max_diff)
-
-!!  print *,'iproc,i3xcsh,i3s,max_diff',iproc,i3xcsh,i3s,max_diff
-
-     !extract the max
-     if (nproc > 1) then
-        call MPI_ALLREDUCE(max_diff,diff_par,1,MPI_double_precision,  &
-             MPI_MAX,MPI_COMM_WORLD,ierr)
-     else
-        diff_par=max_diff
-     end if
-
-
-     if (iproc == 0) then
-        call yaml_mapping_open('Parallel calculation')
-        call yaml_map('Ehartree',ehartree)
-        call yaml_map('Max diff at',[i1_max,i2_max,i3_max])
-        call yaml_map('Max diff',diff_par)
-        call yaml_map('Result',density(i1_max,i2_max,i3_max))
-        call yaml_map('Original',potential(i1_max,i2_max,i3_max))
-        call yaml_mapping_close()
-     end if
-
-  end if
-
-!  call mpibarrier()
-
-  !Serial case
-  if (alsoserial) then
-     call f_timing_reset(filename='time_serial.yaml',master=iproc==0)
-     !call timing(0,'             ','IN')
-
-     karray=pkernel_init(0,1,dict,&
-          geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
-     call dict_free(dict)
-
-     call pkernel_set(karray,verbose=.true.)
-
-     call pkernel_free(karray)
-
-     call f_timing_stop(mpi_comm=mpiworld())
-
-     if (.not. onlykernel) then
-        !Maximum difference
-        call compare(n01,n02,n03,potential,rhopot,i1_max,i2_max,i3_max,diff_ser)
-
-        !! print *,'iproc,diff_ser',iproc,diff_ser
-
-        if (iproc==0) then
-           write(*,*) '------------------'
-           write(*,*) 'Serial Calculation'
-           write(*,"(1x,a,3(1pe20.12))") "eht, exc, vxc:",eh,exc,vxc
-           write(*,'(a,3(i0,1x))') '  Max diff at: ',i1_max,i2_max,i3_max
-           write(*,"(1x,a,1pe20.12)") '     Max diff:',diff_ser,&
-                '       result:',rhopot(i1_max,i2_max,i3_max),&
-                '     original:',potential(i1_max,i2_max,i3_max)
-        end if
-
-        !Maximum difference, parallel-serial
-        call compare(n01,n02,ncomp,rhopot(1,1,i3sd+i3xcsh),density(1,1,i3sd+i3xcsh),&
-             i1_max,i2_max,i3_max,max_diff)
-
-!!     print *,'max_diff,i1_max,i2_max,i3_max,i3s,i3xcsh,n3p',max_diff,i1_max,i2_max,i3_max,&
-!!          i3s,i3xcsh,n3p
-
-        if (nproc > 1) then
-           !extract the max
-           call MPI_ALLREDUCE(max_diff,diff_parser,1,MPI_double_precision,  &
-                MPI_MAX,MPI_COMM_WORLD,ierr)
-        else
-           diff_parser=max_diff
-        end if
-
-        if (iproc==0) then
-           write(*,*) '------------------'
-           write(*,'(a,3(i0,1x))')&
-                'difference parallel-serial, at',i1_max,i2_max,i3_max
-           write(*,"(1x,a,1pe12.4)")&
-                '    Max diff:',diff_parser,&
-                '    parallel:',density(i1_max,i2_max,i3_max),&
-                '      serial:',rhopot(i1_max,i2_max,i3_max)
-           write(*,"(1x,a,3(1pe12.4))")&
-                "energy_diffs:",ehartree-eh,eexcu-exc,vexcu-vxc
-        end if
-     end if
-  end if
-  if (iproc==0 .and. .not. onlykernel) then
-
-     call regroup_data(geocode,hx,hy,hz)
-
-     i2=i2_max
-     do i3=1,n03
-        do i1=1,n01
-           j1=n01/2+1-abs(n01/2+1-i1)
-           j2=n02/2+1-abs(n02/2+1-i2)
-           j3=n03/2+1-abs(n03/2+1-i3)
-           write(11,*)i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),&
-                density(i1,i2,i3)
-        end do
-     end do
-     i3=i3_max
-     do i2=1,n02
-        do i1=1,n01
-           j1=n01/2+1-abs(n01/2+1-i1)
-           j2=n02/2+1-abs(n02/2+1-i2)
-           j3=n03/2+1-abs(n03/2+1-i3)
-           write(12,*)i1,i2,rhopot(i1,i2,i3),potential(i1,i2,i3),&
-                density(i1,i2,i3)
-        end do
-     end do
-
+!!$  !extract the max
+!!$  if (nproc > 1) then
+!!$     call mpiallred(sendbuf=max_diff,recvbuf=diff_par,count=1,op=MPI_MAX)
+!!$  else
+!!$  diff_par=max_diff
+!!$  end if
+  
+  if (iproc == 0) then
+     call yaml_mapping_open('Parallel calculation')
+     call yaml_map('Ehartree',ehartree)
+     call yaml_map('Max diff at',[i1_max,i2_max,i3_max])
+     call yaml_map('Max diff',diff_par)
+     call yaml_map('Result',density(i1_max,i2_max,i3_max))
+     call yaml_map('Original',potential(i1_max,i2_max,i3_max))
+     call yaml_mapping_close()
   end if
 
   call dict_free(dict)
-
-  if (.not. onlykernel) then
-     call f_free(density)
-     call f_free(rhopot)
-     call f_free(potential)
-     call f_free(pot_ion)
-  end if
+  call f_free(density)
+  call f_free(rhopot)
+  call f_free(potential)
+  call f_free(pot_ion)
 
   call mpifinalize()
   call f_lib_finalize()
 
 contains
-
-
-subroutine regroup_data(geocode,hx,hy,hz)
-  implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-  real(kind=8), intent(in) :: hx,hy,hz
-  !local variables
-  real(kind=8) :: hgrid
-  hgrid=max(hx,hy,hz)
-  if (geocode == 'S') hgrid=hy
-
-  !open(unit=60,file='time.par',status='unknown')
-  !read(60,*)
-  !read(60,*)string,tcp1,tcp2,pcp
-  !read(60,*)string,tcm1,tcm2,pcm
-  !read(60,*)string,tk1,tk2,pk
-  !read(60,*)string,txc1,txc2,pxc
-  !close(60)
-  !tcp=tcp2
-  !tcm=tcm2
-  !tk=tk2
-  !txc=txc2
-  
-!  write(99,'(a2,3(i4),1pe9.2,1pe10.3,4(1pe9.2),4(0pf5.1),1pe9.2)')&
- !      geocode,n01,n02,n03,hgrid,max_diff,tcp,tcm,tk,txc,pcp,pcm,pk,pxc,diff_parser
-  
-end subroutine regroup_data
-
-
-subroutine compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff)
-  implicit none
-  integer, intent(in) :: n01,n02,n03
-  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density
-  integer, intent(out) :: i1_max,i2_max,i3_max
-  real(kind=8), intent(out) :: max_diff
-
-  !local variables
-  integer :: i1,i2,i3
-  real(kind=8) :: factor
-  max_diff = 0.d0
-  i1_max = 1
-  i2_max = 1
-  i3_max = 1
-  do i3=1,n03
-     do i2=1,n02 
-        do i1=1,n01
-           factor=abs(potential(i1,i2,i3)-density(i1,i2,i3))
-           if (max_diff < factor) then
-              max_diff = factor
-              i1_max = i1
-              i2_max = i2
-              i3_max = i3
-           end if
-        end do
-     end do
-  end do
-end subroutine compare
-
 
 !> This subroutine builds some analytic functions that can be used for 
 !! testing the poisson solver.
@@ -556,7 +318,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
   !non-orthorhombic lattice
   real(kind=8), dimension(3,3) :: gu,gd
   real(kind=8) :: detg
-
 
   !triclinic cell
   !covariant metric
@@ -1535,3 +1296,32 @@ subroutine derf_local(derf_yy,yy)
   derf_yy = res
 
 end subroutine derf_local
+
+subroutine compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,max_diff)
+  implicit none
+  integer, intent(in) :: n01,n02,n03
+  real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,density
+  integer, intent(out) :: i1_max,i2_max,i3_max
+  real(kind=8), intent(out) :: max_diff
+
+  !local variables
+  integer :: i1,i2,i3
+  real(kind=8) :: factor
+  max_diff = 0.d0
+  i1_max = 1
+  i2_max = 1
+  i3_max = 1
+  do i3=1,n03
+     do i2=1,n02 
+        do i1=1,n01
+           factor=abs(potential(i1,i2,i3)-density(i1,i2,i3))
+           if (max_diff < factor) then
+              max_diff = factor
+              i1_max = i1
+              i2_max = i2
+              i3_max = i3
+           end if
+        end do
+     end do
+  end do
+end subroutine compare

@@ -276,6 +276,7 @@ contains
     o%update_cavity      =.false.
     o%calculate_strten   =.false.
     o%use_input_guess    =.false.
+    o%use_pb_input_guess =.false.
     o%cavity_info        =.false.
     o%only_electrostatic =.true.
     o%final_call         =.false.
