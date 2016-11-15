@@ -21,7 +21,7 @@ EXERCISE = Exercise/plot.gnuplot \
 
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
-check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver Fock
+check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver Fock PS_StressCheck
 
 AM_FCFLAGS = -I. -I$(top_srcdir)/src -I$(top_builddir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
@@ -38,6 +38,9 @@ PS_Check_LDADD = $(psolver_library) @LINALG_LIBS@
 PS_Program_SOURCES = PS_Program.f90
 PS_Program_LDADD = $(psolver_library) @LINALG_LIBS@
 
+PS_StressCheck_SOURCES = PS_StressCheck.f90
+PS_StressCheck_LDADD = $(psolver_library) @LINALG_LIBS@
+
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(psolver_library) @LINALG_LIBS@
 
@@ -50,6 +53,7 @@ Fock_LDADD = $(psolver_library) @LINALG_LIBS@
 if BUILD_DYNAMIC_LIBS
 PS_Check_LDADD += @LIB_FUTILE_LIBS@
 PS_Program_LDADD += @LIB_FUTILE_LIBS@
+PS_StressCheck_LDADD += @LIB_FUTILE_LIBS@
 PS_Exercise_LDADD += @LIB_FUTILE_LIBS@
 Generalized_PSolver_LDADD += @LIB_FUTILE_LIBS@
 Fock_LDADD += @LIB_FUTILE_LIBS@
@@ -77,7 +81,7 @@ PS_Basics.out.yaml: PS_Program PS_Exercise
 
 check: regtest report #PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
 
-report: 
+report: PS_Basics.report.yaml PS_Check.report.yaml PS_Basics.out.yaml
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
 PS_Basics.report.yaml: PS_Basics.ref.yaml PS_Basics.out.yaml
@@ -91,7 +95,9 @@ PS_Check.report.yaml: PS_Check.ref.yaml PS_Check.out.yaml
 	        --output $@
 
 regtest: PS_Program PS_Exercise PS_Check Generalized_PSolver
-	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
+	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
+	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
+	       --exclusive=${CHECK_ONLY}
 
 
 define F_REGTEST_INSTRUCTIONS
@@ -111,20 +117,26 @@ define F_REGTEST_INSTRUCTIONS
     - $(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
 - Generalized_PSolver:
    runs:
-    - |  #this is important to avoid misunderstanding with the yaml in the command line
-      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI -i '{environment: {input_guess: No}}'
+    - |  # PCG from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG
     - cat log.yaml > Generalized_PSolver.out.yaml
-    - |
-      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG -i '{environment: {input_guess: No}}'
+    - |  # PCG from psolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -f [90,41,90] -g S
     - cat log.yaml >> Generalized_PSolver.out.yaml
-#    - |
-#      $(run_parallel) ./Generalized_PSolver -n 100 -m PCG -p yes 
-#    - cat log.yaml >> Generalized_PSolver.out.yaml
-#    - |
-#      $(run_parallel) ./Generalized_PSolver -n 100 -m PI -p yes 
-#    - cat log.yaml >> Generalized_PSolver.out.yaml
-#    - |
-#      $(run_parallel) ./Generalized_PSolver -n 80 -m VAC -e 6 -p yes
-#    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PI from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PCG from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 5 -g S -f [90,41,90]
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # PI from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 6 -g S -f [90,41,90]
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # mPB from psolver, ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -g S -p yes -i "{psolver: {cavity: modified}}"
+    - cat log.yaml >> Generalized_PSolver.out.yaml
+    - |  # mPB from Generalized_PSolver, non-ortho
+      $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 8 -g S -f [90,41,90] -p yes
+    - cat log.yaml >> Generalized_PSolver.out.yaml
 endef
 export F_REGTEST_INSTRUCTIONS

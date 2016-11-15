@@ -276,6 +276,7 @@ contains
     o%update_cavity      =.false.
     o%calculate_strten   =.false.
     o%use_input_guess    =.false.
+    o%use_pb_input_guess =.false.
     o%cavity_info        =.false.
     o%only_electrostatic =.true.
     o%final_call         =.false.
@@ -993,7 +994,7 @@ contains
     end select
 
    if (.not. (method .hasattr. PS_PB_NONE_ENUM))&
-        w%rho_ions=f_malloc_ptr([n1,n23],id='rho_ions')
+        w%rho_ions=f_malloc0_ptr([n1,n23],id='rho_ions')
 
    end subroutine PS_allocate_cavity_workarrays
 

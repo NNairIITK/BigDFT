@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
   integer :: ierror
   ! integer :: sizeof
   integer(kind=8) :: iadd
@@ -33,3 +31,10 @@
   !$ if(not_omp) then
   call f_timer_interrupt(TCAT_ARRAY_ALLOCATIONS)
   !$ end if
+  if (f_nan_pad_size > 0) then
+     if (product(int(m%shape(1:m%rank),f_long)) > int(0,f_long)) then
+        padding=f_nan_pad_size
+        call togglepadding(product(int(m%shape(1:m%rank-1),f_long))*&
+             kind(array)*(m%shape(m%rank)+padding))
+     end if
+  end if

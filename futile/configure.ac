@@ -171,6 +171,7 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+futile_environment.sh
 doc/Makefile
 doc/Doxyfile
 flib/Makefile
@@ -179,7 +180,10 @@ wrappers/Makefile
 c-bindings/Makefile
 c-bindings/futile_cst.h
 src/configure.inc
+src/f_memcheck
 src/Makefile
+src/python/Makefile
+src/python/futile/Makefile
 tests/Makefile
 tests/fft/Makefile
 tests/flib/Makefile

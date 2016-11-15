@@ -1,8 +1,4 @@
   c_allocation=.false.
-  if (f_nan_pad_size > 0) then
-     padding=f_nan_pad_size
-     c_allocation=.true.
-  end if
   if(len_trim(m%info) > 0) then
      info => yaml_load(m%info)
      val=' '
@@ -13,7 +9,6 @@
         c_allocation=.true.
      end select
   end if
-
   if (c_allocation) then
      p = smpi_shared_malloc(product(m%shape(1:(m%rank-1)))*(m%shape(m%rank)+padding)*f_sizeof(d),&
           trim(m%array_id)//char(0), int(m%rank,f_long))

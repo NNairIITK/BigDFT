@@ -125,7 +125,7 @@ module FDder
                   end do
                end if
                du(i1,i2,i3,1)= d
-               du2(i1,i2,i3) = d*d
+               !du2(i1,i2,i3) = d*d
 
             end do
          end do
@@ -167,7 +167,7 @@ module FDder
                   end do
                end if
                du(i1,i2,i3,2)= d
-               du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
+               !du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
             end do
          end do
       end do
@@ -208,6 +208,16 @@ module FDder
                end if
                du(i1,i2,i3,3)=d
                du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
+               !du2(i1,i2,i3) = square(mesh,du(i1,i2,i3,1:3))
+
+               !der(1:3)=0.d0
+               !do i=1,3
+               ! do j=1,3
+               !  der(i) =  der(i) + mesh%gu(i,j)*du(i1,i2,i3,j)
+               ! end do
+               !end do
+               !du(i1,i2,i3,1:3) = der(1:3)
+
 
             end do
          end do
