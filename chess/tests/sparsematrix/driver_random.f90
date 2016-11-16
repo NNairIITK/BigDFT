@@ -318,7 +318,7 @@ program driver_random
 
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
   if (write_matrices) then
-      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
+      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse')
   end if
 
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
@@ -338,7 +338,7 @@ program driver_random
        gather_routine=gather_timings)
 
   if (write_matrices) then
-      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse')
   end if
 
   if (iproc==0) then
@@ -384,8 +384,14 @@ program driver_random
           call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
       end if
       !call operation_using_dense_lapack(iproc, nproc, smats_in, mat_in)
-      call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, &
+      mat2%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat2%matrix')
+      mat3(3)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
+      call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .true., &
             expo, smats, smatl(1), mat2, mat3(3))
+      if (write_matrices) then
+          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat3(3), 'solutionmatrix_dense', binary=.false.)
+          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat2, 'randommatrix_dense', binary=.false.)
+      end if
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
       max_error = 0.0_mp

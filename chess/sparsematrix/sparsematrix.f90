@@ -2523,13 +2523,14 @@ module sparsematrix
 
 
 
-    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, &
+    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, keep_full_result, &
                exp_power, smat_in, smat_out, mat_in, mat_out)
       use dynamic_memory
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, scalapack_blocksize
+      logical,intent(in) :: keep_full_result
       real(mp),intent(in) :: exp_power
       type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
@@ -2538,18 +2539,41 @@ module sparsematrix
       ! Local variables
       integer :: blocksize
       real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
-      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
 
       call f_routine(id='operation_using_dense_lapack')
 
+      if (keep_full_result) then
+          if (.not.associated(mat_in%matrix)) then
+              call f_err_throw('mat_in%matrix must be associated')
+          end if
+          if (size(mat_in%matrix,1)/=smat_in%nfvctr) then
+              call f_err_throw('wrong first dimension of mat_in%matrix')
+          end if
+          if (size(mat_in%matrix,2)/=smat_in%nfvctr) then
+              call f_err_throw('wrong second dimension of mat_in%matrix')
+          end if
+          if (.not.associated(mat_out%matrix)) then
+              call f_err_throw('mat_out%matrix must be associated')
+          end if
+          if (size(mat_out%matrix,1)/=smat_out%nfvctr) then
+              call f_err_throw('wrong first dimension of mat_out%matrix')
+          end if
+          if (size(mat_out%matrix,2)/=smat_out%nfvctr) then
+              call f_err_throw('wrong second dimension of mat_out%matrix')
+          end if
+      end if
+
       mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
       mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
-      !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
            smat_in, mat_in%matrix_compr, mat_in_dense)
       call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)
       call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
+      if (keep_full_result) then
+          call f_memcpy(src=mat_in_dense, dest=mat_in%matrix)
+          call f_memcpy(src=mat_out_dense, dest=mat_out%matrix)
+      end if
       call f_free(mat_in_dense)
       call f_free(mat_out_dense)
 

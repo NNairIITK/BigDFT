@@ -686,6 +686,8 @@ module transposed_operations
       use module_base
       use module_types, only: orbitals_data
       use communications_base, only: comms_linear
+      use yaml_output
+      use yaml_output
       implicit none
       
       ! Calling arguments
@@ -780,7 +782,7 @@ module transposed_operations
          !if (norm(iorb)<=0.d0) write(*,*) 'iorb, norm', iorb, norm(iorb)
          if (norm(iorb)<=0.d0) then
              !write(*,*) 'iorb, norm', iorb, norm(iorb)
-             call yaml_warning('norm of TMB '//trim(yaml_toa(iorb)//' has norm '//trim(yaml_toa(norm(iorb))))
+             call yaml_warning('norm of TMB '//trim(yaml_toa(iorb))//' has norm '//trim(yaml_toa(norm(iorb))))
          end if
          norm(iorb)=1.d0/sqrt(norm(iorb))
       end do
