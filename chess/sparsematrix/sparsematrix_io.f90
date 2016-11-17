@@ -758,7 +758,7 @@ module sparsematrix_io
     !> Write a sparse matrix to disk, but in dense format
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! in distributed among the matrix taksgroups
-    subroutine write_dense_matrix(iproc, nproc, comm, smat, mat, filename, binary)
+    subroutine write_dense_matrix(iproc, nproc, comm, smat, mat, uncompress, filename, binary)
       use sparsematrix_base
       use sparsematrix, only: uncompress_matrix2
       implicit none
@@ -767,6 +767,7 @@ module sparsematrix_io
       integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(inout) :: mat
+      logical,intent(in) :: uncompress
       character(len=*),intent(in) :: filename
       logical, intent(in) :: binary
 
@@ -777,9 +778,11 @@ module sparsematrix_io
       call f_routine(id='write_dense_matrix')
 
 
-      mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
-      call uncompress_matrix2(iproc, nproc, comm, &
-           smat, mat%matrix_compr, mat%matrix)
+      if (uncompress) then
+          mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
+          call uncompress_matrix2(iproc, nproc, comm, &
+               smat, mat%matrix_compr, mat%matrix)
+      end if
 
       if (iproc==0) then
 
@@ -862,7 +865,9 @@ module sparsematrix_io
 
           call f_close(iunit)
 
-          call f_free_ptr(mat%matrix)
+          if (uncompress) then
+              call f_free_ptr(mat%matrix)
+          end if
       end if
 
       call f_release_routine()

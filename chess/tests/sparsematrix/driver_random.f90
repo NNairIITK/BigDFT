@@ -389,8 +389,10 @@ program driver_random
       call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .true., &
             expo, smats, smatl(1), mat2, mat3(3))
       if (write_matrices) then
-          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat3(3), 'solutionmatrix_dense', binary=.false.)
-          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat2, 'randommatrix_dense', binary=.false.)
+          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat3(3), &
+               uncompress=.false., filename='solutionmatrix_dense', binary=.false.)
+          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat2, &
+               uncompress=.false., filename='randommatrix_dense', binary=.false.)
       end if
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)

@@ -851,7 +851,8 @@ program chess_toolbox
                     smat, mat, trim(outfile_base))
            end select
        case (3)
-           call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
+           call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, &
+                uncompress=.true., filename=trim(outfile), binary=.false.)
 
        end select
 
