@@ -14,7 +14,7 @@ check_PROGRAMS += test_plugin
 noinst_LIBRARIES = libpong.a
 endif
 
-AM_FCFLAGS = -I../../flib -I../../src
+AM_FCFLAGS = -I../../flib -I../../src @FC_PIC_FLAG@
 AM_LDFLAGS = -L$(top_builddir)/src
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
@@ -53,7 +53,7 @@ yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
 
 libpong.so: $(libpong_a_OBJECTS)
-	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -o $@ $< $(flib_libraries)
+	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -o $@ $<
 	@chmod a+x $@
 
 yaml_test.out.yaml: yaml_test
