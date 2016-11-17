@@ -23,9 +23,11 @@ end subroutine init
 subroutine smooth_mix(runObj, outs, subs)
   use module_defs, only: gp
   use bigdft_run
+  use module_base, only: bigdft_mpi
   use f_utils
   use f_enums
   use public_enums, only: QM_RUN_MODE
+  use yaml_output
   implicit none
   type(run_objects), intent(in) :: runObj
   type(state_properties), intent(inout) :: outs
@@ -36,7 +38,7 @@ subroutine smooth_mix(runObj, outs, subs)
 
   outs%energy = 0.
   call f_zero(outs%fxyz)
-
+  if (bigdft_mpi%iproc==0) call yaml_comment('Entering in customized mixing between forces',hfill='-')
   ! Update position, energy and forces.
   do i = 1, size(runObj%sections)
      factor = 1._gp
@@ -45,10 +47,12 @@ subroutine smooth_mix(runObj, outs, subs)
      do iat = 1, size(runObj%sections(i)%astruct_map)
         jat = runObj%sections(i)%astruct_map(iat)
         if (jat > 0) then
+           if (bigdft_mpi%iproc==0) call yaml_map('Modifying forces and positions for atom',jat)
            runObj%atoms%astruct%rxyz(:, jat) = runObj%sections(i)%atoms%astruct%rxyz(:, iat)
            outs%fxyz(:, jat) = outs%fxyz(:, jat) + factor * subs(i)%fxyz(:, iat)
         end if
      end do
      outs%energy = outs%energy + subs(i)%energy
   end do
+  if (bigdft_mpi%iproc==0) call yaml_comment('Exiting from customized mixing between forces',hfill='-')
 end subroutine smooth_mix

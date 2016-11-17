@@ -107,7 +107,7 @@ $(modules): $(libfutile_1_a_OBJECTS)
 all: all-am insmod
 install: install-recursive install-am insmod
 check: check-am insmod
-insmod: $(modules)
+insmod: $(modules) libfutile-1.a
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \

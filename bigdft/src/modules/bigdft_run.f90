@@ -1280,7 +1280,8 @@ contains
              call plugin_load(trim(dict_key(iter)), ierr)
              if (ierr /= 0) then
                 call plugin_error(mess)
-                call yaml_warning(trim(mess))
+                if (bigdft_mpi%iproc==0) call yaml_warning('Failing in dlopening the library "'//trim(dict_key(iter))//&
+                     ' ", error message="'//trim(mess)//'"') !put quotes as semicolons usually appear in warnings
              end if
              iter => dict_next(iter)
           end do
