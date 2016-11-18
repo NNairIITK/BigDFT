@@ -321,6 +321,7 @@ def parse():
     group.add_option("--smallest_value", type="float", default=0.0, metavar="NUM",)
     group.add_option("--largest_value", type="float", default=0.0, metavar="NUM",)
     group.add_option("--scalapack_blocksize", type="int", default=-1, metavar="NUM",)
+    group.add_option("--manipulation_mode", type="string", default='full', metavar="NUM",)
 
     return parser
 
@@ -1174,7 +1175,7 @@ options:
         command = "%s %s build-KS-orbitals %s %s %i %i" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.is_ks, options.ie_ks)
         print command
     if options.action == "manipulate-eigenvalue-spectrum":
-        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %i %f %f %f %f %i" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.hamiltonian_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value, options.scalapack_blocksize)
+        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %s %i %f %f %f %f %i" % (options.mpirun, chess_toolbox, options.manipulation_mode, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.hamiltonian_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value, options.scalapack_blocksize)
         print command
     if command is not None:
         os.system(command)
