@@ -80,6 +80,11 @@ module bigdft_run
   character(len = *), parameter, public :: PRE_SCF_SIG = "pre"
   character(len = *), parameter, public :: POST_SCF_SIG = "post"
 
+  character(len = *), parameter, public :: PROCESS_RUN_TYPE = "process_run"
+  character(len = *), parameter, public :: GEOPT_INIT_SIG = "init"
+  character(len = *), parameter, public :: GEOPT_LOOP_SIG = "loop"
+  character(len = *), parameter, public :: GEOPT_POST_SIG = "post"
+
   !> Used to store results of a DFT calculation.
   type, public :: state_properties
      real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
@@ -91,7 +96,7 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
-  public :: run_objects_type_init
+  public :: run_objects_type_init, process_run_type_init
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
@@ -873,6 +878,15 @@ contains
     call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
   end subroutine run_objects_type_init
 
+  subroutine process_run_type_init()
+    use module_f_objects, only: f_object_new_, f_object_add_signal
+
+    call f_object_new_(PROCESS_RUN_TYPE)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG, 2)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_LOOP_SIG, 4)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_POST_SIG, 2)
+  end subroutine process_run_type_init
+
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
     use module_types
@@ -1224,6 +1238,8 @@ contains
 
     if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, INIT_SIG)) &
          & call run_objects_type_init()
+    if (.not. f_object_has_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG)) &
+         & call process_run_type_init()
 
     call nullify_run_objects(runObj)
 

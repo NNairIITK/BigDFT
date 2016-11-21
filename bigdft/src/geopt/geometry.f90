@@ -47,6 +47,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   use bigdft_run
   use yaml_output
   use minpar
+  use module_f_objects
   implicit none
   !Arguments
   type(run_objects), intent(inout) :: runObj
@@ -61,10 +62,20 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   character(len=5) :: fn4
   character(len=40) :: comment
   character(len=60) :: filename
+  type(signal_ctx) :: sig
   !-------------------------------------------
   call f_routine(id='geopt')
+
+  if (.not. f_object_has_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG)) &
+       & call process_run_type_init()
+
   !Geometry Initialization
   call geopt_init()
+  if (f_object_signal_prepare(PROCESS_RUN_TYPE, GEOPT_INIT_SIG, sig)) then
+     call f_object_signal_add_arg(sig, outs)
+     call f_object_signal_add_arg(sig, runObj)
+     call f_object_signal_emit(sig)
+  end if
 
   filename=trim(runObj%inputs%dir_output)//'geopt.mon'
   !open(unit=ugeopt,file=filename,status='unknown',position='append')
@@ -177,6 +188,12 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
 
   if (iproc==0) call finaliseCompress()
 
+  if (f_object_signal_prepare(PROCESS_RUN_TYPE, GEOPT_POST_SIG, sig)) then
+     call f_object_signal_add_arg(sig, outs)
+     call f_object_signal_add_arg(sig, runObj)
+     call f_object_signal_emit(sig)
+  end if
+
   call f_release_routine()
 END SUBROUTINE geopt
 
@@ -187,6 +204,7 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use yaml_output
   use module_input_keys, only: inputpsiid_set_policy
   use public_enums, only: ENUM_MEMORY
+  use module_f_objects
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -197,6 +215,9 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   !Local variables
   real(gp) :: fnrm, fmax, fluct
   integer :: check, infocode, it
+  type(signal_ctx) :: sig
+  character(len = 4) :: fn4
+  character(len = 256) :: comment
 
   fail=.false.
   fluct=0.0_gp
@@ -208,6 +229,13 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
      if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
 
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') it
+        write(comment,'(a,1pe10.3)')'LOOP:fnrm= ',sqrt(fnrm)
+        call bigdft_write_atomic_file(runObj,outs,&
+             'posout_'//fn4,trim(comment))
+     endif
+
      call convcheck(fmax,fluct*runObj%inputs%frac_fluct, &
           & runObj%inputs%forcemax,check)
      if (ncount_bigdft >= runObj%inputs%ncount_cluster_x-1) then
@@ -216,15 +244,30 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         return
      end if
 
-     if(check > 0) then
-        if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
-        return
-     endif
+     if (f_object_signal_prepare(PROCESS_RUN_TYPE, GEOPT_LOOP_SIG, sig)) then
+        call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
 
-     !runObj%inputs%inputPsiId=1
-     call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
-     call bigdft_state(runObj, outs, infocode)
-     ncount_bigdft = ncount_bigdft + 1
+        call f_object_signal_add_arg(sig, outs)
+        call f_object_signal_add_arg(sig, runObj)
+        call f_object_signal_add_arg(sig, it)
+        call f_object_signal_add_arg(sig, check)
+        call f_object_signal_emit(sig)
+
+        if(check > 0) then
+           if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
+           return
+        endif
+     else
+        if(check > 0) then
+           if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
+           return
+        endif
+
+        !runObj%inputs%inputPsiId=1
+        call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
+        call bigdft_state(runObj, outs, infocode)
+        ncount_bigdft = ncount_bigdft + 1
+     end if
 
      it = it + 1
   end do
