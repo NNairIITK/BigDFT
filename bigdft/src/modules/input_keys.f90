@@ -213,6 +213,7 @@ module module_input_keys
      type(f_enumerator) :: output_wf!_format      !< Output Wavefunction format
      !integer :: output_denspot_format !< Format for the output density and potential
      real(gp) :: hx,hy,hz   !< Step grid parameter (hgrid)
+     integer :: nx,ny,nz   !< Number of divisions
      real(gp) :: crmult     !< Coarse radius multiplier
      real(gp) :: frmult     !< Fine radius multiplier
      real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
@@ -1532,6 +1533,7 @@ contains
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
     integer, dimension(2) :: dummy_int !<to use as filling for input variables
+    integer, dimension(3) :: dummy_int3 !<to use as filling for input variables
     real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
     character(len=256) :: dummy_char
@@ -1612,6 +1614,12 @@ contains
           in%hx = dummy_gp(1)
           in%hy = dummy_gp(2)
           in%hz = dummy_gp(3)
+       case (NGRIDS)
+          !grid divisions
+          dummy_int3(1:3)=val
+          in%nx = dummy_int3(1)
+          in%ny = dummy_int3(2)
+          in%nz = dummy_int3(3)
        case (RMULT)
           !coarse and fine radii around atoms
           dummy_gp(1:2)=val
@@ -2660,6 +2668,7 @@ contains
     implicit none
     type(input_variables), intent(inout) :: in
     type(atomic_structure), intent(in) :: astruct
+    real(gp), parameter :: heps = 1.d-5
 
     call f_routine(id='input_analyze')
 
@@ -2681,6 +2690,13 @@ contains
 
     ! the DFT variables ------------------------------------------------------
     in%SIC%ixc = in%ixc
+
+    if (in%nx > 0 .and. astruct%cell_dim(1) > 0.) &
+         & in%hx = astruct%cell_dim(1) / (in%nx + 1) + heps
+    if (in%ny > 0 .and. astruct%cell_dim(2) > 0.) &
+         & in%hy = astruct%cell_dim(2) / (in%ny + 1) + heps
+    if (in%nz > 0 .and. astruct%cell_dim(3) > 0.) &
+         & in%hz = astruct%cell_dim(3) / (in%nz + 1) + heps
 
     in%idsx = min(in%idsx, in%itermax)
 
