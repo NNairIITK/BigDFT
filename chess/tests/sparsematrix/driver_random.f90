@@ -26,7 +26,8 @@ program driver_random
   use sparsematrix_init, only: generate_random_symmetric_sparsity_pattern, &
                                matrixindex_in_compressed, write_sparsematrix_info
   use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
-                          matrix_power_dense_lapack, get_minmax_eigenvalues
+                          matrix_power_dense_lapack, get_minmax_eigenvalues, &
+                          uncompress_matrix
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication, &
                                     sparse_matrix_init_from_file_bigdft, &
@@ -42,7 +43,7 @@ program driver_random
 
   ! Variables
   integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread
-  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold, icheck
+  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold, icheck, j
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
@@ -396,6 +397,11 @@ program driver_random
       end if
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
+
+      mat3(1)%matrix = sparsematrix_malloc0_ptr(smatl(1), iaction=DENSE_FULL,id=' mat3(1)%matrix')
+      call uncompress_matrix(iproc, nproc, smatl(1), mat3(1)%matrix_compr, mat3(1)%matrix)
+
+      ! Sparse matrices
       max_error = 0.0_mp
       mean_error = 0.0_mp
       max_error_rel = 0.0_mp
@@ -447,6 +453,64 @@ program driver_random
           call yaml_mapping_close()
           call yaml_mapping_close()
       end if
+
+      ! Full matrices
+      max_error = 0.0_mp
+      mean_error = 0.0_mp
+      max_error_rel = 0.0_mp
+      mean_error_rel = 0.0_mp
+      max_error_rel_threshold(:) = 0.0_mp
+      mean_error_rel_threshold(:) = 0.0_mp
+      nrel_threshold(:) = 0
+      do i=1,smatl(1)%nfvctr
+          do j=1,smatl(1)%nfvctr
+              tt = abs(mat3(1)%matrix(j,i,1)-mat3(3)%matrix(j,i,1))
+              tt_rel = tt/abs(mat3(3)%matrix(j,i,1))
+              mean_error = mean_error + tt
+              max_error = max(max_error,tt)
+              mean_error_rel = mean_error_rel + tt_rel
+              max_error_rel = max(max_error_rel,tt_rel)
+              do ithreshold=1,nthreshold
+                  if (abs(mat3(3)%matrix(j,i,1))>threshold(ithreshold)) then
+                      nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+                      mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+                      max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+                  end if
+              end do
+          end do
+      end do
+      mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
+      mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
+      do ithreshold=1,nthreshold
+          mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+      end do
+
+      if (iproc==0) then
+          call yaml_mapping_open('Check the deviation from the exact result using BLAS (for the entire matrix)')
+          call yaml_mapping_open('absolute error')
+          call yaml_map('max error',max_error,fmt='(es10.3)')
+          call yaml_map('mean error',mean_error,fmt='(es10.3)')
+          call yaml_mapping_close()
+          call yaml_mapping_open('relative error')
+          call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+          call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
+          call yaml_mapping_close()
+          !call yaml_mapping_open('relative error with threshold')
+          call yaml_sequence_open('relative error with threshold')
+          do ithreshold=1,nthreshold
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+              call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+              call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
+          call yaml_mapping_close()
+          call yaml_mapping_close()
+      end if
+
+      call f_free_ptr(mat3(1)%matrix)
 
       !call timing(mpi_comm_world,'CHECK_CUBIC','PR')
       call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
