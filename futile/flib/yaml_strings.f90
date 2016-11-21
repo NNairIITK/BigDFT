@@ -842,32 +842,40 @@ contains
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: fmt
-    type(f_string) :: c
-    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+    character(len=max_value_length) :: c
+    c=yaml_toa(num,fmt)
   end function yaml_itoa_fmt
 
   pure function yaml_litoa_fmt(num,fmt) result(c)
     implicit none
     integer(f_long), intent(in) :: num
     character(len=*), intent(in) :: fmt
-    type(f_string) :: c
-    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+    character(len=max_value_length) :: c
+    c=yaml_toa(num,fmt)
   end function yaml_litoa_fmt
 
   pure function yaml_dtoa_fmt(num,fmt) result(c)
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: fmt
-    type(f_string) :: c
-    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+    character(len=max_value_length) :: c
+    c=yaml_toa(num,fmt)
   end function yaml_dtoa_fmt
 
   pure function yaml_ctoa_fmt(num,fmt) result(c)
     implicit none
     character(len=*), intent(in) :: num
     character(len=*), intent(in) :: fmt
-    type(f_string) :: c
-    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+    character(len=max_value_length) :: c
+    c=yaml_toa(num,fmt)
   end function yaml_ctoa_fmt
 
 

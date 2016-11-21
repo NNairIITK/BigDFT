@@ -36,7 +36,7 @@ program mhgps
     use module_minimizers
     use bigdft_run
     use SPREDtypes
-    use random, only: builtin_rand
+    use f_random!, only: builtin_rand
     implicit none
     integer                   :: u
     integer                   :: istat
@@ -332,13 +332,13 @@ program mhgps
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
               if(uinp%random_minmode_guess)then
                  do iat=1,bigdft_nat(runObj)
-                    minmode(1,iat)=2.0_gp*&
-                         (real(builtin_rand(idum),gp)-0.5_gp)
-                    minmode(2,iat)=2.0_gp*&
-                         (real(builtin_rand(idum),gp)-0.5_gp)
+                    call f_random_number(minmode(1,iat))
+                    call f_random_number(minmode(2,iat))
+                    call f_random_number(minmode(3,iat))
+                    minmode(1,iat)=2.0_gp*(minmode(1,iat)-0.5_gp)
+                    minmode(2,iat)=2.0_gp*(minmode(2,iat)-0.5_gp)
                     if(bigdft_nat(runObj)>1)then!for 2Dpot
-                    minmode(3,iat)=2.0_gp*&
-                         (real(builtin_rand(idum),gp)-0.5_gp)
+                    minmode(3,iat)=2.0_gp*(minmode(3,iat)-0.5_gp)
                     else
                     minmode(3,iat)=0.0_gp
                     endif

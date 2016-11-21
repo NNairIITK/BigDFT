@@ -21,6 +21,7 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	geopt \
+	python \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -258,7 +259,7 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@
+bigdft_LDADD = $(bigdft_library)
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(bigdft_library)
@@ -270,29 +271,40 @@ bigdft_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@
 #oneatom_LDADD = $(bigdft_library)
 
 BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
-BigDFT2Wannier_LDADD = $(bigdft_library) #@LINALG_LIBS@
+BigDFT2Wannier_LDADD = $(bigdft_library)
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = $(bigdft_library) #@LINALG_LIBS@
+WaCo_LDADD = $(bigdft_library)
 
 MDanalysis_SOURCES = distances.f90
 MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = libabscalc.a $(bigdft_library) #@LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library)
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@
+test_forces_LDADD = $(bigdft_library)
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = $(bigdft_library) #@LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+memguess_LDADD = $(bigdft_library)
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@ @LINALG_LIBS@
+utilities_LDADD = $(bigdft_library)
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library) #@LIB_FUTILE_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = $(bigdft_library)
+
+if BUILD_DYNAMIC_LIBS
+bigdft_LDADD += @LIB_FUTILE_LIBS@
+memguess_LDADD += @LIB_CHESS_LIBS@ @LIB_PSOLVER_LIBS@ @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+frequencies_LDADD += @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+abscalc_LDADD += @LIB_PSOLVER_LIBS@ @LINALG_LIBS@
+utilities_LDADD += @LIB_CHESS_LIBS@ @LIB_FUTILE_LIBS@
+test_forces_LDADD += @LIB_FUTILE_LIBS@
+BigDFT2Wannier_LDADD += @LIB_FUTILE_LIBS@ @LINALG_LIBS@
+endif
+
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
@@ -355,10 +367,10 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_soname_library)
 		--library=bigdft-1 \
 		--no-libtool \
 		-DGLIB_MAJOR_VERSION=2 -L$(builddir) \
-		-I$(srcdir)/modules -I$(builddir)/modules \
-		$(srcdir)/modules/bigdft.h \
-		$(srcdir)/modules/bigdft_input_keys.h \
-		$(builddir)/modules/bigdft_cst.h \
+		-I$(srcdir)/bindings -I$(builddir)/bindings \
+		$(srcdir)/bindings/bigdft.h \
+		$(srcdir)/bindings/bigdft_input_keys.h \
+		$(builddir)/bindings/bigdft_cst.h \
 		$(srcdir)/bindings/wrappers.c \
 		$(srcdir)/bindings/wrapper_inputs.c \
 		$(srcdir)/bindings/wrapper_run.c \

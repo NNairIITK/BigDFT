@@ -104,8 +104,9 @@ module bigdft_run
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
   public :: run_objects_init,run_objects_update
   public :: bigdft_init,bigdft_command_line_options,bigdft_nruns
-  public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
-  public :: nullify_MM_restart_objects
+  !public :: init_QM_restart_objects,init_MM_restart_objects,nullify_QM_restart_objects
+  public :: set_run_objects
+  !public :: nullify_MM_restart_objects
   public :: bigdft_nat,bigdft_state,free_run_objects
   public :: release_run_objects,bigdft_get_cell,bigdft_get_cell_ptr,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units
@@ -181,6 +182,7 @@ contains
   subroutine init_MM_restart_objects(mm_rst,inputs,astruct,run_mode)
     use f_utils
     use dynamic_memory
+    use f_refcnts
     use public_enums
     use module_atoms
     use module_morse_bulk
@@ -296,7 +298,8 @@ contains
        !@todo SW is missing the rescalling here.
        call init_potential_SW(astruct%nat, astruct%ntypes, inputs%sw_factor)
     case default
-       mm_rst%refcnt=f_ref_new('mm_rst')
+       if (.not. f_associated(mm_rst%refcnt)) &
+            mm_rst%refcnt=f_ref_new('mm_rst')
     end select
 
     mm_rst%run_mode=run_mode
@@ -1127,7 +1130,7 @@ contains
   !> Currently, set_run_objects() is not set recursively.
   !! This routine, handle a subpar of it for sections.
   subroutine set_section_objects(runObj)
-    use module_base, only: bigdft_mpi
+    use module_base, only: bigdft_mpi,mpibarrier
     use module_interfaces, only: atoms_new, inputs_new
     use module_atoms, only: atomic_structure, astruct_at_from_dict, &
          & astruct_merge_to_dict, deallocate_atomic_structure
@@ -1144,6 +1147,7 @@ contains
     type(dictionary), pointer :: sect
     type(atomic_structure) :: asub
 
+    call f_routine(id='set_section_objects')
     if (associated(runObj%sections)) then
        do i = 1, size(runObj%sections)
           call release_run_objects(runObj%sections(i))
@@ -1151,12 +1155,14 @@ contains
        deallocate(runObj%sections)
        nullify(runObj%sections)
     end if
-
     if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
          & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
-    if (ln == 0) return
+    if (ln == 0) then
+       call f_release_routine()
+       return
+    end if
 
     runObj%inputs%multi_buf = f_malloc_ptr(ln, id = "in%multi_buf")
     runObj%inputs%multi_buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
@@ -1167,6 +1173,7 @@ contains
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
        i = dict_item(sect) + 1
+
        call nullify_run_objects(runObj%sections(i))
        ! We just do a shallow copy here, because we don't need to store the input dictionary.
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
@@ -1196,6 +1203,9 @@ contains
 
        sect => dict_next(sect)
     end do
+
+    call f_release_routine()
+
   end subroutine set_section_objects
 
   !> Read all input files and create the objects to run BigDFT
@@ -1333,7 +1343,7 @@ contains
     !local variables
     type(dictionary), pointer :: item
     logical :: dict_from_files
-    integer :: i
+    integer :: i,count
 
     if (associated(runObj%user_inputs)) then
        item => dict_iter(dict)
@@ -1355,11 +1365,40 @@ contains
     ! Create sections if any.
     call set_section_objects(runObj)
 
-    !init and update the restart objects
+!!$    !init and update the restart objects
+!!$    if (associated(runObj%rst)) then
+!!$       call f_unref(runObj%rst%refcnt,count=count)
+!!$       if (count==0) then
+!!$          call free_QM_restart_objects(runObj%rst)
+!!$       else
+!!$          nullify(runObj%rst)
+!!$       end if
+!!$    else
+!!$       allocate(runObj%rst)
+!!$    end if
+!!$    call nullify_QM_restart_objects(runObj%rst)
+    if(.not. associated(runObj%rst)) then
+       allocate(runObj%rst)
+       call nullify_QM_restart_objects(runObj%rst)
+    end if
     call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
          runObj%rst)
-    call free_MM_restart_objects(runObj%mm_rst)
-    call nullify_MM_restart_objects(runObj%mm_rst)
+!!$    if (associated(runObj%mm_rst)) then
+!!$       call f_unref(runObj%mm_rst%refcnt,count=count)
+!!$       if (count==0) then
+!!$          call free_MM_restart_objects(runObj%mm_rst)
+!!$       else
+!!$          nullify(runObj%mm_rst)
+!!$       end if
+!!$    else
+!!$       allocate(runObj%mm_rst)
+!!$    end if
+!!$    !call free_MM_restart_objects(runObj%mm_rst)
+!!$    call nullify_MM_restart_objects(runObj%mm_rst)
+    if (.not. associated(runObj%mm_rst)) then
+       allocate(runObj%mm_rst)
+       call nullify_MM_restart_objects(runObj%mm_rst)
+    end if
     call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
 
     if (associated(runObj%sections)) then
@@ -2669,7 +2708,6 @@ contains
 !!$    end select
   end subroutine bigdft_set_input_policy
 
-
 end module bigdft_run
 
 !external wrapper temporary to make the code compiling with wrappers
@@ -2704,7 +2742,7 @@ subroutine run_objects_update_bind(runObj, dict)
 END SUBROUTINE run_objects_update_bind
 
 !> this routine should be used in memguess executable also
-subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
+subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, mem)
   use module_base, only: gp,f_memcpy,f_enumerator,f_int
   use bigdft_run
   use module_types
@@ -2716,7 +2754,6 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   type(run_objects), intent(inout) :: runObj
   integer, intent(in) :: iproc, nproc
   real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: rxyz
-  real(gp), dimension(3), intent(out) :: shift
   type(memory_estimation), intent(out) :: mem
 
   integer :: input_wf_format
@@ -2735,7 +2772,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, &
+       & nlpsp, runObj%rst%KSwfn%comms, &
        & ref_frags)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&

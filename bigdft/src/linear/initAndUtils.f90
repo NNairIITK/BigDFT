@@ -1294,8 +1294,9 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      ! calculate psi in new locreg
      lphilarge = f_malloc0(tmb%npsidim_orbs,id='lphilarge')
      !call to_zero(tmb%npsidim_orbs, lphilarge(1))
-     call small_to_large_locreg(iproc, npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
-          tmb%orbs, tmb%psi, lphilarge)
+     call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+          npsidim_orbs_tmp, tmb%npsidim_orbs, lzd_tmp, tmb%lzd, &
+          tmb%psi, lphilarge)
 
      call deallocate_local_zone_descriptors(lzd_tmp)
      call f_free_ptr(tmb%psi)

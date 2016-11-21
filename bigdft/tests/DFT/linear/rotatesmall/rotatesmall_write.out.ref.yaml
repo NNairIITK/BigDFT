@@ -961,13 +961,6 @@
    Molecule was shifted                :  3
    Molecule was rotated                :  0
    Wrapping/unwrapping                 :  0
- calculate S^x:
-   mode                                : sparse
-   powers:
-     x                                 : -1/2
-   order                               :  0
-   error estimation:
-     max / mean error                  :  [  2.0E-15,  6.11E-16 ]
  Total charge                          :  6.999999951132E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

@@ -944,12 +944,19 @@
    BC                                  : Periodic
    Box                                 :  [  28,  28,  28 ]
    MPI tasks                           :  1
+ Multipole analysis origin             :  [  2.5E+00,  2.500000E+00,  2.500000E+00 ]
  Electric Dipole Moment (AU):
-   P vector                            :  [  4.9733E-01,  4.9733E-01,  4.9733E-01 ]
-   norm(P)                             :  8.613962E-01
+   P vector                            :  [  7.7493E-02,  7.7493E-02,  7.7493E-02 ]
+   norm(P)                             :  1.342213E-01
  Electric Dipole Moment (Debye):
-   P vector                            :  [  1.2641E+00,  1.2641E+00,  1.2641E+00 ]
-   norm(P)                             :  2.189451E+00
+   P vector                            :  [  1.9697E-01,  1.9697E-01,  1.9697E-01 ]
+   norm(P)                             :  3.411564E-01
+ Quadrupole Moment (AU):
+   Q matrix:
+   -  [ 2.0933E-09, -1.0722E-02, -1.0722E-02]
+   -  [-1.0722E-02,  2.0932E-09, -1.0722E-02]
+   -  [-1.0722E-02, -1.0722E-02, -4.1865E-09]
+   trace                               : -7.80E-15
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  42.28

@@ -526,15 +526,6 @@ parser.add_argument('-y','--yes',action='store_true',
 parser.add_argument('-c','--configure-line',nargs=argparse.REMAINDER,
                    help='Specify the configure line to be passed (set BIGDFT_CONFIGURE_FLAGS variable)')
 
-
-
-###Define the possible actions
-##subparsers = parser.add_subparsers(title='The following actions are available',
-##                    dest='action',
-##                    help='Action to be performed by the Installer.')
-##for (k,v) in ACTIONS.items():
-##    subparsers.add_parser(k,help=v)
-##
 args = parser.parse_args()
 
 

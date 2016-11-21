@@ -2,4 +2,4 @@ This directory contains useful files as
  - pseudopotential files (PSPfiles)
    See http://www.abinit.org for an exhaustive library of pseudopotentials
  - eleconf.dat: contains electronic configuration of each atom
-   Not useful by the program
+   Not used by the program

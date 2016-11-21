@@ -1,3 +1,24 @@
+!> @file
+!!  
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 module module_func
   use sparsematrix_base
   !use module_base, only: safe_exp
@@ -1033,7 +1054,7 @@ module foe_common
       integer,intent(in),optional :: npl_min
       integer,intent(in),optional :: npl_max
       integer,intent(in),optional :: npl_stride
-      integer,intent(in),optional :: betax
+      real(kind=mp),intent(in),optional :: betax
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1072,7 +1093,7 @@ module foe_common
       npl_min_ = 10
       npl_max_ = 5000
       npl_stride_ = 10
-      betax_ = -500
+      betax_ = -1000.0_mp
 
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
       if (present(evboundsshrink_nsatur)) evboundsshrink_nsatur_ = evboundsshrink_nsatur
@@ -1560,7 +1581,7 @@ module foe_common
                       !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
                       !!     x_max_error, max_error, mean_error)
                       cc = 0.d0
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                            muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,2,1), &
@@ -1923,7 +1944,7 @@ module foe_common
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,1), &
                            x_max_error, max_error, mean_error)
-                      call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                            muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
                       call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
                            foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,1,2), &
@@ -2254,7 +2275,7 @@ module foe_common
           end do
           if (error_ok) then
               do icalc=1,ncalc
-                  call func_set(FUNCTION_EXPONENTIAL, betax=-1000.d0, &
+                  call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
                        muax=foe_data_get_real(foe_obj,"evlow",ispin), mubx=foe_data_get_real(foe_obj,"evhigh",ispin))
                   call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",ispin), &
                        foe_data_get_real(foe_obj,"evhigh",ispin), ipl, func, cc_trial(1:ipl,icalc,2), &
@@ -2426,7 +2447,7 @@ module foe_common
 
 
 
-    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, betax, ncalc, func_name, &
+    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, &
                do_scaling, bounds_factor_low, bounds_factor_up, foe_verbosity, &
                smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
@@ -2437,7 +2458,6 @@ module foe_common
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, foe_verbosity
-      real(mp),intent(in) :: betax
       type(sparse_matrix),intent(in) :: smatm, smatl
       type(matrices),intent(in) :: ham_
       logical,intent(in) :: do_scaling
@@ -2513,7 +2533,7 @@ module foe_common
     
     
       if (iproc==0 .and. foe_verbosity>0) then
-          call yaml_map('beta for penaltyfunction',betax,fmt='(f7.1)')
+          call yaml_map('beta for penaltyfunction',foe_data_get_real(foe_obj,"betax"),fmt='(f7.1)')
           call yaml_sequence_open('determine eigenvalue bounds')
       end if
       bounds_loop: do

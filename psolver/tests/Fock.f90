@@ -20,7 +20,7 @@ program Fock_Operator_Program
   !Order of interpolating scaling function
   real(kind=8), parameter :: a_gauss = 1.0, a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
-  logical :: symmetric,usegpu,nearest_neighbor
+  logical :: symmetric,usegpu
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   real(f_double) :: offset,eexctX,tel,sfac,trm
   integer :: iproc,nproc,norb,norbu,norbd,norbpj,nspin,prc
@@ -73,9 +73,6 @@ program Fock_Operator_Program
   call dict_set(dict_input //'setup'//'verbose', .false.)
   if ('input' .in. options) &
        call dict_copy(dest=dict_input,src=options//'input')
-
-  symmetric=options//'symmetric'
-  nearest_neighbor=options//'nn-pattern'
 
   !need norbu,norbd to derive occup and spinsgn
   nspin=dict_len(options//'norb')
@@ -157,15 +154,10 @@ program Fock_Operator_Program
   end do
   ndim=product(nxyz)
 
+  symmetric=.true.
   call f_zero(dpsir)
-  if (iproc==0) then
-     call yaml_map('Orbital repartition',nobj_par)
-     call yaml_flush_document()
-  end if
-  call mpibarrier()
-  if (sum(nobj_par) /= norb) &
-       call f_err_throw('Error in orbital repartition ('+sum(nobj_par)+')') 
-  call OP2P_unitary_test(mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,symmetric,nearest_neighbor)
+  if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
+  call OP2P_unitary_test(mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,symmetric)
   !this part should go inside the kernel initialization
   if(pkernel%igpu==1 .and. pkernel%initCufftPlan==0) then
      igpu=0
@@ -174,7 +166,7 @@ program Fock_Operator_Program
      igpu=.if. pkernel%use_gpu_direct .then. pkernel%igpu .else. 0
   end if
   
-  call initialize_OP2P_data(OP2P,mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric,nearest_neighbor)
+  call initialize_OP2P_data(OP2P,mpiworld(),iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
 
   !this part is also inaesthetic
   if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
@@ -238,7 +230,7 @@ contains
     integer, intent(in) :: jproc,norb,nproc
     integer :: norbp
 
-    norbp=(norb-1)/nproc+1 !integer division
+    norbp=norb/nproc !integer division
     norbp=min(max(norb-jproc*norbp,0),norbp)
 
   end function norbp
@@ -285,20 +277,6 @@ contains
        'default: 10,'//&
        'help_string: Number of orbitals for each spin,'//&
        'help_dict: {Allowed values: list of integers}}')
-
-  call yaml_cl_parse_option(parser,&
-       '{name: nn-pattern,'//&
-       'shortname: c,'//&
-       'default: No,'//&
-       'help_string: Nearest-Neighbor communication,'//&
-       'help_dict: '//&
-       '{Usage: Boolean, adjust the communication pattern of the operation}}')
-
-    call yaml_cl_parse_option(parser,'symmetric','Yes',&
-       'Symmetricity','s',&
-       dict_new('Usage' .is. &
-       'Boolean, set the symmetricity of the operation.'))
-
 
 end subroutine Fock_test_options
 

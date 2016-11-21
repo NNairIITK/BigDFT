@@ -1,3 +1,24 @@
+!> @file
+!!   Test of the sparse matrix multiplication
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
 program smatmul
   use wrapper_MPI
   use wrapper_linalg
@@ -100,7 +121,7 @@ program smatmul
   !!matA%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='matA%matrix_compr')
   !!matA%matrix_compr = mat_compr
 
-  call sparse_matrix_and_matrices_init_from_file_bigdft(filename, iproc, nproc,comm, smat, matA, &
+  call sparse_matrix_and_matrices_init_from_file_bigdft('serial', filename, iproc, nproc,comm, smat, matA, &
        init_matmul=.true.)!, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 

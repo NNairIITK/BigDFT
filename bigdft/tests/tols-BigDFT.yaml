@@ -354,6 +354,10 @@ test.testforces.ref.yaml:
  Ekin: 5.1e-10
  Epot: 2.91e-09
  EvXC: 6.51e-10
+ Multipole coefficients: 1.0e-9
+ Raw forces norm (Ha/Bohr): 1.5e-10
+ difference: 1.4e-9
+ relative difference: 4.8e-10
 
 
 
@@ -607,12 +611,13 @@ rotate_read1:
  eBS: 2.6e-11
  EvXC: 1.1e-10
  EXC: 1.1e-10
+ EH: 1.0e-9
  orthog_energy: 2.4e-11
  energy: 8.7e-11
  energydiff: 8.3e-11
  Omega: 8.1e-11
  D: 1.1e-10
- Energy (Hartree): 2.6e-11
+ Energy (Hartree): 4.9e-11
  Maxdiff for transpose (checksum): 9.4e-10
 
 rotate_read2:
@@ -687,6 +692,7 @@ molecule_dmix:
  e: 1.4e-10
  Total charge: 1.1e-08
  Energy (Hartree): 8.4e-11
+ Maxdiff for transpose (checksum): 1.9e-09
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -705,6 +711,7 @@ molecule_pmix:
  Raw forces norm (Ha/Bohr): 6.2e-11
  Energy (Hartree): 8.6e-11
  Average noise forces: 1.1e-10
+ Maxdiff for transpose (checksum): 1.9e-09
 
 molecule_dmin:
  Enl: 6.6e-9
@@ -721,6 +728,7 @@ molecule_dmin:
  e: 1.4e-10
  Average noise forces: 4.1e-11
  Energy (Hartree): 6.9e-11
+ Maxdiff for transpose (checksum): 1.9e-09
 
 molecule_foe:
  Enl: 6.6e-9
@@ -850,29 +858,29 @@ GEOPT-all_lbfgs:
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 4.5e-6
+ eF: 7.9e-6
  guess for new ef: 4.7e-7
- Epot: 5.0e-10
- EH: 5.1e-10
- EXC: 5.1e-11
- EvXC: 6.1e-11
+ Epot: 9.0e-10
+ EH: 1.0e-9
+ EXC: 9.1e-11
+ EvXC: 1.3e-10
  Ekin: 1.1e-10
  D Tr(K): 7.1e-6
  difference from idempotency: 2.1e-09
  tr(KS) before purification: 2.6e-07
- Tr(K) : 6.8e-5
+ Tr(K) : 1.3e-4
  D Tr: 7.1e-06
  decay length of error function: 1.1e-5
  EBS: 2.1e-7
  EBS higher temperature: 1.1e-8
  difference: 2.1e-7
  Positions: 2.1e-9
- Omega: 1.8e-10
- Total charge: 2.2e-10
+ Omega: 3.2e-10
+ Total charge: 3.9e-10
  guess for new ef: 4.7e-07
- trace(KS): 2.2e-10
- energy: 5.0e-11
- relative difference: 7.7e-11
+ trace(KS): 3.9e-10
+ energy: 8.9e-11
+ relative difference: 1.4e-10
  Maxdiff for overlap calculation: 4.5e-08
  Maxdiff for transpose (checksum): 1.2e-10
 
@@ -917,13 +925,14 @@ water_dirmin:
  EH: 1.1e-9
  Epot: 1.1e-9
  Enl: 1.1e-10
+ Ekin: 1.0e-9
  eBS: 2.99e-11
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
  energydiff: 2.6e-11
  D: 1.1e-09
- Energy (Hartree): 4.6e-11
+ Energy (Hartree): 8.2e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -931,7 +940,7 @@ water_dirmin:
 water_mixdens:
  EvXC: 1.1e-10
  EXC: 1.1e-10
- EH: 1.0e-9
+ EH: 1.1e-9
  Epot: 1.1e-9
  Enl: 1.1e-10
  Ekin: 1.0e-9
@@ -942,7 +951,7 @@ water_mixdens:
  energydiff: 2.5e-11
  etot: 1.7e-10
  Omega: 1.7e-10
- Energy (Hartree): 4.8e-11
+ Energy (Hartree): 7.9e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -958,7 +967,7 @@ water_mixpot:
  energy: 1.8e-10
  Omega: 1.8e-10
  etot: 1.8e-10
- Energy (Hartree): 5.2e-11
+ Energy (Hartree): 9.3e-11
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -979,9 +988,10 @@ deltascf_read_charge:
  Omega: 3.2e-10
  Raw forces norm (Ha/Bohr): 2.1e-10
  EH: 1.1e-9
- Energy (Hartree): 1.3e-10
+ Energy (Hartree): 1.4e-10
  D: 1.01e-9
  Maxdiff for transpose (checksum): 9.4e-10
+ Total charge: 2.0e-11
 
 deltascf_write_neut:
  eBS: 6.1e-9
@@ -996,8 +1006,8 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.4e-10
  D: 6.1e-9
- Energy (Hartree): 9.4e-11
- Maxdiff for transpose (checksum): 9.4e-10
+ Energy (Hartree): 1.1e-10
+ Maxdiff for transpose (checksum): 2.8e-9
 
 foe:
  Epot: 1.1e-10
@@ -1229,6 +1239,9 @@ reformatcomplete_read36:
  eBS: 3.6e-7
  EXC: 6.4e-8
  EH: 3.8e-7
+ Ekin: 1.0e-10
+ Maxdiff for transpose (checksum): 4.7e-10
+
 
 reformatcomplete_read45:
  energy: 8.8e-10
@@ -1535,35 +1548,38 @@ O2spin_diag:
  delta: 1.1e-10
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 2.64e-8
- EH: 2.5e-7
- EXC: 2.1e-8
+ Atomic Forces (Ha/Bohr): 3.0e-7
+ EH: 8.9e-6
+ EXC: 1.7e-6
  Ekin: 4.8e-9
- Epot: 1.4e-7
- EvXC: 2.7e-8
+ Epot: 3.0e-6
+ EvXC: 2.2e-6
  Enl: 2.6e-9
- Tr(K): 6.9e-6
+ Tr(K): 2.81e-5
  D Tr(K): 1.01e-4
  eF: 1.1-10
  D eF: 4.4e-8
  guess for new ef: 4.1e-9
- EBS: 8.8e-8
- EBS higher temperature: 1.2e-7
+ EBS: 3.0e-6
+ EBS higher temperature: 1.7e-6
  Omega: 2.3e-9
- energy: 1.1e-7
- Raw forces norm (Ha/Bohr): 9.9e-8
- Clean forces norm (Ha/Bohr): 9.9e-8
+ energy: 1.5e-7
+ Raw forces norm (Ha/Bohr): 2.9e-7
+ Clean forces norm (Ha/Bohr): 3.0e-7
  Average noise forces: 3.2e-8
- Total charge: 1.1e-7
+ Total charge: 3.2e-7
  decay length of error function: 1.1e-5
- difference: 1.9e-7
+ difference: 2.8e-6
  D Tr: 2.1e-7
- relative difference: 5.2e-8
- Energy (Hartree): 8.8e-8
- Force Norm (Hartree/Bohr): 3.73e-8
+ relative difference: 5.0e-7
+ Energy (Hartree): 1.5e-7
+ Force Norm (Hartree/Bohr): 4.3e-7
  Maxdiff for transpose (checksum): 2.4e-10
- trace(KS): 1.1e-7
+ trace(KS): 4.3e-7
  fnrm2: 1.01e-7
+ spin occupations: 2.7e-05
+ exp accur: 1.0e-08
+ D: 2.1e-7
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 2.44e-5
@@ -1679,11 +1695,11 @@ FF_LENOSKY-fire:
 
 
 FF_LENOSKY-sdcg:
-  etot: 6.1e-11
+  etot: 6.4e-11
   maxval: 1.01e-9
-  Energy (Hartree): 4.7e-10
+  Energy (Hartree): 8.1e-10
   FORCES norm(Ha/Bohr): 5.3e-10
-  Force Norm (Hartree/Bohr): 1.6e-9
+  Force Norm (Hartree/Bohr): 2.7e-9
   Keys to ignore:
   - WARNINGS
 
@@ -1723,15 +1739,15 @@ FF_LENOSKY-bfgs:
   maxval: 1.0e-10
   fnrm2: 1.01e-10
   Energy: 2.29e-10
-  Energy (Hartree): 2.0e-11
-  Force Norm (Hartree/Bohr): 7.4e-11
+  Energy (Hartree): 2.2e-11
+  Force Norm (Hartree/Bohr): 8.1e-11
   Keys to ignore:
   - WARNINGS
 
 
 FF_LENOSKY-diis:
-  Energy (Hartree): 2.0e-8
-  Force Norm (Hartree/Bohr): 2.12e-07
+  Energy (Hartree): 7.2e-8
+  Force Norm (Hartree/Bohr): 7.7e-07
   FORCES norm(Ha/Bohr): 1.11e-6
   etot: 1.39e-7
   Keys to ignore:
@@ -1750,7 +1766,7 @@ FF_LJ-fire:
   - disablesym
 
 FF_LJ-sdcg:
-  Force Norm (Hartree/Bohr): 3.0e-9
+  Force Norm (Hartree/Bohr): 4.0e-9
   maxval: 1.1e-9
   Keys to ignore:
   - WARNINGS
@@ -1769,7 +1785,7 @@ FF_LJ-lbfgs:
   - disablesym
 
 FF_LJ-sqnm:
-  Force Norm (Hartree/Bohr): 8.3e-8
+  Force Norm (Hartree/Bohr): 1.7e-7
   Energy (Hartree): 9.0e-8
   Geometry: 1.01e-8
   fnrm2: 1.1e-6
@@ -1780,8 +1796,8 @@ FF_LJ-sqnm:
 
 
 FF_LJ-vssd:
-  Force Norm (Hartree/Bohr): 1.1e-07
-  Energy (Hartree): 1.7e-9
+  Force Norm (Hartree/Bohr): 1.6e-07
+  Energy (Hartree): 2.7e-9
   etot: 2.2e-4
   maxval: 3e-4
   last beta: 3.5e-2
@@ -2165,6 +2181,7 @@ igortho_44:
  exp accur: 1.0e-8
  int(V): 1.1e-3
  Err %: 0.10
+ Asymmetry of kernel: 1.1e-06
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -2403,6 +2420,71 @@ Cavity_H2OfsccsPCG:
  Keys to ignore:
    - Electronic charge changed by rho compression
 
+Cavity_H2OfrigidPI:
+  EH: 2.0999983973979397e-09
+  EKS: 5.021441040753416e-10
+  EXC: 4.3000003557835953e-10
+  Ekin: 7.000000579182597e-10
+  Electronic charge changed by rho compression: 3.6565417360640003e-10
+  Energy (Hartree): 1.9139889673169819e-10
+  Enl: 4.000000330961484e-11
+  Epot: 1.4999983477537171e-09
+  EvXC: 5.7000004716201147e-10
+  H: 7.3399994415801473e-11
+  Integral of the density in the nonvacuum region: 1.2564910223389347e-10
+  O: 6.0904000159095473e-11
+  Total electronic charge: 1.1469998284496796e-09
+  fnrm2: 2.191999359801855e-11
+  maxval: 5.9100002669509877e-11
+  x: 5.0000000233890729e-11
+
+Cavity_H2Ofrigid_PB_PCG:
+  EH: 2.0999983973979397e-09
+  EKS: 5.0254200800736726e-10
+  EXC: 3.4000002813172614e-10
+  Ekin: 3.000000248221113e-10
+  Electronic charge changed by rho compression: 8.0430062610044003e-10
+  Energy (Hartree): 1.9410251184126537e-10
+  Enl: 3.000000248221113e-11
+  Epot: 1.4999983477537171e-09
+  EvXC: 4.6000003806057066e-10
+  Force Norm (Hartree/Bohr): 1.2313305930433671e-10
+  H: 1.4220000177367353e-10
+  Integral of the density in the nonvacuum region: 2.2249085906977939e-10
+  O: 2.2798400060169977e-10
+  Total electronic charge: 8.0399953361620646e-10
+  alpha: 4.0304737780605393e-07
+  beta: 2.3793108425707032e-06
+  fnrm2: 1.0381000226100667e-10
+  maxval: 1.7230000759482778e-10
+  ratio: 6.5879529262402592e-10
+  res: 2.8494700752707566e-06
+  x: 9.0000000074058617e-11
+  y: 9.9999999947364415e-10
+  z: 1.9999999920083944e-10
+
+Cavity_H2OfsccsPI:
+  EH: 3.8000003144134098e-09
+  EKS: 7.8333783903872245e-10
+  EXC: 7.5000006205527825e-10
+  Ekin: 4.000000330961484e-10
+  Electronic charge changed by rho compression: 3.2664448923470001e-10
+  Energy (Hartree): 7.8333783903872245e-10
+  Enl: 3.000000248221113e-11
+  Epot: 2.8000002316730388e-09
+  EvXC: 9.8000008108556358e-10
+  Force Norm (Hartree/Bohr): 1.9483933910713347e-10
+  H: 1.0196000987949816e-10
+  Integral of the density in the nonvacuum region: 1.1233629304552295e-10
+  O: 1.5859999424883142e-10
+  Total electronic charge: 2.0120003441093104e-09
+  fnrm2: 1.4178000440345784e-10
+  maxval: 2.5129998082462635e-10
+  total: 9.9999999947364415e-10
+  x: 3.6999999982259557e-10
+  y: 9.9999999947364415e-10
+  z: 4.999999980020986e-11
+
 pexsi:
   Energy (Hartree): 2.3e-11
   Omega: 4.2e-11
@@ -2498,7 +2580,7 @@ largesystems_dnawater:
 
 H2Omultipoles_1:
   EBS: 9.8e-10
-  EBS higher temperature: 1.4e-9
+  EBS higher temperature: 1.0e-8
   EH: 1.1e-9
   EXC: 1.8e-10
   Ekin: 4.1e-10
@@ -2509,18 +2591,19 @@ H2Omultipoles_1:
   Pseudo Fermi level for occupations: 2.5e-11
   Omega: 2.7e-11
   Total charge: 2.6e-11
-  Tr(K): 1.1e-07
+  Tr(K): 4.1e-07
   eF: 1.1e-07
   energy: 2.5e-11
   multiplicator for the confinement: 4.7e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
-  difference: 1.4e-9
-  relative difference: 6.1e-10
+  difference: 1.0e-8
+  relative difference: 4.5e-9
+  Average noise forces: 1.0e-10
 
 H2Omultipoles_11:
   EBS: 9.3e-10
-  EBS higher temperature: 9.3e-10
+  EBS higher temperature: 8.7e-9
   EH: 1.1e-9
   EXC: 1.7e-10
   Ekin: 4.1e-10
@@ -2530,15 +2613,17 @@ H2Omultipoles_11:
   Charge analysis (charge / net charge): 1.1e-10
   Omega: 2.4e-11
   Total charge: 2.6e-11
-  Tr(K): 1.1e-07
+  Tr(K): 4.1e-07
   eF: 1.1e-07
   energy: 2.3e-11
   multiplicator for the confinement: 4.4e-11
   trace(KS): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
   Pseudo Fermi level for occupations: 2.1e-11
-  difference: 1.3e-11
+  difference: 8.7e-9
+  relative difference: 3.9e-09
   q2: 1.1e-09
+  Average noise forces: 1.0e-10
 
 H2Omultipoles_12:
   EBS: 1.2e-9

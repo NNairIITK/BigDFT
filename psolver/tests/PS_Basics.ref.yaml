@@ -1,0 +1,520 @@
+ Commandline options provided:
+   ndim: [57, 48, 63]
+   geocode                             : F
+   angdeg                              : 90.0
+ PSolver, free BC                      :  [  57,  48,  63 ]
+ processes                             :  1
+ hx                                    :  0.1754385964912281
+ Commandline options provided:
+   ndim: [57, 48, 63]
+   geocode                             : F
+   angdeg                              : 90.0
+ Input:
+ PSolver, free BC                      :  [  57,  48,  63 ]
+ processes                             :  1
+ hx                                    :  0.1754385964912281
+ Input:
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Free
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Free
+   Memory Requirements per MPI task:
+     Density (MB)                      :  1.38
+     Kernel (MB)                       :  1.46
+     Full Grid Arrays (MB)             :  1.32
+ detg                                  :  1.0
+   Memory Requirements per MPI task:
+     Density (MB)                      :  1.38
+     Kernel (MB)                       :  1.46
+     Full Grid Arrays (MB)             :  1.32
+ detg                                  :  1.0
+ monopole                              :  1591.549430918953
+ dipole: [ 36745.24651033935,  30239.43918746012,  41506.59865079112]
+ offset                                :  2.113207924379481
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  57,  48,  63 ]
+   MPI tasks                           :  1
+ monopole                              :  1591.549430918953
+ dipole: [ 36745.24651033935,  30239.43918746012,  41506.59865079112]
+ offset                                :  2.113207924379481
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  57,  48,  63 ]
+   MPI tasks                           :  1
+ potential integral                    :  378605.9706394614
+ potential integral                    :  378605.9706394614
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  5.656734288151E+02  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 28 24 31
+     Max diff:  1.215271369947E+02
+       result:  1.225271369947E+02
+     original:  1.000000000000E+00
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  5.656734288151E+02  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 28 24 31
+     Max diff:  1.215271369947E+02
+       result:  1.225271369947E+02
+     original:  1.000000000000E+00
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  295
+   Tot. No. of Deallocations           :  295
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  16.761
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 26.512 MB
+ Walltime since initialization         : 00:00:00.608127532
+ Memory Consumption Report:
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+ Number of dictionary folders allocated:  1
+   Tot. No. of Allocations             :  295
+   Tot. No. of Deallocations           :  295
+   Remaining Memory (B)                :  0
+#Error, found unfreed dictionaries after finalization: 1
+   Memory occupation:
+     Peak Value (MB)                   :  16.761
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 29.068 MB
+#Unfreed key: "" value: "__not_a_value__"
+ Walltime since initialization         : 00:00:00.614591096
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+ Number of dictionary folders allocated:  1
+#Error, found unfreed dictionaries after finalization: 1
+#Unfreed key: "" value: "__not_a_value__"
+ Commandline options provided:
+   ndim: [64, 64, 64]
+   geocode                             : P
+   angdeg                              : 90.0
+ PSolver, periodic BC                  :  [  64,  64,  64 ]
+ processes                             :  1
+ hx                                    :  0.15625
+ Commandline options provided:
+ Input:
+   ndim: [64, 64, 64]
+   geocode                             : P
+   angdeg                              : 90.0
+ PSolver, periodic BC                  :  [  64,  64,  64 ]
+ processes                             :  1
+ hx                                    :  0.15625
+ Input:
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Periodic
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Periodic
+   Memory Requirements per MPI task:
+     Density (MB)                      :  2.00
+     Kernel (MB)                       :  0.27
+     Full Grid Arrays (MB)             :  2.00
+   Memory Requirements per MPI task:
+     Density (MB)                      :  2.00
+     Kernel (MB)                       :  0.27
+     Full Grid Arrays (MB)             :  2.00
+ detg                                  :  1.0
+ detg                                  :  1.0
+ monopole                              : -3.3724477955643139E-008
+ dipole: [-9.4445112055613955E-007, -9.4438038754714878E-007, -9.4377374104919494E-007]
+ monopole                              : -3.3724477955643139E-008
+ dipole: [-9.4445112055613955E-007, -9.4438038754714878E-007, -9.4377374104919494E-007]
+ offset                                : -144.0043646612883
+ Poisson Solver:
+   BC                                  : Periodic
+   Box                                 :  [  64,  64,  64 ]
+   MPI tasks                           :  1
+ offset                                : -144.0043646612883
+ Poisson Solver:
+   BC                                  : Periodic
+   Box                                 :  [  64,  64,  64 ]
+   MPI tasks                           :  1
+ potential integral                    : -37749.88016976444
+ potential integral                    : -37749.88016976444
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  4.840220903870E+01  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 61 33 33
+     Max diff:  1.345021108022E-09
+       result: -1.345030364705E-09
+     original: -9.256682959722E-15
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  4.840220903870E+01  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 61 33 33
+     Max diff:  1.345021108022E-09
+       result: -1.345030364705E-09
+     original: -9.256682959722E-15
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  25
+   Tot. No. of Deallocations           :  25
+ Memory Consumption Report:
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  16.534
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 29.920 MB
+ Walltime since initialization         : 00:00:00.256549116
+   Tot. No. of Allocations             :  25
+   Tot. No. of Deallocations           :  25
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  16.534
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+ Number of dictionary folders allocated:  1
+     Memory Peak of process            : 30.008 MB
+ Walltime since initialization         : 00:00:00.256389983
+#Error, found unfreed dictionaries after finalization: 1
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+ Number of dictionary folders allocated:  1
+#Error, found unfreed dictionaries after finalization: 1
+#Unfreed key: "" value: "__not_a_value__"
+#Unfreed key: "" value: "__not_a_value__"
+ Commandline options provided:
+ Commandline options provided:
+   ndim: [32, 64, 48]
+   geocode                             : S
+   ndim: [32, 64, 48]
+   angdeg                              : 90.0
+   geocode                             : S
+   angdeg                              : 90.0
+ PSolver, surface BC                   :  [  32,  64,  48 ]
+ processes                             :  1
+ hx                                    :  0.3125
+ PSolver, surface BC                   :  [  32,  64,  48 ]
+ processes                             :  1
+ hx                                    :  0.3125
+ Input:
+ Input:
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+  #------------------------------------------------------------------- Kernel Initialization
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     screening                         : 0 #      Mu screening parameter
+     accel                             : none #   Material Acceleration
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+   environment:
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     cavity                            : none #   Type of the cavity
+     verbose                           : Yes #    Verbosity switch
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     output                            : none #   Quantities to be plotted after the main solver routine
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Surface
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Surface
+   Memory Requirements per MPI task:
+     Density (MB)                      :  0.75
+     Kernel (MB)                       :  0.21
+     Full Grid Arrays (MB)             :  0.75
+ detg                                  :  1.0
+   Memory Requirements per MPI task:
+     Density (MB)                      :  0.75
+     Kernel (MB)                       :  0.21
+     Full Grid Arrays (MB)             :  0.75
+ detg                                  :  1.0
+ monopole                              : -3.8633293188570839E-008
+ dipole: [-592.0620588622818, -1.0814619916181151E-006, -7.5323081189692266E-007]
+ offset                                : -1319.553339164573
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  32,  64,  48 ]
+   MPI tasks                           :  1
+ monopole                              : -3.8633293188570839E-008
+ dipole: [-592.0620588622818, -1.0814619916181151E-006, -7.5323081189692266E-007]
+ offset                                : -1319.553339164573
+ Poisson Solver:
+   BC                                  : Surface
+   Box                                 :  [  32,  64,  48 ]
+   MPI tasks                           :  1
+ potential integral                    : -129717.3714422328
+ potential integral                    : -129717.3714422328
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  2.354577343024E+02  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 17 58 1
+     Max diff:  8.651904567024E-10
+       result: -2.475670772951E-06
+     original: -2.474805582494E-06
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  2.354577343024E+02  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 17 58 1
+     Max diff:  8.651904567024E-10
+       result: -2.475670772951E-06
+     original: -2.474805582494E-06
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  883
+   Tot. No. of Deallocations           :  883
+   Remaining Memory (B)                :  0
+   Memory occupation:
+ Memory Consumption Report:
+     Peak Value (MB)                   :  7.102
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 19.572 MB
+ Walltime since initialization         : 00:00:00.194648712
+   Tot. No. of Allocations             :  883
+   Tot. No. of Deallocations           :  883
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  7.102
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 19.736 MB
+ Number of dictionary folders allocated:  1
+ Walltime since initialization         : 00:00:00.192472382
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+ Number of dictionary folders allocated:  1
+#Error, found unfreed dictionaries after finalization: 1
+#Error, found unfreed dictionaries after finalization: 1
+#Unfreed key: "" value: "__not_a_value__"
+#Unfreed key: "" value: "__not_a_value__"
+ Commandline options provided:
+ Commandline options provided:
+   ndim: [32, 64, 48]
+   ndim: [32, 64, 48]
+   geocode                             : W
+   angdeg                              : 90.0
+   geocode                             : W
+   angdeg                              : 90.0
+ PSolver, wire BC                      :  [  32,  64,  48 ]
+ processes                             :  1
+ PSolver, wire BC                      :  [  32,  64,  48 ]
+ hx                                    :  0.3125
+ processes                             :  1
+ hx                                    :  0.3125
+ Input:
+ Input:
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      Mu screening parameter
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Wire
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    Triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-8 #  Convergence threshold of the loop
+     pb_method                         : none #   Defines the method for the Poisson Boltzmann Equation
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
+   MPI tasks                           :  1
+   OpenMP threads per MPI task         :  2
+ Poisson Kernel Creation:
+   Boundary Conditions                 : Wire
+   Memory Requirements per MPI task:
+     Density (MB)                      :  0.75
+     Kernel (MB)                       :  0.41
+     Full Grid Arrays (MB)             :  0.75
+ detg                                  :  1.0
+   Memory Requirements per MPI task:
+     Density (MB)                      :  0.75
+     Kernel (MB)                       :  0.41
+     Full Grid Arrays (MB)             :  0.75
+ detg                                  :  1.0
+ monopole                              :  1.0
+ dipole                                :  [  11.0,  27.0,  19.0 ]
+ monopole                              :  1.0
+ dipole                                :  [  11.0,  27.0,  19.0 ]
+ offset                                :  0.0
+ Poisson Solver:
+   BC                                  : Wires
+   Box                                 :  [  32,  64,  48 ]
+   MPI tasks                           :  1
+ offset                                :  0.0
+ Poisson Solver:
+   BC                                  : Wires
+   Box                                 :  [  32,  64,  48 ]
+   MPI tasks                           :  1
+ potential integral                    : -248.3458441860303
+ potential integral                    : -248.3458441860303
+ --------------------
+ --------------------
+ Parallel calculation 
+ eht, exc, vxc:  5.285881482487E-04  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 16 32 24
+     Max diff:  1.039246586509E-01
+       result:  1.039246586509E-01
+     original:  0.000000000000E+00
+ Parallel calculation 
+ eht, exc, vxc:  5.285881482487E-04  0.000000000000E+00  0.000000000000E+00
+  Max diff at: 16 32 24
+     Max diff:  1.039246586509E-01
+       result:  1.039246586509E-01
+     original:  0.000000000000E+00
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  10826
+   Tot. No. of Deallocations           :  10826
+   Remaining Memory (B)                :  0
+   Memory occupation:
+ Memory Consumption Report:
+     Peak Value (MB)                   :  8.873
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 21.028 MB
+ Walltime since initialization         : 00:00:05.793739715
+   Tot. No. of Allocations             :  10826
+   Tot. No. of Deallocations           :  10826
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  8.873
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+     for the array                     : zt
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 20.796 MB
+ Number of dictionary folders allocated:  1
+ Walltime since initialization         : 00:00:05.794816324
+ Max No. of dictionaries used          :  499 #( 170 still in use)
+ Number of dictionary folders allocated:  1
+#Error, found unfreed dictionaries after finalization: 1
+#Error, found unfreed dictionaries after finalization: 1
+#Unfreed key: "" value: "__not_a_value__"
+#Unfreed key: "" value: "__not_a_value__"

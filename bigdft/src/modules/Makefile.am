@@ -260,7 +260,7 @@ io.o: types.o interfaces.o input_keys.o
 postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
 rhopotential.o: types.o interfaces.o communications.o bigdft_matrices.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
-orbital_basis.o:  types.o interfaces.o
+orbital_basis.o:  types.o interfaces.o communications.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
 locregs_init.o: types.o communications.o sort.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o

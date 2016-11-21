@@ -1,7 +1,7 @@
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
  Version Number              : PSolver 1.8
- Timestamp of this run       : 2016-06-27 15:59:56.356
+ Timestamp of this run       : 2016-09-24 18:13:08.778
  Root process Hostname       : null
  Boundary Conditions         : Isolated
  Multiprocessor run: &MPIrun
@@ -21,11 +21,6 @@
        stress_tensor         : Yes #              Triggers the calculation of the stress tensor
      environment:
        cavity                : none #             Type of the cavity
-       cavitation            : Yes #              Triggers the evaluation of the extra cavitation terms
-       gammaS                : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
-       alphaS                : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
-        #                                          [dyn/cm]
-       betaV                 : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
        input_guess           : Yes #              Triggers the input guess procedure of gps_algorithm
        fd_order              : 16 #               Order of the Finite-difference derivatives for the GPS solver
        itermax               : 50 #               Maximum number of iterations of the GPS outer loop
@@ -105,8 +100,8 @@
        Hartree               :  0.000000000000E+00
  Monoprocess run             : *MPIrun
  Timings for root process:
-   CPU time (s)              :  1.19
-   Elapsed time (s)          :  0.68
+   CPU time (s)              :  2.20
+   Elapsed time (s)          :  1.10
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Calculation possibly wrong, check if the diff is meaningful
@@ -118,14 +113,14 @@
      Peak Value (MB)                   :  20.706
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 37.148 MB
- Walltime since initialization         : 00:00:01.704064641
- Max No. of dictionaries used          :  584 #( 240 still in use)
+     Memory Peak of process            : 38.196 MB
+ Walltime since initialization         : 00:00:02.116868023
+ Max No. of dictionaries used          :  576 #( 240 still in use)
  Number of dictionary folders allocated:  1
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
  Version Number              : PSolver 1.8
- Timestamp of this run       : 2016-06-27 15:59:58.221
+ Timestamp of this run       : 2016-09-24 18:13:11.016
  Root process Hostname       : null
  Boundary Conditions         : Periodic
  Multiprocessor run: &MPIrun
@@ -145,11 +140,6 @@
        stress_tensor         : Yes #              Triggers the calculation of the stress tensor
      environment:
        cavity                : none #             Type of the cavity
-       cavitation            : Yes #              Triggers the evaluation of the extra cavitation terms
-       gammaS                : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
-       alphaS                : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
-        #                                          [dyn/cm]
-       betaV                 : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
        input_guess           : Yes #              Triggers the input guess procedure of gps_algorithm
        fd_order              : 16 #               Order of the Finite-difference derivatives for the GPS solver
        itermax               : 50 #               Maximum number of iterations of the GPS outer loop
@@ -228,8 +218,8 @@
        Hartree               :  0.000000000000E+00
  Monoprocess run             : *MPIrun
  Timings for root process:
-   CPU time (s)              :  0.41
-   Elapsed time (s)          :  0.23
+   CPU time (s)              :  0.88
+   Elapsed time (s)          :  0.47
  Memory Consumption Report:
    Tot. No. of Allocations             :  113
    Tot. No. of Deallocations           :  113
@@ -238,14 +228,14 @@
      Peak Value (MB)                   :  22.534
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 37.848 MB
- Walltime since initialization         : 00:00:01.251865457
- Max No. of dictionaries used          :  584 #( 240 still in use)
+     Memory Peak of process            : 38.172 MB
+ Walltime since initialization         : 00:00:01.486376617
+ Max No. of dictionaries used          :  576 #( 240 still in use)
  Number of dictionary folders allocated:  1
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
  Version Number              : PSolver 1.8
- Timestamp of this run       : 2016-06-27 15:59:59.502
+ Timestamp of this run       : 2016-09-24 18:13:12.700
  Root process Hostname       : null
  Boundary Conditions         : Surface
  Multiprocessor run: &MPIrun
@@ -265,11 +255,6 @@
        stress_tensor         : Yes #              Triggers the calculation of the stress tensor
      environment:
        cavity                : none #             Type of the cavity
-       cavitation            : Yes #              Triggers the evaluation of the extra cavitation terms
-       gammaS                : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
-       alphaS                : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
-        #                                          [dyn/cm]
-       betaV                 : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
        input_guess           : Yes #              Triggers the input guess procedure of gps_algorithm
        fd_order              : 16 #               Order of the Finite-difference derivatives for the GPS solver
        itermax               : 50 #               Maximum number of iterations of the GPS outer loop
@@ -349,8 +334,8 @@
        Hartree               :  0.000000000000E+00
  Monoprocess run             : *MPIrun
  Timings for root process:
-   CPU time (s)              :  0.34
-   Elapsed time (s)          :  0.26
+   CPU time (s)              :  0.27
+   Elapsed time (s)          :  0.19
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Calculation possibly wrong, check if the diff is meaningful
@@ -362,9 +347,9 @@
      Peak Value (MB)                   :  9.352
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 28.860 MB
- Walltime since initialization         : 00:00:01.273611065
- Max No. of dictionaries used          :  584 #( 240 still in use)
+     Memory Peak of process            : 29.724 MB
+ Walltime since initialization         : 00:00:01.205925151
+ Max No. of dictionaries used          :  576 #( 240 still in use)
  Number of dictionary folders allocated:  1
 ---
  rad_cav                     :  1.7
@@ -519,9 +504,9 @@
      Peak Value (MB)         :  184.857
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 70.740 MB
- Walltime since initialization: 00:00:02.755698019
- Max No. of dictionaries used:  549 #( 170 still in use)
+     Memory Peak of process  : 69.548 MB
+ Walltime since initialization: 00:00:03.164367863
+ Max No. of dictionaries used:  553 #( 170 still in use)
  Number of dictionary folders allocated:  1
 ---
  rad_cav                     :  1.7
@@ -690,7 +675,7 @@
      Peak Value (MB)         :  181.511
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 65.296 MB
- Walltime since initialization: 00:00:02.056819375
- Max No. of dictionaries used:  546 #( 170 still in use)
+     Memory Peak of process  : 65.604 MB
+ Walltime since initialization: 00:00:02.541203291
+ Max No. of dictionaries used:  550 #( 170 still in use)
  Number of dictionary folders allocated:  1

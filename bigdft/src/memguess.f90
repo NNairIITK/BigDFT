@@ -71,7 +71,6 @@ program memguess
    type(atoms_data) :: at
    type(denspot_distribution) :: dpbox
    real(gp) :: sigma
-   real(gp), dimension(3) :: shift
    real(gp), dimension(:,:), pointer :: fxyz
    real(wp), dimension(:), allocatable :: rhoexpo
    real(wp), dimension(:,:,:,:), pointer :: rhocoeff
@@ -1489,7 +1488,7 @@ program memguess
                  & runObj%sections(i)%rst%KSwfn%orbs, runObj%sections(i)%rst%tmb%npsidim_orbs, &
                  & runObj%sections(i)%rst%tmb%npsidim_comp, runObj%sections(i)%rst%tmb%orbs, &
                  & runObj%sections(i)%rst%KSwfn%Lzd, runObj%sections(i)%rst%tmb%Lzd, nlpsp, &
-                 & runObj%sections(i)%rst%KSwfn%comms, shift, ref_frags, &
+                 & runObj%sections(i)%rst%KSwfn%comms, ref_frags, &
                  & output_grid = (output_grid > 0))
             call MemoryEstimator(nproc,runObj%sections(i)%inputs%idsx, &
                  & runObj%sections(i)%rst%KSwfn%Lzd%Glr, runObj%sections(i)%rst%KSwfn%orbs%norb, &
@@ -1515,7 +1514,7 @@ program memguess
         & runObj%inputs, runObj%atoms, runObj%atoms%astruct%rxyz, runObj%rst%GPU%OCLconv, &
         & runObj%rst%KSwfn%orbs, runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
         & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, nlpsp, runObj%rst%KSwfn%comms, &
-        & shift, ref_frags, output_grid = (output_grid > 0))
+        & ref_frags, output_grid = (output_grid > 0))
    call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
         & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&
         & runObj%rst%KSwfn%orbs%nkpts,nlpsp%nprojel,&
@@ -1730,12 +1729,11 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
    integer :: iat,it,i
    real(gp) :: x,y,z,vol,tx,ty,tz,tvol,s,diag,dmax
    type(locreg_descriptors) :: Glr
-   real(gp), dimension(3) :: shift
    real(gp), dimension(3,3) :: urot
    real(gp), dimension(:,:), allocatable :: txyz
 
    txyz = f_malloc((/ 3, atoms%astruct%nat /),id='txyz')
-   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
+   call system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,.false.,Glr)
    !call volume(nat,rxyz,vol)
    vol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
    write(*,'(1x,a,1pe16.8)')'Initial volume (Bohr^3)',vol
@@ -1786,7 +1784,7 @@ subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
          txyz(:,iat)=x*urot(:,1)+y*urot(:,2)+z*urot(:,3)
       enddo
 
-      call system_size(atoms,txyz,crmult,frmult,hx,hy,hz,.false.,Glr,shift)
+      call system_size(atoms,txyz,crmult,frmult,hx,hy,hz,.false.,Glr)
       tvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3)
       !call volume(nat,txyz,tvol)
       if (tvol < vol) then

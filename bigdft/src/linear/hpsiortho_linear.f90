@@ -414,8 +414,10 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
   if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
-  !write(*,'(a,6es17.8)') 'eh, exc, evxc, eexctX, eion, edisp', energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+  !!if (iproc==0) write(*,'(a,6es17.8)') 'eh, exc, evxc, eexctX, eion, edisp', &
+  !!    energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
+  !!if (iproc==0) write(*,*) 'trH',trH
 
 
   ! Determine whether the target function is increasing

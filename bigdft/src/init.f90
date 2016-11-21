@@ -554,7 +554,7 @@ END SUBROUTINE input_wf_empty
 subroutine input_wf_random(psi, orbs)
   use module_base, only: wp,f_zero
   use module_types
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   implicit none
 
   type(orbitals_data), intent(inout) :: orbs
@@ -577,14 +577,17 @@ subroutine input_wf_random(psi, orbs)
   do icoeff=1,nvctr !tt not dependent of iproc
      !Be sure to call always a different random number, per orbital
      do jorb=1,orbs%isorb*orbs%nspinor
-        tt=builtin_rand(idum) !call random_number(tt)
+        !tt=builtin_rand(idum) !call random_number(tt)
+        call f_random_number(tt)
      end do
      do iorb=1,orbs%norbp*orbs%nspinor
-        tt=builtin_rand(idum) !call random_number(tt)
+        !tt=builtin_rand(idum) !call random_number(tt)
+        call f_random_number(tt)
         psi(icoeff+(iorb-1)*nvctr)=real(tt,wp)
      end do
      do iorb=(orbs%isorb+orbs%norbp)*orbs%nspinor+1,orbs%norb*orbs%nkpts*orbs%nspinor
-        tt=builtin_rand(idum) !call random_number(tt)
+        !tt=builtin_rand(idum) !call random_number(tt)
+        call f_random_number(tt)
      end do
   end do
 
@@ -3271,7 +3274,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end if
 
         call get_coeff(iproc,nproc,scf_mode,KSwfn%orbs,atoms,rxyz,denspot,GPU,&
-             infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
+             infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%calculate_KS_residue,in%calculate_gap, &
              energs_work,.false.,in%lin%coeff_factor,in%tel,in%occopt,&
