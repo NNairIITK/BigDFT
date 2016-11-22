@@ -2420,6 +2420,7 @@ subroutine pawpsp_calc(core_mesh,epsatm,ffspl,imainmesh,ixc,lnmax,&
  else
    ! Only to compute epsatm
    epsatm=zero
+   tmp_qgrid=zero
    if (reduced_vloc) then
      call pawpsp_lo(epsatm,1,tmp_qgrid,tmp_q2vq,rvloc_mesh,rvlocr,yp1,ypn,zion)
    else

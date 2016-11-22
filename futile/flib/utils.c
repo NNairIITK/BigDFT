@@ -32,7 +32,6 @@ char* strndup(const char *src, size_t len);
 
 static jmp_buf jb_main,jb_child;
 
-
 #ifndef HAVE_CLOCK_GETTIME
 #define CLOCK_REALTIME 0
 static int clock_gettime(int clk_id, struct timespec *tp)

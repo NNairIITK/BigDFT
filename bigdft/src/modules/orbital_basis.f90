@@ -947,10 +947,10 @@ contains
        !the allocation did not crashed therefore update the database
        if (present(id)) then
           call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
-               f_loc(ob%dd),'dd',id)
+               f_loc(ob%dd),'dd',id,info='')
        else
           call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
-               f_loc(ob%dd),'dd','orbital_basis_associate')
+               f_loc(ob%dd),'dd','orbital_basis_associate',info='')
        end if
        
        do iorb=1,orbs%norbp

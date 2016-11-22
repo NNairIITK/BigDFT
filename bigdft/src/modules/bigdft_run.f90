@@ -191,6 +191,7 @@ contains
     use module_lj
     use module_lenosky_si
     use module_cp2k
+    use module_alborz
     use module_tdpot
     use yaml_output
     use SWpotential
@@ -265,6 +266,11 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_tersoff(astruct%nat,astruct,inputs%mm_paramset,&
             inputs%mm_paramfile,astruct%geocode)
+    case('ALBORZ_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call initialize_alborz(astruct%nat,astruct)
     case('BMHTF_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -309,6 +315,7 @@ contains
     use dynamic_memory
     use yaml_output
     use module_cp2k
+    use module_alborz
     use module_BornMayerHugginsTosiFumi
     use f_enums, enum_int => toi
     use yaml_strings
@@ -324,6 +331,8 @@ contains
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
        call finalize_cp2k()
+    case('ALBORZ_RUN_MODE') ! CP2K run mode
+       call finalize_alborz()
     case('SW_RUN_MODE')
        call free_potential_SW()
     case default
@@ -1287,7 +1296,8 @@ contains
              call plugin_load(trim(dict_key(iter)), ierr)
              if (ierr /= 0) then
                 call plugin_error(mess)
-                call yaml_warning(trim(mess))
+                if (bigdft_mpi%iproc==0) call yaml_warning('Failing in dlopening the library "'//trim(dict_key(iter))//&
+                     ' ", error message="'//trim(mess)//'"') !put quotes as semicolons usually appear in warnings
              end if
              iter => dict_next(iter)
           end do
@@ -1812,6 +1822,7 @@ contains
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
     use module_cp2k
+    use module_alborz
     use module_dftbp
     use module_tdpot
     use module_bazant
@@ -1903,6 +1914,8 @@ contains
         call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('TERSOFF_RUN_MODE')
         call tersoff(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%strten,outs%energy)
+    case('ALBORZ_RUN_MODE')
+        call call_to_alborz_get(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%energy,outs%strten)
     case('BMHTF_RUN_MODE')
         call energyandforces_bmhtf(nat,rxyz_ptr,outs%fxyz,outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')

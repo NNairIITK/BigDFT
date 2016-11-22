@@ -39,9 +39,12 @@ program driver_css
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_chebyshev_expansion
   use sparsematrix, only: write_matrix_compressed
+  use sparsematrix_init, only: write_sparsematrix_info
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
+  use wrapper_MPI
+
   implicit none
 
   ! Variables
@@ -73,14 +76,24 @@ program driver_css
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
   call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', iproc, nproc, &
-       mpi_comm_world, smat1, mat1)
+       mpi_comm_world, smat1, mat1, init_matmul=.false.)
 
   ! Read from matrix2.dat and creates the type containing the sparse matrix descriptors (smat2).
   call sparse_matrix_init_from_file_ccs('matrix2.dat', iproc, nproc, &
-       mpi_comm_world, smat2)
+       mpi_comm_world, smat2, init_matmul=.true., filename_mult='matrix2.dat')
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat2, mat2(1))
+
+  ! Write a summary of the sparse matrix layout 
+  if (iproc==0) then
+      call yaml_mapping_open('Matrix properties')
+      call write_sparsematrix_info(smat1, 'Matrix 1')
+      call write_sparsematrix_info(smat2, 'Matrix 2')
+      call yaml_mapping_close()
+  end if
+
+
 
   ! Calculate the square root of the matrix described by the pair smat1/mat1 and store the result in
   ! smat2/mat2. Attention: The sparsity pattern of smat1 must be contained within that of smat2.
@@ -97,7 +110,8 @@ program driver_css
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
   call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
   call sparse_matrix_init_from_data_ccs(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, row_ind, col_ptr, smat3)
+       nfvctr, nvctr, row_ind, col_ptr, smat3, &
+       init_matmul=.true., nvctr_mult=nvctr, row_ind_mult=row_ind, col_ptr_mult=col_ptr)
 
   ! Extract the compressed matrix from the data type. The first routine allocates an array with the correct size,
   ! the second one extracts the result.

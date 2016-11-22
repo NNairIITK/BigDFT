@@ -18,9 +18,14 @@
 !!   You should have received a copy of the GNU Lesser General Public License
 !!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
 
-
 module parallel_linalg
   use sparsematrix_base
+  use dictionaries
+  use yaml_output
+  use wrapper_mpi
+  use f_utils
+  use time_profiling
+  use wrapper_linalg
   implicit none
 
   private
@@ -39,6 +44,7 @@ module parallel_linalg
     !> @warning
     !! This works only if the matrices have the same sizes for all processes!!
     subroutine dgemm_parallel(iproc, nproc, blocksize, comm, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -186,6 +192,7 @@ module parallel_linalg
     
     
     subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -416,6 +423,7 @@ module parallel_linalg
     
     
     subroutine dsygv_parallel(iproc, nproc, comm, blocksize, nprocMax, itype, jobz, uplo, n, a, lda, b, ldb, w, info)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -590,6 +598,7 @@ module parallel_linalg
     
     
     subroutine dgesv_parallel(iproc, nproc, blocksize, comm, n, nrhs, a, lda, b, ldb, info)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -724,6 +733,7 @@ module parallel_linalg
     
     
     subroutine dpotrf_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -840,6 +850,7 @@ module parallel_linalg
     
     
     subroutine dpotri_parallel(iproc, nproc, blocksize, comm, uplo, n, a, lda)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments

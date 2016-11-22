@@ -40,6 +40,12 @@ program driver_single
   use sparsematrix, only: check_deviation_from_unity_sparse, &
                           get_minmax_eigenvalues, matrix_power_dense_lapack
   use sparsematrix_init, only: write_sparsematrix_info
+  use dynamic_memory
+  use dictionaries
+  use yaml_output
+  use wrapper_MPI
+  use time_profiling
+
   implicit none
 
   ! External routines

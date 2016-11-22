@@ -80,7 +80,7 @@ program PS_Check
 
   nxyz=options//'ndim'
   geocode=options//'geocode'
-  usegpu = options // 'accel'
+  usegpu = options//'accel'
 
   call dict_init(dict_input)
   if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
@@ -124,8 +124,6 @@ program PS_Check
   ndims=(/n01,n02,n03/)
   hgrids=(/hx,hy,hz/)
 
-!!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
-!!$       geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
   pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)
   call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
@@ -136,7 +134,7 @@ program PS_Check
   !Density then potential
   potential=f_malloc(n01*n02*n03,id='potential')
   !ionic potential
-  pot_ion=f_malloc(n01*n02*n03,id='pot_ion')
+  pot_ion=f_malloc0(n01*n02*n03,id='pot_ion')
 
   extra_ref=f_malloc(n01*n02*n03,id='extra_ref')
 
@@ -150,18 +148,19 @@ program PS_Check
      call yaml_comment('nspden:'//ispden,hfill='-')
   end if
 
-  !if (iproc == 0) call yaml_comment('nspden:'//yaml_toa(ispden,fmt='(i0)'),hfill='=')
-  !write(unit=*,fmt="(1x,a,i0)")  '===================== nspden:  ',ispden
   !then assign the value of the analytic density and the potential
   !allocate the rhopot also for complex routines
   rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
-!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
   mesh=cell_new(geocode,ndims,hgrids)
 
-  call test_functions_box(mesh,ispden,a_gauss,&
-       density,potential,rhopot,pot_ion,offset)
+!!$  call test_functions_box(mesh,ispden,a_gauss,&
+!!$       density,potential,rhopot,pot_ion,offset)
+
+  call test_functions_new(mesh,ispden,a_gauss,&
+       density(n01*n02*n03*(ispden-1)+1),potential,&
+       rhopot(n01*n02*n03*(ispden-1)+1),pot_ion,offset)
+
   !calculate the Poisson potential in parallel
   !with the global data distribution (also for xc potential)
 
@@ -174,7 +173,6 @@ program PS_Check
      call yaml_mapping_open('Comparison with a reference run')
   end if
   !write(unit=*,fmt="(1x,a,3(1pe20.12))") 'Energies:',ehartree,eexcu,vexcu
-  !stop
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
      !compare the values of the analytic results (pkernel%mpi_env%nproc == -1 indicates that it is serial)
      call compare(0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
@@ -184,11 +182,8 @@ program PS_Check
   potential(:)=rhopot(1:n01*n02*n03)
   extra_ref=potential
 
-      !now the parallel calculation part
-      call f_free(rhopot)
-!!$      i_all=-product(shape(rhopot))*kind(rhopot)
-!!$      deallocate(rhopot,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'rhopot',subname)
+  !now the parallel calculation part
+  call f_free(rhopot)
 
   call compare_with_reference(pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
        density,potential,pot_ion,pkernel)
@@ -196,29 +191,11 @@ program PS_Check
   call compare_with_reference(pkernel%mpi_env%nproc,geocode,'D',n01,n02,n03,ispden,offset,ehartree,&
        density,potential,pot_ion,pkernel)
 
-  !test for the serial solver (always done to have a simpler comparison)
-  !if (pkernel%iproc == 0 .and. pkernel%mpi_env%nproc > 1 ) then
-  !      if (pkernel%iproc == 0) then
-  !         i_all=-product(shape(pkernel))*kind(pkernel)
-  !         deallocate(pkernel,stat=i_stat)
-  !         call memocc(i_stat,i_all,'pkernel',subname)
-  !
-  !         !calculate the kernel 
-  !         call createKernel(0,1,geocode,n01,n02,n03,hx,hy,hz,itype_scf,pkernel,.false.)
-  !
-  !         call compare_with_reference(1,geocode,'G',n01,n02,n03,ixc,ispden,offset,ehartree,eexcu,vexcu,&
-  !         density,potential,pot_ion,xc_pot,pkernel)
-  !
-  !         call compare_with_reference(1,geocode,'D',n01,n02,n03,ixc,ispden,offset,ehartree,eexcu,vexcu,&
-  !         density,potential,pot_ion,xc_pot,pkernel)
-  !      end if
-
-  if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_mapping_close() !comparison
-
-
-  if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_mapping_close() !MPI
-
-  if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) call yaml_mapping_open('Complex run')
+  if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
+     call yaml_mapping_close() !comparison
+     call yaml_mapping_close() !MPI
+     call yaml_mapping_open('Complex run')
+  end if
   !compare the calculations in complex
   call compare_cplx_calculations(pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,geocode,'G',n01,n02,n03,ehartree,offset,&
        density,potential,pkernel)
@@ -228,7 +205,6 @@ program PS_Check
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0)call yaml_mapping_close()
 
   call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
-  !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
 
   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
@@ -290,7 +266,6 @@ program PS_Check
      call yaml_mapping_close()
   end if
   !call yaml_stream_attributes()
-  !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
 
   call pkernel_free(pkernel)
   call f_release_routine()

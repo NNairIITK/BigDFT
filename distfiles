@@ -9,5 +9,6 @@ libffi-toolexeclibdir.patch
 wannier90-2.0.0.patch
 distfiles
 Installer.py
+UniParse.py
 INSTALL
 README

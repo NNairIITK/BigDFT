@@ -782,7 +782,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
 !END OF TRANSFORM FOR X AND Z
 
-    end do
+       end do
   !$omp end do
     !$omp critical
     !do i = 1, 6

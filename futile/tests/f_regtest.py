@@ -24,6 +24,10 @@ parser.option('-t', '--tols', dest='tols', default="/dev/null",
 parser.option('-s', '--srcdir', dest='srcdir', default="/",
               help="yaml file containing the tolerances for each run",
               metavar='FILE')
+parser.option('-x', '--exclusive', remainder= True,
+              help="list of the tests that have to be performed exlusively",
+              metavar='FILE')
+
 #
 args = parser.args()
 #print 'Arguments'
@@ -39,6 +43,7 @@ d_instr=yaml.load(instr)
 
 def run_test(runs):
     for r in runs:
+        print 'executing: ',r
         os.system(r)
 
 def get_time(file):
@@ -47,13 +52,16 @@ def get_time(file):
     else:
         return 0.0
 
-
 fldiff=args.fldiff
 tols=args.tols
 base='python '+fldiff+' -t '+tols
+only=args.exclusive
 
 for test in d_instr:
     label=test.keys()[0]
+    #print label
+    #print only is not None,len(only[0]) > 0,label not in only,only
+    if only is not None and len(only[0]) > 0 and label not in only: continue
     specs=test.values()[0]
     binary=specs.get('binary',label)
     output=specs.get('output',label+'.out.yaml')
@@ -61,7 +69,8 @@ for test in d_instr:
     ref=specs.get('reference',label+'.ref.yaml')
     if not os.path.isfile(ref):
         ref=os.path.join(args.srcdir,ref)
-    if get_time(binary) > get_time(output): run_test(specs['runs'])
+    dorun=get_time(binary) > get_time(output) or get_time(output) == 0.0
+    if dorun: run_test(specs['runs'])
     os.system(base+' --label '+label+' -r '+ref+' -d '+output+' --output '+report)
         
 

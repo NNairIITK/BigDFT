@@ -20,10 +20,10 @@
 
 
 module sparsematrix_memory
-  use sparsematrix_errorhandling
+  !use sparsematrix_errorhandling
   use sparsematrix_types
-  use dynamic_memory
-  use dictionaries
+  !use dynamic_memory
+  !use dictionaries
   use wrapper_MPI, only: mpi_environment, release_mpi_environment
   implicit none
 
@@ -39,7 +39,7 @@ module sparsematrix_memory
   integer,parameter,public :: DENSE_PARALLEL      = 56
   integer,parameter,public :: DENSE_MATMUL        = 57
   integer,parameter,public :: SPARSEMM_SEQ        = 58
-
+!!$
   !> Public routines
   public :: deallocate_sparse_matrix
   public :: sparse_matrix_null
@@ -57,8 +57,8 @@ module sparsematrix_memory
   public :: copy_sparse_matrix,copy_matrices
   public :: sparse_matrix_metadata_null
   public :: deallocate_sparse_matrix_metadata
-
-
+!!$
+!!$
   type, public :: sparse_matrix_info_ptr
      character(len=32) :: id !< name of the sparse matrix array
      integer :: iaction !< action for allocation
@@ -89,11 +89,11 @@ module sparsematrix_memory
                       allocate0_smat_d1_ptr,allocate0_smat_d2_ptr,allocate0_smat_d3_ptr,&
                       allocate0_smat_d1,allocate0_smat_d2,allocate0_smat_d3
   end interface
-
-
+!!$
+!!$
   contains
-
-    !> Creators and destructors
+!!$
+!!$    !> Creators and destructors
 
     pure function sparse_matrix_null() result(sparsemat)
       implicit none
@@ -151,8 +151,9 @@ module sparsematrix_memory
       nullify(smmm%consecutive_lookup)
     end subroutine nullify_sparse_matrix_matrix_multiplication
 
-
+!!$
     subroutine allocate_sparse_matrix_basic(store_index, norb, nproc, sparsemat)
+      use dynamic_memory
       implicit none
       logical,intent(in) :: store_index
       integer,intent(in) :: norb, nproc
@@ -169,6 +170,7 @@ module sparsematrix_memory
 
 
     subroutine allocate_sparse_matrix_keys(store_index, sparsemat)
+      use dynamic_memory
       implicit none
       logical,intent(in) :: store_index
       type(sparse_matrix),intent(inout) :: sparsemat
@@ -182,6 +184,7 @@ module sparsematrix_memory
 
 
     subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, smmm)
+      use dynamic_memory
       implicit none
       integer,intent(in) :: nproc, norb, nseg
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
@@ -248,6 +251,7 @@ module sparsematrix_memory
 
 
     subroutine deallocate_matrices(mat)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -261,6 +265,7 @@ module sparsematrix_memory
 
 
     subroutine deallocate_sparse_matrix(sparsemat)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       type(sparse_matrix),intent(inout):: sparsemat
@@ -291,6 +296,7 @@ module sparsematrix_memory
 
 
     subroutine deallocate_sparse_matrix_metadata(smmd)
+      use dynamic_memory
       implicit none
       ! Calling arguments
       type(sparse_matrix_metadata),intent(inout):: smmd
@@ -498,6 +504,7 @@ module sparsematrix_memory
 
 
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
+      use dynamic_memory
       implicit none
       type(sparse_matrix_matrix_multiplication),intent(out):: smmm
       !call f_free_ptr(smmm%ivectorindex)
@@ -521,6 +528,8 @@ module sparsematrix_memory
     end subroutine deallocate_sparse_matrix_matrix_multiplication
 
     subroutine allocate_smat_d1_ptr(smat_ptr,smat_info_ptr)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:),pointer,intent(inout) :: smat_ptr
       type(sparse_matrix_info_ptr), intent(in) :: smat_info_ptr
@@ -546,6 +555,8 @@ module sparsematrix_memory
 
 
     subroutine allocate_smat_d2_ptr(smat_ptr,smat_info_ptr)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:),pointer,intent(inout) :: smat_ptr
       type(sparse_matrix_info_ptr), intent(in) :: smat_info_ptr
@@ -569,6 +580,8 @@ module sparsematrix_memory
     
 
     subroutine allocate_smat_d3_ptr(smat_ptr,smat_info_ptr)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:,:),pointer,intent(inout) :: smat_ptr
       type(sparse_matrix_info_ptr), intent(in) :: smat_info_ptr
@@ -595,6 +608,8 @@ module sparsematrix_memory
 
 
     subroutine allocate_smat_d1(smat,smat_info)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:),allocatable,intent(inout) :: smat
       type(sparse_matrix_info), intent(in) :: smat_info
@@ -620,6 +635,8 @@ module sparsematrix_memory
 
 
     subroutine allocate_smat_d2(smat,smat_info)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:),allocatable,intent(inout) :: smat
       type(sparse_matrix_info), intent(in) :: smat_info
@@ -643,6 +660,8 @@ module sparsematrix_memory
 
 
     subroutine allocate_smat_d3(smat,smat_info)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:,:),allocatable,intent(inout) :: smat
       type(sparse_matrix_info), intent(in) :: smat_info
@@ -666,6 +685,8 @@ module sparsematrix_memory
 
 
     subroutine allocate0_smat_d1_ptr(smat_ptr,smat_info0_ptr)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:),pointer,intent(inout) :: smat_ptr
       type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
@@ -691,6 +712,8 @@ module sparsematrix_memory
 
 
     subroutine allocate0_smat_d2_ptr(smat_ptr,smat_info0_ptr)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:),pointer,intent(inout) :: smat_ptr
       type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
@@ -714,6 +737,8 @@ module sparsematrix_memory
     
 
     subroutine allocate0_smat_d3_ptr(smat_ptr,smat_info0_ptr)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:,:),pointer,intent(inout) :: smat_ptr
       type(sparse_matrix_info0_ptr), intent(in) :: smat_info0_ptr
@@ -740,6 +765,8 @@ module sparsematrix_memory
 
 
     subroutine allocate0_smat_d1(smat,smat_info0)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:),allocatable,intent(inout) :: smat
       type(sparse_matrix_info0), intent(in) :: smat_info0
@@ -765,6 +792,8 @@ module sparsematrix_memory
 
 
     subroutine allocate0_smat_d2(smat,smat_info0)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:),allocatable,intent(inout) :: smat
       type(sparse_matrix_info0), intent(in) :: smat_info0
@@ -788,6 +817,8 @@ module sparsematrix_memory
 
 
     subroutine allocate0_smat_d3(smat,smat_info0)
+      use dictionaries, only: f_err_throw
+      use dynamic_memory
       implicit none
       double precision,dimension(:,:,:),allocatable,intent(inout) :: smat
       type(sparse_matrix_info0), intent(in) :: smat_info0

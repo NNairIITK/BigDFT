@@ -484,7 +484,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 !!$     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-     call Wires_Kernel(kernelnproc,&
+     call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
           kernel%itype_scf,kernel%kernel,mu0t)

@@ -21,6 +21,11 @@
 
 module sparsematrix_io
   use sparsematrix_base
+  use wrapper_mpi
+  use dynamic_memory
+  use f_utils
+  use dictionaries, only: f_err_throw
+  use yaml_output
   implicit none
 
   private

@@ -33,7 +33,7 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	testforces\
 	IO-wf
 
-#LONG_TESTDIRS += QMMMplugins
+LONG_TESTDIRS += QMMMplugins
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
@@ -135,8 +135,11 @@ IO-wf_ETSF.cube:
 	mv wavefunction-k002-DI.b0003.cube wf_etsf.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
+AM_FCFLAGS = -I. -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
+	@LIBETSFIO_INCLUDE@ @MPI_INCLUDE@ @LIB_FUTILE_CFLAGS@
+
 libmix.so: $(abs_top_srcdir)/tests/overDFT/QMMMplugins/mix.f90
-	$(FC) -shared -fPIC -o $@ $(FCFLAGS) $(AM_FCFLAGS) $< $(AM_LDFLAGS) $(LDFLAGS)
+	$(FC) @FC_BUILD_SHARED@ @FC_PIC_FLAG@ -o $@ $(FCFLAGS) $(AM_FCFLAGS) $< $(AM_LDFLAGS) $(LDFLAGS)
 
 # Define the precision for specific directories.
 %.report: %.ref

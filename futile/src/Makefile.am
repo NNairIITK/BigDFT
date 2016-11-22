@@ -6,6 +6,15 @@ dynlib_DATA      = $(futile_dynlib)
 noinst_DATA      = $(futile_linklib)
 module_DATA      = $(modules)
 pyexec_DATA      = $(pymodule)
+dist_bin_SCRIPTS = $(memcheck_script)
+
+if CC_AUTOBUILD_DYNAMIC_LIBS
+memcheck_script = f_memcheck
+else
+memcheck_script =
+endif 
+
+SUBDIRS=python
 
 if HAVE_PYTHON
 if BUILD_DYNAMIC_LIBS
@@ -13,6 +22,8 @@ pymodule = futile.so
 pylib = libpyimp.a
 endif
 endif
+
+EXTRA_DIST= f_memcheck.in
 
 # Static or dynamic library
 futile_dynamic_library = libfutile-1.so.@FUTILE_MINOR_VERSION@.0.@FUTILE_MICRO_VERSION@
@@ -57,7 +68,7 @@ tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bi
 	done ; \
 	touch extract.stamp
 
-libfutile-1.a: $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp
+libfutile-1.a: $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp insmod
 	$(AR) $(ARFLAGS) $@ $(libfutile_1_a_OBJECTS) tmp-libfutile/*.o
 	$(RANLIB) $@
 
@@ -93,9 +104,6 @@ clean-local:
 $(modules): $(libfutile_1_a_OBJECTS)
 
 # Copy modules in a common include directory.
-all: all-am insmod
-install: install-am insmod
-check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

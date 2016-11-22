@@ -21,21 +21,21 @@
 
 !> Module defining the basic structures and routines related to the sparse matrix library
 module sparsematrix_base
-  use dynamic_memory
-  use dictionaries
-  use yaml_output
-  use yaml_strings
-  use wrapper_MPI
-  use wrapper_linalg
-  use f_utils
-  use numerics
-  use time_profiling
+  !use dynamic_memory
+  !use dictionaries
+  !use yaml_output
+  !use yaml_strings
+  !use wrapper_MPI
+  !use wrapper_linalg
+  !use f_utils
+  !use numerics
+  !use time_profiling
 
   ! Very basic sparsematrix modules
   use sparsematrix_errorhandling
   use sparsematrix_timing
   use sparsematrix_types
-  use sparsematrix_memory
+ use sparsematrix_memory
 
   implicit none
 

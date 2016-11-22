@@ -21,6 +21,7 @@
 
 module foe_base
   use sparsematrix_base
+  use dictionaries, only: f_err_throw
   implicit none
 
   private
@@ -92,6 +93,7 @@ module foe_base
 
 
     subroutine foe_data_deallocate(foe_obj)
+      use dynamic_memory
       implicit none
       type(foe_data) :: foe_obj
       call f_free_ptr(foe_obj%ef)

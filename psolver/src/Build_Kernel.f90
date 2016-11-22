@@ -2347,14 +2347,14 @@ END SUBROUTINE HighAcc_gequad
 !> Build the kernel of the Poisson operator with wires Boundary conditions
 !! in an interpolating scaling functions basis.
 !! The periodic direction is z
-subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
+subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
                         mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
   implicit none
   !Arguments
-  integer, intent(in) :: nproc              !< Number of processes
+  integer, intent(in) :: iproc,nproc              !< Number of processes
   integer, intent(in) :: n01,n02,n03
   integer, intent(in) :: n1,n2,n3           !< Dimensions for the FFT
   integer, intent(in) :: nker1,nker2,nker3  !< Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
@@ -2366,13 +2366,12 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, n_range, n_cell, k
+  integer :: i1, i2, i3, n_range, n_cell, k,i3s,i3e
   real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork
   real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
   real(dp), dimension(:), pointer :: alpha, w
-
 
   !load alpha(:) and w(:) coefficients from an .inc file
   include 'gaussfit_wires.inc'
@@ -2396,7 +2395,11 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
 
   ! case i2 = 1 (namely mu = 0)
 
-  if (mu0_screening == 0.0_dp) then
+  !parallel region for the nker3
+  i3s=iproc*(nker3/nproc)+1
+  i3e=min((iproc+1)*(nker3/nproc),nker3)
+
+  if (mu0_screening == 0.0_dp .and. i3s==1) then
      !loads the coefficients alpha(:) and w(:) of the Gaussian fit for log(x):
      alpha => p1
      w => w1
@@ -2419,9 +2422,9 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
   do k = 1, n_gauss
      fwork = 0.0_dp
      call gauconv_ffts(itype_scf,alpha(k)*mu**2,h1,h2,h3,n1,n2,n3,nker1,nker2,nker3,n_range,fwork,fftwork,kernel_scf)
-     do i3 = 1, nker3
+     do i3 = i3s,i3e !1, nker3
         do i1 = 1, nker1
-           karray(i1,1,i3) = karray(i1,1,i3) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
+           karray(i1,1,i3-i3s+1) = karray(i1,1,i3-i3s+1) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
         end do
      end do
   end do
@@ -2443,9 +2446,9 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
      do k = 1, n_gauss
         fwork = 0.0_dp
         call gauconv_ffts(itype_scf,alpha(k)*mu**2,h1,h2,h3,n1,n2,n3,nker1,nker2,nker3,n_range,fwork,fftwork,kernel_scf)
-        do i3 = 1, nker3
+        do i3 = i3s,i3e !1, nker3
            do i1 = 1, nker1
-             karray(i1,i2,i3) = karray(i1,i2,i3) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
+             karray(i1,i2,i3-i3s+1) = karray(i1,i2,i3-i3s+1) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
            end do
         end do
      end do
