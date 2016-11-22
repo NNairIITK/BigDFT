@@ -468,6 +468,8 @@ module parallel_linalg
               iwork = f_malloc(liwork,id='iwork')
 
               algif2: if (ialg==1) then
+                  call f_free(work)
+                  work = f_malloc(lwork,id='work')
                   call pdsyevd(jobz, uplo, n, la(1,1), 1, 1, desc_la, &
                        w(1), lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, info)
               else if (ialg==2) then algif2
