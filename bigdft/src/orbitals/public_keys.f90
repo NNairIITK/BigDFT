@@ -22,6 +22,7 @@ module public_keys
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
   character(len = *), parameter :: DFT_VARIABLES = "dft"
   character(len = *), parameter :: HGRIDS = "hgrids"
+  character(len = *), parameter :: NGRIDS = "ngrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
   character(len = *), parameter :: NCHARGE = "qcharge"
