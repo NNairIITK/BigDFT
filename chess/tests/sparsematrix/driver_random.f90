@@ -389,6 +389,8 @@ program driver_random
       mat3(3)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
       call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .true., &
             expo, smats, smatl(1), mat2, mat3(3))
+      call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
+           gather_routine=gather_timings)
       if (write_matrices) then
           call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat3(3), &
                uncompress=.false., filename='solutionmatrix_dense', binary=.false.)
