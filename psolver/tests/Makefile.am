@@ -21,7 +21,7 @@ EXERCISE = Exercise/plot.gnuplot \
 
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml $(OTHERS)
 
-check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver Fock
+check_PROGRAMS = PS_Check PS_Program PS_Exercise Generalized_PSolver Fock PS_StressCheck
 
 AM_FCFLAGS = -I. -I$(top_srcdir)/src -I$(top_builddir)/src @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
@@ -38,6 +38,9 @@ PS_Check_LDADD = $(psolver_library) @LINALG_LIBS@
 PS_Program_SOURCES = PS_Program.f90
 PS_Program_LDADD = $(psolver_library) @LINALG_LIBS@
 
+PS_StressCheck_SOURCES = PS_StressCheck.f90
+PS_StressCheck_LDADD = $(psolver_library) @LINALG_LIBS@
+
 PS_Exercise_SOURCES = PS_Exercise.f90
 PS_Exercise_LDADD = $(psolver_library) @LINALG_LIBS@
 
@@ -50,6 +53,7 @@ Fock_LDADD = $(psolver_library) @LINALG_LIBS@
 if BUILD_DYNAMIC_LIBS
 PS_Check_LDADD += @LIB_FUTILE_LIBS@
 PS_Program_LDADD += @LIB_FUTILE_LIBS@
+PS_StressCheck_LDADD += @LIB_FUTILE_LIBS@
 PS_Exercise_LDADD += @LIB_FUTILE_LIBS@
 Generalized_PSolver_LDADD += @LIB_FUTILE_LIBS@
 Fock_LDADD += @LIB_FUTILE_LIBS@

@@ -59,6 +59,8 @@ only=args.exclusive
 
 for test in d_instr:
     label=test.keys()[0]
+    #print label
+    #print only is not None,len(only[0]) > 0,label not in only,only
     if only is not None and len(only[0]) > 0 and label not in only: continue
     specs=test.values()[0]
     binary=specs.get('binary',label)

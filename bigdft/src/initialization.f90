@@ -176,7 +176,6 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
         noaccel = .false.
      end if
   end if
-
   if (noaccel .and. iproc == 0) then
      call yaml_map('Material acceleration',.false.,advance='no')
      call yaml_comment('iproc=0')
