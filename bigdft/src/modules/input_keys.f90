@@ -299,6 +299,7 @@ module module_input_keys
 
      !Force Field Parameter
      logical :: add_coulomb_force
+     integer :: plugin_id
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
      real(gp) :: sw_factor
@@ -1580,9 +1581,13 @@ contains
              in%run_mode=MULTI_RUN_MODE
           case('bazant')
              in%run_mode=BAZANT_RUN_MODE
+          case('plugin')
+             in%run_mode=PLUGIN_RUN_MODE
           end select
        case(ADD_COULOMB_FORCE_KEY)
           in%add_coulomb_force = val          
+       case(PLUGIN_ID)
+          in%plugin_id = val
        case(MM_PARAMSET)
           in%mm_paramset=val
        case(MM_PARAMFILE)
@@ -2370,6 +2375,7 @@ contains
     call f_zero(in%calculate_strten)
     call f_zero(in%nab_options)
     in%profiling_depth=-1
+    in%plugin_id = 0
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)

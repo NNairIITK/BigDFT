@@ -74,7 +74,7 @@ libfutile-1.a: $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp insmod
 
 # Dynamic library building
 $(futile_dynamic_library): $(libfutile_1_a_OBJECTS) tmp-libfutile/extract.stamp
-	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -Wl,-soname=$(futile_library_soname) -o $@ $(libfutile_1_a_OBJECTS) tmp-libfutile/*.o @LIBS_EXT_DEPS@ $(LIBS)
+	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -Wl,-E -Wl,-soname=$(futile_library_soname) -o $@ $(libfutile_1_a_OBJECTS) tmp-libfutile/*.o @LIBS_EXT_DEPS@ $(LIBS)
 	@chmod a+x $@
 
 $(futile_library_soname): $(futile_dynamic_library)

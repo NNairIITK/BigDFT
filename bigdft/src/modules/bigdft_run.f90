@@ -76,6 +76,7 @@ module bigdft_run
   !> Public signals for run_objects type.
   character(len = *), parameter, public :: RUN_OBJECTS_TYPE = "run_objects"
   character(len = *), parameter, public :: INIT_SIG = "init"
+  character(len = *), parameter, public :: STATE_CALCULATOR_SIG = "state_calculator"
   character(len = *), parameter, public :: DESTROY_SIG = "destroy"
   character(len = *), parameter, public :: PRE_SCF_SIG = "pre"
   character(len = *), parameter, public :: POST_SCF_SIG = "post"
@@ -878,6 +879,7 @@ contains
     call f_object_add_signal(RUN_OBJECTS_TYPE, PRE_SCF_SIG, 1)
     call f_object_add_signal(RUN_OBJECTS_TYPE, POST_SCF_SIG, 2)
     call f_object_add_signal(RUN_OBJECTS_TYPE, "join", 3)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, STATE_CALCULATOR_SIG, 3)
     call f_object_add_signal(RUN_OBJECTS_TYPE, DESTROY_SIG, 1)
 
     call f_object_new_("state_properties")
@@ -893,6 +895,7 @@ contains
     write(runObj%label, "(A)") " "
     nullify(runObj%run_mode)
     runObj%nstate=0
+    runObj%add_coulomb_force=.false.
     nullify(runObj%user_inputs)
     nullify(runObj%inputs)
     nullify(runObj%atoms)
@@ -1962,6 +1965,14 @@ contains
        ! Calculates bazant forces betweeen given atomic configuration using
        ! periodic boundary conditions
        call bazant_energyandforces(nat, rxyz_ptr, outs%fxyz, outs%energy)
+    case('PLUGIN_RUN_MODE')
+
+       if (f_object_signal_prepare(RUN_OBJECTS_TYPE, STATE_CALCULATOR_SIG, sig)) then
+          call f_object_signal_add_arg(sig, runObj)
+          call f_object_signal_add_arg(sig, outs)
+          call f_object_signal_add_arg(sig, runObj%inputs%plugin_id)
+          call f_object_signal_emit(sig)
+       end if
 
     case default
        call f_err_throw('Following method for evaluation of '//&
