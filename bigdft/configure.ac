@@ -347,6 +347,7 @@ src/python/BigDFT/Makefile
 src/python/BigDFT/scripts/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
+plugins/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/OP2P/Makefile
@@ -368,6 +369,7 @@ tests/DFT/linear/Makefile
 tests/DFT/postSCF/Makefile
 tests/overDFT/Makefile
 tests/tutorials/Makefile
+tests/plugins/Makefile
 ])
 
 AC_OUTPUT
