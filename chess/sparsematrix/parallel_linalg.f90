@@ -308,7 +308,7 @@ module parallel_linalg
     
     
     
-    subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info, quiet)
+    subroutine dsyev_parallel(iproc, nproc, blocksize, comm, jobz, uplo, n, a, lda, w, info, quiet, algorithm)
       use dynamic_memory
       implicit none
       
@@ -319,11 +319,12 @@ module parallel_linalg
       real(kind=mp),dimension(lda,n),intent(inout) :: a
       real(kind=mp),dimension(n),intent(out) :: w
       logical,intent(in),optional :: quiet
+      character(len=*),intent(in),optional :: algorithm
       
       ! Local variables
       integer :: ierr, mbrow, mbcol, i, j, istat, lwork, ii1, ii2, nproc_scalapack, iall, max_cluster_size
       integer :: nprocrow, nproccol, context, irow, icol, lnrow, lncol, numroc, liwork, neval_found, neval_computed, ii
-      integer :: icl
+      integer :: icl, ialg
       real(kind=mp) :: tt1, tt2
       real(kind=mp),dimension(:,:),allocatable :: la, la_tmp, lz
       real(kind=mp),dimension(:),allocatable :: work, gap
@@ -338,6 +339,17 @@ module parallel_linalg
 
       quiet_ = .false.
       if (present(quiet)) quiet_ = quiet
+
+      ialg=2
+      if (present(algorithm)) then
+          if (trim(algorithm)=='pdsyevd') then
+              ialg=1
+          else if (trim(algorithm)=='pdsyevx') then
+              ialg=2
+          else
+              call f_err_throw("wrong value for algorithm, must be 'pdsyevd' or 'pdsyevx'")
+          end if
+      end if
       
       blocksize_if: if (blocksize<0) then
           if (iproc==0 .and. .not.quiet_) call yaml_map('mode','sequential')
@@ -379,7 +391,13 @@ module parallel_linalg
           end do
           nproccol=nproc_scalapack/nprocrow
           !if(iproc==0) write(*,'(a,i0,a,i0,a)') 'calculation is done on process grid with dimension ',nprocrow,' x ',nproccol,'.'
-          if (iproc==0) call write_processor_setup('pdsyevx', nproc_scalapack, nprocrow, nproccol)
+          if (iproc==0) then
+              if (ialg==1) then
+                  call write_processor_setup('pdsyevd', nproc_scalapack, nprocrow, nproccol)
+              else if (ialg==2) then
+                  call write_processor_setup('pdsyevx', nproc_scalapack, nprocrow, nproccol)
+              end if
+          end if
     
           
           ! Initialize blacs context
@@ -431,10 +449,16 @@ module parallel_linalg
               liwork=-1
               work = f_malloc(100,id='work')
               iwork = f_malloc(100,id='iwork')
-              call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
-                            0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
-                           -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
-                           ifail, icluster, gap, info)
+
+              algif1: if (ialg==1) then
+                  call pdsyevd(jobz, uplo, n, la(1,1), 1, 1, desc_la, &
+                       w(1), lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, info)
+              else if (ialg==2) then algif1
+                  call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
+                                0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
+                               -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
+                               ifail, icluster, gap, info)
+              end if algif1
               lwork=ceiling(work(1))
               lwork=lwork!+n**2 !to be sure to have enough workspace, to be optimized later.
               liwork=iwork(1)
@@ -443,56 +467,61 @@ module parallel_linalg
               call f_free(iwork)
               iwork = f_malloc(liwork,id='iwork')
 
-              max_cluster_size = 1
-              repeat_loop: do icl=1,2
-                  call f_free(work)
-                  lwork = lwork + (max_cluster_size-1)*n
-                  work = f_malloc(lwork,id='work')
+              algif2: if (ialg==1) then
+                  call pdsyevd(jobz, uplo, n, la(1,1), 1, 1, desc_la, &
+                       w(1), lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, info)
+              else if (ialg==2) then algif2
+                  max_cluster_size = 1
+                  repeat_loop: do icl=1,2
+                      call f_free(work)
+                      lwork = lwork + (max_cluster_size-1)*n
+                      work = f_malloc(lwork,id='work')
           
-                  call f_memcpy(src=la, dest=la_tmp)
+                      call f_memcpy(src=la, dest=la_tmp)
 
-                  call pdsyevx(jobz, 'a', 'l', n, la_tmp(1,1), 1, 1, desc_la, &
-                               0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
-                               -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
-                               ifail, icluster, gap, info)
-                  if(info==0) then
-                      ! Everything ok
-                      exit repeat_loop
-                  else if ((mod(info/2,2)/=0)) then
-                      ! This may happen if there is not enough workspace, 
-                      ! so increase the workspace and diagonalize again.
-                      if (iproc==0) then
-                          call yaml_warning('Some eigenvectors might not be orthogonal due to missing workspace, &
-                               &will repeat diagonalization')
-                          call yaml_sequence_open('Eigenvalue bounds of clusters with non-orthogonalized eigenvectors')
-                      end if
-                      ii = 0
-                      cluster_loop: do
-                          ii = ii + 1
-                          if (icluster(2*ii-1)/=0 .and. icluster(2*ii)/=0) then
-                              if (iproc==0) then
-                                  call yaml_sequence(advance='no')
-                                  call yaml_map('cluster boundary indices',(/icluster(2*ii-1),icluster(2*ii)/))
-                              end if
-                              max_cluster_size = max(max_cluster_size,icluster(2*ii)-icluster(2*ii-1)+1)
-                              if (icluster(2*ii+1)==0) then
-                                  exit cluster_loop
-                              end if
-                          else
-                              call f_err_throw('invalid values of icluster')
+                      call pdsyevx(jobz, 'a', 'l', n, la_tmp(1,1), 1, 1, desc_la, &
+                                   0.d0, 1.d0, 0, 1, -1.d0, neval_found, neval_computed, w(1), &
+                                   -1.d0, lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, &
+                                   ifail, icluster, gap, info)
+                      if(info==0) then
+                          ! Everything ok
+                          exit repeat_loop
+                      else if ((mod(info/2,2)/=0)) then
+                          ! This may happen if there is not enough workspace, 
+                          ! so increase the workspace and diagonalize again.
+                          if (iproc==0) then
+                              call yaml_warning('Some eigenvectors might not be orthogonal due to missing workspace, &
+                                   &will repeat diagonalization')
+                              call yaml_sequence_open('Eigenvalue bounds of clusters with non-orthogonalized eigenvectors')
                           end if
-                      end do cluster_loop
-                      if (iproc==0) then
-                          call yaml_sequence_close()
-                          call yaml_map('Maximal cluster size',max_cluster_size)
+                          ii = 0
+                          cluster_loop: do
+                              ii = ii + 1
+                              if (icluster(2*ii-1)/=0 .and. icluster(2*ii)/=0) then
+                                  if (iproc==0) then
+                                      call yaml_sequence(advance='no')
+                                      call yaml_map('cluster boundary indices',(/icluster(2*ii-1),icluster(2*ii)/))
+                                  end if
+                                  max_cluster_size = max(max_cluster_size,icluster(2*ii)-icluster(2*ii-1)+1)
+                                  if (icluster(2*ii+1)==0) then
+                                      exit cluster_loop
+                                  end if
+                              else
+                                  call f_err_throw('invalid values of icluster')
+                              end if
+                          end do cluster_loop
+                          if (iproc==0) then
+                              call yaml_sequence_close()
+                              call yaml_map('Maximal cluster size',max_cluster_size)
+                          end if
+                          !write(*,'(2(a,i0))') 'ERROR in pdsyevx on process ',iproc,', info=', info
+                          !stop
+                      else
+                          ! The error is not related to the workspace size, so let the calling routine handle it
+                          exit repeat_loop
                       end if
-                      !write(*,'(2(a,i0))') 'ERROR in pdsyevx on process ',iproc,', info=', info
-                      !stop
-                  else
-                      ! The error is not related to the workspace size, so let the calling routine handle it
-                      exit repeat_loop
-                  end if
-              end do repeat_loop
+                  end do repeat_loop
+              end if algif2
     
           
               ! Gather together the eigenvectors from all processes and store them in mat.

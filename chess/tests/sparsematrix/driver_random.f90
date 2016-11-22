@@ -55,7 +55,7 @@ program driver_random
   real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
-  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method
+  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method, diag_algorithm
   logical :: write_matrices, do_cubic_check
   type(dictionary), pointer :: options, dict_timing_info
   type(yaml_cl_parse) :: parser !< command line parser
@@ -133,6 +133,7 @@ program driver_random
       evlow = options//'evlow'
       evhigh = options//'evhigh'
       do_cubic_check = options//'do_cubic_check'
+      diag_algorithm = options//'diag_algorithm'
 
       call dict_free(options)
 
@@ -167,6 +168,7 @@ program driver_random
       call yaml_map('Write the matrices',write_matrices)
       call yaml_map('betax',betax,fmt='(f9.1)')
       call yaml_map('scalapack_blocksize',scalapack_blocksize)
+      call yaml_map('ScaLAPACK diagonalization algorithm',diag_algorithm)
       call yaml_mapping_close()
   end if
 
@@ -186,6 +188,7 @@ program driver_random
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(evlow, root=0, comm=mpi_comm_world)
   call mpibcast(evhigh, root=0, comm=mpi_comm_world)
+  call mpibcast(diag_algorithm, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -388,7 +391,7 @@ program driver_random
       mat2%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat2%matrix')
       mat3(3)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
       call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .true., &
-            expo, smats, smatl(1), mat2, mat3(3))
+            expo, smats, smatl(1), mat2, mat3(3), algorithm=diag_algorithm)
       call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
            gather_routine=gather_timings)
       if (write_matrices) then
@@ -722,5 +725,12 @@ subroutine commandline_options(parser)
        'Indicate whether a cubic scaling check using dense (Sca)LAPACK should be performed',&
        'Allowed values' .is. &
        'Logical'))
+
+   call yaml_cl_parse_option(parser,'diag_algorithm','pdsyevx',&
+      'ScaLAPACK algorithm to be used for the diagonalization (pdsyevx, pdsyevd)',&
+       help_dict=dict_new('Usage' .is. &
+       'ScaLAPACK algorithm to be used for the diagonalization: pdsyevx or pdsyevd',&
+       'Allowed values' .is. &
+       'String'))
 
 end subroutine commandline_options

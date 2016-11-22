@@ -2524,7 +2524,7 @@ module sparsematrix
 
 
     subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, keep_full_result, &
-               exp_power, smat_in, smat_out, mat_in, mat_out)
+               exp_power, smat_in, smat_out, mat_in, mat_out, algorithm)
       use dynamic_memory
       implicit none
 
@@ -2535,6 +2535,7 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
       type(matrices),intent(out) :: mat_out
+      character(len=*),intent(in),optional :: algorithm
 
       ! Local variables
       integer :: blocksize
@@ -2567,8 +2568,13 @@ module sparsematrix
       mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
       call uncompress_matrix(iproc, nproc, &
            smat_in, mat_in%matrix_compr, mat_in_dense)
-      call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
-           mat_in_dense, exp_power, mat_out_dense)
+      if (present(algorithm)) then
+          call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
+               mat_in_dense, exp_power, mat_out_dense, algorithm=algorithm)
+      else
+          call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
+               mat_in_dense, exp_power, mat_out_dense)
+      end if
       call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
       if (keep_full_result) then
           call f_memcpy(src=mat_in_dense, dest=mat_in%matrix)
@@ -2584,7 +2590,7 @@ module sparsematrix
 
 
     !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
-    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out)
+    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out, algorithm)
       !use module_base
       use parallel_linalg, only: dgemm_parallel, dsyev_parallel
       use dynamic_memory
@@ -2595,6 +2601,7 @@ module sparsematrix
       real(kind=8),dimension(n,n),intent(in) :: mat_in
       real(kind=8),intent(in) :: ex
       real(kind=8),dimension(n,n),intent(out) :: mat_out
+      character(len=*),intent(in),optional :: algorithm
 
       ! Local variables
       integer :: i, j, info
@@ -2616,7 +2623,11 @@ module sparsematrix
           end do
       end do
 
-      call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
+      if (present(algorithm)) then
+          call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info, algorithm=algorithm)
+      else
+          call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
+      endif
       if (info /= 0) then
           if (iproc==0) then
               call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
