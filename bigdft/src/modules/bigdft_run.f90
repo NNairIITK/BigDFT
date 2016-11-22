@@ -1164,11 +1164,20 @@ contains
        deallocate(runObj%sections)
        nullify(runObj%sections)
     end if
+
+    ln = 0
     if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
-         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
+         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) then
+       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                     ! to test if runObj is top level.
+       call f_release_routine()
+       return
+    end if
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     if (ln == 0) then
+       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                     ! to test if runObj is top level.
        call f_release_routine()
        return
     end if
@@ -1178,7 +1187,6 @@ contains
     runObj%inputs%multi_pass = f_malloc_ptr(ln, id = "in%multi_pass")
     runObj%inputs%multi_pass = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
 
-    allocate(runObj%sections(ln))
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
        i = dict_item(sect) + 1
