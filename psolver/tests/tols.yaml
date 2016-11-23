@@ -55,5 +55,6 @@ Generalized_PSolver:
   Computed Hartree energy: 7.0e-6
   Diff of expected-computed Hartree energy: 7.0e-6
   Integral of the density in the nonvacuum region: 3.4e-11
+  Value: 2.07e-06
 PS_Check:
   itermax: 150.0

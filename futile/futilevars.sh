@@ -1,4 +1,4 @@
-oecho "While sourcing this script the following environment variable will be set:"
+echo "While sourcing this script the following environment variable will be set:"
 for file in futile_environment.sh
 do
 sh $file

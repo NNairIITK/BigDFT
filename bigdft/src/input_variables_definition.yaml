@@ -1165,7 +1165,14 @@
        sw: Stillinger-Weber for Si
        bazant:  Bazant force for Si
        multi: Mixed approach where parts of the system are treated with different methods
+       plugin: Use the signaling procedure profided by FUTILE
      default: dft
+   plugin_id:
+     COMMENT: Integer handle identifying the calculator associated to the mode plugin
+     default: 1
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: plugin
    add_coulomb_force:
      COMMENT: Boolean to add coulomb force on top of any of above selected force
      MASTER_KEY: method

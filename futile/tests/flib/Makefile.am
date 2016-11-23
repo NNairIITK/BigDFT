@@ -8,13 +8,10 @@ EXTRA_DIST = \
 
 dynlibdir = $(libdir)
 
-check_PROGRAMS = yaml_test hooks yaml_argparse f_allocations
-if BUILD_DYNAMIC_LIBS
-check_PROGRAMS += test_plugin
+check_PROGRAMS = yaml_test hooks yaml_argparse f_allocations test_plugin
 noinst_LIBRARIES = libpong.a
-endif
 
-AM_FCFLAGS = -I../../flib -I../../src
+AM_FCFLAGS = -I../../flib -I../../src @FC_PIC_FLAG@
 AM_LDFLAGS = -L$(top_builddir)/src
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
@@ -45,15 +42,15 @@ hooks_LDADD = $(flib_libraries)
 
 libpong_a_SOURCES = pong.f90
 test_plugin_SOURCES = test_plugin.f90
-test_plugin_LDADD = $(flib_libraries)
+test_plugin_LDADD = $(flib_libraries) @FC_EXPORTS@
 
-CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err
+CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err libpong.so
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
 
 libpong.so: $(libpong_a_OBJECTS)
-	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -o $@ $< $(flib_libraries)
+	$(FC) $(FCFLAGS) @FC_BUILD_SHARED@ $(LDFLAGS) @FC_RPATH@$(DESTDIR)$(dynlibdir) -o $@ $<
 	@chmod a+x $@
 
 yaml_test.out.yaml: yaml_test
@@ -84,7 +81,7 @@ check: yaml_test.report.yaml hooks.report.yaml regtest report
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
-regtest: yaml_argparse
+regtest: yaml_argparse test_plugin libpong.so
 	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
 	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
 	       --exclusive=$(CHECK_ONLY)
