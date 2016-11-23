@@ -197,6 +197,34 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   call f_release_routine()
 END SUBROUTINE geopt
 
+!> Generic convcheck
+subroutine geopt_conditional(outs, it, fluct, frac_fluct, forcemax, check)
+  use module_base, only: gp
+  use bigdft_run
+  use module_f_objects
+  implicit none  
+  type(state_properties), intent(in) :: outs
+  integer, intent(in) :: it
+  real(gp), intent(inout) :: fluct
+  real(gp), intent(in) :: frac_fluct, forcemax
+  integer, intent(out) :: check
+
+  real(gp) :: fnrm, fmax
+  type(signal_ctx) :: sig
+
+  !calculate the max of the forces
+  call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
+  if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
+  call convcheck(fmax,fluct*frac_fluct,forcemax,check)
+  
+  if (f_object_signal_prepare(PROCESS_RUN_TYPE, GEOPT_CONDITIONAL_SIG, sig)) then
+     call f_object_signal_add_arg(sig, outs)
+     call f_object_signal_add_arg(sig, it)
+     call f_object_signal_add_arg(sig, check)
+     call f_object_signal_emit(sig)
+  end if
+end subroutine geopt_conditional
+
 !> Loop mode
 subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
@@ -225,10 +253,6 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   it = 0
 
   do
-     !calculate the max of the forces
-     call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
-     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
-
      if (iproc == 0) then
         write(fn4,'(i4.4)') it
         write(comment,'(a,1pe10.3)')'LOOP:fnrm= ',sqrt(fnrm)
@@ -236,40 +260,27 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
              'posout_'//fn4,trim(comment))
      endif
 
-     call convcheck(fmax,fluct*runObj%inputs%frac_fluct, &
-          & runObj%inputs%forcemax,check)
      if (ncount_bigdft >= runObj%inputs%ncount_cluster_x-1) then
         !Too many iterations
         fail = .true.
         return
      end if
 
-     if (f_object_signal_prepare(PROCESS_RUN_TYPE, GEOPT_LOOP_SIG, sig)) then
-        call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
-
-        call f_object_signal_add_arg(sig, outs)
-        call f_object_signal_add_arg(sig, runObj)
-        call f_object_signal_add_arg(sig, it)
-        call f_object_signal_add_arg(sig, check)
-        call f_object_signal_emit(sig)
-
-        if(check > 0) then
-           if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
-           return
-        endif
-     else
-        if(check > 0) then
-           if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
-           return
-        endif
-
-        !runObj%inputs%inputPsiId=1
-        call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
-        call bigdft_state(runObj, outs, infocode)
-        ncount_bigdft = ncount_bigdft + 1
-     end if
+     !runObj%inputs%inputPsiId=1
+     call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
+     call bigdft_state(runObj, outs, infocode)
+     ncount_bigdft = ncount_bigdft + 1
 
      it = it + 1
+
+     call geopt_conditional(outs, it, fluct, runObj%inputs%frac_fluct, &
+          & runObj%inputs%forcemax, check)
+
+     if(check > 0) then
+        if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
+        return
+     endif
+
   end do
 END SUBROUTINE loop
 

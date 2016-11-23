@@ -83,7 +83,7 @@ module bigdft_run
 
   character(len = *), parameter, public :: PROCESS_RUN_TYPE = "process_run"
   character(len = *), parameter, public :: GEOPT_INIT_SIG = "init"
-  character(len = *), parameter, public :: GEOPT_LOOP_SIG = "loop"
+  character(len = *), parameter, public :: GEOPT_CONDITIONAL_SIG = "convcheck"
   character(len = *), parameter, public :: GEOPT_POST_SIG = "post"
 
   !> Used to store results of a DFT calculation.
@@ -897,7 +897,7 @@ contains
 
     call f_object_new_(PROCESS_RUN_TYPE)
     call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG, 2)
-    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_LOOP_SIG, 4)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_CONDITIONAL_SIG, 3)
     call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_POST_SIG, 2)
   end subroutine process_run_type_init
 
