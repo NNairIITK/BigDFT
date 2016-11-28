@@ -2642,8 +2642,8 @@ module sparsematrix
           end do
       end do
 
-      ! Apply the diagonalized overlap matrix to the matrix constructed above
-      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 't', n, n, n, 1.d0, mat_tmp(1:,1:,1), n, &
+      ! Apply the diagonalized matrix to the matrix constructed above
+      call dgemm_parallel(iproc, nproc, blocksize, comm, 'n', 't', n, n, n, 1.d0, mat_tmp(1:,1:,1), n, &
            mat_tmp(1:,1:,2), n, 0.d0, mat_out, n)
 
       call f_free(mat_tmp)

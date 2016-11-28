@@ -52,7 +52,7 @@ program driver_random
   type(matrices) :: mat1, mat2
   type(matrices),dimension(3) :: mat3
   real(mp) :: condition_number, expo, max_error, mean_error, betax
-  real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh
+  real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh, eval_multiplicator
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
   character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method, diag_algorithm
@@ -90,6 +90,7 @@ program driver_random
   call sparsematrix_initialize_timing_categories()
 
   ! Timing initialization
+  call mpibarrier()
   call f_timing_reset(filename='time.yaml', master=(iproc==0), verbose_mode=.false.)
 
   if (iproc==0) then
@@ -134,6 +135,7 @@ program driver_random
       evhigh = options//'evhigh'
       do_cubic_check = options//'do_cubic_check'
       diag_algorithm = options//'diag_algorithm'
+      eval_multiplicator = options//'eval_multiplicator'
 
       call dict_free(options)
 
@@ -169,6 +171,7 @@ program driver_random
       call yaml_map('betax',betax,fmt='(f9.1)')
       call yaml_map('scalapack_blocksize',scalapack_blocksize)
       call yaml_map('ScaLAPACK diagonalization algorithm',diag_algorithm)
+      call yaml_map('ICE multiplication factor',eval_multiplicator)
       call yaml_mapping_close()
   end if
 
@@ -189,6 +192,7 @@ program driver_random
   call mpibcast(evlow, root=0, comm=mpi_comm_world)
   call mpibcast(evhigh, root=0, comm=mpi_comm_world)
   call mpibcast(diag_algorithm, root=0, comm=mpi_comm_world)
+  call mpibcast(eval_multiplicator, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -253,7 +257,8 @@ program driver_random
   ! in this way improving the performance.
   ! Should maybe go to a wrapper.
   charge_fake = f_malloc0(1,id='charge_fake')
-  call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, betax=betax)
+  call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
+       betax=betax, eval_multiplicator=eval_multiplicator)
   call f_free(charge_fake)
 
 
@@ -306,6 +311,7 @@ program driver_random
 
   ! Initialization part done
   !call timing(mpi_comm_world,'INIT','PR')
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
@@ -325,6 +331,7 @@ program driver_random
       call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse')
   end if
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
@@ -338,6 +345,7 @@ program driver_random
        1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
@@ -378,6 +386,7 @@ program driver_random
   end if
 
   !call timing(mpi_comm_world,'CHECK_LINEAR','PR')
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='CHECK_LINEAR',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
@@ -392,6 +401,7 @@ program driver_random
       mat3(3)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
       call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .true., &
             expo, smats, smatl(1), mat2, mat3(3), algorithm=diag_algorithm)
+      call mpibarrier()
       call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
            gather_routine=gather_timings)
       if (write_matrices) then
@@ -518,6 +528,7 @@ program driver_random
       call f_free_ptr(mat3(1)%matrix)
 
       !call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+      call mpibarrier()
       call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
            gather_routine=gather_timings)
   end if cubic_check
@@ -537,6 +548,7 @@ program driver_random
   call foe_data_deallocate(ice_obj)
 
   ! Gather the timings
+  call mpibarrier()
   call build_dict_info(iproc, nproc, dict_timing_info)
   call f_timing_stop(mpi_comm=mpi_comm_world, nproc=nproc, &
        gather_routine=gather_timings, dict_info=dict_timing_info)
@@ -699,38 +711,45 @@ subroutine commandline_options(parser)
        'Double'))
 
   call yaml_cl_parse_option(parser,'scalapack_blocksize','-1',&
-      'blocksize for ScaLAPACK (negative for standard LAPACK)',&
+       'blocksize for ScaLAPACK (negative for standard LAPACK)',&
        help_dict=dict_new('Usage' .is. &
        'Indicate the blocksize to be used by ScaLAPACK. If negative, then the standard LAPACK routines will be used',&
        'Allowed values' .is. &
        'Integer'))
 
   call yaml_cl_parse_option(parser,'evlow','0.5',&
-      'guess for the lowest matrix eigenvalue',&
+       'guess for the lowest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the lowest eigenvalue of the matrix',&
        'Allowed values' .is. &
        'Double'))
 
   call yaml_cl_parse_option(parser,'evhigh','1.5',&
-      'guess for the highest matrix eigenvalue',&
+       'guess for the highest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the highest eigenvalue of the matrix',&
        'Allowed values' .is. &
        'Double'))
 
    call yaml_cl_parse_option(parser,'do_cubic_check','.true.',&
-      'perform a check using cubic scaling dense (Sca)LAPACK',&
+       'perform a check using cubic scaling dense (Sca)LAPACK',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether a cubic scaling check using dense (Sca)LAPACK should be performed',&
        'Allowed values' .is. &
        'Logical'))
 
    call yaml_cl_parse_option(parser,'diag_algorithm','pdsyevx',&
-      'ScaLAPACK algorithm to be used for the diagonalization (pdsyevx, pdsyevd)',&
+       'ScaLAPACK algorithm to be used for the diagonalization (pdsyevx, pdsyevd)',&
        help_dict=dict_new('Usage' .is. &
        'ScaLAPACK algorithm to be used for the diagonalization: pdsyevx or pdsyevd',&
        'Allowed values' .is. &
        'String'))
+
+   call yaml_cl_parse_option(parser,'eval_multiplicator','1.0',&
+       'scale the matrix by this factor',&
+       help_dict=dict_new('Usage' .is. &
+       'scale the matrix by this factor to get a spectrum which is asier representable using the Chebyshe polynomials',&
+       'Allowed values' .is. &
+       'Double'))
 
 end subroutine commandline_options
