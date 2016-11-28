@@ -81,6 +81,11 @@ module bigdft_run
   character(len = *), parameter, public :: PRE_SCF_SIG = "pre"
   character(len = *), parameter, public :: POST_SCF_SIG = "post"
 
+  character(len = *), parameter, public :: PROCESS_RUN_TYPE = "process_run"
+  character(len = *), parameter, public :: GEOPT_INIT_SIG = "init"
+  character(len = *), parameter, public :: GEOPT_CONDITIONAL_SIG = "convcheck"
+  character(len = *), parameter, public :: GEOPT_POST_SIG = "post"
+
   !> Used to store results of a DFT calculation.
   type, public :: state_properties
      real(gp) :: energy, fnoise, pressure      !< Total energy, noise over forces and pressure
@@ -92,7 +97,7 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
-  public :: run_objects_type_init
+  public :: run_objects_type_init, process_run_type_init
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
@@ -887,6 +892,15 @@ contains
     call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
   end subroutine run_objects_type_init
 
+  subroutine process_run_type_init()
+    use module_f_objects, only: f_object_new_, f_object_add_signal
+
+    call f_object_new_(PROCESS_RUN_TYPE)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG, 2)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_CONDITIONAL_SIG, 3)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_POST_SIG, 2)
+  end subroutine process_run_type_init
+
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
     use module_types
@@ -1153,11 +1167,20 @@ contains
        deallocate(runObj%sections)
        nullify(runObj%sections)
     end if
+
+    ln = 0
     if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
-         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
+         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) then
+       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                     ! to test if runObj is top level.
+       call f_release_routine()
+       return
+    end if
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     if (ln == 0) then
+       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                     ! to test if runObj is top level.
        call f_release_routine()
        return
     end if
@@ -1167,7 +1190,6 @@ contains
     runObj%inputs%multi_pass = f_malloc_ptr(ln, id = "in%multi_pass")
     runObj%inputs%multi_pass = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
 
-    allocate(runObj%sections(ln))
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
        i = dict_item(sect) + 1
@@ -1246,6 +1268,8 @@ contains
 
     if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, INIT_SIG)) &
          & call run_objects_type_init()
+    if (.not. f_object_has_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG)) &
+         & call process_run_type_init()
 
     call nullify_run_objects(runObj)
 
