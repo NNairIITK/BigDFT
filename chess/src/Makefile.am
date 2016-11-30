@@ -58,7 +58,9 @@ modules =  chebyshev.@MODULE_EXT@ \
 	  sparsematrix_highlevel.@MODULE_EXT@
 endif
 
-subs_static_library = $(top_builddir)/sparsematrix/libsparsematrix.a
+subs_static_library = $(top_builddir)/sparsematrix/libsparsematrix.a \
+                      $(top_builddir)/chesspexsi/libchesspexsi.a
+
 
 chess_toolbox_SOURCES = chess_toolbox.f90
 chess_toolbox_LDADD = $(chess_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@

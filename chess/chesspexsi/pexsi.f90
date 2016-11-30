@@ -2,7 +2,7 @@ module pexsi
 
     private
 
-    public :: pexsi_driver
+    public :: pexsi_wrapper !pexsi_driver
 
     contains
 
@@ -50,19 +50,24 @@ module pexsi
       !> @file f_driver_ksdft.f90
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
-      subroutine pexsi_driver(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, &
+      subroutine pexsi_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, &
                  mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
                  kernel, energy)
-      use module_base
+      !use module_base
       use pexsi_base, only: f_ppexsi_options
       use pexsi_interfaces
       use yaml_output
       use iso_c_binding
+      !use sparsematrix_base
+      use wrapper_mpi
+      !use time_profiling
+      use dynamic_memory
+      use futile
       implicit none
       !include 'mpif.h'
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       integer,intent(in) :: nfvctr !< number of row/columns
       integer,intent(in) :: nvctr ! number of non-zero entries
       integer,dimension(nvctr),intent(in) :: row_ind !< row_ind from the CCS format
@@ -155,7 +160,7 @@ module pexsi
             isProcRead = 0
           endif
           
-          call mpi_comm_split( bigdft_mpi%mpi_comm, isProcRead, iproc, readComm, ierr )
+          call mpi_comm_split( comm, isProcRead, iproc, readComm, ierr )
           
       if (iproc<maxproc) then
           
@@ -410,8 +415,8 @@ module pexsi
 
           call mpi_comm_free( readComm, ierr )
 
-      call mpibcast(energy, root=0, comm=bigdft_mpi%mpi_comm) 
-      call mpibcast(kernel, root=0, comm=bigdft_mpi%mpi_comm) 
+      call mpibcast(energy, root=0, comm=comm) 
+      call mpibcast(kernel, root=0, comm=comm) 
 
       if (iproc==0) call yaml_comment('PEXSI calculation of kernel finished',hfill='~')
       
@@ -423,7 +428,9 @@ module pexsi
 
       subroutine distribute_matrix(iproc, nproc, nfvctr, nvctr, col_ptr, row_ind, mat_H, mat_S, &
                  nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
-        use module_base
+        !use module_base
+        use dynamic_memory
+        use wrapper_mpi
         implicit none
 
         ! Calling arguments
@@ -530,23 +537,21 @@ module pexsi
    !!   end subroutine distribute_matrix
 
 
-    subroutine pexsi_wrapper(iproc, nproc, smats, smatm, smatl, ovrlp, ham, &
-               foe_obj, npoles, mumin, mumax, mu, temperature, tol_charge, &
+    subroutine pexsi_wrapper(iproc, nproc, comm, smats, smatm, smatl, ovrlp, ham, &
+               charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
                kernel, ebs)
       use futile
       use sparsematrix_base
-      use foe_base
       use sparsematrix, only: transform_sparse_matrix
       use sparsematrix_init, only: sparsebigdft_to_ccs
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ovrlp, ham
-      type(foe_data),intent(in) :: foe_obj
       integer,intent(in) :: npoles
-      real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
+      real(kind=8),intent(in) :: charge, mumin, mumax, mu, temperature, tol_charge
       type(matrices),intent(out) :: kernel
       real(kind=8),intent(out) :: ebs
     
@@ -570,8 +575,8 @@ module pexsi
            smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large)
       call transform_sparse_matrix(iproc, smatm, smatl, SPARSE_FULL, 'small_to_large', &
            smat_in=ham%matrix_compr, lmat_out=ham_large)
-      call pexsi_driver(iproc, nproc, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
-           ham_large, ovrlp_large, foe_data_get_real(foe_obj,"charge",1), npoles, &
+      call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
+           ham_large, ovrlp_large, charge, npoles, &
            mumin, mumax, mu, temperature, tol_charge, &
            kernel%matrix_compr, ebs)
     

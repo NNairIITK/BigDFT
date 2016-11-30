@@ -22,7 +22,7 @@
 program driver_foe
   ! The following module are part of the sparsematrix library
   use sparsematrix_base
-  use foe_base, only: foe_data, foe_data_deallocate
+  use foe_base, only: foe_data, foe_data_deallocate, foe_data_get_real
   use foe_common, only: init_foe
   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_ccs, &
                                     sparse_matrix_init_from_file_ccs, matrices_init, &
@@ -40,6 +40,7 @@ program driver_foe
   use futile
   use wrapper_MPI
   use wrapper_linalg
+  use pexsi, only: pexsi_wrapper
 
   implicit none
 
@@ -49,7 +50,8 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
-  integer :: ispin, ihomo, imax, ntemp, npl_max
+  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles
+  real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max
@@ -59,7 +61,7 @@ program driver_foe
   type(dictionary),pointer :: dict_timing_info, options
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
-  character(len=1024) :: sparsity_format, matrix_format
+  character(len=1024) :: sparsity_format, matrix_format, kernel_method
   logical :: check_spectrum
   external :: gather_timings
   !$ integer :: omp_get_max_threads
@@ -118,6 +120,7 @@ program driver_foe
       kernel_matmul_file = options//'kernel_matmul_file'
       sparsity_format = options//'sparsity_format'
       matrix_format = options//'matrix_format'
+      kernel_method = options//'kernel_method'
       scalapack_blocksize = options//'scalapack_blocksize'
       check_spectrum = options//'check_spectrum'
       fscale_lowerbound = options//'fscale_lowerbound'
@@ -125,6 +128,12 @@ program driver_foe
       ntemp = options//'ntemp'
       ef = options//'ef'
       npl_max = options//'npl_max'
+      pexsi_npoles = options//'pexsi_npoles'
+      pexsi_mumin = options//'pexsi_mumin'
+      pexsi_mumax = options//'pexsi_mumax'
+      pexsi_mu = options//'pexsi_mu'
+      pexsi_temperature = options//'pexsi_temperature'
+      pexsi_tol_charge = options//'pexsi_tol_charge'
      
       call dict_free(options)
 
@@ -136,6 +145,7 @@ program driver_foe
       call yaml_map('Hamiltonian matrix file',trim(hamiltonian_file))
       call yaml_map('Density kernel matrix file',trim(kernel_file))
       call yaml_map('Density kernel matrix multiplication file',trim(kernel_matmul_file))
+      call yaml_map('Kernel method',trim(kernel_method))
       call yaml_map('Blocksize for ScaLAPACK',scalapack_blocksize)
       call yaml_map('Check the Hamiltonian spectrum',check_spectrum)
       call yaml_map('Lower bound for decay length',fscale_lowerbound)
@@ -143,6 +153,12 @@ program driver_foe
       call yaml_map('Iterations with varying temperatures',ntemp)
       call yaml_map('Guess for Fermi energy',ef)
       call yaml_map('Maximal polynomial degree',npl_max)
+      call yaml_map('PEXSI number of poles',pexsi_npoles)
+      call yaml_map('PEXSI mu min',pexsi_mumin)
+      call yaml_map('PEXSI mu max',pexsi_mumax)
+      call yaml_map('PEXSI mu',pexsi_mu)
+      call yaml_map('PEXSI temperature',pexsi_temperature)
+      call yaml_map('PEXSI charge tolerance',pexsi_tol_charge)
       call yaml_mapping_close()
   end if
 
@@ -154,6 +170,7 @@ program driver_foe
   call mpibcast(hamiltonian_file, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_file, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  call mpibcast(kernel_method, root=0, comm=mpi_comm_world)
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
   call mpibcast(fscale_lowerbound, root=0, comm=mpi_comm_world)
@@ -161,6 +178,12 @@ program driver_foe
   call mpibcast(ntemp, root=0, comm=mpi_comm_world)
   call mpibcast(ef, root=0, comm=mpi_comm_world)
   call mpibcast(npl_max, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_npoles, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_mumin, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_mumax, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_mu, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_temperature, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_tol_charge, root=0, comm=mpi_comm_world)
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
       if (check_spectrum) then
@@ -306,11 +329,20 @@ program driver_foe
   ! and the one of smat_h within that of smat_k. It is your responsabilty to assure this, 
   ! the routine does only some minimal checks.
   ! The final result will be contained in mat_k%matrix_compr.
-  call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
-       foe_obj, ice_obj, smat_s, smat_h, smat_k, &
-       mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
-       calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
-       calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+  if (trim(kernel_method)=='FOE') then
+      call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
+           foe_obj, ice_obj, smat_s, smat_h, smat_k, &
+           mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
+           calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+           calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+  else if (trim(kernel_method)=='PEXSI') then
+      call pexsi_wrapper(iproc, nproc, mpi_comm_world, smat_s, smat_h, smat_k, mat_s, mat_h, &
+           foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, &
+           pexsi_temperature, pexsi_tol_charge, &
+           mat_k, energy)
+  else
+      call f_err_throw("wrong value for 'kernel_method'; possible values are 'FOE' or 'PEXSI'")
+  end if
 
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
@@ -487,6 +519,13 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'String'))
 
+  call yaml_cl_parse_option(parser,'kernel_method','FOE',&
+       'Indicate which kernel method should be used (FOE or PEXSI)',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate which kernel method should be used (FOE or PEXSI)',&
+       'Allowed values' .is. &
+       'String'))
+
   call yaml_cl_parse_option(parser,'sparsity_format','bigdft',&
        'indicate the sparsity format',&
        help_dict=dict_new('Usage' .is. &
@@ -549,5 +588,49 @@ subroutine commandline_options(parser)
        'Indicate the maximal polynomial degree',&
        'Allowed values' .is. &
        'Integer'))
+
+  call yaml_cl_parse_option(parser,'pexsi_npoles','40',&
+       'Indicate the number of poles to be used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the number of poles to be used by PEXSI',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'pexsi_mumin','-1.0',&
+       'Initial guess for the lower bound of the chemical potential used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Initial guesss for the lower bound of the chemical potential (in hartree?) used by PEXSI,&
+       & will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_mumax','1.0',&
+       'Initial guess for the lower bound of the chemical potential used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI,&
+       & will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_mu','0.0',&
+       'initial guess for the chemical potential used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_temperature','1.e-3',&
+       'Indicate the temperature used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the temperature (in atomic units?) used by PEXSI',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_tol_charge','1.e-3',&
+       'Indicate the charge tolerance used PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the tolerance on the number of electrons used by PEXSI',&
+       'Allowed values' .is. &
+       'Double'))
 
 end subroutine commandline_options

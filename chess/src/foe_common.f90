@@ -2013,9 +2013,14 @@ module foe_common
                           call f_timing(TCAT_CME_AUXILIARY,'OF')
 
                           !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','from memory')
-                          call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                               smatl%nfvctr, smatl%smmm%nfvctrp, &
-                               smatl, chebyshev_polynomials(:,:,jspin), 1, cc, fermi_small_new(:,jspin))
+
+                          if (smatl%smmm%nvctrp_mm>0) then
+                              call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                                   smatl%nfvctr, smatl%smmm%nfvctrp, &
+                                   smatl, chebyshev_polynomials(:,:,jspin), 1, cc, fermi_small_new(:,jspin))
+                          else
+                              call f_zero(fermi_small_new(:,jspin))
+                          end if
 
 
                           !call timing(iproc, 'FOE_auxiliary ', 'ON')
