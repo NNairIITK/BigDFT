@@ -3,20 +3,13 @@ noinst_LIBRARIES = libchesspexsi.a
 module_DATA      = $(modules)
 
 # Code source.
-if USE_BLACS
-BLACS =
-else
-BLACS = blacs_fake.f90
-endif
-
 if HAVE_PEXSI
 PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
 else
 PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
 endif
 
-mod_src = $(PEXSI_SRC) \
-	      $(BLACS)
+mod_src = $(PEXSI_SRC)
 
 libchesspexsi_a_SOURCES = $(mod_src)
 

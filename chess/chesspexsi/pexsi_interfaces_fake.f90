@@ -192,7 +192,7 @@ contains
 
 
   subroutine error_message()
-    use module_base
+    use futile
     implicit none
     call f_err_throw('It seems that you did not link properly with the PEXSI library',err_name='BIGDFT_RUNTIME_ERROR')
   end subroutine error_message
