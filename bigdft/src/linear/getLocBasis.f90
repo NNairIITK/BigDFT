@@ -42,7 +42,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
   use foe_base, only: foe_data_get_real
-  use pexsi, only: pexsi_driver
+  use pexsi, only: pexsi_wrapper !pexsi_driver
   implicit none
 
   ! Calling arguments
@@ -624,40 +624,46 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!end if
       if (scf_mode==LINEAR_PEXSI) then
           if (iproc==0) call yaml_map('method','PEXSI')
-          !call write_pexsi_matrices(iproc, nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
-          row_ind = f_malloc(tmb%linmat%l%nvctr,id='row_ind')
-          col_ptr = f_malloc(tmb%linmat%l%nfvctr,id='col_ptr')
-          call sparsebigdft_to_ccs(tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, tmb%linmat%l%nseg, tmb%linmat%l%keyg, row_ind, col_ptr)
-          ! AT the moment not working for nspin>1
-          ovrlp_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ovrlp_large')
-          ham_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ham_large')
-          !!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%s%nvctr, 0, &
-          !!     tmb%linmat%s%nseg, tmb%linmat%s%keyv, tmb%linmat%s%keyg, tmb%linmat%s%smmm%line_and_column_mm, &
-          !!     tmb%linmat%l%nvctr, 0, tmb%linmat%l%smmm%nseg, &
-          !!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
-          !!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ovrlp_%matrix_compr, ovrlp_large)
-          !!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%m%smmm%nvctrp_mm, tmb%linmat%m%smmm%isvctr_mm, &
-          !!     tmb%linmat%m%nseg, tmb%linmat%m%keyv, tmb%linmat%m%keyg, tmb%linmat%m%smmm%line_and_column_mm, &
-          !!     tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, tmb%linmat%l%smmm%nseg, &
-          !!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
-          !!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ham_%matrix_compr, ham_large)
-          if (tmb%linmat%s%ntaskgroup/=1 .or. tmb%linmat%m%ntaskgroup/=1 .or. tmb%linmat%l%ntaskgroup/=1) then
-              call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          call transform_sparse_matrix(iproc, tmb%linmat%s, tmb%linmat%l, SPARSE_FULL, 'small_to_large', &
-               smat_in=tmb%linmat%ovrlp_%matrix_compr, lmat_out=ovrlp_large)
-          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_FULL, 'small_to_large', &
-               smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
-          !write(*,*) 'iproc, ham_large', iproc, ham_large
-          call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &
-               ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
-               pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
-               tmb%linmat%kernel_%matrix_compr, energs%ebs)
+          call pexsi_wrapper(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, &
+               foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, &
+               pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
+               tmb%linmat%kernel_, energs%ebs)
+          !!!call write_pexsi_matrices(iproc, nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
+          !!row_ind = f_malloc(tmb%linmat%l%nvctr,id='row_ind')
+          !!col_ptr = f_malloc(tmb%linmat%l%nfvctr,id='col_ptr')
+          !!call sparsebigdft_to_ccs(tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, tmb%linmat%l%nseg, tmb%linmat%l%keyg, row_ind, col_ptr)
+          !!! AT the moment not working for nspin>1
+          !!ovrlp_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ovrlp_large')
+          !!ham_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ham_large')
+          !!!!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%s%nvctr, 0, &
+          !!!!     tmb%linmat%s%nseg, tmb%linmat%s%keyv, tmb%linmat%s%keyg, tmb%linmat%s%smmm%line_and_column_mm, &
+          !!!!     tmb%linmat%l%nvctr, 0, tmb%linmat%l%smmm%nseg, &
+          !!!!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+          !!!!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ovrlp_%matrix_compr, ovrlp_large)
+          !!!!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%m%smmm%nvctrp_mm, tmb%linmat%m%smmm%isvctr_mm, &
+          !!!!     tmb%linmat%m%nseg, tmb%linmat%m%keyv, tmb%linmat%m%keyg, tmb%linmat%m%smmm%line_and_column_mm, &
+          !!!!     tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, tmb%linmat%l%smmm%nseg, &
+          !!!!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+          !!!!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ham_%matrix_compr, ham_large)
+          !!if (tmb%linmat%s%ntaskgroup/=1 .or. tmb%linmat%m%ntaskgroup/=1 .or. tmb%linmat%l%ntaskgroup/=1) then
+          !!    call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
+          !!end if
+          !!call transform_sparse_matrix(iproc, tmb%linmat%s, tmb%linmat%l, SPARSE_FULL, 'small_to_large', &
+          !!     smat_in=tmb%linmat%ovrlp_%matrix_compr, lmat_out=ovrlp_large)
+          !!call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_FULL, 'small_to_large', &
+          !!     smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
+          !!!write(*,*) 'iproc, ham_large', iproc, ham_large
+          !!call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &
+          !!     ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
+          !!     pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
+          !!     tmb%linmat%kernel_%matrix_compr, energs%ebs)
 
-          call f_free(ovrlp_large)
-          call f_free(ham_large)
-          call f_free(row_ind)
-          call f_free(col_ptr)
+          !!call f_free(ovrlp_large)
+          !!call f_free(ham_large)
+          !!call f_free(row_ind)
+          !!call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
           !call fermi_operator_expansion_new(iproc, nproc, &

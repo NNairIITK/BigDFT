@@ -127,6 +127,7 @@ doc/Doxyfile
 sparsematrix/Makefile
 src/configure.inc
 src/Makefile
+chesspexsi/Makefile
 tests/Makefile
 tests/sparsematrix/Makefile
 ])
