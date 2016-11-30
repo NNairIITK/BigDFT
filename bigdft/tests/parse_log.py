@@ -97,7 +97,8 @@ if args.timedata:
   #just load the bars data script
   
   #load the first yaml document
-  bt=Time.BigDFTiming(argcl,**args.__dict__)
+  bt=Time.TimeData(*argcl,**args.__dict__)
+  bt.show()
   print "hosts",bt.hostnames
   if bt.scf is not None:
     bt.bars_data(title=title) #timing["WFN_OPT"]["Classes"])
