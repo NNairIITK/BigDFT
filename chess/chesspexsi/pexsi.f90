@@ -217,13 +217,13 @@ module pexsi
             !write(*,*) 'NEW: iproc, mat_s_local', iproc, mat_s_local
           
             ! Allocate memory
-            allocate( colptrLocal( numColLocal + 1 ) )
-            allocate( rowindLocal( nnzLocal ) )
-            allocate( HnzvalLocal( nnzLocal ) )
-            allocate( SnzvalLocal( nnzLocal ) )
-            allocate( DMnzvalLocal( nnzLocal ) )
-            allocate( EDMnzvalLocal( nnzLocal ) )
-            allocate( FDMnzvalLocal( nnzLocal ) )
+            colptrLocal = f_malloc(numColLocal+1,id='colptrLocal')
+            rowindLocal = f_malloc(nnzLocal,id='rowindLocal')
+            HnzvalLocal = f_malloc(nnzLocal,id='HnzvalLocal')
+            SnzvalLocal = f_malloc(nnzLocal,id='SnzvalLocal')
+            DMnzvalLocal = f_malloc(nnzLocal,id='DMnzvalLocal')
+            EDMnzvalLocal = f_malloc(nnzLocal,id='EDMnzvalLocal')
+            FDMnzvalLocal = f_malloc(nnzLocal,id='FDMnzvalLocal')
           
             !call f_read_distsparsematrix_formatted (&
             !  trim(Hfile)//char(0),&
@@ -398,12 +398,12 @@ module pexsi
           !call mpi_finalize( ierr )
           
           if( isProcRead == 1 ) then
-            deallocate( colptrLocal )
-            deallocate( rowindLocal )
-            deallocate( HnzvalLocal )
-            deallocate( DMnzvalLocal )
-            deallocate( EDMnzvalLocal )
-            deallocate( FDMnzvalLocal )
+            call f_free(colptrLocal)
+            call f_free(rowindLocal)
+            call f_free(HnzvalLocal)
+            call f_free(DMnzvalLocal)
+            call f_free(EDMnzvalLocal)
+            call f_free(FDMnzvalLocal)
           endif
 
         call f_free_ptr(col_ptr_local)

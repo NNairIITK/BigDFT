@@ -38,6 +38,7 @@ program driver_random
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
   use wrapper_MPI
+  use selinv, only: selinv_wrapper
 
   implicit none
 
@@ -56,6 +57,7 @@ program driver_random
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
   character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method, diag_algorithm
+  character(len=1024) :: solution_method
   logical :: write_matrices, do_cubic_check
   type(dictionary), pointer :: options, dict_timing_info
   type(yaml_cl_parse) :: parser !< command line parser
@@ -136,6 +138,7 @@ program driver_random
       do_cubic_check = options//'do_cubic_check'
       diag_algorithm = options//'diag_algorithm'
       eval_multiplicator = options//'eval_multiplicator'
+      solution_method = options//'solution_method'
 
       call dict_free(options)
 
@@ -167,6 +170,7 @@ program driver_random
           call f_err_throw("Wrong value for 'matgen_method'")
       end if
       call yaml_map('Exponent for the matrix power calculation',expo)
+      call yaml_map('Solution method',trim(solution_method))
       call yaml_map('Write the matrices',write_matrices)
       call yaml_map('betax',betax,fmt='(f9.1)')
       call yaml_map('scalapack_blocksize',scalapack_blocksize)
@@ -187,6 +191,7 @@ program driver_random
   call mpibcast(outmatmulfile, root=0, comm=mpi_comm_world)
   call mpibcast(sparsegen_method, root=0, comm=mpi_comm_world)
   call mpibcast(matgen_method, root=0, comm=mpi_comm_world)
+  call mpibcast(solution_method, root=0, comm=mpi_comm_world)
   call mpibcast(betax, root=0, comm=mpi_comm_world)
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(evlow, root=0, comm=mpi_comm_world)
@@ -341,8 +346,14 @@ program driver_random
       call yaml_comment('Calculating mat^x',hfill='~')
       call yaml_mapping_open('Calculating mat^x')
   end if
-  call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
+  if (trim(solution_method)=='ICE') then
+      call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
+           1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
+  else if (trim(solutioN_method)=='SelInv') then
+      call selinv_wrapper(iproc, nproc, mpi_comm_world, smats, smatl(1), mat2, mat3(1))
+  else
+      call f_err_throw("wrong value for 'solution_method'; possible values are 'ICE' or 'SelInv'")
+  end if
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
   call mpibarrier()
@@ -751,5 +762,12 @@ subroutine commandline_options(parser)
        'scale the matrix by this factor to get a spectrum which is asier representable using the Chebyshe polynomials',&
        'Allowed values' .is. &
        'Double'))
+
+  call yaml_cl_parse_option(parser,'solution_method','ICS',&
+       'Indicate which solution method should be used (ICE or SelInv)',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate which solution method should be used (ICE or SelInv)',&
+       'Allowed values' .is. &
+       'String'))
 
 end subroutine commandline_options
