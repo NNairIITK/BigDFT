@@ -530,4 +530,59 @@ module pexsi
    !!   end subroutine distribute_matrix
 
 
+    subroutine pexsi_wrapper(iproc, nproc, smats, smatm, smatl, ovrlp, ham, &
+               foe_obj, npoles, mumin, mumax, mu, temperature, tol_charge, &
+               kernel, ebs)
+      use futile
+      use sparsematrix_base
+      use foe_base
+      use sparsematrix, only: transform_sparse_matrix
+      use sparsematrix_init, only: sparsebigdft_to_ccs
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(in) :: smats, smatm, smatl
+      type(matrices),intent(in) :: ovrlp, ham
+      type(foe_data),intent(in) :: foe_obj
+      integer,intent(in) :: npoles
+      real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
+      type(matrices),intent(out) :: kernel
+      real(kind=8),intent(out) :: ebs
+    
+      ! Local variables
+      integer,dimension(:),allocatable :: row_ind, col_ptr
+      real(mp),dimension(:),allocatable :: ovrlp_large, ham_large
+    
+      call f_routine(id='pexsi_wrapper')
+    
+      !call write_pexsi_matrices(iproc, nproc, smatm, smats, ham%matrix_compr, ovrlp%matrix_compr)
+      row_ind = f_malloc(smatl%nvctr,id='row_ind')
+      col_ptr = f_malloc(smatl%nfvctr,id='col_ptr')
+      call sparsebigdft_to_ccs(smatl%nfvctr, smatl%nvctr, smatl%nseg, smatl%keyg, row_ind, col_ptr)
+      ! AT the moment not working for nspin>1
+      ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_FULL, id='ovrlp_large')
+      ham_large = sparsematrix_malloc(smatl, iaction=SPARSE_FULL, id='ham_large')
+      if (smats%ntaskgroup/=1 .or. smatm%ntaskgroup/=1 .or. smatl%ntaskgroup/=1) then
+          call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      call transform_sparse_matrix(iproc, smats, smatl, SPARSE_FULL, 'small_to_large', &
+           smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large)
+      call transform_sparse_matrix(iproc, smatm, smatl, SPARSE_FULL, 'small_to_large', &
+           smat_in=ham%matrix_compr, lmat_out=ham_large)
+      call pexsi_driver(iproc, nproc, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
+           ham_large, ovrlp_large, foe_data_get_real(foe_obj,"charge",1), npoles, &
+           mumin, mumax, mu, temperature, tol_charge, &
+           kernel%matrix_compr, ebs)
+    
+      call f_free(ovrlp_large)
+      call f_free(ham_large)
+      call f_free(row_ind)
+      call f_free(col_ptr)
+    
+      call f_release_routine()
+    
+    end subroutine pexsi_wrapper
+
+
 end module pexsi
