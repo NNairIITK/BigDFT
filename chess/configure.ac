@@ -86,11 +86,22 @@ AX_DYNAMIC_LIBRARIES([], [f_lib_initialize], [$LIB_FUTILE_LIBS])
 dnl Test accelerators
 AX_ACC_CUDA()
 
+dnl PEXSI
+AC_ARG_WITH(pexsi, AS_HELP_STRING([--with-pexsi],
+            [Give the link-line for PEXSI.]),
+            ac_pexsi_linkline=$withval, ac_pexsi_linkline=)
+ax_have_pexsi="no"
+if test -n "$ac_pexsi_linkline" ; then
+  PEXSI_LINKLINE="$ac_pexsi_linkline"
+  ax_have_pexsi="yes"
+fi
+AM_CONDITIONAL(HAVE_PEXSI, test $ax_have_pexsi = "yes")
+
 AX_LINALG()
 AX_ETSF_IO()
 
 dnl Agregate all the optional libs.
-LIB_CHESS_DEPS="$LIBETSFIO_LIBS $LIB_FUTILE_LIBS"
+LIB_CHESS_DEPS="$LIBETSFIO_LIBS $LIB_FUTILE_LIBS $PEXSI_LINKLINE"
 dnl if the futile libraries are dynamic add the dependencies
 if test $ax_FUTILE_static != "yes" ; then
   LIB_CHESS_DEPS="$LIB_CHESS_DEPS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
@@ -143,6 +154,7 @@ Options:
    | linked libraries:       $MPI_LIBS
    | MPI_INIT_THREAD avail:  $ac_with_mpinithread
    | MPI2 support:           $ac_with_mpi2
+  With PEXSI:                $ax_have_pexsi
   With ETSF_IO:              $ax_have_etsf_io
    | include dir.:           $LIBETSFIO_INCLUDE
 
