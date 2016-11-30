@@ -350,7 +350,17 @@ program driver_random
       call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
            1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
   else if (trim(solutioN_method)=='SelInv') then
+      if (expo/=-1.0_mp) then
+          call f_err_throw('Selecetd Inversion is only possible for the calculation of the inverse')
+      end if
       call selinv_wrapper(iproc, nproc, mpi_comm_world, smats, smatl(1), mat2, mat3(1))
+  else if (trim(solutioN_method)=='LAPACK') then
+      mat2%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat2%matrix')
+      mat3(1)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
+      call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .false., &
+            expo, smats, smatl(1), mat2, mat3(1), algorithm=diag_algorithm)
+      call f_free_ptr(mat2%matrix)
+      call f_free_ptr(mat3(1)%matrix)
   else
       call f_err_throw("wrong value for 'solution_method'; possible values are 'ICE' or 'SelInv'")
   end if
