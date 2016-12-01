@@ -1242,7 +1242,7 @@ contains
   subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt,norbu,norbd)
     !use module_base
     use yaml_output
-    use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
+    !use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
     use public_enums
     use abi_interfaces_numeric, only: abi_derf_ab
     implicit none
@@ -1262,7 +1262,7 @@ contains
     real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
     real(gp) :: a, x, xu, xd, f, df, tt
     !integer :: ierr
-    type(fermi_aux) :: ft
+    !type(fermi_aux) :: ft
 
 
     exitfermi=.false.
@@ -1317,7 +1317,7 @@ contains
     end do
     !melec=nint(charge)
     !if (iproc == 0) write(1000+iproc,*) 'charge,wf',charge,melec,wf0
-    call init_fermi_level(charge/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
+    !call init_fermi_level(charge/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
 
     ! Send all eigenvalues to all procs (presumably not necessary)
     call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &

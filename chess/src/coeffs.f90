@@ -27,6 +27,7 @@ module coeffs
   !use yaml_output
   use wrapper_linalg
   use futile
+  use time_profiling
   implicit none
 
   private
@@ -152,7 +153,8 @@ module coeffs
          !denskern%matrix_compr = denskern_mat%matrix_compr
       end if
     
-      call timing(iproc,'calc_energy','ON')
+      !call timing(iproc,'calc_energy','ON')
+      call f_timing(TCAT_SMAT_MULTIPLICATION,'ON')
       energy=0.0_mp
       do ispin=1,denskern%nspin
           energy = energy + trace_AB(iproc, nproc, comm, ham, denskern, ham_mat, denskern_mat, ispin)
@@ -189,7 +191,8 @@ module coeffs
       !!if (nproc>1) then
       !!   call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
       !!end if
-      call timing(iproc,'calc_energy','OF')
+      !call timing(iproc,'calc_energy','OF')
+      call f_timing(TCAT_SMAT_MULTIPLICATION,'OF')
     
     end subroutine calculate_kernel_and_energy
 
@@ -239,71 +242,72 @@ module coeffs
       if (communication_strategy==ALLGATHERV) then
           if (iproc==0) call yaml_map('communication strategy kernel','ALLGATHERV')
           stop 'calculate_density_kernel: ALLGATHERV option needs reworking due to the spin'
-          call timing(iproc,'calc_kernel','ON')
-          !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-          density_kernel_partial=f_malloc((/denskern%nfvctr,max(denskern%nfvctrp,1)/), id='density_kernel_partial')
-          fcoeff=f_malloc0((/denskern%nfvctrp,norb/), id='fcoeff')
-          if(denskern%nfvctrp>0) then
-              !decide whether we calculate the density kernel or just transformation matrix
-              if(isKernel) then
-                 do iorb=1,norb
-                    !call daxpy(denskern%nfvctrp,orbs%occup(iorb),coeff(1+denskern%isfvctr,iorb),1,fcoeff(1+denskern%isfvctr,iorb),1)
-                    do itmb=1,denskern%nfvctrp
-                         fcoeff(itmb,iorb) = occup(iorb)*coeff(denskern%isfvctr+itmb,iorb)
-                    end do
-                 end do
-              else
-                 do iorb=1,norb
-                    do itmb=1,denskern%nfvctrp
-                         fcoeff(itmb,iorb) = coeff(denskern%isfvctr+itmb,iorb)
-                    end do
-                 end do
-              end if
+          !!call timing(iproc,'calc_kernel','ON')
+          !!!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
+          !!density_kernel_partial=f_malloc((/denskern%nfvctr,max(denskern%nfvctrp,1)/), id='density_kernel_partial')
+          !!fcoeff=f_malloc0((/denskern%nfvctrp,norb/), id='fcoeff')
+          !!if(denskern%nfvctrp>0) then
+          !!    !decide whether we calculate the density kernel or just transformation matrix
+          !!    if(isKernel) then
+          !!       do iorb=1,norb
+          !!          !call daxpy(denskern%nfvctrp,orbs%occup(iorb),coeff(1+denskern%isfvctr,iorb),1,fcoeff(1+denskern%isfvctr,iorb),1)
+          !!          do itmb=1,denskern%nfvctrp
+          !!               fcoeff(itmb,iorb) = occup(iorb)*coeff(denskern%isfvctr+itmb,iorb)
+          !!          end do
+          !!       end do
+          !!    else
+          !!       do iorb=1,norb
+          !!          do itmb=1,denskern%nfvctrp
+          !!               fcoeff(itmb,iorb) = coeff(denskern%isfvctr+itmb,iorb)
+          !!          end do
+          !!       end do
+          !!    end if
     
-              call dgemm('n', 't', denskern%nfvctr, denskern%nfvctrp, norb, 1.d0, coeff(1,1), denskern%nfvctr, &
-                   fcoeff(1,1), denskern%nfvctrp, 0.d0, density_kernel_partial(1,1), denskern%nfvctr)
-          end if
-          call f_free(fcoeff)
-          call timing(iproc,'calc_kernel','OF')
+          !!    call dgemm('n', 't', denskern%nfvctr, denskern%nfvctrp, norb, 1.d0, coeff(1,1), denskern%nfvctr, &
+          !!         fcoeff(1,1), denskern%nfvctrp, 0.d0, density_kernel_partial(1,1), denskern%nfvctr)
+          !!end if
+          !!call f_free(fcoeff)
+          !!call timing(iproc,'calc_kernel','OF')
     
-          call timing(iproc,'waitAllgatKern','ON')
-          call mpibarrier(comm)
-          call timing(iproc,'waitAllgatKern','OF')
+          !!call timing(iproc,'waitAllgatKern','ON')
+          !!call mpibarrier(comm)
+          !!call timing(iproc,'waitAllgatKern','OF')
     
-          !denskern_%matrix=f_malloc_ptr((/denskern%nfvctr,denskern%nfvctr/), id='denskern_%matrix')
+          !!!denskern_%matrix=f_malloc_ptr((/denskern%nfvctr,denskern%nfvctr/), id='denskern_%matrix')
     
-          if (.not.keep_uncompressed) then
-              denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
-          end if
+          !!if (.not.keep_uncompressed) then
+          !!    denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
+          !!end if
     
-          if (nproc > 1) then
-             call timing(iproc,'commun_kernel','ON')
-             recvcounts=f_malloc((/0.to.nproc-1/),id='recvcounts')
-             dspls=f_malloc((/0.to.nproc-1/),id='dspls')
-             do jproc=0,nproc-1
-                 recvcounts(jproc)=denskern%nfvctr*denskern%nfvctr_par(jproc)
-                 dspls(jproc)=denskern%nfvctr*denskern%isfvctr_par(jproc)
-             end do
-             sendcount=denskern%nfvctr*denskern%nfvctrp
-             call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
-                  denskern_%matrix(1,1,1), recvcounts, dspls, mpi_double_precision, &
-                  comm, ierr)
-             call f_free(recvcounts)
-             call f_free(dspls)
-             call timing(iproc,'commun_kernel','OF')
-          else
-             call vcopy(denskern%nfvctr*denskern%nfvctrp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
-          end if
+          !!if (nproc > 1) then
+          !!   call timing(iproc,'commun_kernel','ON')
+          !!   recvcounts=f_malloc((/0.to.nproc-1/),id='recvcounts')
+          !!   dspls=f_malloc((/0.to.nproc-1/),id='dspls')
+          !!   do jproc=0,nproc-1
+          !!       recvcounts(jproc)=denskern%nfvctr*denskern%nfvctr_par(jproc)
+          !!       dspls(jproc)=denskern%nfvctr*denskern%isfvctr_par(jproc)
+          !!   end do
+          !!   sendcount=denskern%nfvctr*denskern%nfvctrp
+          !!   call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
+          !!        denskern_%matrix(1,1,1), recvcounts, dspls, mpi_double_precision, &
+          !!        comm, ierr)
+          !!   call f_free(recvcounts)
+          !!   call f_free(dspls)
+          !!   call timing(iproc,'commun_kernel','OF')
+          !!else
+          !!   call vcopy(denskern%nfvctr*denskern%nfvctrp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
+          !!end if
     
-          call f_free(density_kernel_partial)
+          !!call f_free(density_kernel_partial)
     
-          call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
-          if (.not.keep_uncompressed) then
-              call f_free_ptr(denskern_%matrix)
-          end if
+          !!call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=denskern_%matrix_compr)
+          !!if (.not.keep_uncompressed) then
+          !!    call f_free_ptr(denskern_%matrix)
+          !!end if
       else if (communication_strategy==ALLREDUCE) then
           if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
-          call timing(iproc,'calc_kernel','ON')
+          !call timing(iproc,'calc_kernel','ON')
+          call f_timing(TCAT_HL_DGEMM,'ON')
           !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
           !denskern_%matrix=f_malloc_ptr((/denskern%nfvctr,denskern%nfvctr/), id='denskern_%matrix_compr')
           if (.not.keep_uncompressed) then
@@ -353,7 +357,8 @@ module coeffs
           else
               call f_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
           end if
-          call timing(iproc,'calc_kernel','OF')
+          !call timing(iproc,'calc_kernel','OF')
+          call f_timing(TCAT_HL_DGEMM,'OF')
     
           !!if (iproc==0) then
           !!    do ispin=1,denskern%nspin
@@ -365,27 +370,33 @@ module coeffs
           !!    end do
           !!end if
     
-          call timing(iproc,'waitAllgatKern','ON')
-          call mpi_barrier(comm,ierr)
-          call timing(iproc,'waitAllgatKern','OF')
+          !!call timing(iproc,'waitAllgatKern','ON')
+          !!call mpi_barrier(comm,ierr)
+          !!call timing(iproc,'waitAllgatKern','OF')
+          call f_timing(TCAT_SMAT_COMPRESSION,'ON')
     
           tmparr = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='tmparr')
           call compress_matrix(iproc,nproc,denskern,inmat=denskern_%matrix,outmat=tmparr)
+          call f_timing(TCAT_SMAT_COMPRESSION,'OF')
           if (keep_uncompressed) then
               if (nproc > 1) then
-                  call timing(iproc,'commun_kernel','ON')
+                  !call timing(iproc,'commun_kernel','ON')
+                  call f_timing(TCAT_HL_MATRIX_COMMUNICATIONS,'ON')
                   call mpiallred(denskern_%matrix(1,1,1), denskern%nspin*denskern%nfvctr**2, &
                        mpi_sum, comm=comm)
-                  call timing(iproc,'commun_kernel','OF')
+                  !call timing(iproc,'commun_kernel','OF')
+                  call f_timing(TCAT_HL_MATRIX_COMMUNICATIONS,'OF')
               end if
           end if
           if (.not.keep_uncompressed) then
               call f_free_ptr(denskern_%matrix)
           end if
           if (nproc > 1) then
-              call timing(iproc,'commun_kernel','ON')
+              !call timing(iproc,'commun_kernel','ON')
+              call f_timing(TCAT_HL_MATRIX_COMMUNICATIONS,'ON')
               call mpiallred(tmparr(1), denskern%nspin*denskern%nvctr, mpi_sum, comm=comm)
-              call timing(iproc,'commun_kernel','OF')
+              !call timing(iproc,'commun_kernel','OF')
+              call f_timing(TCAT_HL_MATRIX_COMMUNICATIONS,'OF')
           end if
           call extract_taskgroup(denskern, tmparr, denskern_%matrix_compr)
           call f_free(tmparr)

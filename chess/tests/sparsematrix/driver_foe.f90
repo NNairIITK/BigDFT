@@ -34,13 +34,14 @@ program driver_foe
                                     sparse_matrix_and_matrices_init_from_file_bigdft
   use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix, get_minmax_eigenvalues
   use sparsematrix_init, only: matrixindex_in_compressed, write_sparsematrix_info, &
-                               get_number_of_electrons
+                               get_number_of_electrons, distribute_on_tasks
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
   use wrapper_MPI
   use wrapper_linalg
   use pexsi, only: pexsi_wrapper
+  use coeffs, only: get_coeffs_diagonalization, calculate_kernel_and_energy
 
   implicit none
 
@@ -50,11 +51,12 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
-  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles
+  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb
   real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
-  real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max
+  real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max, eval_all, eval_occup, occup
+  real(mp),dimension(:,:),allocatable :: coeff
   real(mp) :: energy, tr_KS, tr_KS_check, ef
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr, fscale_lowerbound, fscale_upperbound
@@ -340,8 +342,33 @@ program driver_foe
            foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, &
            pexsi_temperature, pexsi_tol_charge, &
            mat_k, energy)
+  else if (trim(kernel_method)=='LAPACK') then
+      norbu = smat_h%nfvctr
+      norbd = 0
+      norb = norbu + norbd
+      coeff = f_malloc((/smat_h%nfvctr,norb/),id='coeff')
+      eval_all = f_malloc(smat_h%nfvctr,id='eval_all')
+      eval_occup = f_malloc(norb,id='eval_occup')
+      call get_coeffs_diagonalization(iproc, nproc, mpi_comm_world, &
+           smat_h%nfvctr, norbu, norbd, norb, scalapack_blocksize, &
+           smat_s, smat_h, mat_s, mat_h, coeff, &
+           eval_all, eval_occup, info)
+      ! Here should come the proper calculation of the occupation numbers...
+      occup = f_malloc0(norb,id='occup')
+      if (smat_h%nspin/=1) call f_err_throw('The kernel calculation with LAPACK is currently not possible for nspin/=1')
+      ii = nint(0.5_mp*foe_data_get_real(foe_obj,"charge",1))
+      occup(1:ii) = 2.0_mp
+      call distribute_on_tasks(norb, iproc, nproc, norbp, isorb)
+      write(*,*) 'iproc, isorb, norbp', iproc, isorb, norbp
+      call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
+           smat_k, smat_h, mat_k, mat_h, energy,&
+           coeff, norbp, isorb, norbu, norb, occup, .true.)
+      call f_free(coeff)
+      call f_free(eval_all)
+      call f_free(eval_occup)
+      call f_free(occup)
   else
-      call f_err_throw("wrong value for 'kernel_method'; possible values are 'FOE' or 'PEXSI'")
+      call f_err_throw("wrong value for 'kernel_method'; possible values are 'FOE', 'PEXSI' or 'LAPACK'")
   end if
 
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(), &

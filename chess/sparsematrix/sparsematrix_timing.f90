@@ -81,7 +81,6 @@ module sparsematrix_timing
            '(un)compression communication of sparse matrices', TCAT_SMAT_COMPRESSION_COMMUNICATION)
       call f_timing_category('Sparse matrix transformation', smat_manip, &
            'sparsity pattern transformation of sparse matrices', TCAT_SMAT_TRANSFORMATION)
-  
       call f_timing_category('Sparse matrix multiplication', smat_manip, &
            'sparse matrix matrix multiplication', TCAT_SMAT_MULTIPLICATION)
   
