@@ -286,6 +286,7 @@ program driver_foe
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
 
@@ -324,6 +325,10 @@ program driver_foe
       call f_free(eval_min)
       call f_free(eval_max)
   end if
+
+  call mpibarrier()
+  call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(), &
+       gather_routine=gather_timings)
 
   ! Calculate the density kernel for the system described by the pair smat_s/mat_s and smat_h/mat_h and 
   ! store the result in smat_k/mat_k.
@@ -378,6 +383,7 @@ program driver_foe
       call f_err_throw("wrong value for 'kernel_method'; possible values are 'FOE', 'PEXSI' or 'LAPACK'")
   end if
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
 
@@ -446,6 +452,7 @@ program driver_foe
   call f_free_ptr(overlap)
   call f_free_ptr(overlap_large)
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
 

@@ -63,6 +63,8 @@ module pexsi
       !use time_profiling
       use dynamic_memory
       use futile
+      use time_profiling
+      use sparsematrix_timing
       implicit none
       !include 'mpif.h'
       
@@ -114,20 +116,6 @@ module pexsi
 
       if (iproc==0) call yaml_comment('PEXSI calculation of kernel',hfill='~')
       
-      !call mpi_init( ierr )
-      !call mpi_comm_rank( MPI_COMM_WORLD, iproc, ierr )
-      !call mpi_comm_size( MPI_COMM_WORLD, nproc, ierr )
-      
-      !if (nproc/=1) then
-      !    !call f_err_throw('pexsi not yet ready in parallel')
-      !    call yaml_warning('pexsi not yet ready in parallel')
-      !end if
-      
-      !Hfile            = "lap2dr.matrix"
-      !Sfile            = "lap2dr.matrix"
-      !Hfile            = "hamiltonian_sparse_PEXSI.bin"
-      !Sfile            = "overlap_sparse_PEXSI.bin"
-
       ! Determine the number of processes used.
       ! Ideal number of processes per pole:
       ii = nproc! / npoles
@@ -140,7 +128,6 @@ module pexsi
       maxproc = nprow*npcol
 
       if (iproc==0) then
-          !write(*,*) 'nproc, npoles, nprow, npcol, maxproc', nproc, npoles, nprow, npcol, maxproc
           call yaml_mapping_open('PEXSI parallelization')
           call yaml_map('Total number of cores',nproc)
           call yaml_map('Number of cores used',maxproc)
@@ -164,23 +151,17 @@ module pexsi
           
       if (iproc<maxproc) then
           
-          !if( isProcRead == 1 ) then
-            !call f_read_distsparsematrix_formatted_head( &
-            !  trim(Hfile)//char(0),&
-            !  nrows,&
-            !  nnz,&
-            !  nnzLocal,&
-            !  numColLocal,&
-            !  readComm )
-
+            call f_timing(TCAT_PEXSI_DISTRIBUTE,'ON')
             call distribute_matrix(iproc, maxproc, nfvctr, nvctr, col_ptr, row_ind, mat_h, mat_s, &
                  nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
+            call f_timing(TCAT_PEXSI_DISTRIBUTE,'OF')
             !Because they are C integers..?
             nrows = int(nfvctr,kind=c_int)
             nnz = int(nvctr,kind=c_int)
             nnzLocal = int(nvctr_local,kind=c_int)
             numColLocal = int(nfvctr_local,kind=c_int)
 
+            call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
             nfvctr_local_min = nfvctr_local
             nfvctr_local_max = nfvctr_local
             call mpiallred(nfvctr_local_min,count=1,op=mpi_min,comm=readComm)
@@ -191,6 +172,7 @@ module pexsi
             call mpiallred(nvctr_local_min,count=1,op=mpi_min,comm=readComm)
             call mpiallred(nvctr_local_max,count=1,op=mpi_max,comm=readComm)
             nvctr_local_avg = real(nvctr,kind=8)/real(maxproc,kind=8)
+            call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
           
             if(iproc== 0) then
               call yaml_mapping_open('Dimensions of the matrices')
@@ -206,15 +188,6 @@ module pexsi
               call yaml_mapping_close()
               call yaml_mapping_close()
             endif
-            !write(*,*) 'OLD: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nrows, nnz, nnzLocal, numColLocal
-
-
-            !write(*,*) 'NEW: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nfvctr, nvctr, nnzLocal, numColLocal
-            !write(*,*) 'NEW: col_ptr_local',col_ptr_local 
-            !write(*,*) 'NEW: row_ind_local',row_ind_local
-            !write(*,*) 'NEW: mat_h_local',mat_h_local
-            !if (iproc==0) write(*,*) 'NEW:  mat_s', mat_s
-            !write(*,*) 'NEW: iproc, mat_s_local', iproc, mat_s_local
           
             ! Allocate memory
             colptrLocal = f_malloc(numColLocal+1,id='colptrLocal')
@@ -225,32 +198,6 @@ module pexsi
             EDMnzvalLocal = f_malloc(nnzLocal,id='EDMnzvalLocal')
             FDMnzvalLocal = f_malloc(nnzLocal,id='FDMnzvalLocal')
           
-            !call f_read_distsparsematrix_formatted (&
-            !  trim(Hfile)//char(0),&
-            !  nfvctr,&
-            !  nvctr,&
-            !  nnzLocal,&
-            !  numColLocal,&
-            !  colptrLocal,&
-            !  rowindLocal,&
-            !  HnzvalLocal,&
-            !  readComm )
-
-          
-            !call f_read_distsparsematrix_formatted (&
-            !  trim(Sfile)//char(0),&
-            !  nfvctr,&
-            !  nvctr,&
-            !  nnzLocal,&
-            !  numColLocal,&
-            !  colptrLocal,&
-            !  rowindLocal,&
-            !  SnzvalLocal,&
-            !  readComm )
-
-            !write(*,*) 'OLD: colptrLocal',colptrLocal
-            !write(*,*) 'OLD: rowindLocal',rowindLocal
-
             do i=1,nfvctr_local+1
                 ic = int(i,kind=c_int)
                 colptrLocal(ic) = int(col_ptr_local(i),kind=c_int)
@@ -262,12 +209,9 @@ module pexsi
                 SnzvalLocal(ic) = real(mat_s_local(i),kind=c_double)
             end do
 
-            !write(*,*) 'OLD: HnzvalLocal',HnzvalLocal
-            !write(*,*) 'OLD: iproc, SnzvalLocal',iproc,SnzvalLocal
-          
-          !endif
           
           ! Step 1. Initialize PEXSI 
+          call f_timing(TCAT_PEXSI_INIT,'ON')
           
           ! Set the outputFileIndex to be the pole index.
           ! The first processor for each pole outputs information
@@ -317,6 +261,7 @@ module pexsi
                 int(0,kind=c_int),&
                 SnzvalLocal,&
                 info ) 
+          call f_timing(TCAT_PEXSI_INIT,'OF')
           !write(*,*) 'after f_ppexsi_load_real_symmetric_hs_matrix, info',iproc, info
           !call mpi_finalize(ierr)
           !stop
@@ -335,6 +280,7 @@ module pexsi
         
           !call mpi_finalize(ierr)
           !stop
+          call f_timing(TCAT_PEXSI_KERNEL,'ON')
           call f_ppexsi_dft_driver(&
             plan,&
             options,&
@@ -346,6 +292,7 @@ module pexsi
             numTotalInertiaIter,&
             numTotalPEXSIIter,&
             info)
+          call f_timing(TCAT_PEXSI_KERNEL,'OF')
 
           !write(*,*) 'after f_ppexsi_dft_driver, iproc', iproc
           
@@ -360,6 +307,7 @@ module pexsi
           !endif
           
           if( isProcRead == 1 ) then
+            call f_timing(TCAT_PEXSI_RETRIEVE,'ON')
             call f_ppexsi_retrieve_real_symmetric_dft_matrix(&
               plan,&
               DMnzvalLocal,&
@@ -369,6 +317,7 @@ module pexsi
               totalEnergyS,&
               totalFreeEnergy,&
               info)
+            call f_timing(TCAT_PEXSI_RETRIEVE,'OF')
           
             if( iproc == 0 ) then
                 call yaml_mapping_open('Energies from PEXSI')
@@ -383,8 +332,9 @@ module pexsi
           
           
           ! Step 3. Clean up */
-          
+          call f_timing(TCAT_PEXSI_FINALIZE,'ON')
           call f_ppexsi_plan_finalize( plan, info )
+          call f_timing(TCAT_PEXSI_FINALIZE,'OF')
           
           
           ! Gather the local copies of the kernel
@@ -394,8 +344,10 @@ module pexsi
               kernel(isvctr_local+i-1) = DMnzvalLocal(i)
               energy_kernel(isvctr_local+i-1) = EDMnzvalLocal(i)
           end do
+          call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
           call mpiallred(kernel,mpi_sum,comm=readComm)
           call mpiallred(energy_kernel,mpi_sum,comm=readComm)
+          call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
           !call mpi_finalize( ierr )
           
@@ -419,9 +371,11 @@ module pexsi
       call mpi_comm_free( readComm, ierr )
 
       ! In case readComm was not the same as the global communicator
+      call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
       call mpibcast(energy, root=0, comm=comm) 
       call mpibcast(kernel, root=0, comm=comm) 
       call mpibcast(energy_kernel, root=0, comm=comm) 
+      call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
       if (iproc==0) call yaml_comment('PEXSI calculation of kernel finished',hfill='~')
       
@@ -567,10 +521,11 @@ module pexsi
       call f_routine(id='pexsi_wrapper')
     
       !call write_pexsi_matrices(iproc, nproc, smatm, smats, ham%matrix_compr, ovrlp%matrix_compr)
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'ON')
       row_ind = f_malloc(smatl%nvctr,id='row_ind')
       col_ptr = f_malloc(smatl%nfvctr,id='col_ptr')
       call sparsebigdft_to_ccs(smatl%nfvctr, smatl%nvctr, smatl%nseg, smatl%keyg, row_ind, col_ptr)
-      ! AT the moment not working for nspin>1
+      ! At the moment not working for nspin>1
       ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_FULL, id='ovrlp_large')
       ham_large = sparsematrix_malloc(smatl, iaction=SPARSE_FULL, id='ham_large')
       if (smats%ntaskgroup/=1 .or. smatm%ntaskgroup/=1 .or. smatl%ntaskgroup/=1) then
@@ -580,6 +535,7 @@ module pexsi
            smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large)
       call transform_sparse_matrix(iproc, smatm, smatl, SPARSE_FULL, 'small_to_large', &
            smat_in=ham%matrix_compr, lmat_out=ham_large)
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'OF')
       call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
            ham_large, ovrlp_large, charge, npoles, &
            mumin, mumax, mu, temperature, tol_charge, &
