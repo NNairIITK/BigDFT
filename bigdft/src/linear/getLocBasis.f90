@@ -43,6 +43,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use locreg_operations, only: confpot_data
   use foe_base, only: foe_data_get_real
   use pexsi, only: pexsi_wrapper !pexsi_driver
+  use coeffs, only: get_coeffs_diagonalization
   implicit none
 
   ! Calling arguments
@@ -370,89 +371,104 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   ! Diagonalize the Hamiltonian.
 !  if (iproc==0) call yaml_sequence_open('kernel method')
   if(scf_mode==LINEAR_MIXPOT_SIMPLE .or. scf_mode==LINEAR_MIXDENS_SIMPLE) then
-      ! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
-      matrixElements = f_malloc((/ tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,2 /),id='matrixElements')
-      eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
 
-      do ispin=1,tmb%linmat%s%nspin
-          call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
-          call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
-          if (iproc==0) call yaml_map('method','diagonalization')
-          call diagonalizeHamiltonian2(iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%orthpar%blocksize_pdsyev, tmb%linmat%m%nfvctr, &
-               matrixElements(1,1,1), matrixElements(1,1,2), eval)
-
-          ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
-          ! all other tasks (in this way avoiding that different MPI tasks have different values)
-          if (nproc>1) then
-              if (iproc==0) call yaml_mapping_open('Cross-check among MPI tasks')
-              call mpibcast(matrixElements(:,:,1), comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
-              if (iproc==0) call yaml_map('max diff of eigenvectors',maxdiff,fmt='(es8.2)')
-              call mpibcast(eval, comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
-              if (iproc==0) call yaml_map('max diff of eigenvalues',maxdiff,fmt='(es8.2)')
-              if (iproc==0) call yaml_mapping_close()
-          end if
-
-          ! copy all the eigenvalues
-          call vcopy(tmb%linmat%m%nfvctr, eval(1), 1, tmb%orbs%eval((ispin-1)*tmb%linmat%m%nfvctr+1), 1)
-          ! copy the eigenvalues of the occupied states
-          if (ispin==1) then
-              call vcopy(orbs%norbu, eval(1), 1, orbs%eval(1), 1)
-          else
-              call vcopy(orbs%norbd, eval(1), 1, orbs%eval(orbs%norbu+1), 1)
-          end if
-
-          ! Make sure that the eigenvectors have the same sign on all MPI tasks.
-          ! To do so, ensure that the first entry is always positive.
-          do iorb=1,tmb%linmat%m%nfvctr
-              if (matrixElements(1,iorb,1)<0.d0) then
-                  call dscal(tmb%linmat%m%nfvctr, -1.d0, matrixElements(1,iorb,1), 1)
-              end if
-          end do
-
-          ! Copy the diagonalized matrix to the coeff array.
-          ! SM: I think it is ok now...
-          !!! In principle I would prefer to copy orbs%norbu/orbs%norbd states.
-          !!! However this is not possible since the extra states are not included in there (WHY?!)
-          !!! Therefore as a workaround I use the following dirty solution with different cases.
-          if (tmb%linmat%l%nspin/=1) then
-              !write(*,*) 'orbs%norbu, orbs%norbd, orbs%norb, extra_states', orbs%norbu, orbs%norbd, orbs%norb, extra_states
-              !if (extra_states>0) stop 'extra states and spin polarization not possible at the moment'
-              ! Only copy the occupied states
-              if (ispin==1) then
-                  !write(*,*) 'DEBUG NORBU', orbs%norbu
-                  call vcopy(orbs%norbu*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
-              else if (ispin==2) then
-                  !write(*,*) 'DEBUG NORBD', orbs%norbd
-                  call vcopy(orbs%norbd*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,orbs%norbu+1), 1)
-              end if
-          else
-              ! Copy all states
-              call vcopy(tmb%orbs%norb*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
-          end if
-          infoCoeff=0
+      write(*,*) 'size(tmb%orbs%eval), size(orbs%eval), orbs%norbu, orbs%norbd', &
+                  size(tmb%orbs%eval), size(orbs%eval), orbs%norbu, orbs%norbd
+      call get_coeffs_diagonalization(iproc, nproc, bigdft_mpi%mpi_comm, &
+           tmb%linmat%m%nfvctr, orbs%norbu, orbs%norbd, orbs%norb, tmb%orthpar%blocksize_pdsyev, &
+           tmb%linmat%s, tmb%linmat%m, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%coeff, &
+           tmb%orbs%eval, orbs%eval, infoCoeff)
+      !!write(1000,*) 'orbs%eval',orbs%eval
+      !!write(1001,*) 'tmb%orbs%eval',tmb%orbs%eval
+      !!write(1002,*) 'tmb%coeff',tmb%coeff
 
 
-          ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
-          ! instead just use -0.5 everywhere
-          !tmb%orbs%eval(:) = -0.5_dp
-      end do
+      !!! Keep the Hamiltonian and the overlap since they will be overwritten by the diagonalization.
+      !!matrixElements = f_malloc((/ tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,2 /),id='matrixElements')
+      !!eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
 
-      call f_free(eval)
+      !!do ispin=1,tmb%linmat%s%nspin
+      !!    call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
+      !!    call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
+      !!    if (iproc==0) call yaml_map('method','diagonalization')
+      !!    call diagonalizeHamiltonian2(iproc, nproc, bigdft_mpi%mpi_comm, &
+      !!         tmb%orthpar%blocksize_pdsyev, tmb%linmat%m%nfvctr, &
+      !!         matrixElements(1,1,1), matrixElements(1,1,2), eval)
 
-      !!if (iproc==0) then
-      !!    do iorb=1,orbs%norb
-      !!        do jorb=1,tmb%linmat%m%nfvctr
-      !!            if (orbs%spinsgn(iorb)>0.d0) then
-      !!                write(620,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
-      !!            else
-      !!                write(621,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
-      !!            end if
-      !!        end do
+      !!    ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
+      !!    ! all other tasks (in this way avoiding that different MPI tasks have different values)
+      !!    if (nproc>1) then
+      !!        if (iproc==0) call yaml_mapping_open('Cross-check among MPI tasks')
+      !!        call mpibcast(matrixElements(:,:,1), comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
+      !!        if (iproc==0) call yaml_map('max diff of eigenvectors',maxdiff,fmt='(es8.2)')
+      !!        call mpibcast(eval, comm=bigdft_mpi%mpi_comm, maxdiff=maxdiff)
+      !!        if (iproc==0) call yaml_map('max diff of eigenvalues',maxdiff,fmt='(es8.2)')
+      !!        if (iproc==0) call yaml_mapping_close()
+      !!    end if
+
+      !!    ! copy all the eigenvalues
+      !!    call vcopy(tmb%linmat%m%nfvctr, eval(1), 1, tmb%orbs%eval((ispin-1)*tmb%linmat%m%nfvctr+1), 1)
+      !!    ! copy the eigenvalues of the occupied states
+      !!    if (ispin==1) then
+      !!        call vcopy(orbs%norbu, eval(1), 1, orbs%eval(1), 1)
+      !!    else
+      !!        call vcopy(orbs%norbd, eval(1), 1, orbs%eval(orbs%norbu+1), 1)
+      !!    end if
+
+      !!    ! Make sure that the eigenvectors have the same sign on all MPI tasks.
+      !!    ! To do so, ensure that the first entry is always positive.
+      !!    do iorb=1,tmb%linmat%m%nfvctr
+      !!        if (matrixElements(1,iorb,1)<0.d0) then
+      !!            call dscal(tmb%linmat%m%nfvctr, -1.d0, matrixElements(1,iorb,1), 1)
+      !!        end if
       !!    end do
-      !!end if
 
-      call f_free(matrixElements)
+      !!    ! Copy the diagonalized matrix to the coeff array.
+      !!    ! SM: I think it is ok now...
+      !!    !!! In principle I would prefer to copy orbs%norbu/orbs%norbd states.
+      !!    !!! However this is not possible since the extra states are not included in there (WHY?!)
+      !!    !!! Therefore as a workaround I use the following dirty solution with different cases.
+      !!    if (tmb%linmat%l%nspin/=1) then
+      !!        !write(*,*) 'orbs%norbu, orbs%norbd, orbs%norb, extra_states', orbs%norbu, orbs%norbd, orbs%norb, extra_states
+      !!        !if (extra_states>0) stop 'extra states and spin polarization not possible at the moment'
+      !!        ! Only copy the occupied states
+      !!        if (ispin==1) then
+      !!            !write(*,*) 'DEBUG NORBU', orbs%norbu
+      !!            call vcopy(orbs%norbu*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
+      !!        else if (ispin==2) then
+      !!            !write(*,*) 'DEBUG NORBD', orbs%norbd
+      !!            call vcopy(orbs%norbd*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,orbs%norbu+1), 1)
+      !!        end if
+      !!    else
+      !!        ! Copy all states
+      !!        call vcopy(tmb%orbs%norb*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
+      !!    end if
+      !!    infoCoeff=0
+
+
+      !!    ! keep the eigenvalues for the preconditioning - instead should take h_alpha,alpha for both cases
+      !!    ! instead just use -0.5 everywhere
+      !!    !tmb%orbs%eval(:) = -0.5_dp
+      !!end do
+
+      !!call f_free(eval)
+      !!write(2000,*) 'orbs%eval',orbs%eval
+      !!write(2001,*) 'tmb%orbs%eval',tmb%orbs%eval
+      !!write(2002,*) 'tmb%coeff',tmb%coeff
+
+      !!!!if (iproc==0) then
+      !!!!    do iorb=1,orbs%norb
+      !!!!        do jorb=1,tmb%linmat%m%nfvctr
+      !!!!            if (orbs%spinsgn(iorb)>0.d0) then
+      !!!!                write(620,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
+      !!!!            else
+      !!!!                write(621,*) 'iorb, jorb, val', iorb, jorb, tmb%coeff(jorb,iorb)
+      !!!!            end if
+      !!!!        end do
+      !!!!    end do
+      !!!!end if
+
+      !!call f_free(matrixElements)
   else if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
      if(.not.present(ldiis_coeff)) &
           call f_err_throw('ldiis_coeff must be present for scf_mode==LINEAR_DIRECT_MINIMIZATION',&
@@ -499,7 +515,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          !end if
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
-              tmb%coeff,orbs,tmb%orbs,update_kernel)
+              tmb%coeff, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup, update_kernel)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       else if (present(cdft)) then
@@ -508,7 +524,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
-              tmb%coeff,orbs,tmb%orbs,.false.)
+              tmb%coeff,orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup, .false.)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       end if
@@ -668,7 +684,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
-              tmb%coeff,orbs,tmb%orbs,.false.)
+              tmb%coeff,orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup, .false.)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
 
@@ -1211,8 +1227,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           do iorb=1,orbs%norb
              orbs%occup(iorb)=2.0_gp
           end do
-          call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, &
-               tmb%linmat%l, tmb%linmat%kernel_)
+          call calculate_density_kernel(iproc, nproc, .true., orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup, &
+               tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
           call vcopy(orbs%norb, occup_tmp(1), 1, orbs%occup(1), 1)
           call f_free(occup_tmp)
    
@@ -2171,7 +2187,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
 
 
   ! Recalculate the kernel
-  call calculate_density_kernel(iproc, nproc, .true., orbs, tmb%orbs, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
+  call calculate_density_kernel(iproc, nproc, .true., orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup, &
+       tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
   !call transform_sparse_matrix(tmb%linmat%denskern, tmb%linmat%denskern_large, 'large_to_small')
 
 end subroutine reconstruct_kernel

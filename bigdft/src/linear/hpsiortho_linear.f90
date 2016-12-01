@@ -339,7 +339,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !can give tmb%orbs twice as ksorbs is only used for recalculating the kernel
      stop 'MAKE SURE THAN calculate_kernel_and_energy IS CALLED APPRORIATELY:'
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
-          tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+          tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff, &
+          tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, tmb%orbs%occup, .false.)
      !cdft%charge is always constant (as is lagmult in this loop) so could in theory be ignored as in optimize_coeffs
      trH = trH + cdft%lag_mult*(trkw - cdft%charge)
      if (iproc==0) print*,'trH,trH+V(trkw-N),V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),&
@@ -788,7 +789,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   call extract_taskgroup_inplace(grad_ovrlp, grad_ovrlp_)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
-       ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+       ksres_sum,tmb%coeff,tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, tmb%orbs%occup, .false.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, grad_ovrlp, grad_ovrlp_)
   call deallocate_matrices(grad_ovrlp_)

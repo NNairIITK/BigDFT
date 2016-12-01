@@ -170,7 +170,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
 END SUBROUTINE local_partial_densityLinear
 
 
-subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
+subroutine calculate_density_kernel(iproc, nproc, isKernel, norbp, isorb, norbu, norb, occup, &
            coeff, denskern, denskern_, keep_uncompressed_)
   use module_base
   use module_types
@@ -181,11 +181,11 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: iproc, nproc
-  type(orbitals_data),intent(in) :: orbs, orbs_tmb
+  integer,intent(in):: iproc, nproc, norbp, isorb, norbu, norb
+  real(kind=8),dimension(norb),intent(in) :: occup
   logical, intent(in) :: isKernel
   type(sparse_matrix), intent(in) :: denskern
-  real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
+  real(kind=8),dimension(denskern%nfvctr,norb),intent(in):: coeff   !only use the first (occupied) orbitals
   type(matrices), intent(out) :: denskern_
   logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
 
@@ -212,32 +212,37 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       if (.not.associated(denskern_%matrix)) stop 'ERROR: denskern_%matrix must be associated if keep_uncompressed is true'
   end if
 
+  !!write(*,*) 'iproc, orbs_tmb%norbp, orbs_tmb%isorb, orbs_tmb%norb', &
+  !!            iproc, orbs_tmb%norbp, orbs_tmb%isorb, orbs_tmb%norb
+  !!write(*,*) 'iproc, denskern%nfvctrp, denskern%isfvctr, denskern%nfvctr', &
+  !!            iproc, denskern%nfvctrp, denskern%isfvctr, denskern%nfvctr
+
   if (communication_strategy==ALLGATHERV) then
       if (iproc==0) call yaml_map('communication strategy kernel','ALLGATHERV')
       stop 'calculate_density_kernel: ALLGATHERV option needs reworking due to the spin'
       call timing(iproc,'calc_kernel','ON')
       !if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      density_kernel_partial=f_malloc((/orbs_tmb%norb,max(orbs_tmb%norbp,1)/), id='density_kernel_partial')
-      fcoeff=f_malloc0((/orbs_tmb%norbp,orbs%norb/), id='fcoeff')
-      if(orbs_tmb%norbp>0) then
+      density_kernel_partial=f_malloc((/denskern%nfvctr,max(denskern%nfvctrp,1)/), id='density_kernel_partial')
+      fcoeff=f_malloc0((/denskern%nfvctrp,norb/), id='fcoeff')
+      if(denskern%nfvctrp>0) then
           !decide whether we calculate the density kernel or just transformation matrix
           if(isKernel) then
-             do iorb=1,orbs%norb
-                !call daxpy(orbs_tmb%norbp,orbs%occup(iorb),coeff(1+orbs_tmb%isorb,iorb),1,fcoeff(1+orbs_tmb%isorb,iorb),1)
-                do itmb=1,orbs_tmb%norbp
-                     fcoeff(itmb,iorb) = orbs%occup(iorb)*coeff(orbs_tmb%isorb+itmb,iorb)
+             do iorb=1,norb
+                !call daxpy(denskern%nfvctrp,orbs%occup(iorb),coeff(1+denskern%isfvctr,iorb),1,fcoeff(1+denskern%isfvctr,iorb),1)
+                do itmb=1,denskern%nfvctrp
+                     fcoeff(itmb,iorb) = occup(iorb)*coeff(denskern%isfvctr+itmb,iorb)
                 end do
              end do
           else
-             do iorb=1,orbs%norb
-                do itmb=1,orbs_tmb%norbp
-                     fcoeff(itmb,iorb) = coeff(orbs_tmb%isorb+itmb,iorb)
+             do iorb=1,norb
+                do itmb=1,denskern%nfvctrp
+                     fcoeff(itmb,iorb) = coeff(denskern%isfvctr+itmb,iorb)
                 end do
              end do
           end if
 
-          call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norbp, orbs%norb, 1.d0, coeff(1,1), orbs_tmb%norb, &
-               fcoeff(1,1), orbs_tmb%norbp, 0.d0, density_kernel_partial(1,1), orbs_tmb%norb)
+          call dgemm('n', 't', denskern%nfvctr, denskern%nfvctrp, norb, 1.d0, coeff(1,1), denskern%nfvctr, &
+               fcoeff(1,1), denskern%nfvctrp, 0.d0, density_kernel_partial(1,1), denskern%nfvctr)
       end if
       call f_free(fcoeff)
       call timing(iproc,'calc_kernel','OF')
@@ -246,7 +251,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
       call timing(iproc,'waitAllgatKern','OF')
 
-      !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix')
+      !denskern_%matrix=f_malloc_ptr((/denskern%nfvctr,denskern%nfvctr/), id='denskern_%matrix')
 
       if (.not.keep_uncompressed) then
           denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
@@ -257,10 +262,10 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
          recvcounts=f_malloc((/0.to.nproc-1/),id='recvcounts')
          dspls=f_malloc((/0.to.nproc-1/),id='dspls')
          do jproc=0,nproc-1
-             recvcounts(jproc)=orbs_tmb%norb*orbs_tmb%norb_par(jproc,0)
-             dspls(jproc)=orbs_tmb%norb*orbs_tmb%isorb_par(jproc)
+             recvcounts(jproc)=denskern%nfvctr*denskern%nfvctr_par(jproc)
+             dspls(jproc)=denskern%nfvctr*denskern%isfvctr_par(jproc)
          end do
-         sendcount=orbs_tmb%norb*orbs_tmb%norbp
+         sendcount=denskern%nfvctr*denskern%nfvctrp
          call mpi_allgatherv(density_kernel_partial(1,1), sendcount, mpi_double_precision, &
               denskern_%matrix(1,1,1), recvcounts, dspls, mpi_double_precision, &
               bigdft_mpi%mpi_comm, ierr)
@@ -268,7 +273,7 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
          call f_free(dspls)
          call timing(iproc,'commun_kernel','OF')
       else
-         call vcopy(orbs_tmb%norb*orbs_tmb%norbp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
+         call vcopy(denskern%nfvctr*denskern%nfvctrp,density_kernel_partial(1,1),1,denskern_%matrix(1,1,1),1)
       end if
 
       call f_free(density_kernel_partial)
@@ -281,25 +286,25 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       if (iproc==0) call yaml_map('communication strategy kernel','ALLREDUCE')
       call timing(iproc,'calc_kernel','ON')
       !!if(iproc==0) write(*,'(1x,a)',advance='no') 'calculate density kernel... '
-      !denskern_%matrix=f_malloc_ptr((/orbs_tmb%norb,orbs_tmb%norb/), id='denskern_%matrix_compr')
+      !denskern_%matrix=f_malloc_ptr((/denskern%nfvctr,denskern%nfvctr/), id='denskern_%matrix_compr')
       if (.not.keep_uncompressed) then
           denskern_%matrix=sparsematrix_malloc_ptr(denskern,iaction=DENSE_FULL,id='denskern_%matrix')
       end if
-      if(orbs%norbp>0) then
-          fcoeff=f_malloc((/denskern%nfvctr,orbs%norbp/), id='fcoeff')
+      if(norbp>0) then
+          fcoeff=f_malloc((/denskern%nfvctr,norbp/), id='fcoeff')
           !decide wether we calculate the density kernel or just transformation matrix
           if(isKernel)then
-             do iorb=1,orbs%norbp
-                !call f_zero(orbs_tmb%norb,f_coeff(1,iorb))
-                !call daxpy(orbs_tmb%norb,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+             do iorb=1,norbp
+                !call f_zero(denskern%nfvctr,f_coeff(1,iorb))
+                !call daxpy(denskern%nfvctr,orbs%occup(orbs%isorb+iorb),coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
                 !write(*,*) 'iorb, occup', iorb, orbs%occup(orbs%isorb+iorb)
                 do itmb=1,denskern%nfvctr
-                    fcoeff(itmb,iorb) = orbs%occup(orbs%isorb+iorb)*coeff(itmb,orbs%isorb+iorb)
+                    fcoeff(itmb,iorb) = occup(isorb+iorb)*coeff(itmb,isorb+iorb)
                 end do
              end do
           else
-             do iorb=1,orbs%norbp
-                call vcopy(denskern%nfvctr,coeff(1,orbs%isorb+iorb),1,fcoeff(1,iorb),1)
+             do iorb=1,norbp
+                call vcopy(denskern%nfvctr,coeff(1,isorb+iorb),1,fcoeff(1,iorb),1)
              end do
           end if
       !!if (iproc==0) then
@@ -309,17 +314,20 @@ subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
       !!        end do
       !!    end do
       !!end if
-          !call dgemm('n', 't', orbs_tmb%norb, orbs_tmb%norb, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), orbs_tmb%norb, &
-          !     fcoeff(1,1), orbs_tmb%norb, 0.d0, denskern_%matrix(1,1,1), orbs_tmb%norb)
+          !call dgemm('n', 't', denskern%nfvctr, denskern%nfvctr, orbs%norbp, 1.d0, coeff(1,orbs%isorb+1), denskern%nfvctr, &
+          !     fcoeff(1,1), denskern%nfvctr, 0.d0, denskern_%matrix(1,1,1), denskern%nfvctr)
           call f_zero(denskern%nspin*denskern%nfvctr**2, denskern_%matrix(1,1,1))
-          do iorb=1,orbs%norbp
-              iiorb=orbs%isorb+iorb
-              if (orbs%spinsgn(iiorb)>0.d0) then
+          !!write(*,*) 'iproc, orbs%spinsgn',iproc, orbs%spinsgn
+          !!write(*,*) 'iproc, orbs%norbu, orbs%norbd', iproc, orbs%norbu, orbs%norbd 
+          do iorb=1,norbp
+              iiorb=isorb+iorb
+              !if (orbs%spinsgn(iiorb)>0.d0) then
+              if (iiorb<=norbu) then
                   ispin=1
               else
                   ispin=2
               end if
-              call dgemm('n', 't', denskern%nfvctr, denskern%nfvctr, 1, 1.d0, coeff(1,orbs%isorb+iorb), denskern%nfvctr, &
+              call dgemm('n', 't', denskern%nfvctr, denskern%nfvctr, 1, 1.d0, coeff(1,isorb+iorb), denskern%nfvctr, &
                    fcoeff(1,iorb), denskern%nfvctr, 1.d0, denskern_%matrix(1,1,ispin), denskern%nfvctr)
           end do
           call f_free(fcoeff)

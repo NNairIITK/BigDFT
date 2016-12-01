@@ -66,7 +66,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_, tmb%linmat%ham_, energy0,&
-          tmb%coeff,orbs,tmb%orbs,.true.)
+          tmb%coeff, orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup,.true.)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
@@ -307,7 +307,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
-          tmb%coeff,orbs,tmb%orbs,.true.)
+          tmb%coeff,orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup,.true.)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
 
@@ -1020,7 +1020,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
-       coeff_tmp,orbs,tmb%orbs,.true.)
+       coeff_tmp,orbs%norbp, orbs%isorb, orbs%norbu, orbs%norb, orbs%occup,.true.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
   !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
@@ -1048,66 +1048,72 @@ end subroutine find_alpha_sd
 
 
 subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham_mat, &
-           energy,coeff,orbs,tmb_orbs,calculate_kernel)
+           energy,coeff,norbp,isorb,norbu,norb,occup,calculate_kernel)
   use module_base
   use module_types
   use module_interfaces, only: calculate_density_kernel
   use sparsematrix_base, only: sparse_matrix
-  use sparsematrix_init, only: matrixindex_in_compressed
-  use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  !use sparsematrix_init, only: matrixindex_in_compressed
+  !use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use sparsematrix_highlevel, only: trace_AB
   implicit none
-  integer, intent(in) :: iproc, nproc
+  integer, intent(in) :: iproc, nproc, norbp, isorb, norbu, norb
+  real(kind=8),dimension(norb),intent(in) :: occup
   type(sparse_matrix), intent(in) :: ham
   type(sparse_matrix), intent(in) :: denskern
   type(matrices),intent(in) :: ham_mat
   type(matrices),intent(out) :: denskern_mat
   logical, intent(in) :: calculate_kernel
   real(kind=gp), intent(out) :: energy
-  type(orbitals_data), intent(in) :: orbs, tmb_orbs
-  real(kind=gp), dimension(denskern%nfvctr,tmb_orbs%norb), intent(in) :: coeff
+  real(kind=gp), dimension(denskern%nfvctr,norb), intent(in) :: coeff
 
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie, ispin
 
   if (calculate_kernel) then 
      !!call extract_taskgroup_inplace(denskern, denskern_mat)
-     call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
+     call calculate_density_kernel(iproc, nproc, .true., norbp, isorb, norbu, norb, occup, &
+          coeff, denskern, denskern_mat)
      !call gather_matrix_from_taskgroups_inplace(iproc, nproc, denskern, denskern_mat)
      !denskern%matrix_compr = denskern_mat%matrix_compr
   end if
 
   call timing(iproc,'calc_energy','ON')
   energy=0.0_gp
-  do iorbp=1,tmb_orbs%norbp
-     iorb=iorbp+tmb_orbs%isorb
-     if (tmb_orbs%spinsgn(iorb)>0.d0) then
-         ! spin up support function or non-polarized case
-         is=1
-         ie=tmb_orbs%norbu
-         ispin=1
-     else
-         ! spin down support function
-         is=tmb_orbs%norbu+1
-         ie=tmb_orbs%norb
-         ispin=2
-     end if
-     !$omp parallel default(private) shared(is,ie,iorb,denskern,ham,denskern_mat,ham_mat,tmb_orbs,energy,ispin)
-     !$omp do reduction(+:energy)
-     !do jorb=1,tmb_orbs%norb
-     do jorb=is,ie
-        ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
-        ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
-        if (ind_ham==0.or.ind_denskern==0) cycle
-        energy = energy + &
-            denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg)*ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
-            !!write(*,'(a,5i8,2es16.7)') 'iorb, jorb, ispin, ind_denskern, ind_ham, val_denskern, val_ham', &
-            !!    iorb, jorb, ispin, mod(ind_denskern-denskern%isvctrp_tg-1,denskern%nvctr)+1, mod(ind_ham-ham%isvctrp_tg-1,ham%nvctr)+1, denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg), ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
-     end do
-     !$omp end do
-     !$omp end parallel
+  do ispin=1,denskern%nspin
+      energy = energy + trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, ham, denskern, ham_mat, denskern_mat, ispin)
   end do
-  if (nproc>1) then
-     call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  end if
+
+  !!do iorbp=1,tmb_orbs%norbp
+  !!   iorb=iorbp+tmb_orbs%isorb
+  !!   if (tmb_orbs%spinsgn(iorb)>0.d0) then
+  !!       ! spin up support function or non-polarized case
+  !!       is=1
+  !!       ie=tmb_orbs%norbu
+  !!       !ispin=1
+  !!   else
+  !!       ! spin down support function
+  !!       is=tmb_orbs%norbu+1
+  !!       ie=tmb_orbs%norb
+  !!       !ispin=2
+  !!   end if
+  !!   !$omp parallel default(private) shared(is,ie,iorb,denskern,ham,denskern_mat,ham_mat,tmb_orbs,energy,ispin)
+  !!   !$omp do reduction(+:energy)
+  !!   !do jorb=1,tmb_orbs%norb
+  !!   do jorb=is,ie
+  !!      ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
+  !!      ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
+  !!      if (ind_ham==0.or.ind_denskern==0) cycle
+  !!      energy = energy + &
+  !!          denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg)*ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
+  !!          !!write(*,'(a,5i8,2es16.7)') 'iorb, jorb, ispin, ind_denskern, ind_ham, val_denskern, val_ham', &
+  !!          !!    iorb, jorb, ispin, mod(ind_denskern-denskern%isvctrp_tg-1,denskern%nvctr)+1, mod(ind_ham-ham%isvctrp_tg-1,ham%nvctr)+1, denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg), ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
+  !!   end do
+  !!   !$omp end do
+  !!   !$omp end parallel
+  !!end do
+  !!if (nproc>1) then
+  !!   call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  !!end if
   call timing(iproc,'calc_energy','OF')
 
 end subroutine calculate_kernel_and_energy
@@ -1184,7 +1190,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
  !call uncompress_matrix(iproc,tmb%linmat%denskern)
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
-  call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, &
+  call calculate_density_kernel(iproc, nproc, .false., KSorbs%norbp, KSorbs%isorb, KSorbs%norbu, KSorbs%norb, KSorbs%occup, &
        tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 

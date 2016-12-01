@@ -281,7 +281,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !!call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_,weight_matrix_,&
-          ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+          ebs,tmb%coeff, &
+          KSwfn%orbs%norbp, KSwfn%orbs%isorb, KSwfn%orbs%norbu, KSwfn%orbs%norb, KSwfn%orbs%occup, .false.)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
 
@@ -2411,7 +2412,7 @@ end if
          ! CDFT: Calculate gradient of V=Tr[Kw]-Nc
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_,weight_matrix_,&
-              ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+              ebs,tmb%coeff,KSwfn%orbs%norbp, KSwfn%orbs%isorb, KSwfn%orbs%norbu, KSwfn%orbs%norb, KSwfn%orbs%occup,.false.)
          vgrad=ebs-cdft%charge
 
          ! CDFT: update V (maximizing E wrt V)

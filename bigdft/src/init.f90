@@ -3082,7 +3082,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
         ! Recalculate the kernel
-        call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
+        call calculate_density_kernel(iproc, nproc, .true., tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, &
+             tmb%orbs%occup, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
 
         !reset occ
         !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))

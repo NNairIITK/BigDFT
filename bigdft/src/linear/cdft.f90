@@ -251,7 +251,8 @@ print*,iorb,ilr,ncount
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
   call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
-           tmb%linmat%kernel_,weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+           tmb%linmat%kernel_,weight_matrix_,trkw,tmb%coeff, &
+           tmb%orbs%norbp,tmb%orbs%isorb,tmb%orbs%norbu, tmb%orbs%norb,tmb%orbs%occup,.false.)
   !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
        weight_matrix, weight_matrix_)
@@ -271,7 +272,8 @@ print*,iorb,ilr,ncount
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
      call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
-           tmb%linmat%kernel_,weight_matrix_,trkw_new,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+           tmb%linmat%kernel_,weight_matrix_,trkw_new,tmb%coeff, &
+           tmb%orbs%norbp,tmb%orbs%isorb,tmb%orbs%norbu, tmb%orbs%norb,tmb%orbs%occup,.false.)
      !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
           weight_matrix, weight_matrix_)
@@ -287,7 +289,8 @@ print*,iorb,ilr,ncount
         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
         call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
         call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
-              tmb%linmat%kernel_,weight_matrix_,trkw_old,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+              tmb%linmat%kernel_,weight_matrix_,trkw_old,tmb%coeff, &
+              tmb%orbs%norbp,tmb%orbs%isorb,tmb%orbs%norbu, tmb%orbs%norb,tmb%orbs%occup,.false.)
         !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
         call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
              weight_matrix, weight_matrix_)
