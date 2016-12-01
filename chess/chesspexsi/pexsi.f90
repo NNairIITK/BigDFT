@@ -52,7 +52,7 @@ module pexsi
       !> @date 2014-04-02
       subroutine pexsi_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, &
                  mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
-                 kernel, energy)
+                 kernel, energy_kernel, energy)
       !use module_base
       use pexsi_base, only: f_ppexsi_options
       use pexsi_interfaces
@@ -76,7 +76,7 @@ module pexsi
       real(kind=8),intent(in) :: charge
       integer,intent(in) :: npoles
       real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
-      real(kind=8),dimension(nvctr),intent(out) :: kernel
+      real(kind=8),dimension(nvctr),intent(out) :: kernel, energy_kernel
       real(kind=8),intent(out) :: energy
       
       integer(c_int) :: nrows, nnz, nnzLocal, numColLocal
@@ -392,8 +392,10 @@ module pexsi
           do i=1,nvctr_local
               !write(*,*) 'iproc, i, isvctr_local+i-1', iproc, i, isvctr_local+i-1
               kernel(isvctr_local+i-1) = DMnzvalLocal(i)
+              energy_kernel(isvctr_local+i-1) = EDMnzvalLocal(i)
           end do
           call mpiallred(kernel,mpi_sum,comm=readComm)
+          call mpiallred(energy_kernel,mpi_sum,comm=readComm)
 
           !call mpi_finalize( ierr )
           
@@ -401,6 +403,7 @@ module pexsi
             call f_free(colptrLocal)
             call f_free(rowindLocal)
             call f_free(HnzvalLocal)
+            call f_free(SnzvalLocal)
             call f_free(DMnzvalLocal)
             call f_free(EDMnzvalLocal)
             call f_free(FDMnzvalLocal)
@@ -413,10 +416,12 @@ module pexsi
 
       end if
 
-          call mpi_comm_free( readComm, ierr )
+      call mpi_comm_free( readComm, ierr )
 
+      ! In case readComm was not the same as the global communicator
       call mpibcast(energy, root=0, comm=comm) 
       call mpibcast(kernel, root=0, comm=comm) 
+      call mpibcast(energy_kernel, root=0, comm=comm) 
 
       if (iproc==0) call yaml_comment('PEXSI calculation of kernel finished',hfill='~')
       
@@ -539,7 +544,7 @@ module pexsi
 
     subroutine pexsi_wrapper(iproc, nproc, comm, smats, smatm, smatl, ovrlp, ham, &
                charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
-               kernel, ebs)
+               kernel, energy_kernel, ebs)
       use futile
       use sparsematrix_base
       use sparsematrix, only: transform_sparse_matrix
@@ -552,7 +557,7 @@ module pexsi
       type(matrices),intent(in) :: ovrlp, ham
       integer,intent(in) :: npoles
       real(kind=8),intent(in) :: charge, mumin, mumax, mu, temperature, tol_charge
-      type(matrices),intent(out) :: kernel
+      type(matrices),intent(out) :: kernel, energy_kernel
       real(kind=8),intent(out) :: ebs
     
       ! Local variables
@@ -578,7 +583,7 @@ module pexsi
       call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
            ham_large, ovrlp_large, charge, npoles, &
            mumin, mumax, mu, temperature, tol_charge, &
-           kernel%matrix_compr, ebs)
+           kernel%matrix_compr, energy_kernel%matrix_compr, ebs)
     
       call f_free(ovrlp_large)
       call f_free(ham_large)

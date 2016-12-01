@@ -341,7 +341,7 @@ program driver_foe
       call pexsi_wrapper(iproc, nproc, mpi_comm_world, smat_s, smat_h, smat_k, mat_s, mat_h, &
            foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, &
            pexsi_temperature, pexsi_tol_charge, &
-           mat_k, energy)
+           mat_k, mat_ek, energy)
   else if (trim(kernel_method)=='LAPACK') then
       norbu = smat_h%nfvctr
       norbd = 0

@@ -131,13 +131,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8), dimension(1,1) :: K_H
   real(kind=8), dimension(4,4) :: K_O
   integer :: j, ind, n, ishifts, ishiftm, iq
-  real(kind=8), dimension(:,:), allocatable :: ham_small, coeffs
-  real(kind=8), dimension(:,:), pointer :: com
-  real(kind=8), dimension(:,:), allocatable :: coeff
-  real(kind=8),dimension(:),allocatable :: projector_compr, evals, hphi_pspandkin
+  real(kind=8),dimension(:),allocatable :: evals, hphi_pspandkin
   real(kind=8), dimension(:,:,:), allocatable :: matrixElements, coeff_all,multipoles_out
-  real(kind=8), dimension(:,:,:), pointer :: multipoles
-!!$  real(kind=8), dimension(:), allocatable :: projector_compr
   !type(external_potential_descriptors) :: ep
 !!$  real(kind=8), dimension(:), allocatable :: rho_tmp
 !!$  real(kind=8), dimension(:,:), allocatable :: tempmat, tmat, all_evals, theta, projector_small, ovrlp_small, ovrlp_full
