@@ -59,6 +59,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use orbitalbasis
   use sparsematrix_highlevel, only: get_selected_eigenvalues_from_FOE
   use sparsematrix_io, only: write_linear_coefficients
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
 
   ! Calling arguments
@@ -279,7 +280,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      !!call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+     call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_,weight_matrix_,&
           ebs,tmb%coeff, &
           KSwfn%orbs%norbp, KSwfn%orbs%isorb, KSwfn%orbs%norbu, KSwfn%orbs%norb, KSwfn%orbs%occup, .false.)
@@ -2410,7 +2411,7 @@ end if
 
 
          ! CDFT: Calculate gradient of V=Tr[Kw]-Nc
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+         call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_,weight_matrix_,&
               ebs,tmb%coeff,KSwfn%orbs%norbp, KSwfn%orbs%isorb, KSwfn%orbs%norbu, KSwfn%orbs%norb, KSwfn%orbs%occup,.false.)
          vgrad=ebs-cdft%charge

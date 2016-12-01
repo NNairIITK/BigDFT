@@ -33,6 +33,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use public_enums
   use orthonormalization, only: orthoconstraintNonorthogonal
   use locreg_operations
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
 
   ! Calling arguments
@@ -338,7 +339,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !only correct energy not gradient for now
      !can give tmb%orbs twice as ksorbs is only used for recalculating the kernel
      stop 'MAKE SURE THAN calculate_kernel_and_energy IS CALLED APPRORIATELY:'
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
+     call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,cdft%weight_matrix, &
           tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff, &
           tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, tmb%orbs%occup, .false.)
      !cdft%charge is always constant (as is lagmult in this loop) so could in theory be ignored as in optimize_coeffs
@@ -683,6 +684,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
 
   ! Calling arguments
@@ -787,7 +789,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call extract_taskgroup_inplace(grad_ovrlp, grad_ovrlp_)
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
+  call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, tmb%orbs%occup, .false.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)

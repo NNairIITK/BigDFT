@@ -1329,22 +1329,22 @@ module module_interfaces
           END SUBROUTINE orthogonalize
         end interface
 
-  interface
-     subroutine calculate_density_kernel(iproc, nproc, isKernel, norbp, isorb, norbu, norb, occup, &
-           coeff, denskern, denskern_, keep_uncompressed_)
-       !use module_defs, only: gp,dp,wp
-       use module_types
-       use sparsematrix_base, only: sparse_matrix
-       implicit none
-       integer,intent(in):: iproc, nproc, norbp, isorb, norbu, norb
-       real(kind=8),dimension(norb),intent(in) :: occup
-       logical, intent(in) :: isKernel
-       type(sparse_matrix), intent(in) :: denskern
-       real(kind=8),dimension(denskern%nfvctr,norb),intent(in):: coeff   !only use the first (occupied) orbitals
-       type(matrices), intent(out) :: denskern_
-       logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
-     END SUBROUTINE calculate_density_kernel
-  end interface
+  !!interface
+  !!   subroutine calculate_density_kernel(iproc, nproc, isKernel, norbp, isorb, norbu, norb, occup, &
+  !!         coeff, denskern, denskern_, keep_uncompressed_)
+  !!     !use module_defs, only: gp,dp,wp
+  !!     use module_types
+  !!     use sparsematrix_base, only: sparse_matrix
+  !!     implicit none
+  !!     integer,intent(in):: iproc, nproc, norbp, isorb, norbu, norb
+  !!     real(kind=8),dimension(norb),intent(in) :: occup
+  !!     logical, intent(in) :: isKernel
+  !!     type(sparse_matrix), intent(in) :: denskern
+  !!     real(kind=8),dimension(denskern%nfvctr,norb),intent(in):: coeff   !only use the first (occupied) orbitals
+  !!     type(matrices), intent(out) :: denskern_
+  !!     logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
+  !!   END SUBROUTINE calculate_density_kernel
+  !!end interface
 
   interface
      subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)

@@ -2371,8 +2371,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      locregcenters)
   use module_base
   use module_types
-  use module_interfaces, only: calculate_density_kernel, &
-        get_coeff, inputguessConfinement, &
+  use module_interfaces, only: get_coeff, inputguessConfinement, &
        & read_gaussian_information, readmywaves_linear_new, &
        & restart_from_gaussians, sumrho, write_orbital_density
   use module_fragments
@@ -2393,6 +2392,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use public_enums
   use orbitalbasis
   use box
+  use coeffs, only: calculate_density_kernel
   implicit none
 
   integer, intent(in) :: iproc, nproc, input_wf_format
@@ -3082,7 +3082,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call f_free_ptr(tmb%linmat%ovrlp_%matrix)
 
         ! Recalculate the kernel
-        call calculate_density_kernel(iproc, nproc, .true., tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, &
+        call calculate_density_kernel(iproc, nproc, bigdft_mpi%mpi_comm, .true., &
+             tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, &
              tmb%orbs%occup, tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_)
 
         !reset occ
