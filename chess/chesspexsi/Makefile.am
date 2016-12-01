@@ -17,12 +17,12 @@ libchesspexsi_a_SOURCES = $(mod_src)
 if CAPITALIZE
 modules = PEXSI_BASE.@MODULE_EXT@ \
 	PEXSI_INTERFACES.@MODULE_EXT@ \
-	SELINV.@MODULE_EXT@
+	SELINV.@MODULE_EXT@ \
 	PEXSI.@MODULE_EXT@
 else
 modules = pexsi_base.@MODULE_EXT@ \
 	pexsi_interfaces.@MODULE_EXT@ \
-	selinv.@MODULE_EXT@
+	selinv.@MODULE_EXT@ \
 	pexsi.@MODULE_EXT@
 
 endif
