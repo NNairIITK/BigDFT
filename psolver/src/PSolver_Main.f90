@@ -383,7 +383,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
-  if (build_c .or. .not. kernel%opt%only_electrostatic ) then
+  !if (build_c .or. .not. kernel%opt%only_electrostatic ) then !!!THIS LINE WAS THE ERROR!!!
+  if (build_c) then
    kernel%IntSur=IntSur
    kernel%IntVol=IntVol
   end if
@@ -406,6 +407,15 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   if (present(ehartree)) then
      ehartree=energs%hartree
      call PS_reduce(ehartree,kernel)
+  end if
+
+  if (wrtmsg) then
+   !call yaml_map('IntVol',kernel%IntVol)
+   !call yaml_map('IntSur',kernel%IntSur)
+   call yaml_map('Cavitation energy',kernel%cavity%gammaS*kernel%IntSur)
+   call yaml_map('Repulsion energy',kernel%cavity%alphaS*kernel%IntSur)
+   call yaml_map('Dispersion energy',kernel%cavity%betaV*kernel%IntVol)
+   call yaml_map('Non-eletrostatic energy',energs%cavitation)
   end if
 
   if (wrtmsg) call yaml_mapping_close()

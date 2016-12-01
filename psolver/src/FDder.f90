@@ -95,7 +95,7 @@ module FDder
             do i1=1,n01
 
                d = 0.0d0
-               !du2(i1,i2,i3) = 0.0d0
+               du2(i1,i2,i3) = 0.0d0
 
                if (i1.le.m) then
                   if (perx) then
@@ -125,7 +125,7 @@ module FDder
                   end do
                end if
                du(i1,i2,i3,1)= d
-               !du2(i1,i2,i3) = d*d
+               du2(i1,i2,i3) = d*d
 
             end do
          end do
@@ -167,7 +167,7 @@ module FDder
                   end do
                end if
                du(i1,i2,i3,2)= d
-               !du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
+               du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
             end do
          end do
       end do
