@@ -362,7 +362,7 @@ program driver_random
       call f_free_ptr(mat2%matrix)
       call f_free_ptr(mat3(1)%matrix)
   else
-      call f_err_throw("wrong value for 'solution_method'; possible values are 'ICE' or 'SelInv'")
+      call f_err_throw("wrong value for 'solution_method'; possible values are 'ICE', 'SelInv' or 'LAPACK'")
   end if
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
