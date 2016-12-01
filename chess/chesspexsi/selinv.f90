@@ -61,6 +61,8 @@ module selinv
       !use time_profiling
       use dynamic_memory
       use futile
+      use time_profiling
+      use sparsematrix_timing
       implicit none
       !include 'mpif.h'
       
@@ -136,14 +138,17 @@ module selinv
       if (iproc<maxproc) then
           
 
+            call f_timing(TCAT_PEXSI_DISTRIBUTE,'ON')
             call distribute_matrix(iproc, maxproc, nfvctr, nvctr, col_ptr, row_ind, mat_s, &
                  nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_s_local)
+            call f_timing(TCAT_PEXSI_DISTRIBUTE,'OF')
             !Because they are C integers..?
             nrows = int(nfvctr,kind=c_int)
             nnz = int(nvctr,kind=c_int)
             nnzLocal = int(nvctr_local,kind=c_int)
             numColLocal = int(nfvctr_local,kind=c_int)
 
+            call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
             nfvctr_local_min = nfvctr_local
             nfvctr_local_max = nfvctr_local
             call mpiallred(nfvctr_local_min,count=1,op=mpi_min,comm=readComm)
@@ -154,6 +159,7 @@ module selinv
             call mpiallred(nvctr_local_min,count=1,op=mpi_min,comm=readComm)
             call mpiallred(nvctr_local_max,count=1,op=mpi_max,comm=readComm)
             nvctr_local_avg = real(nvctr,kind=8)/real(maxproc,kind=8)
+            call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
           
             if(iproc== 0) then
               call yaml_mapping_open('Dimensions of the matrices')
@@ -196,6 +202,8 @@ module selinv
           ! Step 1. Initialize
           
           
+          call f_timing(TCAT_PEXSI_INIT,'ON')
+
           if( mod( iproc, nprow * npcol ) .eq. 0 ) then
             outputFileIndex = iproc / (nprow * npcol);
           else
@@ -232,6 +240,7 @@ module selinv
                 int(0,kind=c_int),&
                 SnzvalLocal,&
                 info ) 
+          call f_timing(TCAT_PEXSI_INIT,'OF')
           
           if( info .ne. 0 ) then
             call mpi_finalize( ierr )
@@ -240,11 +249,13 @@ module selinv
           
           
             
+          call f_timing(TCAT_PEXSI_FACTORIZATION,'ON')
           call f_ppexsi_symbolic_factorize_real_symmetric_matrix(&                                              
             plan,&                                                                                              
             options,&
             info)                                                                                               
           
+          call f_timing(TCAT_PEXSI_FACTORIZATION,'OF')
           if( info .ne. 0 ) then                                                                                
               call mpi_finalize( ierr )                                                                         
               call exit(info)
@@ -252,12 +263,14 @@ module selinv
             
             
             
+          call f_timing(TCAT_PEXSI_INVERSE,'ON')
           call f_ppexsi_selinv_real_symmetric_matrix(&                                                          
             plan,& 
             options,&
             SnzvalLocal,&
             invSnzvalLocal,&                                                                                    
             info)                                                                                               
+          call f_timing(TCAT_PEXSI_INVERSE,'OF')
                                                                                                                 
           if( info .ne. 0 ) then
               call mpi_finalize( ierr )
@@ -269,16 +282,20 @@ module selinv
           
           ! Step 3. Clean up */
           
+          call f_timing(TCAT_PEXSI_FINALIZE,'ON')
           call f_ppexsi_plan_finalize( plan, info )
+          call f_timing(TCAT_PEXSI_FINALIZE,'OF')
           
           
-          ! Gather the local copies of the kernel
+          ! Gather the local copies of the inverse
           call f_zero(inv_ovrlp)
           do i=1,nvctr_local
               !write(*,*) 'iproc, i, isvctr_local+i-1', iproc, i, isvctr_local+i-1
               inv_ovrlp(isvctr_local+i-1) = invSnzvalLocal(i)
           end do
+          call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
           call mpiallred(inv_ovrlp,mpi_sum,comm=readComm)
+          call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
           
           if( isProcRead == 1 ) then
@@ -298,7 +315,9 @@ module selinv
 
           call mpi_comm_free( readComm, ierr )
 
+      call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
       call mpibcast(inv_ovrlp, root=0, comm=comm) 
+      call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
       if (iproc==0) call yaml_comment('SelInv calculation of inverse finished',hfill='~')
       
@@ -435,6 +454,7 @@ module selinv
       call f_routine(id='selinv_wrapper')
     
       !call write_pexsi_matrices(iproc, nproc, smatm, smats, ham%matrix_compr, ovrlp%matrix_compr)
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'ON')
       row_ind = f_malloc(smatl%nvctr,id='row_ind')
       col_ptr = f_malloc(smatl%nfvctr,id='col_ptr')
       call sparsebigdft_to_ccs(smatl%nfvctr, smatl%nvctr, smatl%nseg, smatl%keyg, row_ind, col_ptr)
@@ -445,6 +465,7 @@ module selinv
       end if
       call transform_sparse_matrix(iproc, smats, smatl, SPARSE_FULL, 'small_to_large', &
            smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large)
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'OF')
       call selinv_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
            ovrlp_large, inv_ovrlp%matrix_compr)
     
