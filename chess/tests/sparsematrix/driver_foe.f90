@@ -51,13 +51,13 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
-  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb
+  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb, iorb
   real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max, eval_all, eval_occup, occup
   real(mp),dimension(:,:),allocatable :: coeff
-  real(mp) :: energy, tr_KS, tr_KS_check, ef
+  real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr, fscale_lowerbound, fscale_upperbound
   type(dictionary),pointer :: dict_timing_info, options
@@ -359,9 +359,16 @@ program driver_foe
       ii = nint(0.5_mp*foe_data_get_real(foe_obj,"charge",1))
       occup(1:ii) = 2.0_mp
       call distribute_on_tasks(norb, iproc, nproc, norbp, isorb)
-      write(*,*) 'iproc, isorb, norbp', iproc, isorb, norbp
+      ! Density kernel
       call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
            smat_k, smat_h, mat_k, mat_h, energy,&
+           coeff, norbp, isorb, norbu, norb, occup, .true.)
+      ! Energy density kernel
+      do iorb=1,norb
+          occup(iorb) = occup(iorb)*eval_occup(iorb)
+      end do
+      call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
+           smat_k, smat_h, mat_ek, mat_h, energy_fake,&
            coeff, norbp, isorb, norbu, norb, occup, .true.)
       call f_free(coeff)
       call f_free(eval_all)
