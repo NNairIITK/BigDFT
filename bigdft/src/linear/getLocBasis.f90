@@ -375,54 +375,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
 
       do ispin=1,tmb%linmat%s%nspin
-          !if (ispin==1) then
-          !    ishift=0
-          !    !ii=orbs%norbu
-          !    tmb%linmat%
-          !else
-          !    ishift=orbs%norbu
-          !    ii=orbs%norbd
-          !end if
-          !ishift=(ispin-1)*tmb%linmat%s%nfvctr
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ham_%matrix(1,1,ispin), 1, matrixElements(1,1,1), 1)
           call vcopy(tmb%linmat%m%nfvctr**2, tmb%linmat%ovrlp_%matrix(1,1,ispin), 1, matrixElements(1,1,2), 1)
           if (iproc==0) call yaml_map('method','diagonalization')
-          !!if(tmb%orthpar%blocksize_pdsyev<0) then
-          !!    if (iproc==0) call yaml_map('mode','sequential')
-          !!    !!if (iproc==0) then
-          !!    !!    do iorb=1,tmb%linmat%m%nfvctr
-          !!    !!        do jorb=1,tmb%linmat%m%nfvctr
-          !!    !!            write(690+ispin,'(a,2i8,2f15.8)') 'iorb, jorb, vals', iorb, jorb, matrixElements(jorb,iorb,:)
-          !!    !!        end do
-          !!    !!    end do
-          !!    !!end if
-              call diagonalizeHamiltonian2(iproc, nproc, bigdft_mpi%mpi_comm, &
-                   tmb%orthpar%blocksize_pdsyev, tmb%linmat%m%nfvctr, &
-                   matrixElements(1,1,1), matrixElements(1,1,2), eval)
-          !!else
-          !!    if (iproc==0) call yaml_map('mode','parallel')
-          !!    call dsygv_parallel(iproc, nproc, bigdft_mpi%mpi_comm, tmb%orthpar%blocksize_pdsyev, tmb%orthpar%nproc_pdsyev, &
-          !!         1, 'v', 'l', tmb%linmat%m%nfvctr, &
-          !!         matrixElements(1,1,1), tmb%linmat%m%nfvctr, matrixElements(1,1,2), tmb%linmat%m%nfvctr, &
-          !!         eval, info)
-          !!end if
-          !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr*10.d0
-          !!do i=1,tmb%orbs%norb
-          !!    write(*,*) 'i, eval(i)', i, eval(i)
-          !!    do j=1,tmb%orbs%norb
-          !!        write(*,*) 'j,i,val',j,i,matrixElements(j,i,1)
-          !!    end do
-          !!end do
-          !eval2 = f_malloc(tmb%linmat%l%nfvctr,id='eval2')
-          !call get_selected_eigenvalues(iproc, nproc, bigdft_mpi%mpi_comm, .true., 2, &
-          !     1, tmb%orbs%norb, &
-          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), eval2)
-          !do i=1,tmb%orbs%norb
-          !    write(*,*) 'i, evals', i, eval(i), eval2(i)
-          !end do
-          !call f_free(eval2)
-          !tmb%linmat%ham_%matrix_compr = tmb%linmat%ham_%matrix_compr/10.d0
+          call diagonalizeHamiltonian2(iproc, nproc, bigdft_mpi%mpi_comm, &
+               tmb%orthpar%blocksize_pdsyev, tmb%linmat%m%nfvctr, &
+               matrixElements(1,1,1), matrixElements(1,1,2), eval)
 
           ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
           ! all other tasks (in this way avoiding that different MPI tasks have different values)
@@ -434,15 +392,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
               if (iproc==0) call yaml_map('max diff of eigenvalues',maxdiff,fmt='(es8.2)')
               if (iproc==0) call yaml_mapping_close()
           end if
-          !!if (iproc==0) then
-          !!    do iorb=1,tmb%orbs%norb
-          !!        write(*,*) 'ind, val', iorb, matrixElements(iorb,orbs%norb+1,1)
-          !!    end do
-          !!end if
-          !if (iproc==0) write(*,'(a,3i6,100f9.2)') 'ispin, ishift+1, ishift+ii, evals', ispin, ishift+1, ishift+ii, tmb%orbs%eval(ishift+1:ishift+ii)
 
           ! copy all the eigenvalues
-          !tmb%orbs%eval(ishift+1:ishift+ii) = eval(1:ii-ishift)
           call vcopy(tmb%linmat%m%nfvctr, eval(1), 1, tmb%orbs%eval((ispin-1)*tmb%linmat%m%nfvctr+1), 1)
           ! copy the eigenvalues of the occupied states
           if (ispin==1) then

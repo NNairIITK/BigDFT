@@ -32,6 +32,7 @@ libCheSS_1_a_SOURCES = chebyshev.f90 \
 	  fermi_level.f90 \
 	  foe.f90 \
 	  ice.f90 \
+	  coeffs.f90 \
 	  matrix_operations.f90 \
 	  sparsematrix_highlevel.f90
 
@@ -42,8 +43,9 @@ modules = CHEBYSHEV.@MODULE_EXT@ \
 	  FOE_COMMON.@MODULE_EXT@ \
 	  FERMI_LEVEL.@MODULE_EXT@ \
 	  FOE.@MODULE_EXT@ \
-          MODULE_FUNC.@MODULE_EXT@ \
+      MODULE_FUNC.@MODULE_EXT@ \
 	  ICE.@MODULE_EXT@ \
+	  COEFFS.@MODULE_EXT@ \
 	  MATRIX_OPERATIONS.@MODULE_EXT@ \
 	  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@
 else
@@ -52,8 +54,9 @@ modules =  chebyshev.@MODULE_EXT@ \
 	  foe_common.@MODULE_EXT@ \
 	  fermi_level.@MODULE_EXT@ \
 	  foe.@MODULE_EXT@ \
-          module_func.@MODULE_EXT@ \
+      module_func.@MODULE_EXT@ \
 	  ice.@MODULE_EXT@ \
+	  coeffs.@MODULE_EXT@ \
 	  matrix_operations.@MODULE_EXT@ \
 	  sparsematrix_highlevel.@MODULE_EXT@
 endif
