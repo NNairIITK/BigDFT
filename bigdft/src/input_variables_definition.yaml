@@ -1977,6 +1977,11 @@
        DESCRIPTION: tolerance on the number of electrons used by PEXSI
        default: 1.e-3
        RANGE: [1.e-10,1.0]
+     pexsi_np_sym_fact:
+       COMMENT: Number of tasks for the symbolic factorization used by PEXSI
+       DESCRIPTION: Number of tasks used for the symbolic factorization within PEXSI. Too large values can apparently decrease the performance
+       default: 16
+       RANGE: [1,10000]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

@@ -44,7 +44,7 @@ program driver_random
 
   ! Variables
   integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread
-  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold, icheck, j
+  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold, icheck, j, pexsi_np_sym_fact
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
@@ -139,6 +139,7 @@ program driver_random
       diag_algorithm = options//'diag_algorithm'
       eval_multiplicator = options//'eval_multiplicator'
       solution_method = options//'solution_method'
+      pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
 
       call dict_free(options)
 
@@ -176,6 +177,7 @@ program driver_random
       call yaml_map('scalapack_blocksize',scalapack_blocksize)
       call yaml_map('ScaLAPACK diagonalization algorithm',diag_algorithm)
       call yaml_map('ICE multiplication factor',eval_multiplicator)
+      call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
       call yaml_mapping_close()
   end if
 
@@ -198,6 +200,7 @@ program driver_random
   call mpibcast(evhigh, root=0, comm=mpi_comm_world)
   call mpibcast(diag_algorithm, root=0, comm=mpi_comm_world)
   call mpibcast(eval_multiplicator, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -353,7 +356,7 @@ program driver_random
       if (expo/=-1.0_mp) then
           call f_err_throw('Selecetd Inversion is only possible for the calculation of the inverse')
       end if
-      call selinv_wrapper(iproc, nproc, mpi_comm_world, smats, smatl(1), mat2, mat3(1))
+      call selinv_wrapper(iproc, nproc, mpi_comm_world, smats, smatl(1), mat2, pexsi_np_sym_fact, mat3(1))
   else if (trim(solutioN_method)=='LAPACK') then
       mat2%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat2%matrix')
       mat3(1)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
@@ -779,5 +782,12 @@ subroutine commandline_options(parser)
        'Indicate which solution method should be used (ICE or SelInv)',&
        'Allowed values' .is. &
        'String'))
+
+  call yaml_cl_parse_option(parser,'pexsi_np_sym_fact','16',&
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       'Allowed values' .is. &
+       'Integer'))
 
 end subroutine commandline_options

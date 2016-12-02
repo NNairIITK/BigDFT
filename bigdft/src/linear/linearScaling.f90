@@ -471,7 +471,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
                      input%tel, input%occopt, &
                      input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
-                     input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                     input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact, &
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff, &
                      hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
@@ -974,7 +974,7 @@ end if
            input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
            input%tel, input%occopt, &
            input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
-           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1557,7 +1557,7 @@ end if
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                          input%tel, input%occopt, &
                          input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
                          hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                     call get_lagrange_mult(cdft_it,vgrad)
@@ -1578,7 +1578,7 @@ end if
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                end if
@@ -1614,7 +1614,7 @@ end if
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                          input%tel, input%occopt, &
                          input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact,&
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
                          hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                     call get_lagrange_mult(cdft_it,vgrad)
@@ -1635,7 +1635,7 @@ end if
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
                       input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               end if
