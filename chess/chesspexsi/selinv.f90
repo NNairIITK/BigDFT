@@ -50,7 +50,7 @@ module selinv
       !> @file f_driver_ksdft.f90
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
-      subroutine selinv_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, mat_s, inv_ovrlp)
+      subroutine selinv_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, mat_s, np_sym_fact, inv_ovrlp)
       !use module_base
       use pexsi_base, only: f_ppexsi_options
       use pexsi_interfaces
@@ -70,6 +70,7 @@ module selinv
       integer,intent(in) :: iproc, nproc, comm
       integer,intent(in) :: nfvctr !< number of row/columns
       integer,intent(in) :: nvctr ! number of non-zero entries
+      integer,intent(in) :: np_sym_fact !< number of procs to be used for the symbolic factorization
       integer,dimension(nvctr),intent(in) :: row_ind !< row_ind from the CCS format
       integer,dimension(nfvctr),intent(in) :: col_ptr !< col_ptr from the CCS format
       real(kind=8),dimension(nvctr),intent(in) :: mat_s
@@ -225,6 +226,12 @@ module selinv
           
           call f_ppexsi_set_default_options(&
             options )
+          options%npSymbFact = int(np_sym_fact,kind=c_int)
+          if (iproc==0) then
+              call yaml_mapping_open('Selected Inversion parameters')
+              call yaml_map('Procs for symbolic factorization',options%npSymbFact)
+              call yamL_mapping_close()
+          end if
           
           
           call f_ppexsi_load_real_symmetric_hs_matrix(&
@@ -434,7 +441,7 @@ module selinv
    !!   end subroutine distribute_matrix
 
 
-    subroutine selinv_wrapper(iproc, nproc, comm, smats, smatl, ovrlp, inv_ovrlp)
+    subroutine selinv_wrapper(iproc, nproc, comm, smats, smatl, ovrlp, np_sym_fact, inv_ovrlp)
       use futile
       use sparsematrix_base
       use sparsematrix, only: transform_sparse_matrix
@@ -442,7 +449,7 @@ module selinv
       implicit none
     
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, comm
+      integer,intent(in) :: iproc, nproc, comm, np_sym_fact
       type(sparse_matrix),intent(in) :: smats, smatl
       type(matrices),intent(in) :: ovrlp
       type(matrices),intent(out) :: inv_ovrlp
@@ -467,7 +474,7 @@ module selinv
            smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large)
       call f_timing(TCAT_SMAT_TRANSFORMATION,'OF')
       call selinv_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
-           ovrlp_large, inv_ovrlp%matrix_compr)
+           ovrlp_large, np_sym_fact, inv_ovrlp%matrix_compr)
     
       call f_free(ovrlp_large)
       call f_free(row_ind)

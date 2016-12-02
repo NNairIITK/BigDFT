@@ -626,7 +626,7 @@ module postprocessing_linear
               input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
               input%tel, input%occopt, &
               input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
-              input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
+              input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, input%lin%pexsi_np_sym_fact)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
          if (bigdft_mpi%iproc ==0) then
@@ -790,7 +790,7 @@ module postprocessing_linear
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
            input%tel, input%occopt, &
            input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
-           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, updatekernel=.false.)
+           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, input%lin%pexsi_np_sym_fact, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -811,7 +811,7 @@ module postprocessing_linear
                nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, psi, coeff)
       use module_base
       use module_types
-      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
+      use module_interfaces, only: write_eigenvalues_data, write_orbital_density
       use communications_base, only: comms_cubic, comms_cubic_null
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v

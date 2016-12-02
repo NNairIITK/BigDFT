@@ -131,6 +131,7 @@ module module_input_keys
      integer :: pexsi_npoles !< number of poles used by PEXSI
      real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
      real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
+     integer :: pexsi_np_sym_fact !< number of prcos used for the symbolic factorization used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
      logical :: plot_locreg_grids
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
@@ -2259,6 +2260,8 @@ contains
           in%lin%pexsi_temperature = val
        case (PEXSI_TOL_CHARGE)
           in%lin%pexsi_tol_charge = val
+       case (PEXSI_NP_SYM_FACT)
+          in%lin%pexsi_np_sym_fact = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

@@ -51,7 +51,7 @@ module pexsi
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
       subroutine pexsi_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, &
-                 mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
+                 mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
                  kernel, energy, energy_kernel)
       !use module_base
       use pexsi_base, only: f_ppexsi_options
@@ -72,6 +72,7 @@ module pexsi
       integer,intent(in) :: iproc, nproc, comm
       integer,intent(in) :: nfvctr !< number of row/columns
       integer,intent(in) :: nvctr ! number of non-zero entries
+      integer,intent(in) :: np_sym_fact !< number of procs to be used for the symbolic factorization
       integer,dimension(nvctr),intent(in) :: row_ind !< row_ind from the CCS format
       integer,dimension(nfvctr),intent(in) :: col_ptr !< col_ptr from the CCS format
       real(kind=8),dimension(nvctr),intent(in) :: mat_h, mat_s
@@ -238,6 +239,7 @@ module pexsi
           
           call f_ppexsi_set_default_options(&
             options )
+
           
           numElectronExact = real(charge,kind=c_double)
           options%muMin0   = real(mumin,kind=c_double)
@@ -248,6 +250,22 @@ module pexsi
           options%temperature = real(temperature,kind=c_double)
           options%muPEXSISafeGuard = real(0.2d0,kind=c_double)
           options%numElectronPEXSITolerance = real(tol_charge,kind=c_double)
+          options%npSymbFact = int(np_sym_fact,kind=c_int)
+
+          if (iproc==0) then
+              call yaml_mapping_open('PEXSI parameters')
+              call yaml_map('Number of electrons',numElectronExact)
+              call yaml_map('Mu min',options%muMin0)
+              call yaml_map('Mu max',options%muMax0)
+              call yaml_map('Mu',options%mu0)
+              call yaml_map('Delta E',options%deltaE)
+              call yaml_map('Number of poles',options%numPole)
+              call yaml_map('Temperature',options%temperature)
+              call yaml_map('Safe Guard',options%muPEXSISafeGuard)
+              call yaml_map('Charge tolerance',options%numElectronPEXSITolerance)
+              call yaml_map('Procs for symbolic factorization',options%npSymbFact)
+              call yamL_mapping_close()
+          end if
           
           call f_ppexsi_load_real_symmetric_hs_matrix(&
                 plan,&       
@@ -504,7 +522,7 @@ module pexsi
 
 
     subroutine pexsi_wrapper(iproc, nproc, comm, smats, smatm, smatl, ovrlp, ham, &
-               charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
+               charge, npoles, mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
                kernel, ebs, energy_kernel)
       use futile
       use sparsematrix_base
@@ -516,7 +534,7 @@ module pexsi
       integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ovrlp, ham
-      integer,intent(in) :: npoles
+      integer,intent(in) :: npoles, np_sym_fact
       real(kind=8),intent(in) :: charge, mumin, mumax, mu, temperature, tol_charge
       type(matrices),intent(out) :: kernel
       real(kind=8),intent(out) :: ebs
@@ -548,12 +566,12 @@ module pexsi
       if (present(energy_kernel)) then
           call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
                ham_large, ovrlp_large, charge, npoles, &
-               mumin, mumax, mu, temperature, tol_charge, &
+               mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
                kernel%matrix_compr, ebs, energy_kernel%matrix_compr)
       else
           call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
                ham_large, ovrlp_large, charge, npoles, &
-               mumin, mumax, mu, temperature, tol_charge, &
+               mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
                kernel%matrix_compr, ebs)
       end if
     

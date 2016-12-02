@@ -290,6 +290,7 @@ module public_keys
   character(len=*), parameter :: PEXSI_MU='pexsi_mu'
   character(len=*), parameter :: PEXSI_TEMPERATURE='pexsi_temperature'
   character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
+  character(len=*), parameter :: PEXSI_NP_SYM_FACT='pexsi_np_sym_fact'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units'

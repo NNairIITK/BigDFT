@@ -3281,7 +3281,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              in%calculate_KS_residue,in%calculate_gap, &
              energs_work,.false.,in%lin%coeff_factor,in%tel,in%occopt,&
              in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
-             in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             in%lin%pexsi_temperature,in%lin%pexsi_tol_charge,in%lin%pexsi_np_sym_fact) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 

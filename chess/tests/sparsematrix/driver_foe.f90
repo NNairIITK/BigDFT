@@ -51,7 +51,7 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
-  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb, iorb
+  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb, iorb, pexsi_np_sym_fact
   real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
@@ -136,6 +136,7 @@ program driver_foe
       pexsi_mu = options//'pexsi_mu'
       pexsi_temperature = options//'pexsi_temperature'
       pexsi_tol_charge = options//'pexsi_tol_charge'
+      pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
      
       call dict_free(options)
 
@@ -161,6 +162,7 @@ program driver_foe
       call yaml_map('PEXSI mu',pexsi_mu)
       call yaml_map('PEXSI temperature',pexsi_temperature)
       call yaml_map('PEXSI charge tolerance',pexsi_tol_charge)
+      call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
       call yaml_mapping_close()
   end if
 
@@ -186,6 +188,7 @@ program driver_foe
   call mpibcast(pexsi_mu, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_temperature, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_tol_charge, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
       if (check_spectrum) then
@@ -345,7 +348,7 @@ program driver_foe
   else if (trim(kernel_method)=='PEXSI') then
       call pexsi_wrapper(iproc, nproc, mpi_comm_world, smat_s, smat_h, smat_k, mat_s, mat_h, &
            foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, &
-           pexsi_temperature, pexsi_tol_charge, &
+           pexsi_temperature, pexsi_tol_charge, pexsi_np_sym_fact, &
            mat_k, energy, mat_ek)
   else if (trim(kernel_method)=='LAPACK') then
       norbu = smat_h%nfvctr
@@ -673,5 +676,12 @@ subroutine commandline_options(parser)
        'Indicate the tolerance on the number of electrons used by PEXSI',&
        'Allowed values' .is. &
        'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_np_sym_fact','16',&
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       'Allowed values' .is. &
+       'Integer'))
 
 end subroutine commandline_options
