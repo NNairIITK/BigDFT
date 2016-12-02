@@ -52,7 +52,7 @@ module pexsi
       !> @date 2014-04-02
       subroutine pexsi_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, &
                  mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
-                 kernel, energy_kernel, energy)
+                 kernel, energy, energy_kernel)
       !use module_base
       use pexsi_base, only: f_ppexsi_options
       use pexsi_interfaces
@@ -78,8 +78,9 @@ module pexsi
       real(kind=8),intent(in) :: charge
       integer,intent(in) :: npoles
       real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
-      real(kind=8),dimension(nvctr),intent(out) :: kernel, energy_kernel
+      real(kind=8),dimension(nvctr),intent(out) :: kernel
       real(kind=8),intent(out) :: energy
+      real(kind=8),dimension(nvctr),intent(out),optional :: energy_kernel
       
       integer(c_int) :: nrows, nnz, nnzLocal, numColLocal
       integer(c_int), allocatable, dimension(:) ::  colptrLocal, rowindLocal
@@ -339,14 +340,18 @@ module pexsi
           
           ! Gather the local copies of the kernel
           call f_zero(kernel)
-          do i=1,nvctr_local
-              !write(*,*) 'iproc, i, isvctr_local+i-1', iproc, i, isvctr_local+i-1
-              kernel(isvctr_local+i-1) = DMnzvalLocal(i)
-              energy_kernel(isvctr_local+i-1) = EDMnzvalLocal(i)
-          end do
+          if (present(energy_kernel)) then
+              do i=1,nvctr_local
+                  !write(*,*) 'iproc, i, isvctr_local+i-1', iproc, i, isvctr_local+i-1
+                  kernel(isvctr_local+i-1) = DMnzvalLocal(i)
+                  energy_kernel(isvctr_local+i-1) = EDMnzvalLocal(i)
+              end do
+          end if
           call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
           call mpiallred(kernel,mpi_sum,comm=readComm)
-          call mpiallred(energy_kernel,mpi_sum,comm=readComm)
+          if (present(energy_kernel)) then
+              call mpiallred(energy_kernel,mpi_sum,comm=readComm)
+          end if
           call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
           !call mpi_finalize( ierr )
@@ -374,7 +379,9 @@ module pexsi
       call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
       call mpibcast(energy, root=0, comm=comm) 
       call mpibcast(kernel, root=0, comm=comm) 
-      call mpibcast(energy_kernel, root=0, comm=comm) 
+      if (present(energy_kernel)) then
+          call mpibcast(energy_kernel, root=0, comm=comm) 
+      end if
       call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
       if (iproc==0) call yaml_comment('PEXSI calculation of kernel finished',hfill='~')
@@ -498,7 +505,7 @@ module pexsi
 
     subroutine pexsi_wrapper(iproc, nproc, comm, smats, smatm, smatl, ovrlp, ham, &
                charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
-               kernel, energy_kernel, ebs)
+               kernel, ebs, energy_kernel)
       use futile
       use sparsematrix_base
       use sparsematrix, only: transform_sparse_matrix
@@ -511,8 +518,9 @@ module pexsi
       type(matrices),intent(in) :: ovrlp, ham
       integer,intent(in) :: npoles
       real(kind=8),intent(in) :: charge, mumin, mumax, mu, temperature, tol_charge
-      type(matrices),intent(out) :: kernel, energy_kernel
+      type(matrices),intent(out) :: kernel
       real(kind=8),intent(out) :: ebs
+      type(matrices),intent(out),optional :: energy_kernel
     
       ! Local variables
       integer,dimension(:),allocatable :: row_ind, col_ptr
@@ -536,10 +544,18 @@ module pexsi
       call transform_sparse_matrix(iproc, smatm, smatl, SPARSE_FULL, 'small_to_large', &
            smat_in=ham%matrix_compr, lmat_out=ham_large)
       call f_timing(TCAT_SMAT_TRANSFORMATION,'OF')
-      call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
-           ham_large, ovrlp_large, charge, npoles, &
-           mumin, mumax, mu, temperature, tol_charge, &
-           kernel%matrix_compr, energy_kernel%matrix_compr, ebs)
+      
+      if (present(energy_kernel)) then
+          call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
+               ham_large, ovrlp_large, charge, npoles, &
+               mumin, mumax, mu, temperature, tol_charge, &
+               kernel%matrix_compr, ebs, energy_kernel%matrix_compr)
+      else
+          call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
+               ham_large, ovrlp_large, charge, npoles, &
+               mumin, mumax, mu, temperature, tol_charge, &
+               kernel%matrix_compr, ebs)
+      end if
     
       call f_free(ovrlp_large)
       call f_free(ham_large)
