@@ -64,6 +64,7 @@ module pexsi
       use dynamic_memory
       use futile
       use time_profiling
+      use sparsematrix_base
       use sparsematrix_timing
       implicit none
       !include 'mpif.h'
@@ -241,13 +242,15 @@ module pexsi
             options )
 
           
+          ! PEXSI assumes Rydbergs as units for the Hamiltonian, whereas the
+          ! inputs are givin in Hartree, so convert them (multiplication by 2)
           numElectronExact = real(charge,kind=c_double)
-          options%muMin0   = real(mumin,kind=c_double)
-          options%muMax0   = real(mumax,kind=c_double)
-          options%mu0      = real(mu,kind=c_double)
-          options%deltaE   = real(DeltaE ,kind=c_double)
+          options%muMin0   = real(2.0_mp*mumin,kind=c_double)
+          options%muMax0   = real(2.0_mp*mumax,kind=c_double)
+          options%mu0      = real(2.0_mp*mu,kind=c_double)
+          options%deltaE   = real(2.0_mp*DeltaE ,kind=c_double)
           options%numPole  = int(npoles,kind=c_int)
-          options%temperature = real(temperature,kind=c_double)
+          options%temperature = real(2.0_mp*temperature,kind=c_double)
           options%muPEXSISafeGuard = real(0.2d0,kind=c_double)
           options%numElectronPEXSITolerance = real(tol_charge,kind=c_double)
           options%npSymbFact = int(np_sym_fact,kind=c_int)
