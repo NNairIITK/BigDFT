@@ -469,8 +469,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,.true.,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
-                     input%tel, input%occopt, &
-                     input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+                     input%tel, input%occopt, input%lin%pexsi_npoles, &
+                     input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE, &
                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact, &
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff, &
                      hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
@@ -973,7 +973,7 @@ end if
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
            input%tel, input%occopt, &
-           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE, &
            input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
@@ -1555,8 +1555,8 @@ end if
                          invert_overlap_matrix,calculate_pspandkin,update_phi,&
                          calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                         input%tel, input%occopt, &
-                         input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+                         input%tel, input%occopt,input%lin%pexsi_npoles,&
+                         input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE,&
                          input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
                          hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
@@ -1577,7 +1577,7 @@ end if
                       calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
@@ -1612,8 +1612,8 @@ end if
                          invert_overlap_matrix,calculate_pspandkin,update_phi,&
                          calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                         input%tel, input%occopt, &
-                         input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+                         input%tel, input%occopt,input%lin%pexsi_npoles,&
+                         input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE,&
                          input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact,&
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
                          hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
@@ -1634,7 +1634,7 @@ end if
                       calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE,&
                       input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)

@@ -131,6 +131,7 @@ module module_input_keys
      integer :: pexsi_npoles !< number of poles used by PEXSI
      real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
      real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
+     real(kind=8) :: pexsi_DeltaE ! An upper bound for the spectral radius of S^-1H for PEXSI
      integer :: pexsi_np_sym_fact !< number of prcos used for the symbolic factorization used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
      logical :: plot_locreg_grids
@@ -2256,6 +2257,8 @@ contains
           in%lin%pexsi_mumax = val
        case (PEXSI_MU)
           in%lin%pexsi_mu = val
+       case (PEXSI_DELTAE)
+          in%lin%pexsi_DeltaE = val
        case (PEXSI_TEMPERATURE)
           in%lin%pexsi_temperature = val
        case (PEXSI_TOL_CHARGE)

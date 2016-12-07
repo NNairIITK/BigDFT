@@ -288,6 +288,7 @@ module public_keys
   character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
   character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
   character(len=*), parameter :: PEXSI_MU='pexsi_mu'
+  character(len=*), parameter :: PEXSI_DELTAE='pexsi_DeltaE'
   character(len=*), parameter :: PEXSI_TEMPERATURE='pexsi_temperature'
   character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
   character(len=*), parameter :: PEXSI_NP_SYM_FACT='pexsi_np_sym_fact'
