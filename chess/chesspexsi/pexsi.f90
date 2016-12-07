@@ -51,7 +51,7 @@ module pexsi
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
       subroutine pexsi_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, &
-                 mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
+                 mat_h, mat_s, charge, npoles, mumin, mumax, mu, DeltaE, temperature, tol_charge, np_sym_fact, &
                  kernel, energy, energy_kernel)
       !use module_base
       use pexsi_base, only: f_ppexsi_options
@@ -78,7 +78,7 @@ module pexsi
       real(kind=8),dimension(nvctr),intent(in) :: mat_h, mat_s
       real(kind=8),intent(in) :: charge
       integer,intent(in) :: npoles
-      real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
+      real(kind=8),intent(in) :: mumin, mumax, mu, DeltaE, temperature, tol_charge
       real(kind=8),dimension(nvctr),intent(out) :: kernel
       real(kind=8),intent(out) :: energy
       real(kind=8),dimension(nvctr),intent(out),optional :: energy_kernel
@@ -245,7 +245,7 @@ module pexsi
           options%muMin0   = real(mumin,kind=c_double)
           options%muMax0   = real(mumax,kind=c_double)
           options%mu0      = real(mu,kind=c_double)
-          options%deltaE   = real(20d0 ,kind=c_double)
+          options%deltaE   = real(DeltaE ,kind=c_double)
           options%numPole  = int(npoles,kind=c_int)
           options%temperature = real(temperature,kind=c_double)
           options%muPEXSISafeGuard = real(0.2d0,kind=c_double)
@@ -522,7 +522,7 @@ module pexsi
 
 
     subroutine pexsi_wrapper(iproc, nproc, comm, smats, smatm, smatl, ovrlp, ham, &
-               charge, npoles, mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
+               charge, npoles, mumin, mumax, mu, DeltaE, temperature, tol_charge, np_sym_fact, &
                kernel, ebs, energy_kernel)
       use futile
       use sparsematrix_base
@@ -535,7 +535,7 @@ module pexsi
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ovrlp, ham
       integer,intent(in) :: npoles, np_sym_fact
-      real(kind=8),intent(in) :: charge, mumin, mumax, mu, temperature, tol_charge
+      real(kind=8),intent(in) :: charge, mumin, mumax, mu, DeltaE, temperature, tol_charge
       type(matrices),intent(out) :: kernel
       real(kind=8),intent(out) :: ebs
       type(matrices),intent(out),optional :: energy_kernel
@@ -566,12 +566,12 @@ module pexsi
       if (present(energy_kernel)) then
           call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
                ham_large, ovrlp_large, charge, npoles, &
-               mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
+               mumin, mumax, mu, DeltaE, temperature, tol_charge, np_sym_fact, &
                kernel%matrix_compr, ebs, energy_kernel%matrix_compr)
       else
           call pexsi_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
                ham_large, ovrlp_large, charge, npoles, &
-               mumin, mumax, mu, temperature, tol_charge, np_sym_fact, &
+               mumin, mumax, mu, DeltaE, temperature, tol_charge, np_sym_fact, &
                kernel%matrix_compr, ebs)
       end if
     

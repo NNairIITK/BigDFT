@@ -52,7 +52,7 @@ program driver_foe
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
   integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb, iorb, pexsi_np_sym_fact
-  real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge
+  real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_DeltaE, pexsi_temperature, pexsi_tol_charge
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max, eval_all, eval_occup, occup
@@ -137,6 +137,7 @@ program driver_foe
       pexsi_temperature = options//'pexsi_temperature'
       pexsi_tol_charge = options//'pexsi_tol_charge'
       pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
+      pexsi_DeltaE = options//'pexsi_DeltaE'
      
       call dict_free(options)
 
@@ -160,6 +161,7 @@ program driver_foe
       call yaml_map('PEXSI mu min',pexsi_mumin)
       call yaml_map('PEXSI mu max',pexsi_mumax)
       call yaml_map('PEXSI mu',pexsi_mu)
+      call yaml_map('PEXSI Delta E',pexsi_DeltaE)
       call yaml_map('PEXSI temperature',pexsi_temperature)
       call yaml_map('PEXSI charge tolerance',pexsi_tol_charge)
       call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
@@ -186,6 +188,7 @@ program driver_foe
   call mpibcast(pexsi_mumin, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_mumax, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_mu, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_DeltaE, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_temperature, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_tol_charge, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
@@ -347,7 +350,7 @@ program driver_foe
            calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
   else if (trim(kernel_method)=='PEXSI') then
       call pexsi_wrapper(iproc, nproc, mpi_comm_world, smat_s, smat_h, smat_k, mat_s, mat_h, &
-           foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, &
+           foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_DeltaE, &
            pexsi_temperature, pexsi_tol_charge, pexsi_np_sym_fact, &
            mat_k, energy, mat_ek)
   else if (trim(kernel_method)=='LAPACK') then
@@ -660,6 +663,13 @@ subroutine commandline_options(parser)
        'initial guess for the chemical potential used by PEXSI',&
        help_dict=dict_new('Usage' .is. &
        'Initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_DeltaE','10.0',&
+       'upper bound for the spectral radius of S^-1H used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI',&
        'Allowed values' .is. &
        'Double'))
 
