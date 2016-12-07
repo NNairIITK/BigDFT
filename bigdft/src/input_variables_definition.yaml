@@ -1953,23 +1953,23 @@
      pexsi_mumin:
        COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
        DESCRIPTION: |
-         Initial guesss for the lower bound of the chemical potential (in hartree?)
+         Initial guesss for the lower bound of the chemical potential (in hartree)
          used by PEXSI, will be adjusted automatically later.
        default: -1.0
        RANGE: [-5.0,5.0]
      pexsi_mumax:
        COMMENT: Initial guess for the upper bound of the chemical potential used by PEXSI
-       DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree) used by PEXSI, will be adjusted automatically later
        default: 1.0
        RANGE: [-5.0,5.0]
      pexsi_mu:
        COMMENT: Initial guess for the  chemical potential used by PEXSI
-       DESCRIPTION: initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       DESCRIPTION: initial guesss for the chemical potential (in hartree) used by PEXSI, will be adjusted automatically later
        default: 0.5
        RANGE: [-5.0,5.0]
      pexsi_temperature:
        COMMENT: Temperature used by PEXSI
-       DESCRIPTION: temperature (in atomic units?) used by PEXSI
+       DESCRIPTION: temperature (in atomic units) used by PEXSI
        default: 1.e-3
        RANGE: [0.0,1.0]
      pexsi_tol_charge:
