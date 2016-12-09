@@ -94,7 +94,7 @@ PS_Check.report.yaml: PS_Check.ref.yaml PS_Check.out.yaml
 		-r $< -d PS_Check.out.yaml -t $(srcdir)/tols.yaml \
 	        --output $@
 
-regtest: PS_Program PS_Exercise PS_Check Generalized_PSolver
+regtest: PS_Program PS_Exercise PS_Check Generalized_PSolver PS_StressCheck
 	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
 	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
 	       --exclusive=${CHECK_ONLY}
@@ -138,5 +138,11 @@ define F_REGTEST_INSTRUCTIONS
     - |  # mPB from Generalized_PSolver, non-ortho
       $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 8 -g S -f [90,41,90] -p yes
     - cat log.yaml >> Generalized_PSolver.out.yaml
+- PS_StressCheck:
+   runs:
+    - |  # Check stress on x,y,z direction individually
+      $(run_parallel) ./PS_StressCheck -n 50 -g P -s 50 > PS_StressCheck.out.yaml
+    - |  # Check stress on x,y,z direction concurrently
+      $(run_parallel) ./PS_StressCheck -n 50 -g P -s 50 -v yes >> PS_StressCheck.out.yaml
 endef
 export F_REGTEST_INSTRUCTIONS
