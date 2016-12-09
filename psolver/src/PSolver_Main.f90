@@ -383,7 +383,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   !gather the full result in the case of datacode = G
   if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
-  if (build_c .or. .not. kernel%opt%only_electrostatic ) then
+  if (build_c) then
    kernel%IntSur=IntSur
    kernel%IntVol=IntVol
   end if

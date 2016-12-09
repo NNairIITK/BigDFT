@@ -1338,6 +1338,7 @@ subroutine test_functions_new(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma)
   use yaml_output
   use f_utils
+  use f_precisions, only: dp=> f_double
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   integer, intent(in) :: n01,n02,n03,ixc
@@ -1403,6 +1404,8 @@ subroutine test_functions_new(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
   if (ixc==0) denval=0.d0
 
+  mesh=cell_new(geocode,ndims,hgrids)
+
   if (trim(geocode) == 'P') then
      !parameters for the test functions
      do i=1,3
@@ -1419,7 +1422,11 @@ subroutine test_functions_new(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         fz2=diff(func(1),x,order=2)
         write(20,'(1x,I8,4(1x,e22.15))') i1,fx,fx2,fz,fz2
      end do
-     SONO ARRIVATO QUI DEVO METETRE LA DEFINIZIONE DELLE FUNZIONI
+     SONO ARRIVATO QUI DEVO METTERE LA DEFINIZIONE DELLE FUNZIONI
+
+     call separable_3d_function(mesh,funcs,-factor*fourpi,potential)
+     call separable_3d_laplacian(mesh,funcs,factor/real(nspden,dp),density)
+
 
      !Initialization of density and potential
      denval=0.d0 !value for keeping the density positive
