@@ -1200,7 +1200,9 @@
  Hamiltonian Applied:  Yes, 
  Components: {Ekin:  7.57270640492E+01, Epot: -7.20297248449E+01, Enl:  5.58446617730E+00}, 
    Orthoconstraint:  Yes, summary: {npl:  110, bounds:  [  0.500,  1.500 ], 
-                              exp accur:  [  7.24E-14 ]}, correction orthoconstraint:  Yes, 
+                              exp accur:  [  3.15E-14 ]}, summary: {npl:  100, bounds: [
+  0.556,  1.350], exp accur:  [  1.41E-14,  2.44E-14,  3.33E-14 ]}, summary: {npl:  80, bounds: [
+  0.617,  1.215], exp accur:  [  2.02E-14 ]}, correction orthoconstraint:  Yes, 
                         Preconditioning:  Yes, 
  iter:  1, fnrm:  8.53E-01, Omega: {ENERGY: -4.743358761469355E+01}, D: -4.74E+01, 
                                     D best: -4.74E+01, 
@@ -1223,9 +1225,11 @@
          Can take from memory          :  No
          beta for penaltyfunction      : -1000.0
          determine eigenvalue bounds:
-         -  {npl:  100, scale:  1.00E+00, bounds:  [  0.556,  1.350 ], 
-       exp accur:  [  2.44E-14 ], penalty: -4.0E-09, ok:  [  Yes,  Yes ]}
-         summary: {npl:  100, bounds:  [  0.556,  1.350 ], exp accur:  [  2.44E-14 ]}
+         -  {npl:  70, scale:  1.00E+00, bounds:  [  0.686,  1.094 ], 
+       exp accur:  [  1.67E-14 ], penalty: -3.7E+00, ok:  [  Yes,  No ]}
+         -  {npl:  90, scale:  8.33E-01, bounds:  [  0.686,  1.312 ], 
+       exp accur:  [  2.15E-14 ], penalty: -2.8E-08, ok:  [  Yes,  Yes ]}
+         summary: {npl:  90, bounds:  [  0.686,  1.312 ], exp accur:  [  2.15E-14 ]}
        Kernel calculation:
        -  #------------------------------------------------------------- ispin: 1, itemp: 1
          decay length of error function:  3.725E-02
