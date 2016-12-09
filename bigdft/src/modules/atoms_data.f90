@@ -70,6 +70,7 @@ module module_atoms
      integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
      type(symmetry_data) :: sym                            !< The symmetry operators
      type(f_tree), dimension(:), pointer :: attributes     !< Static attributes per atom
+     type(dictionary), pointer :: properties               !< Global properties
   end type atomic_structure
 
   !> Data containing the information about the atoms in the system
@@ -291,6 +292,7 @@ contains
     nullify(astruct%ixyz_int)
     call nullify_symmetry_data(astruct%sym)
     nullify(astruct%attributes)
+    nullify(astruct%properties)
   end subroutine nullify_atomic_structure
 
 
@@ -405,7 +407,7 @@ contains
     end if
     ! Free additional stuff.
     call deallocate_symmetry_data(astruct%sym)
-
+    if (associated(astruct%properties)) call dict_free(astruct%properties)
   END SUBROUTINE deallocate_atomic_structure
 
 
@@ -1258,6 +1260,10 @@ contains
          call add(pos, at, last)
       end do
 
+      if (associated(astruct%properties)) then
+         call dict_update(dict // ASTRUCT_PROPERTIES, astruct%properties)
+      end if
+
       if (present(comment)) then
          if (len_trim(comment) > 0) &
               & call add(dict // ASTRUCT_PROPERTIES // "info", comment)
@@ -1265,6 +1271,7 @@ contains
 
       if (len_trim(astruct%inputfile_format) > 0) &
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
+
     end subroutine astruct_merge_to_dict
 
 
@@ -1367,7 +1374,10 @@ contains
          case(ASTRUCT_ATT_CAVRAD)
             if (present(cavity_radius)) cavity_radius= atData
          case default
-            if (dict_len(atData) == 3) then
+            ! Heuristic to find symbol and coordinates.
+            if (dict_len(atData) == 3 .and. &
+                 & (len_trim(str) < 3 .or. (index(str, "_") > 0 .and. &
+                 & index(str, "_") < 4))) then
                if (present(symbol)) symbol = str
                if (present(rxyz)) rxyz = atData
                if (present(rxyz_add)) then
@@ -1400,17 +1410,11 @@ contains
       ityp = 0
       atoms => dict_iter(dict // ASTRUCT_POSITIONS)
       do while(associated(atoms))
-         at => dict_iter(atoms)
-         do while(associated(at))
-            str = dict_key(at)
-            if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
-               ityp = ityp + 1
-               call set(types // str, ityp)
-               nullify(at)
-            else
-               at => dict_next(at)
-            end if
-         end do
+         call astruct_at_from_dict(atoms, symbol = str)
+         if (.not. has_key(types, str)) then
+            ityp = ityp + 1
+            call set(types // str, ityp)
+         end if
          atoms => dict_next(atoms)
       end do
     end subroutine astruct_dict_get_types
@@ -1696,6 +1700,7 @@ contains
             astruct%inputfile_format='yaml'
          end if
          if ("source" .in. pos) astruct%source = pos // "source"
+         call dict_copy(astruct%properties, pos)
       else
          if (bigdft_mpi%iproc==0) &
               call yaml_warning('Format not specified in the posinp dictionary, assuming yaml')
