@@ -1751,6 +1751,7 @@ module sparsematrix_init
       ! Local variables
       integer :: iout, ilen, ii, iend, nconsecutive, jorb, jjorb, jjorb_prev, iconsec, nconsecutive_tot
 
+      call f_routine(id='determine_consecutive_values')
 
       nconsecutive_max = 0
       nconsecutive_tot = 0
@@ -1814,6 +1815,7 @@ module sparsematrix_init
           call f_err_throw('consecutive/=nconsecutive_tot')
       end if
 
+      call f_release_routine()
 
     end subroutine determine_consecutive_values
 
