@@ -870,10 +870,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      ! Store velcur, alpha and dt for restart.
      itAt = atoms_iter(runObj%atoms%astruct)
      do while (atoms_iter_next(itAt))
-        if (.not. associated(itAt%attrs)) then
-           call dict_init(runObj%atoms%astruct%attributes(itAt%iat)%d)
-           itAt%attrs => runObj%atoms%astruct%attributes(itAt%iat)%d
-        end if
+        call atoms_iter_ensure_attr(itAt)
         call set(itAt%attrs // ATT_VEL, velcur((itAt%iat - 1) * 3 + 1:itAt%iat * 3))
      end do
      call set(runObj%atoms%astruct%properties // ATT_ALPHA, alpha)
