@@ -805,8 +805,6 @@ module fermi_level
 
 
     subroutine eFermi_nosmearing(iproc, nkpts, norbu, norbd, norb, eval, occup, efermi)
-       use module_base
-       use module_types
        use yaml_output
        implicit none
        integer,intent(in) :: iproc, nkpts, norbu, norbd, norb
@@ -816,21 +814,21 @@ module fermi_level
        real(mp),intent(out) :: efermi
        !local variables
        integer :: iu,id,n,nzeroorbs,ikpt,iorb
-       real(gp) :: charge
-       real(wp) :: eF
+       real(mp) :: charge
+       real(mp) :: eF
     
        !SM: I think iu and id should be initialized to these values, in case the
        ! large if will not be executed.
        iu=norbu
        id=norbd
-       eF = 0._wp
+       eF = 0._mp
        do ikpt=1,nkpts
           !number of zero orbitals for the given k-point
           nzeroorbs=0
           !overall charge of the system
-          charge=0.0_gp
+          charge=0.0_mp
           do iorb=1,norb
-             if (occup(iorb+(ikpt-1)*norb) == 0.0_gp) then
+             if (occup(iorb+(ikpt-1)*norb) == 0.0_mp) then
                 nzeroorbs=nzeroorbs+1
              else
                 charge=charge+occup(iorb+(ikpt-1)*norb)
@@ -849,7 +847,7 @@ module fermi_level
              iu=0
              id=0
              n=0
-             do while (real(n,gp) < charge)
+             do while (real(n,mp) < charge)
                 if (eval((ikpt-1)*norb+iu+1) <= eval((ikpt-1)*norb+id+1+norbu)) then
                    iu=iu+1
                    eF=eval((ikpt-1)*norb+iu+1)
@@ -870,16 +868,16 @@ module fermi_level
        efermi=eF
        !assign the values for the occupation numbers
        do iorb=1,iu
-          occup(iorb)=1.0_gp
+          occup(iorb)=1.0_mp
        end do
        do iorb=iu+1,norbu
-          occup(iorb)=0.0_gp
+          occup(iorb)=0.0_mp
        end do
        do iorb=1,id
-          occup(iorb+norbu)=1.0_gp
+          occup(iorb+norbu)=1.0_mp
        end do
        do iorb=id+1,norbd
-          occup(iorb+norbu)=0.0_gp
+          occup(iorb+norbu)=0.0_mp
        end do
     
     END SUBROUTINE eFermi_nosmearing
