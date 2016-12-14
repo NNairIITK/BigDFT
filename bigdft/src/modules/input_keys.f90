@@ -2421,6 +2421,7 @@ contains
 
   !> Assign default values for mixing variables
   subroutine mix_input_variables_default(in)
+    use fermi_level, only: SMEARING_DIST_ERF
     implicit none
     type(input_variables), intent(inout) :: in
 

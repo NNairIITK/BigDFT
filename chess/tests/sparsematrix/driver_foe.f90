@@ -36,12 +36,13 @@ program driver_foe
   use sparsematrix_init, only: matrixindex_in_compressed, write_sparsematrix_info, &
                                get_number_of_electrons, distribute_on_tasks
   ! The following module is an auxiliary module for this test
-  use utilities, only: get_ccs_data_from_file
+  use utilities, only: get_ccs_data_from_file, calculate_error
   use futile
   use wrapper_MPI
   use wrapper_linalg
   use pexsi, only: pexsi_wrapper
   use coeffs, only: get_coeffs_diagonalization, calculate_kernel_and_energy
+  use fermi_level, only: eval_to_occ, SMEARING_DIST_ERF
 
   implicit none
 
@@ -57,14 +58,26 @@ program driver_foe
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max, eval_all, eval_occup, occup
   real(mp),dimension(:,:),allocatable :: coeff
-  real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake
+  real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake, efermi, eTS
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr, fscale_lowerbound, fscale_upperbound
   type(dictionary),pointer :: dict_timing_info, options
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
   character(len=1024) :: sparsity_format, matrix_format, kernel_method
-  logical :: check_spectrum
+  logical :: check_spectrum, do_cubic_check
+  integer,parameter :: nthreshold = 10 !< number of checks with threshold
+  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-1_mp, &
+                                                             1.e-2_mp, &
+                                                             1.e-3_mp, &
+                                                             1.e-4_mp, &
+                                                             1.e-5_mp, &
+                                                             1.e-6_mp, &
+                                                             1.e-7_mp, &
+                                                             1.e-8_mp,&
+                                                             1.e-9_mp,&
+                                                             1.e-10_mp /) !< threshold for the relative errror
+
   external :: gather_timings
   !$ integer :: omp_get_max_threads
 
@@ -138,6 +151,7 @@ program driver_foe
       pexsi_tol_charge = options//'pexsi_tol_charge'
       pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
       pexsi_DeltaE = options//'pexsi_DeltaE'
+      do_cubic_check = options//'do_cubic_check'
      
       call dict_free(options)
 
@@ -165,6 +179,7 @@ program driver_foe
       call yaml_map('PEXSI temperature',pexsi_temperature)
       call yaml_map('PEXSI charge tolerance',pexsi_tol_charge)
       call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
+      call yaml_map('Do a check with cubic scaling (Sca)LAPACK',do_cubic_check)
       call yaml_mapping_close()
   end if
 
@@ -205,6 +220,19 @@ program driver_foe
       check_spectrum = .true.
   else
       check_spectrum = .false.
+  end if
+  if (iproc==0) then
+      if (do_cubic_check) then
+          icheck = 1
+      else
+          icheck = 0
+      end if
+  end if
+  call mpibcast(icheck, root=0, comm=mpi_comm_world)
+  if (icheck==1) then
+      do_cubic_check = .true.
+  else
+      do_cubic_check = .false.
   end if
 
 
@@ -364,11 +392,13 @@ program driver_foe
            smat_h%nfvctr, norbu, norbd, norb, scalapack_blocksize, &
            smat_s, smat_h, mat_s, mat_h, coeff, &
            eval_all, eval_occup, info)
-      ! Here should come the proper calculation of the occupation numbers...
       occup = f_malloc0(norb,id='occup')
       if (smat_h%nspin/=1) call f_err_throw('The kernel calculation with LAPACK is currently not possible for nspin/=1')
       ii = nint(0.5_mp*foe_data_get_real(foe_obj,"charge",1))
       occup(1:ii) = 2.0_mp
+      call eval_to_occ(iproc, nproc, norbu, norbd, norb, 1, (/1.0_mp/), &
+           eval_occup, occup, .false., .true., pexsi_temperature, SMEARING_DIST_ERF, efermi, eTS, &
+           norbu, norbd)
       call distribute_on_tasks(norb, iproc, nproc, norbp, isorb)
       ! Density kernel
       call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
@@ -434,6 +464,37 @@ program driver_foe
 
   ! Write the difference to the previous result
   if (iproc==0) call yaml_map('difference',tr_KS-tr_KS_check)
+
+  if (do_cubic_check) then
+      norbu = smat_h%nfvctr
+      norbd = 0
+      norb = norbu + norbd
+      coeff = f_malloc((/smat_h%nfvctr,norb/),id='coeff')
+      eval_all = f_malloc(smat_h%nfvctr,id='eval_all')
+      eval_occup = f_malloc(norb,id='eval_occup')
+      call get_coeffs_diagonalization(iproc, nproc, mpi_comm_world, &
+           smat_h%nfvctr, norbu, norbd, norb, scalapack_blocksize, &
+           smat_s, smat_h, mat_s, mat_h, coeff, &
+           eval_all, eval_occup, info)
+      occup = f_malloc0(norb,id='occup')
+      if (smat_h%nspin/=1) call f_err_throw('The kernel calculation with LAPACK is currently not possible for nspin/=1')
+      ii = nint(0.5_mp*foe_data_get_real(foe_obj,"charge",1))
+      occup(1:ii) = 2.0_mp
+      call eval_to_occ(iproc, nproc, norbu, norbd, norb, 1, (/1.0_mp/), &
+           eval_occup, occup, .false., .true., pexsi_temperature, SMEARING_DIST_ERF, efermi, eTS, &
+           norbu, norbd)
+      call distribute_on_tasks(norb, iproc, nproc, norbp, isorb)
+      ! Density kernel... Use mat_ek to store this reference kernel.
+      call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
+           smat_k, smat_h, mat_ek, mat_h, energy,&
+           coeff, norbp, isorb, norbu, norb, occup, .true.)
+      call calculate_error(iproc, smat_k, mat_k, mat_ek, nthreshold, threshold, .false., &
+           'Check the deviation from the reference calculation using LAPACK')
+      call f_free(coeff)
+      call f_free(eval_all)
+      call f_free(eval_occup)
+      call f_free(occup)
+  end if
 
   ! Deallocate the object holding the FOE parameters
   call foe_data_deallocate(foe_obj)
@@ -693,5 +754,13 @@ subroutine commandline_options(parser)
        'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
        'Allowed values' .is. &
        'Integer'))
+
+   call yaml_cl_parse_option(parser,'do_cubic_check','.true.',&
+       'perform a check using cubic scaling dense (Sca)LAPACK',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate whether a cubic scaling check using dense (Sca)LAPACK should be performed',&
+       'Allowed values' .is. &
+       'Logical'))
+
 
 end subroutine commandline_options
