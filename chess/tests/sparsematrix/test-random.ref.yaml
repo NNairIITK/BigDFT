@@ -849,6 +849,53 @@
  Check the deviation from unity of the operation mat^x*mat^-x:
    max_error                           :  2.074E-13
    mean_error                          :  5.556E-16
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating (mat^x)^-x
+ Calculating (mat^x)^-x:
+   beta for penaltyfunction            : -500.0
+   determine eigenvalue bounds:
+   -  {npl:  120, scale:  2.55E+00, bounds:  [  0.116,  2.592 ], exp accur:  [  2.89E-14 ], 
+   penalty: -3.7E+06,                   ok:  [  Yes,  No ]}
+   -  {npl:  130, scale:  2.13E+00, bounds:  [  0.116,  3.110 ], exp accur:  [  3.4E-14 ], 
+   penalty: -4.8E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  140, scale:  1.77E+00, bounds:  [  0.116,  3.732 ], exp accur:  [  4.13E-14 ], 
+   penalty: -6.2E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  160, scale:  1.48E+00, bounds:  [  0.116,  4.479 ], exp accur:  [  4.88E-14 ], 
+   penalty: -3.6E+06,                   ok:  [  Yes,  No ]}
+   -  {npl:  170, scale:  1.23E+00, bounds:  [  0.116,  5.375 ], exp accur:  [  6.13E-14 ], 
+   penalty: -1.8E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  190, scale:  1.03E+00, bounds:  [  0.116,  6.450 ], exp accur:  [  8.7E-14 ], 
+   penalty: -7.4E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  200, scale:  8.54E-01, bounds:  [  0.116,  7.740 ], exp accur:  [  1.2E-13 ], 
+   penalty: -3.4E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  220, scale:  7.12E-01, bounds:  [  0.116,  9.288 ], exp accur:  [  1.84E-13 ], 
+   penalty: -8.2E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  240, scale:  5.93E-01, bounds:  [  0.116,  11.145 ], 
+ exp accur:  [  2.04E-13 ], penalty: -3.8E-08, ok:  [  Yes,  Yes ]}
+   summary: {npl:  240, bounds:  [  0.116,  11.145 ], exp accur:  [  2.04E-13 ]}
+ Check the deviation of from the original matrix (only within the sparsity pattern):
+   absolute error:
+     max error                         :  2.376E-13
+     mean error                        :  5.606E-16
+   relative error:
+     max error relative                :  4.457E-12
+     mean error relative               :  1.619E-13
+   relative error with threshold:
+   -  {threshold value:  1.0E-05, max error relative:  4.457E-12, 
+   mean error relative:  1.617E-13}
+   -  {threshold value:  1.0E-06, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
+   -  {threshold value:  1.0E-07, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
+   -  {threshold value:  1.0E-08, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
+   -  {threshold value:  1.0E-09, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
+   -  {threshold value:  1.0E-10, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
+   -  {threshold value:  1.0E-11, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
+   -  {threshold value:  1.0E-12, max error relative:  4.457E-12, 
+   mean error relative:  1.619E-13}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do the same calculation using dense LAPACK
  mode                                  : sequential
  mode                                  : sequential
@@ -876,6 +923,30 @@
    mean error relative:  1.967E-12}
    -  {threshold value:  1.0E-12, max error relative:  2.262E-10, 
    mean error relative:  1.967E-12}
+ Check the deviation from the exact result using BLAS (for the entire matrix):
+   absolute error:
+     max error                         :  3.446E-13
+     mean error                        :  1.452E-15
+   relative error:
+     max error relative                :  1.095E-10
+     mean error relative               :  1.745E-12
+   relative error with threshold:
+   -  {threshold value:  1.0E-05, max error relative:  7.328E-11, 
+   mean error relative:  1.661E-12}
+   -  {threshold value:  1.0E-06, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
+   -  {threshold value:  1.0E-07, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
+   -  {threshold value:  1.0E-08, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
+   -  {threshold value:  1.0E-09, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
+   -  {threshold value:  1.0E-10, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
+   -  {threshold value:  1.0E-11, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
+   -  {threshold value:  1.0E-12, max error relative:  1.095E-10, 
+   mean error relative:  1.745E-12}
  Memory Consumption Report:
    Tot. No. of Allocations             :  61276
    Tot. No. of Deallocations           :  61276
@@ -1498,6 +1569,49 @@
  Check the deviation from unity of the operation mat^x*mat^-x:
    max_error                           :  5.272E-12
    mean_error                          :  1.390E-14
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating (mat^x)^-x
+ Calculating (mat^x)^-x:
+   beta for penaltyfunction            : -500.0
+   determine eigenvalue bounds:
+   -  {npl:  170, scale:  4.56E+00, bounds:  [  0.032,  5.375 ], exp accur:  [  3.95E-14 ], 
+   penalty: -9.0E+03,                   ok:  [  Yes,  No ]}
+   -  {npl:  190, scale:  3.80E+00, bounds:  [  0.032,  6.450 ], exp accur:  [  4.4E-14 ], 
+   penalty: -3.1E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  200, scale:  3.16E+00, bounds:  [  0.032,  7.740 ], exp accur:  [  6.59E-14 ], 
+   penalty: -1.5E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  220, scale:  2.64E+00, bounds:  [  0.032,  9.288 ], exp accur:  [  7.15E-14 ], 
+   penalty: -3.4E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  250, scale:  2.20E+00, bounds:  [  0.032,  11.145 ], 
+ exp accur:  [  7.02E-14 ], penalty: -7.7E+03, ok:  [  Yes,  No ]}
+   -  {npl:  270, scale:  1.83E+00, bounds:  [  0.032,  13.374 ], 
+ exp accur:  [  1.24E-13 ], penalty: -3.3E+03, ok:  [  Yes,  No ]}
+   -  {npl:  290, scale:  1.53E+00, bounds:  [  0.032,  16.049 ], 
+ exp accur:  [  1.11E-13 ], penalty: -6.5E-09, ok:  [  Yes,  Yes ]}
+   summary: {npl:  290, bounds:  [  0.032,  16.049 ], exp accur:  [  1.11E-13 ]}
+ Check the deviation of from the original matrix (only within the sparsity pattern):
+   absolute error:
+     max error                         :  6.581E+00
+     mean error                        :  1.031E-02
+   relative error:
+     max error relative                :  4.712E+00
+     mean error relative               :  1.580E+00
+   relative error with threshold:
+   -  {threshold value:  1.0E-05, max error relative:  4.712E+00, 
+   mean error relative:  1.977E+00}
+   -  {threshold value:  1.0E-06, max error relative:  4.712E+00, 
+   mean error relative:  1.688E+00}
+   -  {threshold value:  1.0E-07, max error relative:  4.712E+00, 
+   mean error relative:  1.581E+00}
+   -  {threshold value:  1.0E-08, max error relative:  4.712E+00, 
+   mean error relative:  1.580E+00}
+   -  {threshold value:  1.0E-09, max error relative:  4.712E+00, 
+   mean error relative:  1.580E+00}
+   -  {threshold value:  1.0E-10, max error relative:  4.712E+00, 
+   mean error relative:  1.580E+00}
+   -  {threshold value:  1.0E-11, max error relative:  4.712E+00, 
+   mean error relative:  1.580E+00}
+   -  {threshold value:  1.0E-12, max error relative:  4.712E+00, 
+   mean error relative:  1.580E+00}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do the same calculation using dense LAPACK
  mode                                  : sequential
  mode                                  : sequential
@@ -1525,6 +1639,30 @@
    mean error relative:  8.055E-09}
    -  {threshold value:  1.0E-12, max error relative:  1.054E-06, 
    mean error relative:  8.055E-09}
+ Check the deviation from the exact result using BLAS (for the entire matrix):
+   absolute error:
+     max error                         :  1.489E-07
+     mean error                        :  3.226E-09
+   relative error:
+     max error relative                :  1.000E+00
+     mean error relative               :  3.900E+01
+   relative error with threshold:
+   -  {threshold value:  1.0E-05, max error relative:  2.680E-07, 
+   mean error relative:  1.370E-08}
+   -  {threshold value:  1.0E-06, max error relative:  6.028E-07, 
+   mean error relative:  7.639E-09}
+   -  {threshold value:  1.0E-07, max error relative:  1.000E+00, 
+   mean error relative:  6.004E-05}
+   -  {threshold value:  1.0E-08, max error relative:  1.000E+00, 
+   mean error relative:  1.274E-02}
+   -  {threshold value:  1.0E-09, max error relative:  1.000E+00, 
+   mean error relative:  3.114E-01}
+   -  {threshold value:  1.0E-10, max error relative:  1.000E+00, 
+   mean error relative:  8.498E-01}
+   -  {threshold value:  1.0E-11, max error relative:  1.000E+00, 
+   mean error relative:  9.555E-01}
+   -  {threshold value:  1.0E-12, max error relative:  1.000E+00, 
+   mean error relative:  9.644E-01}
  Memory Consumption Report:
    Tot. No. of Allocations             :  612955
    Tot. No. of Deallocations           :  612955

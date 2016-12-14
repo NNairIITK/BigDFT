@@ -287,13 +287,18 @@ module sparsematrix_init
       !logical :: printable
       real(kind=mp),dimension(2) :: rseq_max, rseq_average
       real(kind=mp),dimension(:),allocatable :: rseq_per_line
+      real(mp) :: t1, t2
 
       call f_routine(id='init_sparse_matrix_matrix_multiplication_new')
 
 
       ! Calculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the default partitioning of the matrix columns.
+      !t1 = mpi_wtime()
       call get_nout(norb, norbp, isorb, nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, norbp, norb, nout', norbp, norb, sparsemat%smmm%nout
+      !write(*,*) 'iproc, time get_nout', iproc, t2-t1
 
 
       ! Determine ispt
@@ -303,12 +308,19 @@ module sparsematrix_init
       !!call determine_sequential_length(norb, norbp, isorb, nseg, &
       !!     nsegline, istsegline, keyg, sparsemat, &
       !!     sparsemat%smmm%nseq, nseq_per_line)
+      !t1 = mpi_wtime()
       call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time determine_sequential_length_new2', iproc, t2-t1
       !write(*,'(a,i3,3x,200i10)') 'iproc, nseq_per_line', iproc, nseq_per_line
+      call f_routine(id='mpiallred')
       if (nproc>1) call mpiallred(nseq_per_line(1), norb, mpi_sum, comm=comm)
+      call f_release_routine()
       rseq=real(sparsemat%smmm%nseq,kind=mp) !real to prevent integer overflow
+      call f_routine(id='mpiallred')
       if (nproc>1) call mpiallred(rseq, 1, mpi_sum, comm=comm)
+      call f_release_routine()
 
 
       rseq_per_line = f_malloc(norb,id='rseq_per_line')
@@ -346,18 +358,26 @@ module sparsematrix_init
 
       ! Realculate the values of sparsemat%smmm%nout and sparsemat%smmm%nseq with
       ! the optimized partitioning of the matrix columns.
+      !t1 = mpi_wtime()
       call get_nout(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, nsegline, istsegline, keyg, sparsemat%smmm%nout)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time get_nout', iproc, t2-t1
 
       ! Determine ispt
       ispt = get_offset(iproc, nproc, comm, sparsemat%smmm%nout)
+      !t1 = mpi_wtime()
       call determine_sequential_length_new2(sparsemat%smmm%nout, ispt, nseg, norb, keyv, keyg, &
            sparsemat, istsegline, sparsemat%smmm%nseq, nseq_per_line)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time determine_sequential_length_new2', iproc, t2-t1
 
       ! Get the load balancing
       rseq_max(2) = real(sparsemat%smmm%nseq,kind=mp)
       rseq_average(2) = rseq_max(2)/real(nproc,kind=mp)
+      call f_routine(id='mpiallred')
       if (nproc>1) call mpiallred(rseq_max, mpi_max, comm=comm)
       if (nproc>1) call mpiallred(rseq_average, mpi_sum, comm=comm)
+      call f_release_routine()
       ratio_before = rseq_max(1)/rseq_average(1)
       ratio_after = rseq_max(2)/rseq_average(2)
       !!if (iproc==0) then
@@ -379,19 +399,27 @@ module sparsematrix_init
       temparr = f_malloc0((/0.to.nproc-1,1.to.2/),id='isfvctr_par')
       temparr(iproc,1) = sparsemat%smmm%isfvctr
       temparr(iproc,2) = sparsemat%smmm%nfvctrp
+      call f_routine(id='mpiallred')
       if (nproc>1) then
           call mpiallred(temparr,  mpi_sum, comm=comm)
       end if
+      call f_release_routine()
+      !t1 = mpi_wtime()
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            temparr(0,1), temparr(0,2), sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%smmm%isvctr_mm, sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm_par, sparsemat%smmm%nvctr_mm_par)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time init_matrix_parallelization', iproc, t2-t1
 
       ! Would be better if this were in the wrapper above...
       sparsemat%smmm%line_and_column_mm = f_malloc_ptr((/2,sparsemat%smmm%nvctrp_mm/),id='smmm%line_and_column_mm')
 
+      !t1 = mpi_wtime()
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, nseg, keyv(nseg)+(keyg(2,1,nseg)-keyg(1,1,nseg)), &
            temparr(0,1), temparr(0,2), istsegline, keyv, &
            sparsemat%smmm%isvctr, sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr_par, sparsemat%smmm%nvctr_par)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time init_matrix_parallelization', iproc, t2-t1
       call f_free(temparr)
 
       ! Would be better if this were in the wrapper above...
@@ -399,11 +427,17 @@ module sparsematrix_init
 
       ! Init line_and_column
       !!call init_line_and_column()
+      !t1 = mpi_wtime()
       call init_line_and_column(sparsemat%smmm%nvctrp_mm, sparsemat%smmm%isvctr_mm, &
            sparsemat%nseg, sparsemat%keyv, sparsemat%keyg, &
            sparsemat%smmm%line_and_column_mm)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time init_line_and_column', iproc, t2-t1
+      !t1 = mpi_wtime()
       call init_line_and_column(sparsemat%smmm%nvctrp, sparsemat%smmm%isvctr, &
            nseg, keyv, keyg, sparsemat%smmm%line_and_column)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time init_line_and_column', iproc, t2-t1
       !!iseg_start = 1
       !!do i=1,sparsemat%smmm%nvctrp_mm
       !!    ii = sparsemat%smmm%isvctr_mm + i
@@ -451,16 +485,25 @@ module sparsematrix_init
       !call init_onedimindices_new(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
       !     nsegline, istsegline, keyg, &
       !     sparsemat, sparsemat%smmm%nout, sparsemat%smmm%onedimindices)
+      !t1 = mpi_wtime()
       call init_onedimindices_newnew(sparsemat%smmm%nout, ispt, nseg, &
            keyv, keyg, sparsemat, istsegline, sparsemat%smmm%onedimindices_new)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time init_onedimindices_newnew', iproc, t2-t1
       !call get_arrays_for_sequential_acces(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), nseg, &
       !     nsegline, istsegline, keyg, sparsemat, &
       !     sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex)
 
+      !t1 = mpi_wtime()
       call get_arrays_for_sequential_acces_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, &
            keyv, keyg, sparsemat, istsegline, sparsemat%smmm%ivectorindex_new)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time get_arrays_for_sequential_acces_new', iproc, t2-t1
+      !t1 = mpi_wtime()
       call determine_consecutive_values(sparsemat%smmm%nout, sparsemat%smmm%nseq, sparsemat%smmm%ivectorindex_new, &
            sparsemat%smmm%onedimindices_new, sparsemat%smmm%nconsecutive_max, sparsemat%smmm%consecutive_lookup)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time determine_consecutive_values', iproc, t2-t1
       ! The choice for matmul_version can be made in sparsematrix_base
       if (matmul_version==MATMUL_NEW) then
           call f_free_ptr(sparsemat%smmm%ivectorindex_new)
@@ -469,8 +512,11 @@ module sparsematrix_init
       !call init_sequential_acces_matrix(norb, norb_par_ideal(iproc), isorb_par_ideal(iproc), sparsemat%nseg, &
       !     sparsemat%nsegline, sparsemat%istsegline, sparsemat%keyg, sparsemat, sparsemat%smmm%nseq, &
       !     sparsemat%smmm%indices_extract_sequential)
+      !t1 = mpi_wtime()
       call init_sequential_acces_matrix_new(sparsemat%smmm%nout, ispt, nseg, sparsemat%smmm%nseq, keyv, keyg, sparsemat, &
            istsegline, sparsemat%smmm%indices_extract_sequential)
+      !t2 = mpi_wtime()
+      !write(*,*) 'iproc, time init_sequential_acces_matrix_new', iproc, t2-t1
 
       ! This array gives the starting and ending indices of the submatrix which
       ! is used by a given MPI task
@@ -505,9 +551,11 @@ module sparsematrix_init
 
       istartend_mm = f_malloc0((/1.to.2,0.to.nproc-1/),id='istartend_mm')
       istartend_mm(1:2,iproc) = sparsemat%smmm%istartend_mm(1:2)
+      call f_routine(id='mpiallred')
       if (nproc>1) then
           call mpiallred(istartend_mm, mpi_sum, comm=comm)
       end if
+      call f_release_routine()
 
       ! Partition the entire matrix in disjoint submatrices
       istartend_dj = f_malloc((/1.to.2,0.to.nproc-1/),id='istartend_dj')
@@ -549,7 +597,7 @@ module sparsematrix_init
 
       ! Update the segments...
       !write(*,*) 'sparsemat%smmm%istartend_mm_dj(1)',sparsemat%smmm%istartend_mm_dj(1)
-      ii=sparsemat%nseg+1
+      !ii=sparsemat%nseg+1
       do iseg=1,sparsemat%nseg
       !write(*,*) 'sparsemat%smmm%istartend_mm_dj(1)',sparsemat%keyv(iseg), sparsemat%smmm%istartend_mm_dj(1)
           if (sparsemat%keyv(iseg)+sparsemat%keyg(2,1,iseg)-sparsemat%keyg(1,1,iseg)+1>=sparsemat%smmm%istartend_mm_dj(1)) then
@@ -629,6 +677,8 @@ module sparsematrix_init
       integer,dimension(1) :: n_, is_
       integer,dimension(:),allocatable :: narr, isarr
 
+      call f_routine(id='get_offset')
+
       ! Since the wrapper wants arrays
       n_(1) = n
       ! Gather the data on the last process
@@ -653,6 +703,9 @@ module sparsematrix_init
       is = is_(1)
       call f_free(narr)
       call f_free(isarr)
+
+      call f_release_routine()
+
     end function get_offset
 
 
@@ -5140,5 +5193,6 @@ module sparsematrix_init
      end do
    
    end subroutine get_number_of_electrons
+
 
 end module sparsematrix_init

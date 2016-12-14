@@ -409,6 +409,23 @@ program driver_random
       call yaml_mapping_close()
   end if
 
+
+  ! Calculate the inverse operation, applied to the operation itsel, i.e. (mat^x)^-x
+  if (iproc==0) then
+      call yaml_comment('Calculating (mat^x)^-x',hfill='~')
+      call yaml_mapping_open('Calculating (mat^x)^-x')
+  end if
+  call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
+       1, (/-expo/), smats, smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
+
+  if (iproc==0) then
+      call yaml_mapping_close()
+  end if
+
+  ! Calculate the errors
+  call calculate_error(iproc, smatl(1), mat3(1), mat3(3), nthreshold, threshold, .false., &
+       'Check the deviation of from the original matrix')
+
   !call timing(mpi_comm_world,'CHECK_LINEAR','PR')
   call mpibarrier()
   call f_timing_checkpoint(ctr_name='CHECK_LINEAR',mpi_comm=mpiworld(),nproc=mpisize(),&
@@ -440,114 +457,118 @@ program driver_random
       mat3(1)%matrix = sparsematrix_malloc0_ptr(smatl(1), iaction=DENSE_FULL,id=' mat3(1)%matrix')
       call uncompress_matrix(iproc, nproc, smatl(1), mat3(1)%matrix_compr, mat3(1)%matrix)
 
-      ! Sparse matrices
-      max_error = 0.0_mp
-      mean_error = 0.0_mp
-      max_error_rel = 0.0_mp
-      mean_error_rel = 0.0_mp
-      max_error_rel_threshold(:) = 0.0_mp
-      mean_error_rel_threshold(:) = 0.0_mp
-      nrel_threshold(:) = 0
-      do i=1,smatl(1)%nvctr
-          tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
-          tt_rel = tt/abs(mat3(3)%matrix_compr(i))
-          mean_error = mean_error + tt
-          max_error = max(max_error,tt)
-          mean_error_rel = mean_error_rel + tt_rel
-          max_error_rel = max(max_error_rel,tt_rel)
-          do ithreshold=1,nthreshold
-              if (abs(mat3(3)%matrix_compr(i))>threshold(ithreshold)) then
-                  nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
-                  mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
-                  max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
-              end if
-          end do
-      end do
-      mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
-      mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
-      do ithreshold=1,nthreshold
-          mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
-      end do
-      if (iproc==0) then
-          call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
-          call yaml_mapping_open('absolute error')
-          call yaml_map('max error',max_error,fmt='(es10.3)')
-          call yaml_map('mean error',mean_error,fmt='(es10.3)')
-          call yaml_mapping_close()
-          call yaml_mapping_open('relative error')
-          call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
-          call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
-          call yaml_mapping_close()
-          !call yaml_mapping_open('relative error with threshold')
-          call yaml_sequence_open('relative error with threshold')
-          do ithreshold=1,nthreshold
-              call yaml_sequence(advance='no')
-              call yaml_mapping_open(flow=.true.)
-              call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
-              call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
-              call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
-              call yaml_mapping_close()
-          end do
-          call yaml_sequence_close()
-          call yaml_mapping_close()
-          call yaml_mapping_close()
-      end if
+      ! Calculate the errors
+      call calculate_error(iproc, smatl(1), mat3(1), mat3(3), nthreshold, threshold, .true., &
+           'Check the deviation from the exact result using BLAS')
 
-      ! Full matrices
-      max_error = 0.0_mp
-      mean_error = 0.0_mp
-      max_error_rel = 0.0_mp
-      mean_error_rel = 0.0_mp
-      max_error_rel_threshold(:) = 0.0_mp
-      mean_error_rel_threshold(:) = 0.0_mp
-      nrel_threshold(:) = 0
-      do i=1,smatl(1)%nfvctr
-          do j=1,smatl(1)%nfvctr
-              tt = abs(mat3(1)%matrix(j,i,1)-mat3(3)%matrix(j,i,1))
-              tt_rel = tt/abs(mat3(3)%matrix(j,i,1))
-              mean_error = mean_error + tt
-              max_error = max(max_error,tt)
-              mean_error_rel = mean_error_rel + tt_rel
-              max_error_rel = max(max_error_rel,tt_rel)
-              do ithreshold=1,nthreshold
-                  if (abs(mat3(3)%matrix(j,i,1))>threshold(ithreshold)) then
-                      nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
-                      mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
-                      max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
-                  end if
-              end do
-          end do
-      end do
-      mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
-      mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
-      do ithreshold=1,nthreshold
-          mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
-      end do
+      !!! Sparse matrices
+      !!max_error = 0.0_mp
+      !!mean_error = 0.0_mp
+      !!max_error_rel = 0.0_mp
+      !!mean_error_rel = 0.0_mp
+      !!max_error_rel_threshold(:) = 0.0_mp
+      !!mean_error_rel_threshold(:) = 0.0_mp
+      !!nrel_threshold(:) = 0
+      !!do i=1,smatl(1)%nvctr
+      !!    tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
+      !!    tt_rel = tt/abs(mat3(3)%matrix_compr(i))
+      !!    mean_error = mean_error + tt
+      !!    max_error = max(max_error,tt)
+      !!    mean_error_rel = mean_error_rel + tt_rel
+      !!    max_error_rel = max(max_error_rel,tt_rel)
+      !!    do ithreshold=1,nthreshold
+      !!        if (abs(mat3(3)%matrix_compr(i))>threshold(ithreshold)) then
+      !!            nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+      !!            mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+      !!            max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+      !!        end if
+      !!    end do
+      !!end do
+      !!mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
+      !!mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
+      !!do ithreshold=1,nthreshold
+      !!    mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+      !!end do
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
+      !!    call yaml_mapping_open('absolute error')
+      !!    call yaml_map('max error',max_error,fmt='(es10.3)')
+      !!    call yaml_map('mean error',mean_error,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_open('relative error')
+      !!    call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+      !!    call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    !call yaml_mapping_open('relative error with threshold')
+      !!    call yaml_sequence_open('relative error with threshold')
+      !!    do ithreshold=1,nthreshold
+      !!        call yaml_sequence(advance='no')
+      !!        call yaml_mapping_open(flow=.true.)
+      !!        call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+      !!        call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_mapping_close()
+      !!    end do
+      !!    call yaml_sequence_close()
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_close()
+      !!end if
 
-      if (iproc==0) then
-          call yaml_mapping_open('Check the deviation from the exact result using BLAS (for the entire matrix)')
-          call yaml_mapping_open('absolute error')
-          call yaml_map('max error',max_error,fmt='(es10.3)')
-          call yaml_map('mean error',mean_error,fmt='(es10.3)')
-          call yaml_mapping_close()
-          call yaml_mapping_open('relative error')
-          call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
-          call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
-          call yaml_mapping_close()
-          !call yaml_mapping_open('relative error with threshold')
-          call yaml_sequence_open('relative error with threshold')
-          do ithreshold=1,nthreshold
-              call yaml_sequence(advance='no')
-              call yaml_mapping_open(flow=.true.)
-              call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
-              call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
-              call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
-              call yaml_mapping_close()
-          end do
-          call yaml_sequence_close()
-          call yaml_mapping_close()
-          call yaml_mapping_close()
-      end if
+      !!! Full matrices
+      !!max_error = 0.0_mp
+      !!mean_error = 0.0_mp
+      !!max_error_rel = 0.0_mp
+      !!mean_error_rel = 0.0_mp
+      !!max_error_rel_threshold(:) = 0.0_mp
+      !!mean_error_rel_threshold(:) = 0.0_mp
+      !!nrel_threshold(:) = 0
+      !!do i=1,smatl(1)%nfvctr
+      !!    do j=1,smatl(1)%nfvctr
+      !!        tt = abs(mat3(1)%matrix(j,i,1)-mat3(3)%matrix(j,i,1))
+      !!        tt_rel = tt/abs(mat3(3)%matrix(j,i,1))
+      !!        mean_error = mean_error + tt
+      !!        max_error = max(max_error,tt)
+      !!        mean_error_rel = mean_error_rel + tt_rel
+      !!        max_error_rel = max(max_error_rel,tt_rel)
+      !!        do ithreshold=1,nthreshold
+      !!            if (abs(mat3(3)%matrix(j,i,1))>threshold(ithreshold)) then
+      !!                nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+      !!                mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+      !!                max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+      !!            end if
+      !!        end do
+      !!    end do
+      !!end do
+      !!mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
+      !!mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
+      !!do ithreshold=1,nthreshold
+      !!    mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+      !!end do
+
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('Check the deviation from the exact result using BLAS (for the entire matrix)')
+      !!    call yaml_mapping_open('absolute error')
+      !!    call yaml_map('max error',max_error,fmt='(es10.3)')
+      !!    call yaml_map('mean error',mean_error,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_open('relative error')
+      !!    call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+      !!    call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    !call yaml_mapping_open('relative error with threshold')
+      !!    call yaml_sequence_open('relative error with threshold')
+      !!    do ithreshold=1,nthreshold
+      !!        call yaml_sequence(advance='no')
+      !!        call yaml_mapping_open(flow=.true.)
+      !!        call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+      !!        call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_mapping_close()
+      !!    end do
+      !!    call yaml_sequence_close()
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_close()
+      !!end if
 
       call f_free_ptr(mat3(1)%matrix)
 
@@ -776,7 +797,7 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'Double'))
 
-  call yaml_cl_parse_option(parser,'solution_method','ICS',&
+  call yaml_cl_parse_option(parser,'solution_method','ICE',&
        'Indicate which solution method should be used (ICE or SelInv)',&
        help_dict=dict_new('Usage' .is. &
        'Indicate which solution method should be used (ICE or SelInv)',&
@@ -791,3 +812,119 @@ subroutine commandline_options(parser)
        'Integer'))
 
 end subroutine commandline_options
+
+
+subroutine calculate_error(iproc, smat, mat, mat_ref, nthreshold, threshold, check_full_matrix, header)
+  use futile
+  use sparsematrix_base
+  use sparsematrix_types, only: sparse_matrix, matrices
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nthreshold
+  type(sparse_matrix),intent(in) :: smat
+  type(matrices),intent(in) :: mat, mat_ref
+  real(mp),dimension(nthreshold),intent(in) :: threshold
+  logical,intent(in) :: check_full_matrix
+  character(len=*),intent(in) :: header
+
+  ! Local variables
+  real(mp) :: max_error, mean_error, max_error_rel, mean_error_rel, tt, tt_rel, tt_ref
+  real(mp),dimension(nthreshold) :: max_error_rel_threshold, mean_error_rel_threshold
+  integer,dimension(nthreshold) :: nrel_threshold
+  integer :: i, j, ithreshold
+
+
+  ! Sparse matrices
+  call set_to_zero()
+  do i=1,smat%nvctr
+      tt = abs(mat%matrix_compr(i)-mat_ref%matrix_compr(i))
+      tt_rel = tt/abs(mat_ref%matrix_compr(i))
+      tt_ref = mat_ref%matrix_compr(i)
+      call calculate_errors()
+  end do
+  mean_error = mean_error/real(smat%nvctr,kind=8)
+  mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+  do ithreshold=1,nthreshold
+      mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+  end do
+  if (iproc==0) then
+      call print_errors(header=trim(header)//' (only within the sparsity pattern)')
+  end if
+
+  ! Full matrices
+  if (check_full_matrix) then
+      call set_to_zero()
+      do i=1,smat%nfvctr
+          do j=1,smat%nfvctr
+              tt = abs(mat%matrix(j,i,1)-mat_ref%matrix(j,i,1))
+              tt_rel = tt/abs(mat_ref%matrix(j,i,1))
+              tt_ref = mat_ref%matrix(j,i,1)
+              call calculate_errors()
+          end do
+      end do
+      mean_error = mean_error/real(smat%nvctr,kind=8)
+      mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+      do ithreshold=1,nthreshold
+          mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+      end do
+      if (iproc==0) then
+          call print_errors(header=trim(header)//' (for the entire matrix)')
+      end if
+  end if
+
+
+  contains
+
+    subroutine set_to_zero()
+      implicit none
+      max_error = 0.0_mp
+      mean_error = 0.0_mp
+      max_error_rel = 0.0_mp
+      mean_error_rel = 0.0_mp
+      max_error_rel_threshold(:) = 0.0_mp
+      mean_error_rel_threshold(:) = 0.0_mp
+      nrel_threshold(:) = 0
+    end subroutine set_to_zero
+
+    subroutine calculate_errors()
+      implicit none
+      mean_error = mean_error + tt
+      max_error = max(max_error,tt)
+      mean_error_rel = mean_error_rel + tt_rel
+      max_error_rel = max(max_error_rel,tt_rel)
+      do ithreshold=1,nthreshold
+          if (abs(tt_ref)>threshold(ithreshold)) then
+              nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+              mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+              max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+          end if
+      end do
+    end subroutine calculate_errors
+
+    subroutine print_errors(header)
+      implicit none
+      character(len=*),intent(in) :: header
+      call yaml_mapping_open(trim(header))
+      call yaml_mapping_open('absolute error')
+      call yaml_map('max error',max_error,fmt='(es10.3)')
+      call yaml_map('mean error',mean_error,fmt='(es10.3)')
+      call yaml_mapping_close()
+      call yaml_mapping_open('relative error')
+      call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+      call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
+      call yaml_mapping_close()
+      !call yaml_mapping_open('relative error with threshold')
+      call yaml_sequence_open('relative error with threshold')
+      do ithreshold=1,nthreshold
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+          call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+          call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+          call yaml_mapping_close()
+      end do
+      call yaml_sequence_close()
+      call yaml_mapping_close()
+    end subroutine print_errors
+end subroutine calculate_error

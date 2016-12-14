@@ -3,6 +3,7 @@ Default tolerances:
  Epsilon: 1.1e-11
 
 Keys to ignore:
+ - Timestamp of the run
  - Walltime since initialization
  - sparse matmul load balancing naive / optimized
  - Max No. of dictionaries used
@@ -13,4 +14,4 @@ Keys to ignore:
 
 
 test-random:
- max error relative: 2.1e-9
+ max error relative: 5.0e-9
