@@ -83,6 +83,7 @@ interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 f_functions.o: numerics.o
 op2p_module.o: mpi.o linalg.o
+fft2d.o: fft3d.o
 
 AM_FCFLAGS = -I. -I$(top_builddir)/flib/ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
