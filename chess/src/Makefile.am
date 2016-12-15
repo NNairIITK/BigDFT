@@ -34,7 +34,8 @@ libCheSS_1_a_SOURCES = chebyshev.f90 \
 	  ice.f90 \
 	  coeffs.f90 \
 	  matrix_operations.f90 \
-	  sparsematrix_highlevel.f90
+	  sparsematrix_highlevel.f90 \
+	  highlevel_wrappers.f90
 
 # Module files.
 if CAPITALIZE
@@ -48,6 +49,7 @@ modules = CHEBYSHEV.@MODULE_EXT@ \
 	  COEFFS.@MODULE_EXT@ \
 	  MATRIX_OPERATIONS.@MODULE_EXT@ \
 	  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@
+	  HIGHLEVEL_WRAPPERS.@MODULE_EXT@
 else
 modules =  chebyshev.@MODULE_EXT@ \
 	  foe_base.@MODULE_EXT@ \
@@ -58,7 +60,8 @@ modules =  chebyshev.@MODULE_EXT@ \
 	  ice.@MODULE_EXT@ \
 	  coeffs.@MODULE_EXT@ \
 	  matrix_operations.@MODULE_EXT@ \
-	  sparsematrix_highlevel.@MODULE_EXT@
+	  sparsematrix_highlevel.@MODULE_EXT@ \
+	  highlevel_wrappers.@MODULE_EXT@
 endif
 
 subs_static_library = $(top_builddir)/sparsematrix/libsparsematrix.a \
@@ -123,6 +126,7 @@ ice.o: chebyshev.o foe_base.o foe_common.o fermi_level.o
 matrix_operations.o: ice.o foe_base.o
 foe.o: chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
 sparsematrix_highlevel.o: ice.o foe.o
+highlevel_wrappers.o: sparsematrix_highlevel.o
 coeffs.o: sparsematrix_highlevel.o
 chess_toolbox.o: $(libCheSS_1_a_OBJECTS)
 

@@ -55,6 +55,7 @@ program chess_toolbox
    use matrix_operations, only: matrix_for_orthonormal_basis
    use parallel_linalg, only: dgemm_parallel
    use f_random, only: f_random_number
+   use highlevel_wrappers, only: calculate_eigenvalues
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
@@ -866,65 +867,68 @@ program chess_toolbox
 
 
    if (calculate_selected_eigenvalues) then
-       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
-            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
-            init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
-            init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
-            iproc, nproc, mpiworld(), smat_l, kernel_mat, &
-            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
-       call matrices_init(smat_l, ovrlp_minus_one_half(1))
+       call calculate_eigenvalues(iproc, nproc, matrix_format, metadata_file, &
+            overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file, &
+            iev_min, iev_max, fscale)
+       !!!call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+       !!!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
+       !!!     iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+       !!!     init_matmul=.false.)
+       !!!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+       !!!     iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+       !!!     init_matmul=.false.)
+       !!!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
+       !!!     iproc, nproc, mpiworld(), smat_l, kernel_mat, &
+       !!!     init_matmul=.true., filename_mult=trim(kernel_matmul_file))
+       !!!call matrices_init(smat_l, ovrlp_minus_one_half(1))
 
-       !call timing(mpiworld(),'INIT','PR')
-       call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
-                    gather_routine=gather_timings)
-       if (iev_min<1 .or. iev_min>smat_s%nfvctr .or. iev_max>smat_s%nfvctr .or. iev_max<1) then
-           if (iproc==0) then
-               call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
-           end if
-       end if
-       iev_min = max(iev_min,1)
-       iev_min = min(iev_min,smat_s%nfvctr)
-       iev_max = min(iev_max,smat_s%nfvctr)
-       iev_max = max(iev_max,1)
-       eval = f_malloc(iev_min.to.iev_max,id='eval')
-       if (iproc==0) then
-           call yaml_mapping_open('Calculating eigenvalues using FOE')
-       end if
-       call get_selected_eigenvalues_from_FOE(iproc, nproc, mpiworld(), &
-            iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
-            ovrlp_minus_one_half, eval, fscale)
+       !!!!call timing(mpiworld(),'INIT','PR')
+       !!!call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
+       !!!             gather_routine=gather_timings)
+       !!!if (iev_min<1 .or. iev_min>smat_s%nfvctr .or. iev_max>smat_s%nfvctr .or. iev_max<1) then
+       !!!    if (iproc==0) then
+       !!!        call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
+       !!!    end if
+       !!!end if
+       !!!iev_min = max(iev_min,1)
+       !!!iev_min = min(iev_min,smat_s%nfvctr)
+       !!!iev_max = min(iev_max,smat_s%nfvctr)
+       !!!iev_max = max(iev_max,1)
+       !!!eval = f_malloc(iev_min.to.iev_max,id='eval')
+       !!!if (iproc==0) then
+       !!!    call yaml_mapping_open('Calculating eigenvalues using FOE')
+       !!!end if
+       !!!call get_selected_eigenvalues_from_FOE(iproc, nproc, mpiworld(), &
+       !!!     iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
+       !!!     ovrlp_minus_one_half, eval, fscale)
 
-       !!call timing(mpiworld(),'CALC','PR')
-       call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
-                    gather_routine=gather_timings)
+       !!!!!call timing(mpiworld(),'CALC','PR')
+       !!!call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
+       !!!             gather_routine=gather_timings)
 
-       if (iproc==0) then
-           call yaml_sequence_open('values')
-           do iev=iev_min,iev_max
-               call yaml_sequence(advance='no')
-               call yaml_mapping_open(flow=.true.)
-               call yaml_map('ID',iev,fmt='(i6.6)')
-               call yaml_map('eval',eval(iev),fmt='(es12.5)')
-               call yaml_mapping_close()
-           end do
-           call yaml_sequence_close()
-           call yaml_mapping_close()
-       end if
+       !!!if (iproc==0) then
+       !!!    call yaml_sequence_open('values')
+       !!!    do iev=iev_min,iev_max
+       !!!        call yaml_sequence(advance='no')
+       !!!        call yaml_mapping_open(flow=.true.)
+       !!!        call yaml_map('ID',iev,fmt='(i6.6)')
+       !!!        call yaml_map('eval',eval(iev),fmt='(es12.5)')
+       !!!        call yaml_mapping_close()
+       !!!    end do
+       !!!    call yaml_sequence_close()
+       !!!    call yaml_mapping_close()
+       !!!end if
 
 
-       call deallocate_sparse_matrix(smat_s)
-       call deallocate_sparse_matrix(smat_m)
-       call deallocate_sparse_matrix(smat_l)
-       call deallocate_matrices(ovrlp_mat)
-       call deallocate_matrices(hamiltonian_mat)
-       call deallocate_matrices(kernel_mat)
-       call deallocate_matrices(ovrlp_minus_one_half(1))
-       call deallocate_sparse_matrix_metadata(smmd)
-       call f_free(eval)
+       !!!call deallocate_sparse_matrix(smat_s)
+       !!!call deallocate_sparse_matrix(smat_m)
+       !!!call deallocate_sparse_matrix(smat_l)
+       !!!call deallocate_matrices(ovrlp_mat)
+       !!!call deallocate_matrices(hamiltonian_mat)
+       !!!call deallocate_matrices(kernel_mat)
+       !!!call deallocate_matrices(ovrlp_minus_one_half(1))
+       !!!call deallocate_sparse_matrix_metadata(smmd)
+       !!!call f_free(eval)
 
        !!call timing(mpiworld(),'LAST','PR')
        call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&
