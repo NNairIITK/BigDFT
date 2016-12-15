@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-CHECKS = test-ccs.report.yaml test-foeccs.report.yaml test-random.report.yaml
+CHECKS = test-ccs.report.yaml test-foeccs.report.yaml test-random.report.yaml test-eigenvalues.report.yaml
 
 #include $(srcdir)/../check.mk
 
@@ -13,7 +13,7 @@ EXTRA_DIST = test-ccs.ref.yaml \
 	density_kernel_ccs-base.txt density_kernel_matmul_ccs-base.txt \
 	data1_base.dat data2_base.dat
 
-check_PROGRAMS = driver_ccs driver_foe driver_single driver_random
+check_PROGRAMS = driver_ccs driver_foe driver_single driver_random driver_eigenvalues
 EXTRA_PROGRAMS = driver
 
 AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIB_FUTILE_CFLAGS@ @LIBETSFIO_INCLUDE@ @MPI_INCLUDE@
@@ -39,9 +39,13 @@ driver_single_LDADD = $(chess_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
 driver_random_SOURCES = utilities.f90 driver_random.f90
 driver_random_LDADD = $(chess_library) @LINALG_LIBS@
 
+driver_eigenvalues_SOURCES = utilities.f90 driver_eigenvalues.f90
+driver_eigenvalues_LDADD = $(chess_library) @LINALG_LIBS@
+
 CLEANFILES = test-ccs.out.yaml test-ccs.report.yaml test-ccs.report \
              test-foeccs.out.yaml test-foeccs.report.yaml test-foeccs.report \
-			 test-random.out.yaml test-random.report.yaml test-random.report *.@MODULE_EXT@
+			 test-random.out.yaml test-random.report.yaml test-random.report \
+			 test-eigenvalues.out.yaml test-eigenvalues.report.yaml test-eigenvalues.report *.@MODULE_EXT@
 
 test-ccs.report.yaml: $(srcdir)/test-ccs.ref.yaml test-ccs.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
@@ -54,6 +58,10 @@ test-foeccs.report.yaml: $(srcdir)/test-foeccs.ref.yaml test-foeccs.out.yaml
 test-random.report.yaml: $(srcdir)/test-random.ref.yaml test-random.out.yaml
 	python $(pythondir)/fldiff_yaml.py \
 		-r $< -d test-random.out.yaml -t $(abs_top_srcdir)/tests/tols.yaml --label=test-random -o $@ 
+
+test-eigenvalues.report.yaml: $(srcdir)/test-eigenvalues.ref.yaml test-eigenvalues.out.yaml
+	python $(pythondir)/fldiff_yaml.py \
+		-r $< -d test-eigenvalues.out.yaml -t $(abs_top_srcdir)/tests/tols.yaml --label=test-eigenvalues -o $@ 
 
 test-ccs.out.yaml: driver_ccs
 	cp -f $(srcdir)/matrix1-base.dat $(PWD)/matrix1.dat

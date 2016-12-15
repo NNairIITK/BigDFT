@@ -55,7 +55,7 @@ program chess_toolbox
    use matrix_operations, only: matrix_for_orthonormal_basis
    use parallel_linalg, only: dgemm_parallel
    use f_random, only: f_random_number
-   use highlevel_wrappers, only: calculate_eigenvalues
+   use highlevel_wrappers, only: calculate_eigenvalues, solve_eigensystem_lapack
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
@@ -458,34 +458,36 @@ program chess_toolbox
 
 
    if (solve_eigensystem) then
+       call solve_eigensystem_lapack(iproc, nproc, matrix_format, metadata_file, &
+            overlap_file, hamiltonian_file, scalapack_blocksize, write_output=.true.)
 
-       !if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
-            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
-            init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
-            !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
-       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       !if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
-            init_matmul=.false.)
+       !!!if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
+       !!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
+       !!     iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+       !!     init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
+       !!     !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+       !!call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+       !!!if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
+       !!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+       !!     iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+       !!     init_matmul=.false.)
 
-       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
-       call uncompress_matrix(iproc, nproc, &
-            smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
-       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
-       call uncompress_matrix(iproc, nproc, &
-            smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
-       eval = f_malloc(smat_s%nfvctr,id='eval')
+       !!ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
+       !!call uncompress_matrix(iproc, nproc, &
+       !!     smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       !!hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
+       !!call uncompress_matrix(iproc, nproc, &
+       !!     smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+       !!eval = f_malloc(smat_s%nfvctr,id='eval')
 
-       if (iproc==0) then
-           call yaml_comment('Diagonalizing the matrix',hfill='~')
-       end if
-       call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
-            smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
-       if (iproc==0) then
-           call yaml_comment('Matrix successfully diagonalized',hfill='~')
-       end if
+       !!if (iproc==0) then
+       !!    call yaml_comment('Diagonalizing the matrix',hfill='~')
+       !!end if
+       !!call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !!     smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
+       !!if (iproc==0) then
+       !!    call yaml_comment('Matrix successfully diagonalized',hfill='~')
+       !!end if
        iunit=99
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
@@ -497,11 +499,11 @@ program chess_toolbox
        call f_close(iunit)
 
        call f_free(eval)
-       call deallocate_matrices(ovrlp_mat)
-       call deallocate_matrices(hamiltonian_mat)
-       call deallocate_sparse_matrix(smat_s)
-       call deallocate_sparse_matrix(smat_m)
-       call deallocate_sparse_matrix_metadata(smmd)
+       !!call deallocate_matrices(ovrlp_mat)
+       !!call deallocate_matrices(hamiltonian_mat)
+       !!call deallocate_sparse_matrix(smat_s)
+       !!call deallocate_sparse_matrix(smat_m)
+       !!call deallocate_sparse_matrix_metadata(smmd)
        !call f_free_ptr(rxyz)
        !call f_free_ptr(iatype)
        !call f_free_ptr(nzatom)

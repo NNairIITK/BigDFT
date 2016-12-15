@@ -27,6 +27,7 @@ module highlevel_wrappers
 
   !> Public routines
   public :: calculate_eigenvalues
+  public :: solve_eigensystem_lapack
 
   contains
 
@@ -123,5 +124,92 @@ module highlevel_wrappers
            gather_routine=gather_timings)
 
     end subroutine calculate_eigenvalues
+
+
+    subroutine solve_eigensystem_lapack(iproc, nproc, matrix_format, metadata_file, &
+               overlap_file, hamiltonian_file, scalapack_blocksize, write_output, &
+               coeff_file, evals_out, coeffs_out)
+      use sparsematrix, only: uncompress_matrix, &
+                              diagonalizehamiltonian2
+      use sparsematrix_io, only: write_linear_coefficients
+      use sparsematrix_highlevel, only: sparse_matrix_metadata_init_from_file, &
+                                        sparse_matrix_and_matrices_init_from_file_bigdft
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, scalapack_blocksize
+      character(len=*),intent(in) :: matrix_format, metadata_file
+      character(len=*),intent(in) :: overlap_file, hamiltonian_file
+      logical :: write_output
+      character(len=*),intent(in),optional :: coeff_file
+      real(mp),dimension(:),pointer,optional :: evals_out
+      real(mp),dimension(:,:,:),pointer,optional :: coeffs_out
+
+      ! Local variables
+      integer :: iunit
+      type(sparse_matrix_metadata) :: smmd
+      type(sparse_matrix) :: smat_s, smat_m
+      type(matrices) :: ovrlp_mat, hamiltonian_mat
+      real(kind=8),dimension(:),allocatable :: eval
+      external :: gather_timings
+
+      call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
+           iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+           init_matmul=.false.)
+      call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+      call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+           iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+           init_matmul=.false.)
+
+      ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
+      call uncompress_matrix(iproc, nproc, &
+           smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+      hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
+      call uncompress_matrix(iproc, nproc, &
+           smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+      eval = f_malloc(smat_s%nfvctr,id='eval')
+
+      if (iproc==0) then
+          call yaml_comment('Diagonalizing the matrix',hfill='~')
+      end if
+      call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+           smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
+      if (iproc==0) then
+          call yaml_comment('Matrix successfully diagonalized',hfill='~')
+      end if
+
+      if (write_output) then
+          if (.not.present(coeff_file)) then
+              call f_err_throw("'coeff_file' is not present")
+          end if
+          iunit=99
+          call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
+          call write_linear_coefficients(iproc, 0, trim(coeff_file), 2, smmd%nat, smmd%rxyz, &
+               smmd%iatype, smmd%ntypes, smmd%nzatom, &
+               smmd%nelpsp, smmd%atomnames, smat_s%nfvctr, &
+               smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
+          call f_close(iunit)
+      end if
+
+      if (present(evals_out)) then
+          call f_memcpy(src=eval, dest=evals_out)
+      end if
+      if (present(coeffs_out)) then
+          call f_memcpy(src=hamiltonian_mat%matrix, dest=coeffs_out)
+      end if
+
+      call f_free(eval)
+      call deallocate_matrices(ovrlp_mat)
+      call deallocate_matrices(hamiltonian_mat)
+      call deallocate_sparse_matrix(smat_s)
+      call deallocate_sparse_matrix(smat_m)
+      call deallocate_sparse_matrix_metadata(smmd)
+      !call f_free_ptr(rxyz)
+      !call f_free_ptr(iatype)
+      !call f_free_ptr(nzatom)
+      !call f_free_ptr(nelpsp)
+      !call f_free_str_ptr(len(atomnames),atomnames)
+
+    end subroutine solve_eigensystem_lapack
 
 end module highlevel_wrappers
