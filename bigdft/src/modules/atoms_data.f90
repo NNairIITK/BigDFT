@@ -130,7 +130,7 @@ module module_atoms
   public :: set_astruct_from_file,astruct_dump_to_file
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
-  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next
+  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next,atoms_iter_ensure_attr
   public :: nullify_atomic_neighbours, deallocate_atomic_neighbours
   public :: astruct_neighbours_iter, astruct_neighbours_next
   ! Dictionary inquire
@@ -235,6 +235,16 @@ contains
     atoms_iter_next=atoms_iter_is_valid(it)
   end function atoms_iter_next
 
+  subroutine atoms_iter_ensure_attr(it)
+    use dictionaries, only: dict_init
+    implicit none
+    type(atoms_iterator), intent(inout) :: it
+
+    if (.not. associated(it%attrs)) then
+       call dict_init(it%astruct_ptr%attributes(it%iat)%d)
+       it%attrs => it%astruct_ptr%attributes(it%iat)%d
+    end if
+  end subroutine atoms_iter_ensure_attr
 
   !> Creators and destructors
   pure function symmetry_data_null() result(sym)

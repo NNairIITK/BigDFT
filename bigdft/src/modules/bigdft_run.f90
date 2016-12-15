@@ -1178,9 +1178,9 @@ contains
     end if
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
+    allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                  ! to test if runObj is top level.
     if (ln == 0) then
-       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
-                                     ! to test if runObj is top level.
        call f_release_routine()
        return
     end if
@@ -1195,6 +1195,8 @@ contains
        i = dict_item(sect) + 1
 
        call nullify_run_objects(runObj%sections(i))
+       runObj%sections(i)%add_coulomb_force = runObj%inputs%add_coulomb_force
+
        ! We just do a shallow copy here, because we don't need to store the input dictionary.
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
        ! Generate posinp if necessary.

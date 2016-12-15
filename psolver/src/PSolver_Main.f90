@@ -410,12 +410,14 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   end if
 
   if (wrtmsg) then
-   !call yaml_map('IntVol',kernel%IntVol)
-   !call yaml_map('IntSur',kernel%IntSur)
-   call yaml_map('Cavitation energy',kernel%cavity%gammaS*kernel%IntSur)
-   call yaml_map('Repulsion energy',kernel%cavity%alphaS*kernel%IntSur)
-   call yaml_map('Dispersion energy',kernel%cavity%betaV*kernel%IntVol)
-   call yaml_map('Non-eletrostatic energy',energs%cavitation)
+     if (kernel%cavity%gammaS*kernel%IntSur /= 0.0_gp) &
+          call yaml_map('Cavitation energy',kernel%cavity%gammaS*kernel%IntSur)
+     if (kernel%cavity%alphaS*kernel%IntSur /= 0.0_gp) &
+          call yaml_map('Repulsion energy',kernel%cavity%alphaS*kernel%IntSur)
+     if (kernel%cavity%betaV*kernel%IntVol /= 0.0_gp) &
+          call yaml_map('Dispersion energy',kernel%cavity%betaV*kernel%IntVol)
+     if (energs%cavitation) &
+          call yaml_map('Non-eletrostatic energy',energs%cavitation)
   end if
 
   if (wrtmsg) call yaml_mapping_close()

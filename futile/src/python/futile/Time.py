@@ -360,6 +360,7 @@ class polar_axis():
   
 class TimeData:
   barwidth=0.9#0.35
+  ignored_counters=['CPU parallelism','Routines timing and number of calls','SUMMARY','Report timestamp','Hostnames']
   def __init__(self,*filenames,**kwargs):
     """
     Class to analyze the timing from a Futile run
@@ -371,6 +372,7 @@ class TimeData:
     static: Show the plot statically for screenshot use
     fontsize: Determine fontsize of the bar chart plot 
     nokey: Remove the visualization of the key from the main plot
+    counter: retrieve as reference value the counter provided
     """
     #here a try-catch section should be added for multiple documents
     #if (len(filename) > 1
@@ -395,7 +397,19 @@ class TimeData:
     self.fontsize=kwargs.get('fontsize',15)
     self.nokey=kwargs.get('nokey',False)
     counter=kwargs.get('counter','WFN_OPT') #the default value, to be customized
-    self.inspect_counter(counter)
+    if counter in self.counters(): 
+      self.inspect_counter(counter)
+    else:
+      print "Warning: counter not initialized, check the available counters"
+
+  def counters(self):
+    "Inspect the available counters"
+    cnts=[]
+    for doc in self.log:
+      if doc is None: continue
+      for internal_cnts in doc.keys():
+        if internal_cnts not in cnts and internal_cnts not in self.ignored_counters: cnts.append(internal_cnts)
+    return cnts
 
   def _refill_classes(self,main):
     self.classes=[]
