@@ -1655,7 +1655,8 @@ module sparsematrix_init
               ! A segment is always on one line, therefore no double loop
               do jorb = smat%keyg(1,1,jseg),smat%keyg(2,1,jseg)
                   ! Calculate the index in the large compressed format
-                  ii = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
+                  !ii = matrixindex_in_compressed_lowlevel(jorb, iline, smat%nfvctr, nseg, keyv, keyg, istsegline)
+                  ii = compressed_index(jorb,iline)
                   if (ii>0) then
                       ilen = ilen + 1
                   end if
