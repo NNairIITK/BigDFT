@@ -8,11 +8,8 @@ EXTRA_DIST = \
 
 dynlibdir = $(libdir)
 
-check_PROGRAMS = yaml_test hooks yaml_argparse f_allocations
-if BUILD_DYNAMIC_LIBS
-check_PROGRAMS += test_plugin
+check_PROGRAMS = yaml_test hooks yaml_argparse f_allocations test_plugin
 noinst_LIBRARIES = libpong.a
-endif
 
 AM_FCFLAGS = -I../../flib -I../../src @FC_PIC_FLAG@
 AM_LDFLAGS = -L$(top_builddir)/src
@@ -45,9 +42,9 @@ hooks_LDADD = $(flib_libraries)
 
 libpong_a_SOURCES = pong.f90
 test_plugin_SOURCES = test_plugin.f90
-test_plugin_LDADD = $(flib_libraries)
+test_plugin_LDADD = $(flib_libraries) @FC_EXPORTS@
 
-CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err
+CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err libpong.so
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
@@ -84,7 +81,7 @@ check: yaml_test.report.yaml hooks.report.yaml regtest report
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
-regtest: yaml_argparse
+regtest: yaml_argparse test_plugin libpong.so
 	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
 	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
 	       --exclusive=$(CHECK_ONLY)

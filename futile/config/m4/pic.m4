@@ -22,12 +22,17 @@ AC_DEFUN([AX_FLAG_PIC],
 
     test_compiler_options()
   {
+     # default result to be checked
+     ax_compiler_export_symbols='-E'
+     ax_compiler_rpath='-rpath='
      case $[1] in
       # GCC compiler.
       gcc*)
         ax_compiler_wl='-Wl,'
         ax_compiler_pic='-fPIC'
         ax_compiler_static='-static'
+	ax_compiler_export_symbols='-E'
+	ax_compiler_rpath='-rpath='
         ;;
       # old Intel for x86_64 which still supported -KPIC.
       ecc*)
@@ -41,6 +46,8 @@ AC_DEFUN([AX_FLAG_PIC],
         ax_compiler_wl='-Wl,'
         ax_compiler_pic='-fPIC'
         ax_compiler_static='-static'
+	ax_compiler_export_symbols='-E'
+	ax_compiler_rpath='-rpath='
         ;;
       # Lahey Fortran 8.1.
       lf95*)
@@ -71,6 +78,7 @@ AC_DEFUN([AX_FLAG_PIC],
         ax_compiler_wl='-Wl,'
         ax_compiler_pic='-qpic'
         ax_compiler_static='-qstaticlink'
+	ax_compiler_rpath='-rpath,'
         ;;
      *Sun\ Ceres\ Fortran* | *Sun*Fortran*\ [1-7].* | *Sun*Fortran*\ 8.[0-3]*)
       # Sun Fortran 8.3 passes all unrecognized flags to the linker
@@ -93,6 +101,8 @@ AC_DEFUN([AX_FLAG_PIC],
         ax_compiler_wl='-Wl,'
         ax_compiler_pic='-fPIC'
         ax_compiler_static='-static'
+	ax_compiler_export_symbols='-E'
+	ax_compiler_rpath='-rpath='
         ;;
      *Portland\ Group*)
         ax_compiler_wl='-Wl,'
@@ -140,13 +150,16 @@ AC_DEFUN([AX_FLAG_PIC],
   test_compiler_options $compiler_basename
   if test -z "$ax_compiler_pic" ; then
     test_compiler_options "failsafe"
-  fi 
+  fi
   AC_MSG_CHECKING([for position-independent code option flag for $FC])
   dnl -qpic should be before -fPIC because -fPIC means something for xlf...
   f90_search_pic $ax_compiler_pic
   AC_SUBST([FC_PIC_FLAG], [$ax_fc_pic])
   AC_MSG_RESULT([$ax_fc_pic])
-
+  dnl store the variable for FC linker options
+  ax_fc_linker_wl=${ax_compiler_wl}
+  ax_fc_linker_export_symbols=${ax_compiler_export_symbols}
+  ax_fc_linker_rpath=${ax_compiler_rpath}
   cc_test_pic()
   {
     CFLAGS_SVG=$CFLAGS
@@ -183,4 +196,8 @@ int api_func()
   cc_search_pic $ax_compiler_pic
   AC_SUBST([CC_PIC_FLAG], [$ax_cc_pic])
   AC_MSG_RESULT([$ax_cc_pic])
+  dnl store the variable for CC linker options
+  ax_cc_linker_wl=${ax_compiler_wl}
+  ax_cc_linker_export_symbols=${ax_compiler_export_symbols}
+  ax_cc_linker_rpath=${ax_compiler_rpath}
 ])

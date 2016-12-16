@@ -184,6 +184,37 @@ subroutine FFT2d(n1,n2,nd1,nd2,z,isign,inzee,zw,ncache)
 
 END SUBROUTINE fft2d
 
+subroutine fft_parallel_block(n1,n2,n2p,n1d,n2d,n3d,&
+     nfft,lot,ldo,i2s,i2ps,i3s,&
+     ntrig,trig,after,now,before,ic,isign,&
+     zin,zcache,zout)
+  use f_precisions, only: dp => f_double
+  use module_fft_sg, only: n_factors
+  implicit none
+  integer, intent(in) :: n1,n2,n2p,n1d,n2d,n3d,nfft,lot,ldo,i3s
+  integer, intent(in) :: ntrig,ic,isign
+  integer, dimension(n_factors), intent(in) :: after,now,before
+  real(dp), dimension(2,ntrig), intent(in) :: trig
+  real(dp), dimension(2,n1d,n2d,n3d,*), intent(in) :: zin
+  integer, intent(inout) :: i2s,i2ps
+  real(dp), dimension(2*lot,2), intent(inout) :: zcache
+  real(dp), dimension(2,ldo), intent(inout) :: zout
+  !local variables
+  integer :: inzee
+
+  !input: i1,j2,j3,jp2,(jp3)
+  call transpose_and_pad_input([n1,n2,n2p],[n1d,n2d,n3d],n1d,lot,nfft,i3s,&
+       i2s,i2ps,zin,zcache)
+  !output: j2,jp2,i1,j3,(jp3)
+
+  !performing FFT
+  !input: i2,i1,j3,(jp3)
+  call fft_inorder(n1,nfft,lot,ldo,inzee,&
+       ntrig,trig,after,now,before,ic,isign,&
+       zcache,zout)
+  !output: i2,I1,j3,(jp3)  
+
+end subroutine fft_parallel_block
 
 !!$!>two dimensional full convolution with a kernel given in the reciprocal space
 !!$subroutine 2D_fullconv
@@ -202,35 +233,20 @@ END SUBROUTINE fft2d
 !!$   do j=1,n2dimp/n3pr1,lot
 !!$      nfft=min(j+(lot-1), n2dimp/n3pr1) -j +1
 !!$
-!!$      !reverse index ordering, leaving the planes to be transformed at the end
 !!$      !input: I1,J2,j3,Jp2,(jp3)
 !!$      if (nproc > 1) then
-!!$         call G_mpiswitch_upcorn2(j3,nfft,Jp2stb,J2stb,lot,&
-!!$              n1,n1dim,md2,nd3,n3pr1,n3pr2,zmpi1,zw(1,1,1,ithread))
-!!$         call put_planes_incache(n3pr2,n1,n1dim,md2/(n3pr1*n3pr2),nd3,nfft,lot,&
-!!$              Jp2stb,J2stb,zmpi1,zw(1,1,1,ithread))
-!!$
+!!$         call fft_parallel_block(n1,md2/(n3pr1*n3pr2),n3pr2,&
+!!$              n1dim,md2/(n3pr1*n3pr2),nd3/n3pr2,&
+!!$              nfft,lot,lzt/n3pr1,J2stb,Jp2stb,j3,&
+!!$              ntrig,btrig1,after1,now1,before1,ic1,1,&
+!!$              zmpi1,zw(1,1,1,ithread),zt(1,j,1,ithread))
 !!$      else
-!!$         call G_mpiswitch_upcorn(j3,nfft,Jp2stb,J2stb,lot,&
-!!$              n1,n1dim,md2,nd3,nproc,zmpi2,zw(1,1,1,ithread))
-!!$         call put_planes_incache(n3pr2,n1,n1dim,n1dim,md2/(n3pr1*n3pr2),nd3,nfft,lot,&
-!!$              Jp2stb,J2stb,zmpi2,zw(1,1,1,ithread))
-!!$
-!!$      endif
-!!$      !output: J2,Jp2,I1,j3,(jp3)
-!!$      !performing FFT
-!!$      !input: I2,I1,j3,(jp3)
-!!$      inzee=1
-!!$      do i=1,ic1-1
-!!$         call fftstp_sg(lot,nfft,n1,lot,n1,zw(1,1,inzee,ithread),zw(1,1,3-inzee,ithread),&
-!!$              ntrig,btrig1,after1(i),now1(i),before1(i),1)
-!!$         inzee=3-inzee
-!!$      enddo
-!!$
-!!$      !storing the last step into zt array
-!!$      i=ic1
-!!$      call fftstp_sg(lot,nfft,n1,lzt/n3pr1,n1,zw(1,1,inzee,ithread),zt(1,j,1,ithread),&
-!!$           ntrig,btrig1,after1(i),now1(i),before1(i),1)
+!!$         call fft_parallel_block(n1,md2,1,&
+!!$              n1dim,md2,nd3,&
+!!$              nfft,lot,lzt/n3pr1,J2stb,Jp2stb,j3,&
+!!$              ntrig,btrig1,after1,now1,before1,ic1,1,&
+!!$              zmpi2,zw(1,1,1,ithread),zt(1,j,1,ithread))
+!!$      end if
 !!$      !output: I2,i1,j3,(jp3)
 !!$   end do
 !!$
@@ -239,25 +255,16 @@ END SUBROUTINE fft2d
 !!$   if (lot < 1) stop 'n2'
 !!$
 !!$   do j=1,n1p/n3pr1,lot
+!!$      i_one=1
 !!$      nfft=min(j+(lot-1),n1p/n3pr1)-j+1
 !!$      !reverse ordering
 !!$      !input: I2,i1,j3,(jp3)
-!!$      call G_switch_upcorn(nfft,n2,n2dim,lot,n1,lzt,zt(1,1,j,ithread),zw(1,1,1,ithread))
-!!$      one1=1
-!!$      one2=1
-!!$      call put_planes_incache(1,n2,n2dim,lzt,nfft,1,nfft,lot,&
-!!$              one1,one2,zt(1,1,j,ithread),zw(1,1,1,ithread))
-!!$
-!!$      !output: i1,I2,j3,(jp3)
-!!$      !performing FFT
-!!$      !input: i1,I2,j3,(jp3)
-!!$      inzee=1
-!!$
-!!$      do i=1,ic2
-!!$         call fftstp_sg(lot,nfft,n2,lot,n2,zw(1,1,inzee,ithread),zw(1,1,3-inzee,ithread),&
-!!$              ntrig,btrig2,after2(i),now2(i),before2(i),1)
-!!$         inzee=3-inzee
-!!$      enddo
+!!$      call fft_parallel_block(n2,n1,1,&
+!!$           n2dim,n1,1,&
+!!$           nfft,lot,lot,one,one,1,&
+!!$           ntrig,btrig2,after2,now2,before2,ic2,1,&
+!!$           zt(1,1,j,ithread),zw(1,1,1,ithread),zw(1,1,1,ithread),inzee)
+!!$      we should insert inzee and eliminate zout in this case
 !!$      !output: i1,i2,j3,(jp3)
 !!$      !Multiply with kernel in fourier space
 !!$      i3=mod(iproc,n3pr2)*(nd3/n3pr2)+j3
@@ -348,58 +355,97 @@ END SUBROUTINE fft2d
 !!$
 !!$end do
 !!$!$omp end do
-!!$
-!!$subroutine fill_second_part(mfft,ldz,ndim,npad,zw,zin)
-!!$  implicit none
-!!$  integer, intent(in) :: ldz,ldin,n,ndim,mfft,npad
-!!$  real(dp),intent(inout) ::  zw(2,ldz,*)
-!!$  real(dp), intent(in) :: zin(2,*)
-!!$  !local variables
-!!$  integer :: I
-!!$
-!!$  do I=1,ndim
-!!$     zw(1,mfft,I+npad)=zin(1,I)
-!!$     zw(2,mfft,I+npad)=zin(2,I)
-!!$  end do
-!!$
-!!$end subroutine fill_second_part
-!!$
-!!$subroutine transpose_and_pad_input(n1,ld1,n2,ld2,n3,ld3,n2p,n1dim,lot,nfft,j3,&
-!!$     i2s,i2ps,zin,zw)
-!!$  implicit none
-!!$  integer, intent(in) :: n1,ld1,n2,ld2,n3,ld3,n2p,n1dim,lot,nfft,j3
-!!$  real(dp), dimension(2,ld1,ld2,ld3,*), intent(in) ::  zin
-!!$  integer, intent(inout) :: i2s,i2ps
-!!$  real(dp), dimension(2,lot,n1), intent(inout) ::  zw
-!!$  !local variables
-!!$  integer :: j2,mfft,jp2,ish,i1,imfft
-!!$
-!!$  ish=n1-n1dim
-!!$  mfft=0
-!!$  loop_Jp2: do Jp2=i2ps,n2p
-!!$     do J2=i2s,n2
-!!$        mfft=mfft+1
-!!$        if (mfft > nfft) then
-!!$           i2ps=Jp2
-!!$           i2s=J2
-!!$           exit loop_Jp2
-!!$        end if
-!!$        call fill_second_part(mfft,lot,n1dim,ish,&
-!!$             zw,zin(1,1,J2,j3,Jp2))
-!!$     end do
-!!$     i2s=1
-!!$  end do loop_Jp2
-!!$
-!!$  !then zero the resto f the cache array if the padding is required
-!!$  do i1=1,ish
-!!$     do imfft=1,mfft-1
-!!$        zw(1,imfft,i1)=0.0_dp
-!!$        zw(2,imfft,i1)=0.0_dp
-!!$     end do
-!!$  end do
-!!$
-!!$end subroutine transpose_and_pad_input
-!!$
+
+subroutine fill_second_part(i1s,ld1,n1,npad,zw,zin)
+  use f_precisions, only: dp => f_double
+  implicit none
+  integer, intent(in) :: ld1,n1,i1s,npad
+  real(dp),intent(inout) ::  zw(2,ld1,*)
+  real(dp), intent(in) :: zin(2,*)
+  !local variables
+  integer :: I
+
+  do I=1,n1
+     zw(1,i1s,I+npad)=zin(1,I)
+     zw(2,i1s,I+npad)=zin(2,I)
+  end do
+
+end subroutine fill_second_part
+
+subroutine transpose_and_pad_input(ndims,lds,n1dim,lot,nfft,j3,&
+     i2s,i2ps,zin,zw)
+  use f_precisions, only: dp => f_double
+  implicit none
+  integer, intent(in) :: n1dim,lot,nfft,j3
+  integer, dimension(3), intent(in) :: ndims,lds
+  real(dp), dimension(2,lds(1),lds(2),lds(3),*), intent(in) ::  zin
+  integer, intent(inout) :: i2s,i2ps
+  real(dp), dimension(2,lot,*), intent(inout) ::  zw
+  !local variables
+  integer :: j2,mfft,jp2,ish,i1,imfft,n1,n2,n2p
+
+  n1=ndims(1)
+  n2=ndims(2)
+  n2p=ndims(3)
+
+  ish=n1-n1dim
+  mfft=0
+  loop_Jp2: do Jp2=i2ps,n2p
+     do J2=i2s,n2
+        mfft=mfft+1
+        if (mfft > nfft) then
+           i2ps=Jp2
+           i2s=J2
+           exit loop_Jp2
+        end if
+        call fill_second_part(mfft,lot,n1dim,ish,&
+             zw,zin(1,1,J2,j3,Jp2))
+     end do
+     i2s=1
+  end do loop_Jp2
+
+  !then zero the rest of the cache array if the padding is required
+  do i1=1,ish
+     do imfft=1,mfft-1
+        zw(1,imfft,i1)=0.0_dp
+        zw(2,imfft,i1)=0.0_dp
+     end do
+  end do
+
+end subroutine transpose_and_pad_input
+
+subroutine fft_inorder(n,ndat,ldz,ldo,inzee,&
+     ntrig,trig,after,now,before,ic,isign,&
+     zcache,zout)
+  use f_precisions, only: dp => f_double
+  use module_fft_sg, only: n_factors
+  implicit none
+  integer, intent(in) :: n,ndat,ldz,ldo
+  integer, intent(in) :: ntrig,ic,isign
+  integer, intent(inout) :: inzee
+  integer, dimension(n_factors), intent(in) :: after,now,before
+  real(dp), dimension(2,ntrig), intent(in) :: trig
+  real(dp), dimension(2*ldz,2), intent(in) :: zcache
+  real(dp), dimension(2,ldo), intent(out) :: zout
+  !local variable
+  integer :: i
+  !output: J2,Jp2,I1,j3,(jp3)
+  !performing FFT
+  !input: I2,I1,j3,(jp3)
+  inzee=1
+  do i=1,ic-1
+     call fftstp_sg(ldz,ndat,n,ldz,n,zcache(1,inzee),zcache(1,3-inzee),&
+          ntrig,trig,after(i),now(i),before(i),isign)
+     inzee=3-inzee
+  enddo
+  !storing the last step into zt array
+  i=ic
+  call fftstp_sg(ldz,ndat,n,ldo,n,zcache(1,inzee),zout,&
+       ntrig,trig,after(i),now(i),before(i),isign)
+  !output: I2,i1,j3,(jp3)
+end subroutine fft_inorder
+
+
 !!$subroutine fft_1d_cache(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
 !!$     ncache,ntrig,trig,after,now,before,ic,&
 !!$     i_sign,inzee,transpose,iam,nthread,z,zw)

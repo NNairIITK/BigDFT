@@ -11,7 +11,8 @@ SUBDIRS = \
 	  overDFT \
 	  tutorials \
 	  libs \
-	  benchs
+	  benchs \
+	  plugins
 
 python_PYTHON = parse_log.py
 

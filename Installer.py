@@ -416,6 +416,7 @@ class BigDFTInstaller():
         libs=self.get_output('pkg-config --libs '+self.package)
         #add the external linalg at the end to avod linking problems
         linalg=self.get_output('pkg-config --variable linalglibs '+self.package)
+        plugin=self.get_output('pkg-config --variable plugin '+self.package)
         print '--------- Linking line to build with package "'+self.package+'":'
         print "  "+includes+libs
 

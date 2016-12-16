@@ -198,6 +198,7 @@ module module_input_keys
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: occupancy_control_itermax !< number of maximal iterations to apply occupancy control
+     integer :: occupancy_control_nrepmax !< number of maximal re-diagonalizations to apply occupancy control
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
      integer :: ncongt      !< Number of conjugate garident for the tail treatment
@@ -217,6 +218,7 @@ module module_input_keys
      type(f_enumerator) :: output_wf!_format      !< Output Wavefunction format
      !integer :: output_denspot_format !< Format for the output density and potential
      real(gp) :: hx,hy,hz   !< Step grid parameter (hgrid)
+     integer :: nx,ny,nz   !< Number of divisions
      real(gp) :: crmult     !< Coarse radius multiplier
      real(gp) :: frmult     !< Fine radius multiplier
      real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
@@ -301,6 +303,7 @@ module module_input_keys
 
      !Force Field Parameter
      logical :: add_coulomb_force
+     integer :: plugin_id
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
      real(gp) :: sw_factor
@@ -1536,6 +1539,7 @@ contains
     type(dictionary), pointer :: val
     character(len = *), intent(in) :: level
     integer, dimension(2) :: dummy_int !<to use as filling for input variables
+    integer, dimension(3) :: dummy_int3 !<to use as filling for input variables
     real(gp), dimension(3) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
     character(len=256) :: dummy_char
@@ -1582,9 +1586,13 @@ contains
              in%run_mode=MULTI_RUN_MODE
           case('bazant')
              in%run_mode=BAZANT_RUN_MODE
+          case('plugin')
+             in%run_mode=PLUGIN_RUN_MODE
           end select
        case(ADD_COULOMB_FORCE_KEY)
           in%add_coulomb_force = val          
+       case(PLUGIN_ID)
+          in%plugin_id = val
        case(MM_PARAMSET)
           in%mm_paramset=val
        case(MM_PARAMFILE)
@@ -1618,6 +1626,12 @@ contains
           in%hx = dummy_gp(1)
           in%hy = dummy_gp(2)
           in%hz = dummy_gp(3)
+       case (NGRIDS)
+          !grid divisions
+          dummy_int3(1:3)=val
+          in%nx = dummy_int3(1)
+          in%ny = dummy_int3(2)
+          in%nz = dummy_int3(3)
        case (RMULT)
           !coarse and fine radii around atoms
           dummy_gp(1:2)=val
@@ -1705,6 +1719,8 @@ contains
        case (OCCUPANCY_CONTROL)
        case (OCCUPANCY_CONTROL_ITERMAX)
           in%occupancy_control_itermax=val
+       case (OCCUPANCY_CONTROL_NREPMAX)
+          in%occupancy_control_nrepmax=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2376,12 +2392,14 @@ contains
     call f_zero(in%calculate_strten)
     call f_zero(in%nab_options)
     in%profiling_depth=-1
+    in%plugin_id = 0
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
     call f_zero(in%gnrm_cv_virt)
     call f_zero(in%itermax_virt)
     call f_zero(in%occupancy_control_itermax)
+    in%occupancy_control_nrepmax=1
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)
@@ -2675,6 +2693,7 @@ contains
     implicit none
     type(input_variables), intent(inout) :: in
     type(atomic_structure), intent(in) :: astruct
+    real(gp), parameter :: heps = 1.d-5
 
     call f_routine(id='input_analyze')
 
@@ -2696,6 +2715,13 @@ contains
 
     ! the DFT variables ------------------------------------------------------
     in%SIC%ixc = in%ixc
+
+    if (in%nx > 0 .and. astruct%cell_dim(1) > 0.) &
+         & in%hx = astruct%cell_dim(1) / (in%nx + 1) + heps
+    if (in%ny > 0 .and. astruct%cell_dim(2) > 0.) &
+         & in%hy = astruct%cell_dim(2) / (in%ny + 1) + heps
+    if (in%nz > 0 .and. astruct%cell_dim(3) > 0.) &
+         & in%hz = astruct%cell_dim(3) / (in%nz + 1) + heps
 
     in%idsx = min(in%idsx, in%itermax)
 

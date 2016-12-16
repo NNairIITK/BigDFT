@@ -36,6 +36,16 @@
      default: [0.45, 0.45, 0.45]
      #fast: [0.55, 0.55, 0.55]
      #accurate: [0.30, 0.30, 0.30]
+   ngrids:
+     COMMENT: Number of grid spacing division in each direction
+     DESCRIPTION: |
+       Number of grid spacing division in each direction. Values are
+       relevant only for periodic directions. This is convenient to keep
+       the constant the number of wavelets when changing the super-cell dimensions.
+       These values override hgrid ones.
+     RANGE: [0, 1000]
+     default: [0, 0, 0]
+     auto: [0, 0, 0]
    rmult:
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
@@ -445,6 +455,9 @@
    itermax_occ_ctrl:
      COMMENT: Number of iterations of occupancy control scheme. Should be between itermin and itermax
      default: 0
+   nrepmax_occ_ctrl:
+     COMMENT: Number of re-diagonalizations of occupancy control scheme.
+     default: 1
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out
@@ -1165,7 +1178,14 @@
        sw: Stillinger-Weber for Si
        bazant:  Bazant force for Si
        multi: Mixed approach where parts of the system are treated with different methods
+       plugin: Use the signaling procedure profided by FUTILE
      default: dft
+   plugin_id:
+     COMMENT: Integer handle identifying the calculator associated to the mode plugin
+     default: 1
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: plugin
    add_coulomb_force:
      COMMENT: Boolean to add coulomb force on top of any of above selected force
      MASTER_KEY: method

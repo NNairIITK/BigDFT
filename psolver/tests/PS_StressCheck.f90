@@ -63,6 +63,10 @@ program PS_StressCheck
        "  help_string: Divide the intervall (acell,2*acell) in nstress points in each direction,"//&
        "  help_dict: {Allowed values: one integer, nstress-1 SHOULD BE a divisor of n01,n02,n03}}"//f_cr//&
        
+       "- {name: volstress, shortname: v, default: none,"//&
+       "  help_string: Enable stress calculation varying x,y,z concurrently,"//&
+       "  help_dict: {Allowed values: logical}}"//f_cr//&
+       
        "- {name: input, shortname: i, default: None,"//&
        "  help_string: Inpufile of Poisson Solver,"//&
        "  help_dict: {Allowed values: dictionary in yaml format (mapping)}}"
@@ -76,15 +80,16 @@ program PS_StressCheck
   real(kind=8), dimension(:), allocatable :: ene_acell,dene
   real(kind=8), dimension(:,:), allocatable :: stress_ana
   real(kind=8), dimension(:,:,:), allocatable :: stress_ps
+  logical :: volstress 
   type(coulomb_operator) :: karray
   integer, dimension(3) :: ndims
   real(f_double), dimension(3) :: angdeg,angrad,hgrids
   type(dictionary), pointer :: dict
   real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,x,y
-  real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1,acell_var,da
-  integer :: n01,n02,n03,itype_scf,unit3,unit4,unit5
+  real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1,acell_var,da,tr
+  integer :: n01,n02,n03,itype_scf,unit3,unit14,unit15
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
-  integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s,is,i,ii
+  integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s,is,i,ii,ii_fin
   ! nstress-1 SHOULD BE a divisor of n01, n02 and n03 concurrently;
   ! It divided the intervall [acell,2*acell] in nstress points in each
   ! direction.
@@ -93,7 +98,7 @@ program PS_StressCheck
   real(dp), dimension(6) :: stresst
   logical :: alsoserial,onlykernel
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
-  logical :: wrtfiles=.false. !.true.
+  logical :: wrtfiles=.false.
   !triclinic lattice
   real(kind=8) :: alpha,beta,gamma,detg
   real(kind=8), dimension(:,:,:,:), pointer :: rhocore_fake
@@ -129,6 +134,7 @@ program PS_StressCheck
   geocode=options//'geocode'
   angdeg=options//'angdeg'
   nstress=options//'nstress'
+  volstress=options//'volstress'
   input=options .get. 'input'
   call dict_copy(dict,input) !null if absent
 
@@ -173,36 +179,51 @@ program PS_StressCheck
    stress_ana = f_malloc((/ nstress, 3 /),id='stress_ana')
    stress_ps = f_malloc((/ nstress, 6, 3 /),id='stress_ps')
    unit3=205
+   unit14=214
+   unit15=215
    if (wrtfiles) call f_open_file(unit=unit3,file='func_ene_acell.dat')
 
    da=1.d0
    if (nstress.gt.1)  da=acell/real(nstress-1,kind=8)
 
 ! Start of the stress code
+  if (volstress) then
+   ii_fin=1
+  else
+   ii_fin=3
+  end if
 
-  do ii=1,3 ! loop on the three x, y, z components.
+  do ii=1,ii_fin ! loop on the three x, y, z components.
 
   do is=1,nstress
 
    if (iproc==0) then
      call yaml_comment('Stress itetation',hfill='-')
+     call yaml_mapping_open('PS stress input')
      call yaml_map('PS stress iteration', is)
    end if
 
    acell_var=acell+real((is-1),kind=8)*da
-   if (ii.eq.1) then
+   if (volstress) then
     hx=acell_var/real(n01,kind=8)
-    hy=acell/real(n02,kind=8)
-    hz=acell/real(n03,kind=8)
-   else if (ii.eq.2) then
-    hx=acell/real(n01,kind=8)
     hy=acell_var/real(n02,kind=8)
-    hz=acell/real(n03,kind=8)
-   else if (ii.eq.3) then
-    hx=acell/real(n01,kind=8)
-    hy=acell/real(n02,kind=8)
     hz=acell_var/real(n03,kind=8)
+   else
+    if (ii.eq.1) then
+     hx=acell_var/real(n01,kind=8)
+     hy=acell/real(n02,kind=8)
+     hz=acell/real(n03,kind=8)
+    else if (ii.eq.2) then
+     hx=acell/real(n01,kind=8)
+     hy=acell_var/real(n02,kind=8)
+     hz=acell/real(n03,kind=8)
+    else if (ii.eq.3) then
+     hx=acell/real(n01,kind=8)
+     hy=acell/real(n02,kind=8)
+     hz=acell_var/real(n03,kind=8)
+    end if
    end if
+   
    hgrids=(/hx,hy,hz/)
    !grid for the free BC case
    hgrid=max(hx,hy,hz)
@@ -263,6 +284,7 @@ program PS_StressCheck
   
   end select
 
+  if (iproc==0) call yaml_mapping_close()
 
   !write(*,*) n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
 
@@ -304,7 +326,7 @@ program PS_StressCheck
      if (iproc==0) call yaml_map('ixc',ixc)
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,0.0_dp,alpha,beta,gamma,ii) !onehalf*pi,onehalf*pi,onehalf*pi)!
+          density,potential,rhopot,pot_ion,0.0_dp,alpha,beta,gamma,ii,volstress) !onehalf*pi,onehalf*pi,onehalf*pi)!
 
      !calculate expected hartree enegy
      if (wrtfiles) then
@@ -366,6 +388,7 @@ program PS_StressCheck
      !apply the Poisson Solver (case with distributed potential)
      eexcu=0.0_gp
      vexcu=0.0_gp
+     !offset=0.0_gp
      call H_potential(datacode,karray,density(1,1,i3sd),pot_ion(1,1,i3s+i3xcsh),ehartree,offset,.false.,stress_tensor=stresst)
 !!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
 !!$          density(1,1,i3sd),karray%kernel,pot_ion(1,1,i3s+i3xcsh),ehartree,eexcu,vexcu,offset,.true.,1,alpha,beta,gamma)
@@ -394,24 +417,24 @@ program PS_StressCheck
          end do
       end do
 
-      if (wrtfiles) call f_open_file(unit=unit4,file='output_x_line.dat')
-      if (wrtfiles) call f_open_file(unit=unit5,file='output_y_line.dat')
+      if (wrtfiles) call f_open_file(unit=unit14,file='output_x_line.dat')
+      if (wrtfiles) call f_open_file(unit=unit15,file='output_y_line.dat')
 
       i3=n03/2+1
       i2=n02/2+1
       do i1=1,n01
        x = hx*real(i1-n01/2-1,kind=8)
-       write(unit4,'(1(1x,i6),4(1x,1pe25.16e3))') i1,x,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+       write(unit14,'(1(1x,i6),4(1x,1pe25.16e3))') i1,x,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
       end do
       i3=n03/2+1
       i1=n01/2+1
       do i2=1,n02
        y = hy*real(i2-n02/2-1,kind=8)
-       write(unit5,'(1(1x,i6),4(1x,1pe25.16e3))') i2,y,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
+       write(unit15,'(1(1x,i6),4(1x,1pe25.16e3))') i2,y,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
       end do
 
-      if (wrtfiles) call f_close(unit4)
-      if (wrtfiles) call f_close(unit5)
+      if (wrtfiles) call f_close(unit14)
+      if (wrtfiles) call f_close(unit15)
  
       i2=n02/2
       do i3=1,n03
@@ -570,26 +593,43 @@ program PS_StressCheck
 
    do is=1,nstress
     acell_var=acell+real((is-1),kind=8)*da
-    stress_ana(is,ii)=dene(is)/(acell*acell)
+    if (volstress) then
+     stress_ana(is,ii)=-dene(is)/(acell_var*acell_var)
+    else
+     stress_ana(is,ii)=-dene(is)/(acell*acell)
+    end if
     if (wrtfiles) write(unit3,'(1(1x,i8),5(1x,1pe26.14e3))')is,acell_var,ene_acell(is),dene(is),&
                   stress_ana(is,ii),stress_ps(is,ii,ii)
    end do
 
   end do ! loop external to the stress one, for the three x,y,z directions.
 
-   if (iproc==0) then
-     call yaml_map('PS stress iteration', is)
+  if (iproc==0) then
+   call yaml_map('PS stress iteration', is)
+  end if
+  if (volstress) then
+   tr=stress_ps(nstress/2,1,1)+stress_ps(nstress/2,2,1)+stress_ps(nstress/2,3,1)
+   if (iproc == 0) then
+    call yaml_comment('Stress post-processing',hfill='-')
+    call yaml_mapping_open('Comparison between analytical vs psolver varing x,y,z concurrently')
+    call yaml_map('Comparison at nstress/2',nstress/2)
+    call yaml_map('stress analytical ',stress_ana(nstress/2,1))
+    call yaml_map('stress psolver trace',tr)
+    call yaml_mapping_close()
    end if
-  if (iproc == 0) then
-   call yaml_comment('Stress post-processing',hfill='-')
-   call yaml_mapping_open('Comparison between analytical vs psolver at nstress/2')
-   call yaml_map('stress analytical x',stress_ana(nstress/2,1))
-   call yaml_map('stress psolver x',stress_ps(nstress/2,1,1))
-   call yaml_map('stress analytical y',stress_ana(nstress/2,2))
-   call yaml_map('stress psolver y',stress_ps(nstress/2,2,2))
-   call yaml_map('stress analytical z',stress_ana(nstress/2,3))
-   call yaml_map('stress psolver z',stress_ps(nstress/2,3,3))
-   call yaml_mapping_close()
+  else  
+   if (iproc == 0) then
+    call yaml_comment('Stress post-processing',hfill='-')
+    call yaml_mapping_open('Comparison between analytical vs psolver varing x,y,z individully')
+    call yaml_map('Comparison at nstress/2',nstress/2)
+    call yaml_map('stress analytical x',stress_ana(nstress/2,1))
+    call yaml_map('stress psolver x',stress_ps(nstress/2,1,1))
+    call yaml_map('stress analytical y',stress_ana(nstress/2,2))
+    call yaml_map('stress psolver y',stress_ps(nstress/2,2,2))
+    call yaml_map('stress analytical z',stress_ana(nstress/2,3))
+    call yaml_map('stress psolver z',stress_ps(nstress/2,3,3))
+    call yaml_mapping_close()
+   end if
   end if
 
   call f_free(ene_acell)
@@ -671,7 +711,7 @@ end subroutine compare
 !! function in the isolated direction and an explicitly periodic function in the periodic ones.
 !! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,hz,&
-     density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma,ii)
+     density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma,ii,volstress)
   use yaml_output
   use f_utils
   implicit none
@@ -682,6 +722,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,
   real(kind=8), intent(in) :: alpha, beta, gamma
   integer, intent(in) :: ii
   real(kind=8), dimension(n01,n02,n03), intent(out) :: density,potential,rhopot,pot_ion
+  logical, intent(in) :: volstress
 
   !local variables
   integer :: i1,i2,i3,ifx,ify,ifz,unit,unit2,unit3,unit4,unit5
@@ -689,7 +730,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,
   real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
   real(kind=8) :: monopole,kx,ky,kz,k
   real(kind=8), dimension(3) :: dipole
-  logical :: gauss_dens=.true.
+  logical :: gauss_dens=.false.
  
 !!  !non-orthorhombic lattice
 !!  real(kind=8), dimension(3,3) :: gu,gd
@@ -793,12 +834,26 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,
 !     ay=length
 !     az=length
 
-     if (ii.eq.1) then
+     !test functions in the three directions
+     ifx=FUNC_GAUSSIAN!_SHRINKED
+     ify=FUNC_GAUSSIAN!_SHRINKED
+     ifz=FUNC_GAUSSIAN!_SHRINKED
+     !parameters of the test functions
+     ax=acell*0.05d0
+     ay=acell*0.05d0
+     az=acell*0.05d0
+     if (volstress) then
       kx=acell/acell_var
-     else if (ii.eq.2) then
       ky=acell/acell_var
-     else if (ii.eq.3) then
       kz=acell/acell_var
+     else
+      if (ii.eq.1) then
+       kx=acell/acell_var
+      else if (ii.eq.2) then
+       ky=acell/acell_var
+      else if (ii.eq.3) then
+       kz=acell/acell_var
+      end if
      end if
  
      !the following b's are not used, actually
@@ -839,7 +894,6 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,
               density(i1,i2,i3) = density(i1,i2,i3) + 2.0_dp*(mesh%gu(1,2)*fx1*fy1*fz+&
                                   mesh%gu(1,3)*fx1*fy*fz1+mesh%gu(2,3)*fx*fy1*fz1)
               if (gauss_dens) density(i1,i2,i3) = fx*fy*fz
-
               denval=max(denval,-density(i1,i2,i3))
            end do
         end do
