@@ -898,7 +898,7 @@ module sparsematrix_init
       logical :: init_matmul_
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
-      integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult
+      integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult, is_line
       integer,dimension(:,:,:),allocatable :: keyg_mult
       integer,dimension(:),allocatable :: keyv_mult
       logical :: allocate_full_, print_info_, store_index_ !LG: internal variables have the underscore, not the opposite
@@ -985,9 +985,10 @@ module sparsematrix_init
       sparsemat%nseg=0
       sparsemat%nvctr=0
       sparsemat%nsegline=0
+      is_line = f_malloc(norbu)
       do iorb=1,sparsemat%nfvctrp
           iiorb=sparsemat%isfvctr+iorb
-          call create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
+          call create_lookup_table(nnonzero, nonzero, iiorb, norbu, is_line, iorb==1, lut)
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
@@ -1017,7 +1018,7 @@ module sparsematrix_init
       sparsemat%keyg=0
       do iorb=1,sparsemat%nfvctrp
           iiorb=sparsemat%isfvctr+iorb
-          call create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
+          call create_lookup_table(nnonzero, nonzero, iiorb, norbu, is_line, .false., lut)
           call keyg_per_line(norbu, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
                lut, ivctr, sparsemat%keyg)
       end do
@@ -1158,7 +1159,7 @@ module sparsematrix_init
           nvctr_mult=0
           do iorb=1,sparsemat%nfvctrp
               iiorb=sparsemat%isfvctr+iorb
-              call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
+              call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, is_line, iorb==1, lut)
               call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
           end do
           if (nproc>1) then
@@ -1181,7 +1182,7 @@ module sparsematrix_init
           ivctr_mult=0
           do iorb=1,sparsemat%nfvctrp
              iiorb=sparsemat%isfvctr+iorb
-             call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, lut)
+             call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, is_line, .false., lut)
              call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
                   lut, ivctr_mult, keyg_mult)
           end do
@@ -1222,6 +1223,7 @@ module sparsematrix_init
       if (extra_timing) time5=real(tr1-tr0,kind=mp)    
 
       call f_free(lut)
+      call f_free(is_line)
 
 
       !!if (iproc==0 .and. print_info_) then
@@ -1244,37 +1246,87 @@ module sparsematrix_init
 
     end subroutine init_sparse_matrix
 
-    subroutine create_lookup_table(nnonzero, nonzero, iiorb, norbu, lut)
+    subroutine create_lookup_table(nnonzero, nonzero, iiorb, norbu, is_line, init, lut)
       implicit none
       ! Calling arguments
       integer :: nnonzero, iiorb,norbu
       integer,dimension(2,nnonzero) :: nonzero
-      logical, dimension(norbu), intent(inout) :: lut
+      integer,dimension(norbu),intent(inout) :: is_line
+      logical,intent(in) :: init
+      logical,dimension(norbu),intent(inout) :: lut
 
       ! Local variables
       integer(kind=mp) :: ist, iend, ind
-      integer :: i, jjorb
+      integer :: i, jjorb, is, ie, itarget
 
       call f_routine(id='create_lookup_table')
 
       lut = .false.
-      ist = int(iiorb-1,kind=mp)*int(norbu,kind=mp) + int(1,kind=mp)
-      iend = int(iiorb,kind=mp)*int(norbu,kind=mp)
-      !$omp parallel default(none) &
-      !$omp shared(nnonzero, nonzero, norbu, ist, iend, lut) &
-      !$omp private(i, ind, jjorb)
-      !$omp do schedule(static)
-      do i=1,nnonzero
-         ind = int(nonzero(2,i)-1,kind=mp)*int(norbu,kind=mp) + int(nonzero(1,i),kind=mp)
-         !if (ind<ist) cycle
-         !if (ind>iend) cycle !exit
-         if (ind>=ist .and. ind<=iend) then
-             jjorb=nonzero(1,i)
-             lut(jjorb)=.true.
-         end if
+
+      !!!# OLD ######################################################################
+      !!ist = int(iiorb-1,kind=mp)*int(norbu,kind=mp) + int(1,kind=mp)
+      !!iend = int(iiorb,kind=mp)*int(norbu,kind=mp)
+      !!!$omp parallel default(none) &
+      !!!$omp shared(nnonzero, nonzero, norbu, ist, iend, lut) &
+      !!!$omp private(i, ind, jjorb)
+      !!!$omp do schedule(static)
+      !!do i=1,nnonzero
+      !!   ind = int(nonzero(2,i)-1,kind=mp)*int(norbu,kind=mp) + int(nonzero(1,i),kind=mp)
+      !!   !if (ind<ist) cycle
+      !!   !if (ind>iend) cycle !exit
+      !!   if (ind>=ist .and. ind<=iend) then
+      !!       jjorb=nonzero(1,i)
+      !!       lut(jjorb)=.true.
+      !!   end if
+      !!end do
+      !!!$omp end do
+      !!!$omp end parallel
+      !!!# END OLD ###################################################################
+
+
+      !# NEW ######################################################################
+
+      if (init) then
+          itarget = 1
+          do i=1,nnonzero
+              if (nonzero(2,i)==itarget) then
+                  is_line(itarget) = i
+                  itarget = itarget + 1
+              end if
+          end do
+      end if
+
+      is = is_line(iiorb)
+      if (iiorb<norbu) then
+          ie = is_line(iiorb+1) - 1
+      else
+          ie = nnonzero
+      end if
+
+      !!$omp parallel default(none) &
+      !!$omp shared(nnonzero, nonzero, iiorb, lut) &
+      !!$omp private(i, jjorb)
+      !!$omp do schedule(static)
+      do i=is,ie
+          jjorb=nonzero(1,i)
+          lut(jjorb)=.true.
       end do
-      !$omp end do
-      !$omp end parallel
+      !!$omp end do
+      !!$omp end parallel
+
+      !!!!$omp parallel default(none) &
+      !!!!$omp shared(nnonzero, nonzero, iiorb, lut) &
+      !!!!$omp private(i, jjorb)
+      !!!!$omp do schedule(static)
+      !!do i=1,nnonzero
+      !!    if (nonzero(2,i)==iiorb) then
+      !!       jjorb=nonzero(1,i)
+      !!       lut(jjorb)=.true.
+      !!    end if
+      !!end do
+      !!!!$omp end do
+      !!!!$omp end parallel
+      !# END NEW ###################################################################
 
       call f_release_routine()
 
