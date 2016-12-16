@@ -1260,13 +1260,21 @@ module sparsematrix_init
       lut = .false.
       ist = int(iiorb-1,kind=mp)*int(norbu,kind=mp) + int(1,kind=mp)
       iend = int(iiorb,kind=mp)*int(norbu,kind=mp)
+      !$omp parallel default(none) &
+      !$omp shared(nnonzero, nonzero, norbu, ist, iend, lut) &
+      !$omp private(i, ind, jjorb)
+      !$omp do schedule(static)
       do i=1,nnonzero
          ind = int(nonzero(2,i)-1,kind=mp)*int(norbu,kind=mp) + int(nonzero(1,i),kind=mp)
-         if (ind<ist) cycle
-         if (ind>iend) cycle !exit
-         jjorb=nonzero(1,i)
-         lut(jjorb)=.true.
+         !if (ind<ist) cycle
+         !if (ind>iend) cycle !exit
+         if (ind>=ist .and. ind<=iend) then
+             jjorb=nonzero(1,i)
+             lut(jjorb)=.true.
+         end if
       end do
+      !$omp end do
+      !$omp end parallel
 
       call f_release_routine()
 
