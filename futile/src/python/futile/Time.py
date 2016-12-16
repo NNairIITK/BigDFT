@@ -605,20 +605,23 @@ class TimeData:
     if xdata is None or ydata is None: return
     #print 'picked',xdata,ydata
     xdata,ydata=axis.transData.inverted().transform((xdata,ydata))
+    #print 'transformed',xdata,ydata
     #data_from_data(fig,dst=axis,src=axis.twin,data=(int(xdata),ydata))
-    xdata=int(xdata)
     #print 'converted',xdata,ydata
-    if ydata < 0.0 or xdata<0 or xdata >= len(self.scf): return
+    if ydata < 0.0 or xdata < 0.0 or xdata >= len(self.scf): return
+    xdata=int(xdata)
     #find the category which has been identified
     y0data=0.0
+    category=None
     for cat in self.values_legend:
+      if cat == 'Unknown': continue
       y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
       #print 'cat,y0data',cat,y0data,ydata
       if y0data > ydata:
         category=cat
         break
     #print 'category',category
-    if category != "Unknown": self.inspect_category(category)  
+    if category is not None and category != "Unknown": self.inspect_category(category)  
     
   def _draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False,nokey=False):
     import numpy as np
