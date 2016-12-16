@@ -420,7 +420,7 @@ program driver_random
       call yaml_mapping_open('Calculating (mat^x)^-x')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/-expo/), smats, smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
+       1, (/-expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
 
   if (iproc==0) then
       call yaml_mapping_close()
@@ -731,14 +731,14 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'String'))
 
-  call yaml_cl_parse_option(parser,'sparsegen_method','unknown',&
+  call yaml_cl_parse_option(parser,'sparsegen_method','file',&
        'sparsity pattern generation',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether the sparsity patterns should be created randomly or read from files',&
        'Allowed values' .is. &
        'String'))
 
-  call yaml_cl_parse_option(parser,'matgen_method','unknown',&
+  call yaml_cl_parse_option(parser,'matgen_method','file',&
        'matrix content generation',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether the matrix contents should be created randomly or read from files',&

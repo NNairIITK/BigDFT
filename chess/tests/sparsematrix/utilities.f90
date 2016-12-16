@@ -77,6 +77,8 @@ module utilities
           tt_rel = tt/abs(mat_ref%matrix_compr(i))
           tt_ref = mat_ref%matrix_compr(i)
           call calculate_errors()
+          !write(*,*) 'mat%matrix_compr(i), mat_ref%matrix_compr(i), max_error_rel', &
+          !            mat%matrix_compr(i), mat_ref%matrix_compr(i), max_error_rel
       end do
       mean_error = mean_error/real(smat%nvctr,kind=8)
       mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
