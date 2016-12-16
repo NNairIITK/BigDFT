@@ -693,15 +693,15 @@ molecule_dmix:
  Epot: 1.3e-08
  energy: 1.3e-9
  Omega: 1.4e-8
- Atomic Forces (Ha/Bohr): 4.7e-11
- Clean forces norm (Ha/Bohr): 5.1e-11
- Raw forces norm (Ha/Bohr): 6.2e-11
+ Atomic Forces (Ha/Bohr): 1.2e-10
+ Clean forces norm (Ha/Bohr): 7.5e-11
+ Raw forces norm (Ha/Bohr): 7.5e-11
  Average noise forces: 1.1e-8
  e: 1.4e-10
  Total charge: 1.1e-08
  Energy (Hartree): 1.6e-10
  Maxdiff for transpose (checksum): 1.9e-09
- Force Norm (Hartree/Bohr): 1.3e-11
+ Force Norm (Hartree/Bohr): 1.7e-10
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -714,14 +714,14 @@ molecule_pmix:
  energy: 1.2e-8
  Omega: 1.4e-8
  Epot: 1.3e-08
- Atomic Forces (Ha/Bohr): 4.6e-11
- Clean forces norm (Ha/Bohr): 5.0e-11
- e: 1.4e-10
- Raw forces norm (Ha/Bohr): 6.2e-11
- Energy (Hartree): 1.4e-10
- Average noise forces: 1.1e-10
+ Atomic Forces (Ha/Bohr): 3.4e-10
+ Clean forces norm (Ha/Bohr): 4.1e-10
+ e: 1.9e-10
+ Raw forces norm (Ha/Bohr): 5.0e-10
+ Energy (Hartree): 5.0e-10
+ Average noise forces: 5.0e-10
  Maxdiff for transpose (checksum): 1.9e-09
- Force Norm (Hartree/Bohr): 1.2e-11
+ Force Norm (Hartree/Bohr): 9.3e-10
 
 molecule_dmin:
  Enl: 6.6e-9
@@ -760,8 +760,8 @@ molecule_foe:
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
- EBS higher temperature: 3.52e-9
- EBS: 3.52e-9
+ EBS higher temperature: 4.4e-9
+ EBS: 4.4e-9
  Energy (Hartree): 1.2e-10
  difference: 1.7e-11
  Maxdiff for transpose (checksum): 1.9e-09
@@ -1007,7 +1007,7 @@ deltascf_read_charge:
  D: 1.01e-9
  Maxdiff for transpose (checksum): 9.4e-10
  Total charge: 2.1e-11
- Force Norm (Hartree/Bohr): 4.0e-11
+ Force Norm (Hartree/Bohr): 4.5e-11
 
 deltascf_write_neut:
  eBS: 6.1e-9
@@ -1299,7 +1299,7 @@ reformat_read:
  energy: 4.1e-9
  Omega: 1.4e-10
  etot: 5.0e-11
- EH: 2.1e-9
+ EH: 3.1e-9
  EXC: 4.1e-9
  EvXC: 4.1e-10
  Enl: 3.6e-9
@@ -1308,14 +1308,14 @@ reformat_read:
  Omega: 4.1e-9
  Atomic Forces (Ha/Bohr): 3.6e-9
  Average noise forces: 2.0e-10
- Clean forces norm (Ha/Bohr): 2.9e-9
+ Clean forces norm (Ha/Bohr): 6.0e-9
  etot: 3.5e-9
- Ion-Ion interaction energy: 4.3e-9
- Raw forces norm (Ha/Bohr): 3.7e-9
+ Ion-Ion interaction energy: 4.5e-9
+ Raw forces norm (Ha/Bohr): 7.9e-9
  e: 5.3e-10
  Positions: 3.5e-09
- Energy (Hartree): 3.3e-10
- Force Norm (Hartree/Bohr): 2.9e-10
+ Energy (Hartree): 5.7e-10
+ Force Norm (Hartree/Bohr): 6.3e-10
  Total charge: 3.0e-11
  Maxdiff for transpose (checksum): 9.4e-10
 
@@ -1333,10 +1333,11 @@ reformat_write:
  EvXC: 1.1e-10
  Epot: 1.0e-9
  Energy (Hartree): 7.5e-11
- Atomic Forces (Ha/Bohr): 1.2e-11
- Force Norm (Hartree/Bohr): 3.1e-11
+ Atomic Forces (Ha/Bohr): 2.5e-11
+ Force Norm (Hartree/Bohr): 3.7e-11
  Maxdiff for transpose (checksum): 1.2e-9
  Total charge: 2.1e-11
+ e: 2.3e-11
 
 explicit_locregcenters:
  EvXC: 1.1e-10
@@ -1581,6 +1582,8 @@ O2spin_diag:
  Asymmetry of kernel: 0.00025
  difference: 1.7e-11
  relative difference: 5.9e-11
+ Tr(K): 1.1e-7
+ spin occupations: 1.1e-7
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7
@@ -1945,6 +1948,7 @@ surface_graphene:
  EBS higher temperature: 2.8e-10
  EBS: 2.8e-10
  Enl: 1.1e-9
+ Epot: 1.0e-9
  D Tr(K): 1.5e-7
  Tr(K): 2.0e-7
  guess for new ef: 1.1e-9
@@ -2302,73 +2306,77 @@ extendedfrags_nofrags:
  trace(KS): 4.3e-09
 
 extendedfrags_read:
- Omega: 3.0e-7
- eF: 6.2e-7
- D Tr(K): 6.0e-9
- Tr(K): 1.0e-6
+ Omega: 1.4e-6
+ eF: 3.0e-6
+ D Tr(K): 1.0e-4
+ Tr(K): 5.0e-6
  D eF: 1.1e-9
  guess for new ef: 1.5e-9
- EBS: 2.9e-7
- EH: 3.0e-7
- EBS higher temperature: 2.9e-7
+ EBS: 1.4e-6
+ EH: 1.4e-6
+ EBS higher temperature: 1.4e-6
  Energies: 2.1e-10
- EXC: 2.8e-8
- EvXC: 3.6e-8
+ EXC: 1.3e-7
+ EvXC: 1.7e-7
+ Enl: 4.1e-11
+ Ekin: 2.1e-10
+ Epot: 1.4e-6
  D Tr: 1.1e-10
  Average noise forces: 1.1e-10
  Pressure: 6.1e-11
  maxval: 2.2e-11
- Total charge: 5.0e-8
+ Total charge: 2.4e-7
  Force Norm (Hartree/Bohr): 5.9e-11
- Atomic Forces (Ha/Bohr): 2.4e-11
- Epot: 2.9e-7
- difference: 8.6e-11
- relative difference: 1.9e-11
- energy: 7.7e-11
- PV (Ha): 7.6e-11
+ Atomic Forces (Ha/Bohr): 3.3e-11
+ difference: 4.0e-10
+ relative difference: 8.1e-11
+ energy: 3.4e-10
+ PV (Ha): 1.2e-10
+ trace(KS): 1.6e-11
  Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
  Ekin: 1.1e-10
  energy: 1.4e-11
- eF: 1.1e-7
+ eF: 3.2e-7
  D eF: 1.1e-8
  guess for new ef: 2.61e-9
  D Tr: 1.1e-9
- EBS higher temperature: 2.9e-7
- EBS: 2.9e-7
+ EBS higher temperature: 1.4e-6
+ EBS: 1.4e-6
  D Tr(K): 6.0e-9
  Tr(K): 1.01e-6
  Pressure: 6.9e-11
- Epot: 2.9e-7
- EXC: 2.8e-8
- EvXC: 3.6e-8
- EH: 3.0e-7
- Total charge: 5.0e-8
+ Epot: 1.4e-6
+ EXC: 1.3e-7
+ EvXC: 1.7e-7
+ EH: 1.4e-6
+ Enl: 3.1e-10
+ Total charge: 2.4e-7
  Force Norm (Hartree/Bohr): 6.4e-11
  fnrm2: 6.9e-11
- energy: 5.8e-11
- Atomic Forces (Ha/Bohr): 2.3e-11
- Omega: 3.0e-7
+ energy: 2.5e-10
+ Atomic Forces (Ha/Bohr): 2.8e-11
+ Omega: 1.4e-6
  Average noise forces: 1.1e-10
  Clean forces norm (Ha/Bohr): 2.3e-11
- difference: 1.1e-10
- relative difference: 1.9e-11
- trace(KS): 4.3e-11
- PV (Ha): 7.6e-11
+ difference: 4.7e-10
+ relative difference: 8.1e-11
+ trace(KS): 6.4e-11
+ PV (Ha): 1.2e-10
  Keys to ignore: [WARNINGS]
 
 
 extendedfrags_write:
- Epot: 6.5e-9
- EH: 6.7e-9
+ Epot: 9.6e-8
+ EH: 9.5e-8
  Ekin: 1.1e-10
- EXC: 2.2e-9
- EvXC: 1.5e-9
+ EXC: 1.5e-8
+ EvXC: 2.0e-8
  D Tr: 3.1e-8
  D eF: 5.0e-9
- EBS higher temperature: 1.6e-9
- EBS: 1.6e-9
+ EBS higher temperature: 1.4e-8
+ EBS: 1.4e-8
  guess for new ef: 6.0e-9
  Tr(K): 6.1e-8
  Total charge: 6.01e-11
@@ -2377,13 +2385,13 @@ extendedfrags_write:
  eF: 7.0e-9
  Pressure: 6.9e-11
  decay length of error function: 1.1e-6
- Clean forces norm (Ha/Bohr): 5.1e-10
- fnrm2: 2.6e-10
- Atomic Forces (Ha/Bohr): 7.2e-9
- Force Norm (Hartree/Bohr): 2.2e-10
- difference: 1.65e-11
- e: 3.1e-10
- maxval: 5.2e-9
+ Clean forces norm (Ha/Bohr): 1.3e-8
+ Atomic Forces (Ha/Bohr): 2.8e-8
+ Force Norm (Hartree/Bohr): 5.7e-10
+ difference: 2.8e-11
+ e: 3.8e-9
+ PV (Ha): 3.5e-10
+ Average noise forces: 3.1e-10
 
 Cavity_H2OfrigidPCG:
  Atomic Forces (Ha/Bohr): 2.5e-6
