@@ -988,6 +988,7 @@ module sparsematrix_init
       is_line = f_malloc(norbu)
       do iorb=1,sparsemat%nfvctrp
           iiorb=sparsemat%isfvctr+iorb
+          !write(*,*) 'calling create_lookup_table 1, iproc, iorb', iproc, iorb
           call create_lookup_table(nnonzero, nonzero, iiorb, norbu, is_line, iorb==1, lut)
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
@@ -1018,6 +1019,7 @@ module sparsematrix_init
       sparsemat%keyg=0
       do iorb=1,sparsemat%nfvctrp
           iiorb=sparsemat%isfvctr+iorb
+          !write(*,*) 'calling create_lookup_table 2, iproc, iorb', iproc, iorb
           call create_lookup_table(nnonzero, nonzero, iiorb, norbu, is_line, .false., lut)
           call keyg_per_line(norbu, sparsemat%nseg, iiorb, sparsemat%istsegline(iiorb), &
                lut, ivctr, sparsemat%keyg)
@@ -1159,6 +1161,7 @@ module sparsematrix_init
           nvctr_mult=0
           do iorb=1,sparsemat%nfvctrp
               iiorb=sparsemat%isfvctr+iorb
+              !write(*,*) 'calling create_lookup_table 3, iproc, iiorb', iproc, iiorb
               call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, is_line, iorb==1, lut)
               call nseg_perline(norbu, lut, nseg_mult, nvctr_mult, nsegline_mult(iiorb))
           end do
@@ -1182,6 +1185,7 @@ module sparsematrix_init
           ivctr_mult=0
           do iorb=1,sparsemat%nfvctrp
              iiorb=sparsemat%isfvctr+iorb
+              !write(*,*) 'calling create_lookup_table 4, iproc, iiorb', iproc, iiorb
              call create_lookup_table(nnonzero_mult, nonzero_mult, iiorb, norbu, is_line, .false., lut)
              call keyg_per_line(norbu, nseg_mult, iiorb, istsegline_mult(iiorb), &
                   lut, ivctr_mult, keyg_mult)
@@ -1257,7 +1261,7 @@ module sparsematrix_init
 
       ! Local variables
       integer(kind=mp) :: ist, iend, ind
-      integer :: i, jjorb, is, ie, itarget
+      integer :: i, jjorb, is, ie, itarget, norbmin, norbmax
 
       call f_routine(id='create_lookup_table')
 
@@ -1286,22 +1290,30 @@ module sparsematrix_init
 
       !# NEW ######################################################################
 
+      ! norbmin and norbmax are the first and last index (matrix line) handled by this process
+      norbmin = nonzero(2,1)
+      norbmax = nonzero(2,nnonzero)
+
       if (init) then
-          itarget = 1
+          itarget = norbmin
           do i=1,nnonzero
               if (nonzero(2,i)==itarget) then
                   is_line(itarget) = i
                   itarget = itarget + 1
               end if
           end do
+          !write(*,*) 'is_line',is_line
       end if
 
+
       is = is_line(iiorb)
-      if (iiorb<norbu) then
+      if (iiorb<norbmax) then
           ie = is_line(iiorb+1) - 1
       else
           ie = nnonzero
       end if
+
+      !write(*,*) 'iiorb, is, ie', iiorb, is, ie
 
       !!$omp parallel default(none) &
       !!$omp shared(nnonzero, nonzero, iiorb, lut) &

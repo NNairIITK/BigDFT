@@ -33,7 +33,8 @@ module highlevel_wrappers
 
     subroutine calculate_eigenvalues(iproc, nproc, matrix_format, metadata_file, &
                overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file, &
-               iev_minx, iev_maxx, fscale)
+               iev_minx, iev_maxx, fscale, &
+               evals_out)
       use sparsematrix_highlevel, only: sparse_matrix_metadata_init_from_file, &
                                         sparse_matrix_and_matrices_init_from_file_bigdft, &
                                         matrices_init, &
@@ -46,6 +47,7 @@ module highlevel_wrappers
       character(len=*),intent(in) :: overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
       integer,intent(in) :: iev_minx, iev_maxx
       real(mp),intent(in) :: fscale
+      real(mp),dimension(:),pointer,intent(inout),optional :: evals_out
 
       ! Local variables
       integer :: iev, iev_min, iev_max
@@ -108,6 +110,11 @@ module highlevel_wrappers
           call yaml_mapping_close()
       end if
 
+      if (present(evals_out)) then
+          evals_out = f_malloc_ptr((/iev_min.to.iev_max/),id='evals_out')
+          call f_memcpy(src=eval, dest=evals_out)
+      end if
+
 
       call deallocate_sparse_matrix(smat_s)
       call deallocate_sparse_matrix(smat_m)
@@ -142,8 +149,8 @@ module highlevel_wrappers
       character(len=*),intent(in) :: overlap_file, hamiltonian_file
       logical :: write_output
       character(len=*),intent(in),optional :: coeff_file
-      real(mp),dimension(:),pointer,optional :: evals_out
-      real(mp),dimension(:,:,:),pointer,optional :: coeffs_out
+      real(mp),dimension(:),pointer,intent(inout),optional :: evals_out
+      real(mp),dimension(:,:,:),pointer,intent(inout),optional :: coeffs_out
 
       ! Local variables
       integer :: iunit
@@ -192,9 +199,11 @@ module highlevel_wrappers
       end if
 
       if (present(evals_out)) then
+          evals_out = f_malloc_ptr(smat_m%nfvctr,id='evals_out')
           call f_memcpy(src=eval, dest=evals_out)
       end if
       if (present(coeffs_out)) then
+          coeffs_out = f_malloc_ptr((/smat_m%nfvctr,smat_m%nfvctr,smat_m%nspin/),id='coeffs_out')
           call f_memcpy(src=hamiltonian_mat%matrix, dest=coeffs_out)
       end if
 
