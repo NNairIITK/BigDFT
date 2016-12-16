@@ -107,6 +107,7 @@ module coeffs
           end do
     
           ! Copy the diagonalized matrix to the coeff array.
+          !write(*,*) 'norbu, norbd, norb', norbu, norbd, norb
           if (smats%nspin/=1) then
               ! Only copy the occupied states
               if (ispin==1) then
@@ -116,7 +117,8 @@ module coeffs
               end if
           else
               ! Copy all states
-              call vcopy(norb*nfvctr, ham_full(1,1,1), 1, coeff(1,1), 1)
+              !call vcopy(norb*nfvctr, ham_full(1,1,1), 1, coeff(1,1), 1)
+              call vcopy(nfvctr*nfvctr, ham_full(1,1,1), 1, coeff(1,1), 1)
           end if
           info_coeff = 0
       end do
