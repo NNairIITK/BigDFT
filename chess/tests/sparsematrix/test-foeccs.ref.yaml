@@ -13,6 +13,7 @@
    Hamiltonian matrix file             : hamiltonian_ccs.txt
    Density kernel matrix file          : density_kernel_ccs.txt
    Density kernel matrix multiplication file: density_kernel_matmul_ccs.txt
+   Kernel method                       : FOE
    Blocksize for ScaLAPACK             : -1
    Check the Hamiltonian spectrum      :  No
    Lower bound for decay length        :  5.0000000000000001E-003
@@ -20,6 +21,15 @@
    Iterations with varying temperatures:  4
    Guess for Fermi energy              :  0.0
    Maximal polynomial degree           :  5000
+   PEXSI number of poles               :  40
+   PEXSI mu min                        : -1.0
+   PEXSI mu max                        :  1.0
+   PEXSI mu                            :  0.0
+   PEXSI Delta E                       :  10.0
+   PEXSI temperature                   :  1.0E-003
+   PEXSI charge tolerance              :  1.0E-003
+   PEXSI number of procs for symbolic factorization:  16
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
  Matrix properties:
    Overlap matrix:
      total elements                    :  360000
@@ -123,6 +133,37 @@
  trace(KS)                             :  799.9999999710776
  trace(KS) check                       :  799.9999999710781
  difference                            : -4.5474735088646412E-013
+ method                                : diagonalization
+ mode                                  : sequential
+ communication strategy kernel         : ALLREDUCE
+ Check the deviation from the exact result using LAPACK (only within the sparsity pattern):
+   absolute error:
+     max error                         :  2.185E-05
+     mean error                        :  9.014E-08
+   relative error:
+     max error relative                :  6.941E+02
+     mean error relative               :  3.009E-02
+   relative error with threshold:
+   -  {threshold value:  1.0E-01, max error relative:  8.907E-05, 
+   mean error relative:  1.533E-06}
+   -  {threshold value:  1.0E-02, max error relative:  4.289E-04, 
+   mean error relative:  7.594E-06}
+   -  {threshold value:  1.0E-03, max error relative:  1.966E-03, 
+   mean error relative:  3.785E-05}
+   -  {threshold value:  1.0E-04, max error relative:  1.033E-02, 
+   mean error relative:  2.098E-04}
+   -  {threshold value:  1.0E-05, max error relative:  3.652E-01, 
+   mean error relative:  1.524E-03}
+   -  {threshold value:  1.0E-06, max error relative:  1.344E+00, 
+   mean error relative:  5.562E-03}
+   -  {threshold value:  1.0E-07, max error relative:  7.056E+00, 
+   mean error relative:  1.017E-02}
+   -  {threshold value:  1.0E-08, max error relative:  2.767E+01, 
+   mean error relative:  1.518E-02}
+   -  {threshold value:  1.0E-09, max error relative:  6.044E+01, 
+   mean error relative:  1.866E-02}
+   -  {threshold value:  1.0E-10, max error relative:  4.266E+02, 
+   mean error relative:  2.491E-02}
  Memory Consumption Report:
    Tot. No. of Allocations             :  775
    Tot. No. of Deallocations           :  775

@@ -279,6 +279,11 @@ program driver_random
   call matrices_init(smatl(1), mat3(2))
   call matrices_init(smatl(1), mat3(3))
 
+  !!write(*,*) 'smats%istartend_local(1),smats%istartend_local(2)',smats%istartend_local(1),smats%istartend_local(2)
+  !!do i=1,size(smats%transposed_lookup_local)
+  !!    write(*,*) 'i, tll(i)', i, smats%transposed_lookup_local(i)
+  !!end do
+
   if (trim(matgen_method)=='random') then
 
       call matrices_init(smats, mat1)
@@ -428,7 +433,7 @@ program driver_random
 
   ! Calculate the errors
   call calculate_error(iproc, smatl(1), mat3(1), mat3(3), nthreshold, threshold, .false., &
-       'Check the deviation of from the original matrix')
+       'Check the deviation from the original matrix')
 
   !call timing(mpi_comm_world,'CHECK_LINEAR','PR')
   call mpibarrier()

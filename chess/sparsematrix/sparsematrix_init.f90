@@ -881,8 +881,8 @@ module sparsematrix_init
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, norbu, nnonzero, nnonzero_mult
-      integer,dimension(2,nnonzero),intent(in) :: nonzero
-      integer,dimension(2,nnonzero_mult),intent(in) :: nonzero_mult
+      integer,dimension(2,nnonzero),intent(inout) :: nonzero
+      integer,dimension(2,nnonzero_mult),intent(inout) :: nonzero_mult
       type(sparse_matrix), intent(out) :: sparsemat
       logical,intent(in),optional :: init_matmul
       character(len=1),intent(in),optional :: geocode
@@ -898,7 +898,7 @@ module sparsematrix_init
       logical :: init_matmul_
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
-      integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult, is_line
+      integer,dimension(:),allocatable :: nsegline_mult, istsegline_mult, is_line, temparr
       integer,dimension(:,:,:),allocatable :: keyg_mult
       integer,dimension(:),allocatable :: keyv_mult
       logical :: allocate_full_, print_info_, store_index_ !LG: internal variables have the underscore, not the opposite
@@ -922,6 +922,10 @@ module sparsematrix_init
       if (present(print_info)) print_info_=print_info
       if (present(store_index)) store_index_=store_index
       if (present(init_matmul)) init_matmul_ = init_matmul
+
+      ! Sort the nonzero entries
+      call sort_nonzero_entries(nnonzero, nonzero)
+      call sort_nonzero_entries(nnonzero_mult, nonzero_mult)
 
 
       lut = f_malloc(norbu,id='lut')
@@ -986,11 +990,15 @@ module sparsematrix_init
       sparsemat%nvctr=0
       sparsemat%nsegline=0
       is_line = f_malloc(norbu)
+      !!do iorb=1,nnonzero
+      !!    write(*,*) 'iorb, nonzero(:,iorb)', iorb, nonzero(:,iorb)
+      !!end do
       do iorb=1,sparsemat%nfvctrp
           iiorb=sparsemat%isfvctr+iorb
           !write(*,*) 'calling create_lookup_table 1, iproc, iorb', iproc, iorb
           call create_lookup_table(nnonzero, nonzero, iiorb, norbu, is_line, iorb==1, lut)
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
+          !!write(*,*) 'iorb, lut', iorb, lut
       end do
 
       if (nproc>1) then
@@ -1302,7 +1310,6 @@ module sparsematrix_init
                   itarget = itarget + 1
               end if
           end do
-          !write(*,*) 'is_line',is_line
       end if
 
 
@@ -4761,6 +4768,7 @@ module sparsematrix_init
           ! A segment is always on one line, therefore no double loop
           do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
               ii_trans = matrixindex_in_compressed(smat,smat%keyg(1,2,iseg),i)
+              !!write(*,*) 'ii, ii_trans', ii, ii_trans
               smat%transposed_lookup_local(ii) = ii_trans
               ii=ii+1
               iicheck = iicheck + 1
@@ -4970,6 +4978,11 @@ module sparsematrix_init
           end do
       end if
 
+      !!write(*,*) 'calling init_sparse_matrix'
+      !!do inonzero=1,nnonzero
+      !!    write(*,*) 'i, nonzero(1:2,i)',inonzero,nonzero(1:2,inonzero)
+      !!end do
+      !!write(*,*) 'nonzero',nonzero
       call init_sparse_matrix(iproc, nproc, comm, nfvctr, &
            nnonzero, nonzero, nnonzero_buf_mult, nonzero_buf_mult, smat, init_matmul=init_matmul)
       call init_matrix_taskgroups(iproc, nproc, comm, parallel_layout=.false., smat=smat)
@@ -5425,5 +5438,145 @@ module sparsematrix_init
      call f_release_routine()
 
    end subroutine calculate_compressed_indices
+
+
+   subroutine Merge(A,NA,B,NB,C,NC,IASWAP,IBSWAP,ICSWAP)
+    
+      integer, intent(in) :: NA,NB,NC         ! Normal usage: NA+NB = NC
+      integer, intent(in out) :: A(NA)        ! B overlays C(NA+1:NC)
+      integer, intent(in)     :: B(NB)
+      integer, intent(in out) :: C(NC)
+      integer, intent(in out) :: IASWAP(NA)        ! B overlays C(NA+1:NC)
+      integer, intent(in)     :: IBSWAP(NB)
+      integer, intent(in out) :: ICSWAP(NC)
+    
+      integer :: I,J,K
+    
+      I = 1; J = 1; K = 1;
+      do while(I <= NA .and. J <= NB)
+         if (A(I) <= B(J)) then
+            C(K) = A(I)
+            ICSWAP(K) = IASWAP(I)
+            I = I+1
+         else
+            C(K) = B(J)
+            ICSWAP(K) = IBSWAP(J)
+            J = J+1
+         endif
+         K = K + 1
+      enddo
+      do while (I <= NA)
+         C(K) = A(I)
+         ICSWAP(K) = IASWAP(I)
+         I = I + 1
+         K = K + 1
+      enddo
+      return
+    
+   end subroutine merge
+   
+
+   recursive subroutine MergeSort(A,N,T,IASWAP,ITSWAP)
+    
+      integer, intent(in) :: N
+      integer, dimension(N), intent(in out) :: A
+      integer, dimension((N+1)/2), intent (out) :: T
+      integer, dimension(N), intent(in out) :: IASWAP
+      integer, dimension((N+1)/2), intent(in out) :: ITSWAP
+    
+      integer :: NA,NB,W
+      integer :: V
+    
+      if (N < 2) return
+      if (N == 2) then
+         if (A(1) > A(2)) then
+            V = A(1)
+            W = IASWAP(1)
+            A(1) = A(2)
+            A(2) = V
+            IASWAP(1) = IASWAP(2)
+            IASWAP(2) = W
+         endif
+         return
+      endif      
+      NA=(N+1)/2
+      NB=N-NA
+    
+      call MergeSort(A,NA,T,IASWAP,ITSWAP)
+      call MergeSort(A(NA+1),NB,T,IASWAP(NA+1),ITSWAP)
+    
+      if (A(NA) > A(NA+1)) then
+         T(1:NA)=A(1:NA)
+         ITSWAP(1:NA)=IASWAP(1:NA)
+         call Merge(T,NA,A(NA+1),NB,A,N,ITSWAP,IASWAP(NA+1),IASWAP)
+      endif
+      return
+    
+   end subroutine MergeSort
+
+
+   subroutine sort_nonzero_entries(nnonzero, nonzero)
+     use dynamic_memory
+     implicit none
+
+     ! Calling arguments
+     integer,intent(in) :: nnonzero
+     integer,dimension(2,nnonzero),intent(inout) :: nonzero
+
+     ! Local variables
+     integer :: i, ii
+     integer,dimension(:),allocatable :: sortarr, iswaparr, workarr_sort, workarr_swap
+     integer,dimension(:,:),allocatable :: nonzero_work
+
+     call f_routine(id='sort_nonzero_entries')
+
+     ! Sort the nonzero entries
+     sortarr = f_malloc(nnonzero,id='sortarr')
+     iswaparr = f_malloc(nnonzero,id='iswaparr')
+     workarr_sort = f_malloc((nnonzero+1)/2,id='workarr_sort')
+     workarr_swap = f_malloc((nnonzero+1)/2,id='workarr_swap')
+
+     do i=1,nnonzero
+         sortarr(i) = nonzero(2,i)
+         iswaparr(i) = i
+     end do
+     call MergeSort(sortarr, nnonzero, workarr_sort, iswaparr, workarr_swap)
+
+     call f_free(sortarr)
+     call f_free(workarr_sort)
+     call f_free(workarr_swap)
+
+     nonzero_work = f_malloc((/2,nnonzero/),id='nonzero_work')
+     call f_memcpy(src=nonzero, dest=nonzero_work)
+     do i=1,nnonzero
+         ii = iswaparr(i)
+         nonzero(1:2,i) = nonzero_work(1:2,ii)
+     end do
+     call f_free(nonzero_work)
+     call f_free(iswaparr)
+
+     call f_release_routine()
+
+   end subroutine sort_nonzero_entries
+
+  
+
+   !!program TestMergeSort
+   !! 
+   !!   integer, parameter :: N = 8
+   !!   integer, dimension(N) :: A = (/ 1, 5, 2, 7, 3, 9, 4, 6 /)
+   !!   integer, dimension ((N+1)/2) :: T
+   !!   integer,dimension(N) :: IASWAP
+   !!   integer, dimension ((N+1)/2) :: ITSWAP
+   !!   integer :: I
+   !!   write(*,'(A,/,10f5.1)')'Initial array :',A
+   !!   do I=1,N
+   !!       IASWAP(I) = I
+   !!   end do
+   !!   call MergeSort(A,N,T,IASWAP,ITSWAP)
+   !!   write(*,'(A,/,10f5.1)')'Sorted array :',A
+   !!   write(*,'(A,/,10i3)')'swap array :',IASWAP
+   !! 
+   !!end program TestMergeSort
 
 end module sparsematrix_init

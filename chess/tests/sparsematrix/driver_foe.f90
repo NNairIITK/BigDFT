@@ -489,7 +489,7 @@ program driver_foe
            smat_k, smat_h, mat_ek, mat_h, energy,&
            coeff, norbp, isorb, norbu, norb, occup, .true.)
       call calculate_error(iproc, smat_k, mat_k, mat_ek, nthreshold, threshold, .false., &
-           'Check the deviation from the reference calculation using LAPACK')
+           'Check the deviation from the exact result using LAPACK')
       call f_free(coeff)
       call f_free(eval_all)
       call f_free(eval_occup)

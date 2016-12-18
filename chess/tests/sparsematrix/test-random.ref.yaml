@@ -13,9 +13,14 @@
    Buffer for sparse multiplications   :  0
    Condition number                    :  50.0
    Exponent for the matrix power calculation: -1.0
+   Solution method                     : ICE
    Write the matrices                  :  No
    betax                               : -500.0
    scalapack_blocksize                 : -1
+   ScaLAPACK diagonalization algorithm : pdsyevx
+   ICE multiplication factor           :  1.0
+   PEXSI number of procs for symbolic factorization:  16
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
  Determine nonzero entries:
  #(20:35:37.975)  2% / [                         ] ( 298/10000,  2.42E+03 it/s), ETA  4.0s
  #(20:35:38.033)  4% - [>                        ] ( 492/10000,  2.72E+03 it/s), ETA  3.5s
@@ -872,7 +877,7 @@
    -  {npl:  240, scale:  5.93E-01, bounds:  [  0.116,  11.145 ], 
  exp accur:  [  2.04E-13 ], penalty: -3.8E-08, ok:  [  Yes,  Yes ]}
    summary: {npl:  240, bounds:  [  0.116,  11.145 ], exp accur:  [  2.04E-13 ]}
- Check the deviation of from the original matrix (only within the sparsity pattern):
+ Check the deviation from the original matrix (only within the sparsity pattern):
    absolute error:
      max error                         :  2.376E-13
      mean error                        :  5.606E-16
@@ -880,6 +885,10 @@
      max error relative                :  4.457E-12
      mean error relative               :  1.619E-13
    relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  3.397E-12, 
+   mean error relative:  6.369E-14}
+   -  {threshold value:  1.0E-04, max error relative:  4.306E-12, 
+   mean error relative:  1.391E-13}
    -  {threshold value:  1.0E-05, max error relative:  4.457E-12, 
    mean error relative:  1.617E-13}
    -  {threshold value:  1.0E-06, max error relative:  4.457E-12, 
@@ -907,6 +916,10 @@
      max error relative                :  2.262E-10
      mean error relative               :  1.967E-12
    relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  6.933E-12, 
+   mean error relative:  6.131E-13}
+   -  {threshold value:  1.0E-04, max error relative:  4.697E-11, 
+   mean error relative:  1.225E-12}
    -  {threshold value:  1.0E-05, max error relative:  7.478E-11, 
    mean error relative:  1.791E-12}
    -  {threshold value:  1.0E-06, max error relative:  2.262E-10, 
@@ -931,6 +944,10 @@
      max error relative                :  1.095E-10
      mean error relative               :  1.745E-12
    relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  6.933E-12, 
+   mean error relative:  6.131E-13}
+   -  {threshold value:  1.0E-04, max error relative:  4.697E-11, 
+   mean error relative:  1.225E-12}
    -  {threshold value:  1.0E-05, max error relative:  7.328E-11, 
    mean error relative:  1.661E-12}
    -  {threshold value:  1.0E-06, max error relative:  1.095E-10, 
@@ -974,9 +991,14 @@
    Buffer for sparse multiplications   :  0
    Condition number                    :  100.0
    Exponent for the matrix power calculation: -0.5
+   Solution method                     : ICE
    Write the matrices                  :  No
    betax                               : -500.0
    scalapack_blocksize                 : -1
+   ScaLAPACK diagonalization algorithm : pdsyevx
+   ICE multiplication factor           :  1.0
+   PEXSI number of procs for symbolic factorization:  16
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
  Determine nonzero entries:
  #(20:35:44.414)  2% / [                         ] ( 2198/100000,  1.74E+03 it/s), ETA  56.3
  #(20:35:44.474)  2% - [                         ] ( 2398/100000,  1.81E+03 it/s), ETA  53.9
@@ -1588,7 +1610,7 @@
    -  {npl:  290, scale:  1.53E+00, bounds:  [  0.032,  16.049 ], 
  exp accur:  [  1.11E-13 ], penalty: -6.5E-09, ok:  [  Yes,  Yes ]}
    summary: {npl:  290, bounds:  [  0.032,  16.049 ], exp accur:  [  1.11E-13 ]}
- Check the deviation of from the original matrix (only within the sparsity pattern):
+ Check the deviation from the original matrix (only within the sparsity pattern):
    absolute error:
      max error                         :  6.581E+00
      mean error                        :  1.031E-02
@@ -1596,6 +1618,10 @@
      max error relative                :  4.712E+00
      mean error relative               :  1.580E+00
    relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  2.114E+00, 
+   mean error relative:  3.032E-01}
+   -  {threshold value:  1.0E-04, max error relative:  4.712E+00, 
+   mean error relative:  3.486E-01}
    -  {threshold value:  1.0E-05, max error relative:  4.712E+00, 
    mean error relative:  1.977E+00}
    -  {threshold value:  1.0E-06, max error relative:  4.712E+00, 
@@ -1623,6 +1649,10 @@
      max error relative                :  1.054E-06
      mean error relative               :  8.055E-09
    relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  9.435E-08, 
+   mean error relative:  6.805E-11}
+   -  {threshold value:  1.0E-04, max error relative:  1.483E-07, 
+   mean error relative:  9.640E-09}
    -  {threshold value:  1.0E-05, max error relative:  2.678E-07, 
    mean error relative:  1.369E-08}
    -  {threshold value:  1.0E-06, max error relative:  6.013E-07, 
@@ -1647,6 +1677,10 @@
      max error relative                :  1.000E+00
      mean error relative               :  3.900E+01
    relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  9.435E-08, 
+   mean error relative:  6.805E-11}
+   -  {threshold value:  1.0E-04, max error relative:  1.483E-07, 
+   mean error relative:  9.640E-09}
    -  {threshold value:  1.0E-05, max error relative:  2.680E-07, 
    mean error relative:  1.370E-08}
    -  {threshold value:  1.0E-06, max error relative:  6.028E-07, 

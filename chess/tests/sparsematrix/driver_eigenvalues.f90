@@ -54,7 +54,7 @@ program driver_eigenvalues
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
   integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb, iorb, pexsi_np_sym_fact
-  integer :: iev_min, iev_max, iev
+  integer :: iev_min, iev_max, iev, iev_minx, iev_maxx
   real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_DeltaE, pexsi_temperature, pexsi_tol_charge, fscale
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large, evals, evals_check
@@ -375,6 +375,7 @@ program driver_eigenvalues
   !!call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(), &
   !!     gather_routine=gather_timings)
 
+
   ! Calculate the eigenvalues
   call calculate_eigenvalues(iproc, nproc, matrix_format, metadata_file, &
        overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file, &
@@ -407,10 +408,12 @@ program driver_eigenvalues
 
       if (iproc==0) then
           call yaml_sequence_open('Comparing the eigenvalues')
-          do iev=iev_min,iev_max
+          iev_minx = lbound(evals,1)
+          iev_maxx = ubound(evals,1)
+          do iev=iev_minx,iev_maxx
               call yaml_sequence(advance='no')
               call yaml_mapping_open(flow=.true.)
-              call yaml_map('ID',iev,fmt='(es14.7)')
+              call yaml_map('ID',iev)
               call yaml_map('CheSS',evals(iev),fmt='(es14.7)')
               call yaml_map('LAPACK',evals_check(iev),fmt='(es14.7)')
               call yaml_map('difference',evals(iev)-evals_check(iev),fmt='(es15.8)')
