@@ -288,7 +288,7 @@ contains
     implicit none
     integer, intent(in) :: depth
     mems(ictrl)%depth=mems(ictrl)%depth+depth
-    track_origins = &
+    track_origins = bigdebug .or. &
          mems(ictrl)%depth <= mems(ictrl)%profiling_depth .or. &
          mems(ictrl)%profiling_depth ==-1
   end subroutine set_depth
