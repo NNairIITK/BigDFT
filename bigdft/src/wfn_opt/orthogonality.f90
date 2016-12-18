@@ -423,7 +423,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,tr_min,psi,hpsi,scprsum,s
 
         call subspace_matrix(symm,psi(ispsi),hpsi(ispsi),&
              ncomplex,ncomponents,norb,alag(ndim_ovrlp(ispin,ikpt-1)+1))
-if (iproc==0 .and. .false.,) then
+if (iproc==0 .and. .false.) then
  call yaml_map('Symm',symm)
  call yaml_map('Lagrange Multiplier',tr_min)
  call yaml_map('Subspace matrix',reshape(alag(ndim_ovrlp(ispin,ikpt-1)+1:),[norb,norb]))
