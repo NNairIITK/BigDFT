@@ -214,7 +214,9 @@ def parse():
     group.add_option("--fragment_file", type="str", default="fragment.dat", metavar="FRAGMENTSNAME",
              		 help="file with the fragment to be analyzed [default: %default]")
     group.add_option("--hamiltonian_manipulated_file", type="str", default="hamiltonian_manipulated_sparse.bin", metavar="MATRIXNAME",
-             		 help="output file for the manipulated hamiltonian[default: %default]")
+             		 help="output file for the manipulated hamiltonian matrix[default: %default]")
+    group.add_option("--overlap_manipulated_file", type="str", default="overlap_manipulated_sparse.bin", metavar="MATRIXNAME",
+             		 help="output file for the manipulated overlap matrix[default: %default]")
 
     # solve the eigensystem to get the coefficients
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
@@ -1175,7 +1177,7 @@ options:
         command = "%s %s build-KS-orbitals %s %s %i %i" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.is_ks, options.ie_ks)
         print command
     if options.action == "manipulate-eigenvalue-spectrum":
-        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %s %i %f %f %f %f %i" % (options.mpirun, chess_toolbox, options.manipulation_mode, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.hamiltonian_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value, options.scalapack_blocksize)
+        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %s %s %i %f %f %f %f %i" % (options.mpirun, chess_toolbox, options.manipulation_mode, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.hamiltonian_manipulated_file, options.overlap_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value, options.scalapack_blocksize)
         print command
     if command is not None:
         os.system(command)

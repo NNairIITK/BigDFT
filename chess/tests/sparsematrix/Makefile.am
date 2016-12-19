@@ -82,6 +82,7 @@ test-foeccs.out.yaml: driver_foe
         --hamiltonian_file=hamiltonian_ccs.txt \
         --kernel_file=density_kernel_ccs.txt \
         --kernel_matmul_file=density_kernel_matmul_ccs.txt \
+        --check_spectrum=yes \
         > test-foeccs.out.yaml
 
 test-random.out.yaml: driver_random

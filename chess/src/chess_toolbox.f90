@@ -62,7 +62,7 @@ program chess_toolbox
    character(len=1) :: geocode
    character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
-   character(len=128) :: method_name, overlap_file, hamiltonian_file, hamiltonian_manipulated_file
+   character(len=128) :: method_name, overlap_file, hamiltonian_file, hamiltonian_manipulated_file, overlap_manipulated_file
    character(len=128) :: kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
    character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_, scalapack_blocksize_
@@ -308,6 +308,8 @@ program chess_toolbox
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_manipulated_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_manipulated_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = ihomo_state_)
             read(ihomo_state_,fmt=*,iostat=ierr) ihomo_state
@@ -1247,19 +1249,20 @@ program chess_toolbox
        mode_if: if (manipulation_mode=='diagonal') then
            ! Set the matrix to zero
            !call f_zero(hamiltonian_mat%matrix)
-           call f_zero(ovrlp_tmp)
+           call f_zero(ovrlp_mat%matrix)
+           call f_zero(hamiltonian_mat%matrix)
 
            ! Set the lowest eigenvalue
-           ovrlp_tmp(1,1) = smallest_value
+           hamiltonian_mat%matrix(1,1,1) = smallest_value
 
            ! Set the highest eigenvalue
-           ovrlp_tmp(smat_s%nfvctr,smat_s%nfvctr) = largest_value
+           hamiltonian_mat%matrix(smat_s%nfvctr,smat_s%nfvctr,1) = largest_value
 
            ! Set the HOMO eigenvalue
-           ovrlp_tmp(ihomo_state,ihomo_state) = homo_value
+           hamiltonian_mat%matrix(ihomo_state,ihomo_state,1) = homo_value
 
            ! Set the LUMO eigenvalue
-           ovrlp_tmp(ihomo_state+1,ihomo_state+1) = lumo_value
+           hamiltonian_mat%matrix(ihomo_state+1,ihomo_state+1,1) = lumo_value
 
            ! Set the remaining values at random
            call f_random_number(tt, reset=.true.)
@@ -1268,19 +1271,22 @@ program chess_toolbox
            do i=2,ihomo_state-1
                call f_random_number(tt)
                tt = tt*mult_factor+add_shift
-               ovrlp_tmp(i,i) = tt
+               hamiltonian_mat%matrix(i,i,1) = tt
            end do
            mult_factor = largest_value-lumo_value
            add_shift = lumo_value
            do i=ihomo_state+2,smat_s%nfvctr-1
                call f_random_number(tt)
                tt = tt*mult_factor+add_shift
-               ovrlp_tmp(i,i) = tt
+               hamiltonian_mat%matrix(i,i,1) = tt
            end do
-           call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
-                'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                1.0_mp, ovrlp_tmp(1:,1:), smat_s%nfvctr, &
-                ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, hamiltonian_mat%matrix(1:,1:,1), smat_s%nfvctr)
+           !call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+           !     'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+           !     1.0_mp, ovrlp_tmp(1:,1:), smat_s%nfvctr, &
+           !     ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, hamiltonian_mat%matrix(1:,1:,1), smat_s%nfvctr)
+           do i=1,smat_s%nfvctr
+               ovrlp_mat%matrix(i,i,1) = 1.0_mp
+           end do
            !call yaml_map('H',ovrlp_tmp(:,:))
        else if (manipulation_mode=='full') then mode_if
 
@@ -1445,6 +1451,7 @@ program chess_toolbox
            call yaml_mapping_close()
        end if
 
+       ! Write the manipulated Hamiltonian matrix
        index_dot = index(hamiltonian_manipulated_file,'.',back=.true.)
        outfile_base = hamiltonian_manipulated_file(1:index_dot-1)
        outfile_extension = hamiltonian_manipulated_file(index_dot:)
@@ -1462,6 +1469,25 @@ program chess_toolbox
        call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
        call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
             smat_m, hamiltonian_mat, trim(outfile_base))
+
+       ! Write the manipulated overlap matrix
+       index_dot = index(overlap_manipulated_file,'.',back=.true.)
+       outfile_base = overlap_manipulated_file(1:index_dot-1)
+       outfile_extension = overlap_manipulated_file(index_dot:)
+       if (trim(matrix_format)=='serial_text') then
+           if (trim(outfile_extension)/='.txt') then
+               call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
+           end if
+       else if (trim(matrix_format)=='parallel_mpi-native') then
+           if (trim(outfile_extension)/='.mpi') then
+               call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
+           end if
+       else
+           call f_err_throw('Wrong matrix format')
+       end if
+       call compress_matrix(iproc, nproc, smat_s, ovrlp_mat%matrix, ovrlp_mat%matrix_compr)
+       call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
+            smat_s, ovrlp_mat, trim(outfile_base))
 
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)

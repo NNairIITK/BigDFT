@@ -15,7 +15,7 @@
    Density kernel matrix multiplication file: density_kernel_matmul_ccs.txt
    Kernel method                       : FOE
    Blocksize for ScaLAPACK             : -1
-   Check the Hamiltonian spectrum      :  No
+   Check the Hamiltonian spectrum      :  Yes
    Lower bound for decay length        :  5.0000000000000001E-003
    Upper bound for decay length        :  5.0000000000000003E-002
    Iterations with varying temperatures:  4
