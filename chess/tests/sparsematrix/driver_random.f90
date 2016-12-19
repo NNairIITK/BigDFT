@@ -27,7 +27,7 @@ program driver_random
                                matrixindex_in_compressed, write_sparsematrix_info
   use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
                           matrix_power_dense_lapack, get_minmax_eigenvalues, &
-                          uncompress_matrix
+                          uncompress_matrix, transform_sparse_matrix
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication, &
                                     sparse_matrix_init_from_file_bigdft, &
@@ -421,18 +421,21 @@ program driver_random
 
   ! Calculate the inverse operation, applied to the operation itsel, i.e. (mat^x)^-x
   if (iproc==0) then
-      call yaml_comment('Calculating (mat^x)^-x',hfill='~')
-      call yaml_mapping_open('Calculating (mat^x)^-x')
+      call yaml_comment('Calculating (mat^x)^(1/x)',hfill='~')
+      call yaml_mapping_open('Calculating (mat^x)^(1/x)')
   end if
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/-expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
+       1, (/1.0_mp/expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
 
   if (iproc==0) then
       call yaml_mapping_close()
   end if
 
   ! Calculate the errors
-  call calculate_error(iproc, smatl(1), mat3(1), mat3(3), nthreshold, threshold, .false., &
+  call transform_sparse_matrix(iproc, smats, smatl(1), SPARSE_FULL, 'small_to_large', &
+               smat_in=mat2%matrix_compr, lmat_out=mat3(2)%matrix_compr)
+
+  call calculate_error(iproc, smatl(1), mat3(3), mat3(2), nthreshold, threshold, .false., &
        'Check the deviation from the original matrix')
 
   !call timing(mpi_comm_world,'CHECK_LINEAR','PR')

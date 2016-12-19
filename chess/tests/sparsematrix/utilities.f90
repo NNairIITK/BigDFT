@@ -73,17 +73,26 @@ module utilities
       ! Sparse matrices
       call set_to_zero()
       do i=1,smat%nvctr
-          tt = abs(mat%matrix_compr(i)-mat_ref%matrix_compr(i))
-          tt_rel = tt/abs(mat_ref%matrix_compr(i))
+          !tt = abs(mat%matrix_compr(i)-mat_ref%matrix_compr(i))
+          tt = (mat%matrix_compr(i)-mat_ref%matrix_compr(i))**2
+          !tt_rel = tt/abs(mat_ref%matrix_compr(i))
+          tt_rel = tt/(mat_ref%matrix_compr(i))**2
           tt_ref = mat_ref%matrix_compr(i)
           call calculate_errors()
           !write(*,*) 'mat%matrix_compr(i), mat_ref%matrix_compr(i), max_error_rel', &
           !            mat%matrix_compr(i), mat_ref%matrix_compr(i), max_error_rel
       end do
-      mean_error = mean_error/real(smat%nvctr,kind=8)
-      mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+      !mean_error = mean_error/real(smat%nvctr,kind=8)
+      mean_error = sqrt(mean_error)/real(smat%nvctr,kind=8)
+      max_error = sqrt(max_error)
+      !mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+      mean_error_rel = sqrt(mean_error_rel)/real(smat%nvctr,kind=8)
       do ithreshold=1,nthreshold
-          mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+          !mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+          mean_error_rel_threshold(ithreshold) = &
+              sqrt(mean_error_rel_threshold(ithreshold))/real(nrel_threshold(ithreshold),kind=8)
+          max_error_rel_threshold(ithreshold) = &
+              sqrt(max_error_rel_threshold(ithreshold))
       end do
       if (iproc==0) then
           call print_errors(header=trim(header)//' (only within the sparsity pattern)')
@@ -94,16 +103,25 @@ module utilities
           call set_to_zero()
           do i=1,smat%nfvctr
               do j=1,smat%nfvctr
-                  tt = abs(mat%matrix(j,i,1)-mat_ref%matrix(j,i,1))
-                  tt_rel = tt/abs(mat_ref%matrix(j,i,1))
+                  !tt = abs(mat%matrix(j,i,1)-mat_ref%matrix(j,i,1))
+                  tt = (mat%matrix(j,i,1)-mat_ref%matrix(j,i,1))**2
+                  !tt_rel = tt/abs(mat_ref%matrix(j,i,1))
+                  tt_rel = tt/(mat_ref%matrix(j,i,1))**2
                   tt_ref = mat_ref%matrix(j,i,1)
                   call calculate_errors()
               end do
           end do
-          mean_error = mean_error/real(smat%nvctr,kind=8)
-          mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+          !mean_error = mean_error/real(smat%nvctr,kind=8)
+          mean_error = sqrt(mean_error)/real(smat%nvctr,kind=8)
+          max_error = sqrt(max_error)
+          !mean_error_rel = mean_error_rel/real(smat%nvctr,kind=8)
+          mean_error_rel = sqrt(mean_error_rel)/real(smat%nvctr,kind=8)
           do ithreshold=1,nthreshold
-              mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+              !mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+              mean_error_rel_threshold(ithreshold) = &
+                  sqrt(mean_error_rel_threshold(ithreshold))/real(nrel_threshold(ithreshold),kind=8)
+              max_error_rel_threshold(ithreshold) = &
+                  sqrt(max_error_rel_threshold(ithreshold))
           end do
           if (iproc==0) then
               call print_errors(header=trim(header)//' (for the entire matrix)')

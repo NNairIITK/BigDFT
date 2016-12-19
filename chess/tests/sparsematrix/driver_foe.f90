@@ -415,6 +415,9 @@ program driver_foe
       call f_free(eval_all)
       call f_free(eval_occup)
       call f_free(occup)
+      if (iproc==0) then
+          call yaml_mapping_close()
+      end if
   else
       call f_err_throw("wrong value for 'kernel_method'; possible values are 'FOE', 'PEXSI' or 'LAPACK'")
   end if
@@ -466,6 +469,9 @@ program driver_foe
   if (iproc==0) call yaml_map('difference',tr_KS-tr_KS_check)
 
   if (do_cubic_check) then
+      if (iproc==0) then
+          call yaml_mapping_open('Calculate kernel with LAPACK')
+      end if
       norbu = smat_h%nfvctr
       norbd = 0
       norb = norbu + norbd
@@ -488,6 +494,9 @@ program driver_foe
       call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
            smat_k, smat_h, mat_ek, mat_h, energy,&
            coeff, norbp, isorb, norbu, norb, occup, .true.)
+      if (iproc==0) then
+          call yaml_map('Energy',energy)
+      end if
       call calculate_error(iproc, smat_k, mat_k, mat_ek, nthreshold, threshold, .false., &
            'Check the deviation from the exact result using LAPACK')
       call f_free(coeff)

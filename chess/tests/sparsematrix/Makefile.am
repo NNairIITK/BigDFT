@@ -75,31 +75,31 @@ test-foeccs.out.yaml: driver_foe
 	cp -f $(srcdir)/density_kernel_matmul_ccs-base.txt $(PWD)/density_kernel_matmul_ccs.txt
 	cp -f $(srcdir)/sparsematrix_metadata-base.dat $(PWD)/sparsematrix_metadata.dat
 	$(run_parallel) ./driver_foe \
-		--sparsity_format=ccs \
-		--matrix_format=serial_text \
-		--metadata_file=sparsematrix_metadata.dat \
-		--overlap_file=overlap_ccs.txt \
-		--hamiltonian_file=hamiltonian_ccs.txt \
-		--kernel_file=density_kernel_ccs.txt \
-		--kernel_matmul_file=density_kernel_matmul_ccs.txt \
-		> test-foeccs.out.yaml
+        --sparsity_format=ccs \
+        --matrix_format=serial_text \
+        --metadata_file=sparsematrix_metadata.dat \
+        --overlap_file=overlap_ccs.txt \
+        --hamiltonian_file=hamiltonian_ccs.txt \
+        --kernel_file=density_kernel_ccs.txt \
+        --kernel_matmul_file=density_kernel_matmul_ccs.txt \
+        > test-foeccs.out.yaml
 
 test-random.out.yaml: driver_random
 	cp -f $(srcdir)/data1_base.dat $(PWD)/data1.dat
 	cp -f $(srcdir)/data2_base.dat $(PWD)/data2.dat
 	$(run_parallel) ./driver_random \
-	   --sparsegen_method=random \
-	   --matgen_method=random \
+       --sparsegen_method=random \
+       --matgen_method=random \
        --nfvctr=100 \
        --nvctr=10000 \
        --condition_number=50 \
-	   --expo=-1 \
-	   > test-random.out.yaml
+       --expo=-1 \
+       > test-random.out.yaml
 	$(run_parallel) ./driver_random \
-	   --sparsegen_method=random \
-	   --matgen_method=random \
+       --sparsegen_method=random \
+       --matgen_method=random \
        --nfvctr=2000 \
        --nvctr=100000 \
        --condition_number=100 \
-	   --expo=-0.5 \
-	   >> test-random.out.yaml
+       --expo=-0.5 \
+       >> test-random.out.yaml
