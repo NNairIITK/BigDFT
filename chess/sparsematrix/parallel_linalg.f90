@@ -451,7 +451,9 @@ module parallel_linalg
               iwork = f_malloc(100,id='iwork')
 
               algif1: if (ialg==1) then
-                  call pdsyevd(jobz, uplo, n, la(1,1), 1, 1, desc_la, &
+                  ! Eigenvectors only (i.e. jobz='n') appears not yet be implemented in the pdsyevd,
+                  ! see http://www.netlib.org/scalapack/explore-html/d6/d75/pdsyevd_8f_source.html
+                  call pdsyevd('v', uplo, n, la(1,1), 1, 1, desc_la, &
                        w(1), lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, info)
               else if (ialg==2) then algif1
                   call pdsyevx(jobz, 'a', 'l', n, la(1,1), 1, 1, desc_la, &
@@ -470,7 +472,9 @@ module parallel_linalg
               algif2: if (ialg==1) then
                   call f_free(work)
                   work = f_malloc(lwork,id='work')
-                  call pdsyevd(jobz, uplo, n, la(1,1), 1, 1, desc_la, &
+                  ! Eigenvectors only (i.e. jobz='n') appears not yet be implemented in the pdsyevd,
+                  ! see http://www.netlib.org/scalapack/explore-html/d6/d75/pdsyevd_8f_source.html
+                  call pdsyevd('v', uplo, n, la(1,1), 1, 1, desc_la, &
                        w(1), lz(1,1), 1, 1, desc_lz, work, lwork, iwork, liwork, info)
               else if (ialg==2) then algif2
                   max_cluster_size = 1
