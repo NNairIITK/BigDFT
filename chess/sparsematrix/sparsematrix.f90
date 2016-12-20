@@ -2868,7 +2868,7 @@ module sparsematrix
     !> Get the minimal and maximal eigenvalue of a matrix
     subroutine get_minmax_eigenvalues(iproc, nproc, comm, mode, scalapack_blocksize, &
                smat, mat, eval_min, eval_max, &
-               quiet, smat2, mat2, evals)
+               algorithm, quiet, smat2, mat2, evals)
       use parallel_linalg, only: dsyev_parallel, dsygv_parallel
       use dynamic_memory
       use yaml_output
@@ -2880,6 +2880,7 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       real(mp),dimension(smat%nspin),intent(out) :: eval_min, eval_max
+      character(len=*),intent(in),optional :: algorithm
       logical,intent(in),optional :: quiet
       type(sparse_matrix),intent(in),optional :: smat2
       type(matrices),intent(in),optional :: mat2
@@ -2937,8 +2938,13 @@ module sparsematrix
           end if
 
           if (imode==1) then
-              call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
-                   smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+              if (present(algorithm)) then
+                  call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+                       smat%nfvctr, tempmat, smat%nfvctr, eval, info, algorithm=algorithm)
+              else
+                  call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+                       smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+              end if
           else if (imode==2) then
               call dsygv_parallel(iproc, nproc, comm, scalapack_blocksize, nproc, 1, 'n', 'l', &
                    smat%nfvctr, tempmat, smat%nfvctr, tempmat2, smat%nfvctr, eval, info)
