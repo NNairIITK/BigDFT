@@ -100,53 +100,61 @@
  Calculating (mat^x)^(1/x):
    beta for penaltyfunction            : -500.0
    determine eigenvalue bounds:
-   -  {npl:  120, scale:  2.55E+00, bounds:  [  0.116,  2.592 ], exp accur:  [  1.55E-13 ], 
-   penalty: -3.7E+06,                   ok:  [  Yes,  No ]}
-   -  {npl:  130, scale:  2.13E+00, bounds:  [  0.116,  3.110 ], exp accur:  [  9.59E-14 ], 
-   penalty: -4.8E+05,                   ok:  [  Yes,  No ]}
-   -  {npl:  140, scale:  1.77E+00, bounds:  [  0.116,  3.732 ], exp accur:  [  1.63E-13 ], 
-   penalty: -6.2E+04,                   ok:  [  Yes,  No ]}
-   -  {npl:  160, scale:  1.48E+00, bounds:  [  0.116,  4.479 ], exp accur:  [  1.21E-13 ], 
-   penalty: -3.6E+06,                   ok:  [  Yes,  No ]}
-   -  {npl:  170, scale:  1.23E+00, bounds:  [  0.116,  5.375 ], exp accur:  [  1.55E-13 ], 
-   penalty: -1.8E+05,                   ok:  [  Yes,  No ]}
-   -  {npl:  190, scale:  1.03E+00, bounds:  [  0.116,  6.450 ], exp accur:  [  1.8E-13 ], 
-   penalty: -7.4E+05,                   ok:  [  Yes,  No ]}
-   -  {npl:  200, scale:  8.54E-01, bounds:  [  0.116,  7.740 ], exp accur:  [  1.27E-13 ], 
-   penalty: -3.4E+05,                   ok:  [  Yes,  No ]}
-   -  {npl:  220, scale:  7.12E-01, bounds:  [  0.116,  9.288 ], exp accur:  [  2.72E-13 ], 
-   penalty: -8.2E+04,                   ok:  [  Yes,  No ]}
-   -  {npl:  240, scale:  5.93E-01, bounds:  [  0.116,  11.145 ], 
- exp accur:  [  2.52E-13 ], penalty: -3.8E-08, ok:  [  Yes,  Yes ]}
-   summary: {npl:  240, bounds:  [  0.116,  11.145 ], exp accur:  [  2.52E-13 ]}
+   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], exp accur:  [  2.38E-14 ], 
+   penalty: -4.2E+06,                  ok:  [  Yes,  No ]}
+   -  {npl:  90, scale:  8.33E-01, bounds:  [  0.500,  1.800 ], exp accur:  [  2.52E-14 ], 
+   penalty: -3.5E+05,                  ok:  [  Yes,  No ]}
+   -  {npl:  100, scale:  6.94E-01, bounds:  [  0.500,  2.160 ], exp accur:  [  3.6E-14 ], 
+   penalty: -3.1E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  110, scale:  5.79E-01, bounds:  [  0.500,  2.592 ], exp accur:  [  6.95E-14 ], 
+   penalty: -7.5E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  120, scale:  4.82E-01, bounds:  [  0.500,  3.110 ], exp accur:  [  4.84E-14 ], 
+   penalty: -2.3E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  130, scale:  4.02E-01, bounds:  [  0.500,  3.732 ], exp accur:  [  3.35E-14 ], 
+   penalty: -9.5E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  150, scale:  3.35E-01, bounds:  [  0.500,  4.479 ], exp accur:  [  3.31E-14 ], 
+   penalty: -1.4E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  160, scale:  2.79E-01, bounds:  [  0.500,  5.375 ], exp accur:  [  4.35E-14 ], 
+   penalty:  7.6E+05,                   ok:  [  No,  Yes ]}
+   -  {npl:  170, scale:  3.07E-01, bounds:  [  0.417,  5.375 ], exp accur:  [  5.68E-14 ], 
+   penalty: -1.0E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  180, scale:  2.81E-01, bounds:  [  0.417,  6.450 ], exp accur:  [  5.33E-14 ], 
+   penalty:  3.5E+05,                   ok:  [  No,  Yes ]}
+   -  {npl:  180, scale:  3.10E-01, bounds:  [  0.347,  6.450 ], exp accur:  [  6.62E-14 ], 
+   penalty:  3.2E+03,                   ok:  [  No,  Yes ]}
+   -  {npl:  180, scale:  3.71E-01, bounds:  [  0.289,  6.450 ], exp accur:  [  7.19E-14 ], 
+   penalty: -7.6E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  200, scale:  3.41E-01, bounds:  [  0.289,  7.740 ], exp accur:  [  5.66E-14 ], 
+   penalty: -2.4E-08,                   ok:  [  Yes,  Yes ]}
+   summary: {npl:  200, bounds:  [  0.289,  7.740 ], exp accur:  [  5.66E-14 ]}
  Check the deviation from the original matrix (only within the sparsity pattern):
    absolute error:
-     max error                         :  1.579E-13
-     mean error                        :  4.534E-17
+     max error                         :  1.538E-13
+     mean error                        :  3.717E-17
    relative error:
-     max error relative                :  3.228E-20
-     mean error relative               :  3.110E-14
+     max error relative                :  2.553E-21
+     mean error relative               :  1.603E-14
    relative error with threshold:
-   -  {threshold value:  1.0E-03, max error relative:  6.106E-13, 
-   mean error relative:  1.352E-14}
-   -  {threshold value:  1.0E-04, max error relative:  4.488E-11, 
-   mean error relative:  2.416E-14}
-   -  {threshold value:  1.0E-05, max error relative:  1.797E-10, 
-   mean error relative:  3.128E-14}
-   -  {threshold value:  1.0E-06, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
-   -  {threshold value:  1.0E-07, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
-   -  {threshold value:  1.0E-08, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
-   -  {threshold value:  1.0E-09, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
-   -  {threshold value:  1.0E-10, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
-   -  {threshold value:  1.0E-11, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
-   -  {threshold value:  1.0E-12, max error relative:  1.797E-10, 
-   mean error relative:  3.110E-14}
+   -  {threshold value:  1.0E-03, max error relative:  1.591E-13, 
+   mean error relative:  5.103E-15}
+   -  {threshold value:  1.0E-04, max error relative:  4.557E-11, 
+   mean error relative:  2.135E-14}
+   -  {threshold value:  1.0E-05, max error relative:  5.052E-11, 
+   mean error relative:  1.612E-14}
+   -  {threshold value:  1.0E-06, max error relative:  5.052E-11, 
+   mean error relative:  1.604E-14}
+   -  {threshold value:  1.0E-07, max error relative:  5.052E-11, 
+   mean error relative:  1.603E-14}
+   -  {threshold value:  1.0E-08, max error relative:  5.052E-11, 
+   mean error relative:  1.603E-14}
+   -  {threshold value:  1.0E-09, max error relative:  5.052E-11, 
+   mean error relative:  1.603E-14}
+   -  {threshold value:  1.0E-10, max error relative:  5.052E-11, 
+   mean error relative:  1.603E-14}
+   -  {threshold value:  1.0E-11, max error relative:  5.052E-11, 
+   mean error relative:  1.603E-14}
+   -  {threshold value:  1.0E-12, max error relative:  5.052E-11, 
+   mean error relative:  1.603E-14}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do the same calculation using dense LAPACK
  mode                                  : sequential
  mode                                  : sequential
@@ -342,49 +350,53 @@
  Calculating (mat^x)^(1/x):
    beta for penaltyfunction            : -500.0
    determine eigenvalue bounds:
-   -  {npl:  190, scale:  4.56E+00, bounds:  [  0.032,  5.375 ], exp accur:  [  3.95E-09 ], 
-   penalty: -9.0E+03,                   ok:  [  Yes,  No ]}
-   -  {npl:  210, scale:  3.80E+00, bounds:  [  0.032,  6.450 ], exp accur:  [  3.04E-09 ], 
-   penalty: -3.1E+05,                   ok:  [  Yes,  No ]}
-   -  {npl:  230, scale:  3.16E+00, bounds:  [  0.032,  7.740 ], exp accur:  [  3.09E-09 ], 
-   penalty: -1.5E+04,                   ok:  [  Yes,  No ]}
-   -  {npl:  250, scale:  2.64E+00, bounds:  [  0.032,  9.288 ], exp accur:  [  3.98E-09 ], 
-   penalty: -3.4E+04,                   ok:  [  Yes,  No ]}
-   -  {npl:  270, scale:  2.20E+00, bounds:  [  0.032,  11.145 ], exp accur:  [  6.0E-09 ], 
-   penalty: -7.7E+03,                   ok:  [  Yes,  No ]}
-   -  {npl:  300, scale:  1.83E+00, bounds:  [  0.032,  13.374 ], 
- exp accur:  [  4.01E-09 ], penalty: -3.3E+03, ok:  [  Yes,  No ]}
-   -  {npl:  320, scale:  1.53E+00, bounds:  [  0.032,  16.049 ], 
- exp accur:  [  8.68E-09 ], penalty:  2.0E-10, ok:  [  Yes,  Yes ]}
-   summary: {npl:  320, bounds:  [  0.032,  16.049 ], exp accur:  [  8.68E-09 ]}
+   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], exp accur:  [  3.6E-14 ], 
+   penalty: -3.3E+04,                  ok:  [  Yes,  No ]}
+   -  {npl:  90, scale:  8.33E-01, bounds:  [  0.500,  1.800 ], exp accur:  [  3.6E-14 ], 
+   penalty: -6.7E+05,                  ok:  [  Yes,  No ]}
+   -  {npl:  100, scale:  6.94E-01, bounds:  [  0.500,  2.160 ], exp accur:  [  7.42E-14 ], 
+   penalty: -1.7E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  110, scale:  5.79E-01, bounds:  [  0.500,  2.592 ], exp accur:  [  1.37E-13 ], 
+   penalty: -1.4E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  120, scale:  4.82E-01, bounds:  [  0.500,  3.110 ], exp accur:  [  8.88E-14 ], 
+   penalty: -8.2E+03,                   ok:  [  Yes,  No ]}
+   -  {npl:  130, scale:  4.02E-01, bounds:  [  0.500,  3.732 ], exp accur:  [  5.09E-14 ], 
+   penalty:  4.4E+03,                   ok:  [  No,  Yes ]}
+   -  {npl:  140, scale:  4.42E-01, bounds:  [  0.417,  3.732 ], exp accur:  [  1.03E-13 ], 
+   penalty: -1.6E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  150, scale:  4.05E-01, bounds:  [  0.417,  4.479 ], exp accur:  [  1.03E-13 ], 
+   penalty:  1.5E+01,                   ok:  [  No,  Yes ]}
+   -  {npl:  150, scale:  4.46E-01, bounds:  [  0.347,  4.479 ], exp accur:  [  1.51E-13 ], 
+   penalty:  1.8E-08,                   ok:  [  Yes,  Yes ]}
+   summary: {npl:  150, bounds:  [  0.347,  4.479 ], exp accur:  [  1.51E-13 ]}
  Check the deviation from the original matrix (only within the sparsity pattern):
    absolute error:
-     max error                         :  4.176E-10
-     mean error                        :  9.741E-14
+     max error                         :  3.043E-13
+     mean error                        :  4.809E-17
    relative error:
-     max error relative                :  4.294E-14
-     mean error relative               :  2.091E-11
+     max error relative                :  1.529E-15
+     mean error relative               :  9.072E-12
    relative error with threshold:
-   -  {threshold value:  1.0E-03, max error relative:  5.213E-09, 
-   mean error relative:  1.473E-11}
-   -  {threshold value:  1.0E-04, max error relative:  5.213E-09, 
-   mean error relative:  1.473E-11}
-   -  {threshold value:  1.0E-05, max error relative:  5.213E-09, 
-   mean error relative:  1.473E-11}
-   -  {threshold value:  1.0E-06, max error relative:  2.072E-07, 
-   mean error relative:  2.189E-11}
-   -  {threshold value:  1.0E-07, max error relative:  2.072E-07, 
-   mean error relative:  2.092E-11}
-   -  {threshold value:  1.0E-08, max error relative:  2.072E-07, 
-   mean error relative:  2.091E-11}
-   -  {threshold value:  1.0E-09, max error relative:  2.072E-07, 
-   mean error relative:  2.091E-11}
-   -  {threshold value:  1.0E-10, max error relative:  2.072E-07, 
-   mean error relative:  2.091E-11}
-   -  {threshold value:  1.0E-11, max error relative:  2.072E-07, 
-   mean error relative:  2.091E-11}
-   -  {threshold value:  1.0E-12, max error relative:  2.072E-07, 
-   mean error relative:  2.091E-11}
+   -  {threshold value:  1.0E-03, max error relative:  2.204E-12, 
+   mean error relative:  6.058E-15}
+   -  {threshold value:  1.0E-04, max error relative:  2.204E-12, 
+   mean error relative:  6.058E-15}
+   -  {threshold value:  1.0E-05, max error relative:  2.204E-12, 
+   mean error relative:  6.058E-15}
+   -  {threshold value:  1.0E-06, max error relative:  3.910E-08, 
+   mean error relative:  9.457E-12}
+   -  {threshold value:  1.0E-07, max error relative:  3.910E-08, 
+   mean error relative:  9.077E-12}
+   -  {threshold value:  1.0E-08, max error relative:  3.910E-08, 
+   mean error relative:  9.073E-12}
+   -  {threshold value:  1.0E-09, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+   -  {threshold value:  1.0E-10, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+   -  {threshold value:  1.0E-11, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+   -  {threshold value:  1.0E-12, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do the same calculation using dense LAPACK
  mode                                  : sequential
  mode                                  : sequential

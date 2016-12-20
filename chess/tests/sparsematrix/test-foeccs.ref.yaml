@@ -69,6 +69,14 @@
        -  {number of tasks:  2, start / end:  [  1,  267938 ], start / end disjoint: [ 1, 
   267938]}
  Number of electrons                   :  800
+ mode                                  : sequential
+ Hamiltonian spectrum:
+   Lowest eigenvalue                   : -1.05972332111169
+   Highest eigenvalue                  :  0.4096358192038719
+   HOMO eigenvalue                     : -0.1520570974558315
+   LUMO eigenvalue                     : -2.3144408327682942E-002
+   Spectral width                      :  1.469359140315562
+   HOMO-lUMO gap                       :  0.1289126891281486
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
  S^-1/2:
    Can take from memory                :  No

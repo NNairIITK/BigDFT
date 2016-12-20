@@ -425,6 +425,13 @@ program driver_random
       call yaml_comment('Calculating (mat^x)^(1/x)',hfill='~')
       call yaml_mapping_open('Calculating (mat^x)^(1/x)')
   end if
+
+  ! Reset the ICE object
+  call foe_data_deallocate(ice_obj)
+  charge_fake = f_malloc0(1,id='charge_fake')
+  call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
+       betax=betax, eval_multiplicator=eval_multiplicator)
+  call f_free(charge_fake)
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/1.0_mp/expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
 

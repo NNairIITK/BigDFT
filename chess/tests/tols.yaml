@@ -11,6 +11,7 @@ Keys to ignore:
  - Memory Consumption Report
  - Parallel environment
  - penalty
+ - Cross-check among MPI tasks
 
 
 test-random:
