@@ -257,6 +257,8 @@ module foe
               fscale_check = CHECK_RATIO*fscale
               !if (iproc==0) call yaml_map('fscale_check',fscale_check)
 
+              call foe_data_set_real(foe_obj,"fscale",fscale)
+
               evlow_old=1.d100
               evhigh_old=-1.d100
 
