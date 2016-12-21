@@ -1224,29 +1224,29 @@ program chess_toolbox
             smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
        eval = f_malloc(smat_s%nfvctr,id='eval')
 
-       ! Diagonalize the original Hamiltonian matrix
-       if (iproc==0) then
-           call yaml_comment('Diagonalizing the matrix',hfill='~')
-       end if
+       !!! Diagonalize the original Hamiltonian matrix
+       !!if (iproc==0) then
+       !!    call yaml_comment('Diagonalizing the matrix',hfill='~')
+       !!end if
        hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
        ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
-       call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
-       call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
-            smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
-       if (iproc==0) then
-           call yaml_comment('Matrix succesfully diagonalized',hfill='~')
-       end if
+       !!call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       !!call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       !!call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !!     smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       !!if (iproc==0) then
+       !!    call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+       !!end if
 
-       if (iproc==0) then
-           call yaml_mapping_open('Eigenvalue spectrum')
-           call yaml_map('Smallest value',eval(1))
-           call yaml_map('Largest value',eval(smat_s%nfvctr))
-           call yaml_map('HOMO value',eval(ihomo_state))
-           call yaml_map('LUMO value',eval(ihomo_state+1))
-           call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
-           call yaml_mapping_close()
-       end if
+       !!if (iproc==0) then
+       !!    call yaml_mapping_open('Eigenvalue spectrum')
+       !!    call yaml_map('Smallest value',eval(1))
+       !!    call yaml_map('Largest value',eval(smat_s%nfvctr))
+       !!    call yaml_map('HOMO value',eval(ihomo_state))
+       !!    call yaml_map('LUMO value',eval(ihomo_state+1))
+       !!    call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
+       !!    call yaml_mapping_close()
+       !!end if
 
        ! Manipulate the Hamiltonian matrix such that it has the desired spectral properteis
        if (iproc==0) then
@@ -1307,6 +1307,31 @@ program chess_toolbox
            end do
            !call yaml_map('H',ovrlp_tmp(:,:))
        else if (manipulation_mode=='full') then mode_if
+
+           ! Diagonalize the original Hamiltonian matrix
+           if (iproc==0) then
+               call yaml_comment('Diagonalizing the matrix',hfill='~')
+           end if
+           !!hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
+           !!ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
+           call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+           call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+           call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+                smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+           if (iproc==0) then
+               call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+           end if
+
+           if (iproc==0) then
+               call yaml_mapping_open('Eigenvalue spectrum')
+               call yaml_map('Smallest value',eval(1))
+               call yaml_map('Largest value',eval(smat_s%nfvctr))
+               call yaml_map('HOMO value',eval(ihomo_state))
+               call yaml_map('LUMO value',eval(ihomo_state+1))
+               call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
+               call yaml_mapping_close()
+           end if
+
 
            ! Scale the gap to the desired value
            gap = eval(ihomo_state+1)-eval(ihomo_state)
