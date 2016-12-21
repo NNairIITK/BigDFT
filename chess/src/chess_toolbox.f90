@@ -46,7 +46,8 @@ program chess_toolbox
                                      ccs_matrix_write, &
                                      matrices_init, &
                                      get_selected_eigenvalues_from_FOE, &
-                                     matrix_matrix_multiplication
+                                     matrix_matrix_multiplication, &
+                                     matrix_chebyshev_expansion
    !!use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN
    !!use multipole, only: multipole_analysis_driver_new
    !!use multipole_base, only: lmax
@@ -303,13 +304,15 @@ program chess_toolbox
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = hamiltonian_file)
-            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = hamiltonian_manipulated_file)
+            call get_command_argument(i_arg, value = hamiltonian_file)
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = overlap_manipulated_file)
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_matmul_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_manipulated_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = ihomo_state_)
             read(ihomo_state_,fmt=*,iostat=ierr) ihomo_state
@@ -1195,17 +1198,21 @@ program chess_toolbox
        end if
 
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
-            init_matmul=.false.)
        call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+            init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
+            iproc, nproc, mpiworld(), smat_l, ovrlp_minus_one_half(1), &
+            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 
        if (iproc==0) then
            call yaml_mapping_open('Matrix properties')
-           call write_sparsematrix_info(smat_m, 'Hamiltonian')
            call write_sparsematrix_info(smat_s, 'Overlap matrix')
+           call write_sparsematrix_info(smat_m, 'Hamiltonian')
+           call write_sparsematrix_info(smat_l, 'Kernel')
            call yaml_mapping_close()
        end if
 
@@ -1250,19 +1257,19 @@ program chess_toolbox
            ! Set the matrix to zero
            !call f_zero(hamiltonian_mat%matrix)
            call f_zero(ovrlp_mat%matrix)
-           call f_zero(hamiltonian_mat%matrix)
+           call f_zero(hamiltonian_tmp)
 
            ! Set the lowest eigenvalue
-           hamiltonian_mat%matrix(1,1,1) = smallest_value
+           hamiltonian_tmp(1,1) = smallest_value
 
            ! Set the highest eigenvalue
-           hamiltonian_mat%matrix(smat_s%nfvctr,smat_s%nfvctr,1) = largest_value
+           hamiltonian_tmp(smat_s%nfvctr,smat_s%nfvctr) = largest_value
 
            ! Set the HOMO eigenvalue
-           hamiltonian_mat%matrix(ihomo_state,ihomo_state,1) = homo_value
+           hamiltonian_tmp(ihomo_state,ihomo_state) = homo_value
 
            ! Set the LUMO eigenvalue
-           hamiltonian_mat%matrix(ihomo_state+1,ihomo_state+1,1) = lumo_value
+           hamiltonian_tmp(ihomo_state+1,ihomo_state+1) = lumo_value
 
            ! Set the remaining values at random
            call f_random_number(tt, reset=.true.)
@@ -1271,19 +1278,30 @@ program chess_toolbox
            do i=2,ihomo_state-1
                call f_random_number(tt)
                tt = tt*mult_factor+add_shift
-               hamiltonian_mat%matrix(i,i,1) = tt
+               hamiltonian_tmp(i,i) = tt
            end do
            mult_factor = largest_value-lumo_value
            add_shift = lumo_value
            do i=ihomo_state+2,smat_s%nfvctr-1
                call f_random_number(tt)
                tt = tt*mult_factor+add_shift
-               hamiltonian_mat%matrix(i,i,1) = tt
+               hamiltonian_tmp(i,i) = tt
            end do
-           !call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
-           !     'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-           !     1.0_mp, ovrlp_tmp(1:,1:), smat_s%nfvctr, &
-           !     ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, hamiltonian_mat%matrix(1:,1:,1), smat_s%nfvctr)
+           ! Calculate S^1/2
+           !call matrices_init(smat_l, ovrlp_minus_one_half(1))
+           call matrix_chebyshev_expansion(iproc, nproc, mpiworld(), 1, (/0.5_mp/), &
+                smat_s, smat_l, ovrlp_mat, ovrlp_minus_one_half)
+           call uncompress_matrix(iproc, nproc, &
+                smat_l, inmat=ovrlp_minus_one_half(1)%matrix_compr, outmat=ovrlp_tmp)
+
+           call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                'n', 'n', smat_m%nfvctr, smat_m%nfvctr, smat_m%nfvctr, &
+                1.0_mp, ovrlp_tmp(1:,1:), smat_m%nfvctr, &
+                hamiltonian_tmp(1:,1:), smat_m%nfvctr, 0.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_m%nfvctr)
+           call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                'n', 'n', smat_m%nfvctr, smat_m%nfvctr, smat_m%nfvctr, &
+                1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_m%nfvctr, &
+                ovrlp_tmp(1:,1:), smat_m%nfvctr, 0.0_mp, hamiltonian_mat%matrix(1:,1:,1), smat_m%nfvctr)
            do i=1,smat_s%nfvctr
                ovrlp_mat%matrix(i,i,1) = 1.0_mp
            end do
@@ -1470,29 +1488,31 @@ program chess_toolbox
        call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
             smat_m, hamiltonian_mat, trim(outfile_base))
 
-       ! Write the manipulated overlap matrix
-       index_dot = index(overlap_manipulated_file,'.',back=.true.)
-       outfile_base = overlap_manipulated_file(1:index_dot-1)
-       outfile_extension = overlap_manipulated_file(index_dot:)
-       if (trim(matrix_format)=='serial_text') then
-           if (trim(outfile_extension)/='.txt') then
-               call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
-           end if
-       else if (trim(matrix_format)=='parallel_mpi-native') then
-           if (trim(outfile_extension)/='.mpi') then
-               call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
-           end if
-       else
-           call f_err_throw('Wrong matrix format')
-       end if
-       call compress_matrix(iproc, nproc, smat_s, ovrlp_mat%matrix, ovrlp_mat%matrix_compr)
-       call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
-            smat_s, ovrlp_mat, trim(outfile_base))
+       !!!! Write the manipulated overlap matrix
+       !!!index_dot = index(overlap_manipulated_file,'.',back=.true.)
+       !!!outfile_base = overlap_manipulated_file(1:index_dot-1)
+       !!!outfile_extension = overlap_manipulated_file(index_dot:)
+       !!!if (trim(matrix_format)=='serial_text') then
+       !!!    if (trim(outfile_extension)/='.txt') then
+       !!!        call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
+       !!!    end if
+       !!!else if (trim(matrix_format)=='parallel_mpi-native') then
+       !!!    if (trim(outfile_extension)/='.mpi') then
+       !!!        call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
+       !!!    end if
+       !!!else
+       !!!    call f_err_throw('Wrong matrix format')
+       !!!end if
+       !!!call compress_matrix(iproc, nproc, smat_s, ovrlp_mat%matrix, ovrlp_mat%matrix_compr)
+       !!!call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
+       !!!     smat_s, ovrlp_mat, trim(outfile_base))
 
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
+       call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(hamiltonian_mat)
+       call deallocate_matrices(ovrlp_minus_one_half(1))
        call deallocate_sparse_matrix_metadata(smmd)
        call f_free(eval)
        call f_free(hamiltonian_tmp)
