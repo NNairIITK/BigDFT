@@ -58,7 +58,7 @@ program driver_foe
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
   real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max, eval_all, eval_occup, occup
   real(mp),dimension(:,:),allocatable :: coeff
-  real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake, efermi, eTS
+  real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake, efermi, eTS, evlow, evhigh
   type(foe_data) :: foe_obj, ice_obj
   real(mp) :: tr, fscale, fscale_lowerbound, fscale_upperbound
   type(dictionary),pointer :: dict_timing_info, options
@@ -141,6 +141,8 @@ program driver_foe
       fscale = options//'fscale'
       fscale_lowerbound = options//'fscale_lowerbound'
       fscale_upperbound = options//'fscale_upperbound'
+      evlow = options//'evlow'
+      evhigh = options//'evhigh'
       ntemp = options//'ntemp'
       ef = options//'ef'
       npl_max = options//'npl_max'
@@ -170,6 +172,8 @@ program driver_foe
       call yaml_map('Initial guess for decay length',fscale)
       call yaml_map('Lower bound for decay length',fscale_lowerbound)
       call yaml_map('Upper bound for decay length',fscale_upperbound)
+      call yaml_map('Initial minimal eigenvalue',evlow)
+      call yaml_map('Initial maximal eigenvalue',evhigh)
       call yaml_map('Iterations with varying temperatures',ntemp)
       call yaml_map('Guess for Fermi energy',ef)
       call yaml_map('Maximal polynomial degree',npl_max)
@@ -199,6 +203,8 @@ program driver_foe
   call mpibcast(fscale, root=0, comm=mpi_comm_world)
   call mpibcast(fscale_lowerbound, root=0, comm=mpi_comm_world)
   call mpibcast(fscale_upperbound, root=0, comm=mpi_comm_world)
+  call mpibcast(evlow, root=0, comm=mpi_comm_world)
+  call mpibcast(evhigh, root=0, comm=mpi_comm_world)
   call mpibcast(ntemp, root=0, comm=mpi_comm_world)
   call mpibcast(ef, root=0, comm=mpi_comm_world)
   call mpibcast(npl_max, root=0, comm=mpi_comm_world)
@@ -319,6 +325,7 @@ program driver_foe
   charge(:) = real(ncharge,kind=mp)
   call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj, &
        fscale=fscale, fscale_lowerbound=fscale_lowerbound, fscale_upperbound=fscale_upperbound, &
+       evlow=evlow, evhigh=evhigh, &
        ntemp = ntemp, ef=ef, npl_max=npl_max)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
@@ -781,5 +788,18 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'Logical'))
 
+  call yaml_cl_parse_option(parser,'evlow','-1.0',&
+       'guess for the lowest matrix eigenvalue',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate a guess for the lowest eigenvalue of the matrix',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'evhigh','1.0',&
+       'guess for the highest matrix eigenvalue',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate a guess for the highest eigenvalue of the matrix',&
+       'Allowed values' .is. &
+       'Double'))
 
 end subroutine commandline_options

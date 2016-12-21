@@ -177,6 +177,8 @@ program driver_random
       call yaml_map('Solution method',trim(solution_method))
       call yaml_map('Write the matrices',write_matrices)
       call yaml_map('betax',betax,fmt='(f9.1)')
+      call yaml_map('Initial minimal eigenvalue',evlow)
+      call yaml_map('Initial maximal eigenvalue',evhigh)
       call yaml_map('scalapack_blocksize',scalapack_blocksize)
       call yaml_map('ScaLAPACK diagonalization algorithm',diag_algorithm)
       call yaml_map('ICE multiplication factor',eval_multiplicator)
