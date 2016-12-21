@@ -1471,17 +1471,19 @@ program chess_toolbox
            call f_err_throw("wrong manipulation mode; must be 'diagonal' or 'full'")
        end if mode_if
 
+       ! Compress the matrix
+       call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
 
        ! Diagonalize the modified Hamiltonian matrix
        if (iproc==0) then
            call yaml_comment('Diagonalizing the matrix',hfill='~')
        end if
-       !hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
-       !ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
-       !call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
-       !call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       !call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
-       !     smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       !!hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
+       !!ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
+       !!call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       !!call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       !!call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !!     smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
        eval_min = f_malloc(smat_m%nspin,id='eval_min')
        eval_max = f_malloc(smat_m%nspin,id='eval_max')
        call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'generalized', scalapack_blocksize, &
@@ -1520,7 +1522,7 @@ program chess_toolbox
        else
            call f_err_throw('Wrong matrix format')
        end if
-       call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
+       !call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
        call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
             smat_m, hamiltonian_mat, trim(outfile_base))
 
