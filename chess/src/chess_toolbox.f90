@@ -37,7 +37,7 @@ program chess_toolbox
                                 write_sparsematrix_info
    use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2, &
-                           transform_sparse_matrix, compress_matrix
+                           transform_sparse_matrix, compress_matrix, get_minmax_eigenvalues
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
                                      sparse_matrix_metadata_init_from_file, &
@@ -68,7 +68,7 @@ program chess_toolbox
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
    character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_, scalapack_blocksize_
    !!character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
-   character(len=128) :: kernel_matmul_file, fragment_file, manipulation_mode
+   character(len=128) :: kernel_matmul_file, fragment_file, manipulation_mode, diag_algorithm
    logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
@@ -114,6 +114,7 @@ program chess_toolbox
    real(kind=8) :: maxdiff, meandiff, tt, tracediff, totdiff
    real(kind=8) :: homo_value, lumo_value, smallest_value, largest_value, gap, gap_target, actual_eval
    real(kind=8) :: mult_factor, add_shift
+   real(mp),dimension(:),allocatable :: eval_min, eval_max
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    character(len=1024) :: outfile_base, outfile_extension, matrix_format
@@ -328,6 +329,8 @@ program chess_toolbox
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = largest_value_)
             read(largest_value_,fmt=*,iostat=ierr) largest_value
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = diag_algorithm)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = scalapack_blocksize_)
             read(scalapack_blocksize_,fmt=*,iostat=ierr) scalapack_blocksize
@@ -1475,10 +1478,18 @@ program chess_toolbox
        end if
        !hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
        !ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
-       call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
-       call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
-            smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       !call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       !call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       !call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !     smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       eval_min = f_malloc(smat_m%nspin,id='eval_min')
+       eval_max = f_malloc(smat_m%nspin,id='eval_max')
+       call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'generalized', scalapack_blocksize, &
+            smat_m, hamiltonian_mat, eval_min, eval_max, &
+            diag_algorithm, quiet=.true., smat2=smat_s, mat2=ovrlp_mat, evals=eval)
+       call f_free(eval_min)
+       call f_free(eval_max)
+
        if (iproc==0) then
            call yaml_comment('Matrix succesfully diagonalized',hfill='~')
        end if
