@@ -1489,9 +1489,9 @@ program chess_toolbox
        call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'generalized', scalapack_blocksize, &
             smat_m, hamiltonian_mat, eval_min, eval_max, &
             diag_algorithm, quiet=.true., smat2=smat_s, mat2=ovrlp_mat, evals=eval)
-       do i=1,smat_m%nfvctr
-           write(*,*) 'i',eval(i)
-       end do
+       !!do i=1,smat_m%nfvctr
+       !!    write(*,*) 'i',eval(i)
+       !!end do
        call f_free(eval_min)
        call f_free(eval_max)
 
