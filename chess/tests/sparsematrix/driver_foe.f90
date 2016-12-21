@@ -788,14 +788,14 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'Logical'))
 
-  call yaml_cl_parse_option(parser,'evlow','-1.0',&
+  call yaml_cl_parse_option(parser,'evlow','-0.5',&
        'guess for the lowest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the lowest eigenvalue of the matrix',&
        'Allowed values' .is. &
        'Double'))
 
-  call yaml_cl_parse_option(parser,'evhigh','1.0',&
+  call yaml_cl_parse_option(parser,'evhigh','0.5',&
        'guess for the highest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the highest eigenvalue of the matrix',&
