@@ -60,7 +60,7 @@ program driver_foe
   real(mp),dimension(:,:),allocatable :: coeff
   real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake, efermi, eTS
   type(foe_data) :: foe_obj, ice_obj
-  real(mp) :: tr, fscale_lowerbound, fscale_upperbound
+  real(mp) :: tr, fscale, fscale_lowerbound, fscale_upperbound
   type(dictionary),pointer :: dict_timing_info, options
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
@@ -138,6 +138,7 @@ program driver_foe
       kernel_method = options//'kernel_method'
       scalapack_blocksize = options//'scalapack_blocksize'
       check_spectrum = options//'check_spectrum'
+      fscale = options//'fscale'
       fscale_lowerbound = options//'fscale_lowerbound'
       fscale_upperbound = options//'fscale_upperbound'
       ntemp = options//'ntemp'
@@ -166,6 +167,7 @@ program driver_foe
       call yaml_map('Kernel method',trim(kernel_method))
       call yaml_map('Blocksize for ScaLAPACK',scalapack_blocksize)
       call yaml_map('Check the Hamiltonian spectrum',check_spectrum)
+      call yaml_map('Initial guess for decay length',fscale)
       call yaml_map('Lower bound for decay length',fscale_lowerbound)
       call yaml_map('Upper bound for decay length',fscale_upperbound)
       call yaml_map('Iterations with varying temperatures',ntemp)
@@ -194,6 +196,7 @@ program driver_foe
   call mpibcast(kernel_method, root=0, comm=mpi_comm_world)
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  call mpibcast(fscale, root=0, comm=mpi_comm_world)
   call mpibcast(fscale_lowerbound, root=0, comm=mpi_comm_world)
   call mpibcast(fscale_upperbound, root=0, comm=mpi_comm_world)
   call mpibcast(ntemp, root=0, comm=mpi_comm_world)
@@ -315,7 +318,7 @@ program driver_foe
   charge = f_malloc(smat_s%nspin,id='charge')
   charge(:) = real(ncharge,kind=mp)
   call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj, &
-       fscale_lowerbound=fscale_lowerbound, fscale_upperbound=fscale_upperbound, &
+       fscale=fscale, fscale_lowerbound=fscale_lowerbound, fscale_upperbound=fscale_upperbound, &
        ntemp = ntemp, ef=ef, npl_max=npl_max)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
@@ -670,6 +673,13 @@ subroutine commandline_options(parser)
        'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagonalization',&
        'Allowed values' .is. &
        'Logical'))
+
+  call yaml_cl_parse_option(parser,'fscale','2.e-2',&
+       'Indicate the initial value for the Fermi function decay length',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the initial value for the Fermi function decay length that should be used to calculate the density kernel',&
+       'Allowed values' .is. &
+       'Double'))
 
   call yaml_cl_parse_option(parser,'fscale_lowerbound','5.e-3',&
        'Indicate the minimal value for the Fermi function decay length',&
