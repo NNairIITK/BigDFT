@@ -79,6 +79,7 @@ module f_utils
      module procedure put_to_zero_integer3
      module procedure put_to_zero_long,put_to_zero_long1,put_to_zero_long2
      module procedure put_to_zero_long3
+     module procedure put_to_zero_r1
   end interface f_zero
 
   interface f_increment
@@ -312,7 +313,7 @@ contains
        else if (h > zr) then
           call f_strcpy(dest=time,src=(yaml_toa(h,fmt)+'h')+(yaml_toa(m,fmt)+'m'))
        else if (m > zr) then
-          call f_strcpy(dest=time,src=(yaml_toa(m,fmt)+'m')+(yaml_toa(s,fmt)+'s'))
+          call f_strcpy(dest=time,src=(yaml_toa(m,fmt)+'m')+(yaml_toa(si,fmt)+'s'))
        else
           call f_strcpy(dest=time,src=yaml_toa(real(s,f_double),'(f5.1)')+'s')
        end if
@@ -1106,6 +1107,16 @@ contains
     call f_timer_resume()
   end subroutine put_to_zero_simple
 
+  subroutine put_to_zero_r1(da)
+    implicit none
+    real(f_simple), dimension(:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    !call razero(size(da),da(lbound(da,1)))
+    call setzero(int(size(da),f_long)*kind(da),da)
+    call f_timer_resume()
+  end subroutine put_to_zero_r1
+
+
   subroutine put_to_zero_double(n,da)
     implicit none
     integer, intent(in) :: n
@@ -1253,5 +1264,5 @@ contains
     call setzero(int(size(da),f_long)*kind(da),da)
     call f_timer_resume()
   end subroutine put_to_zero_long3
-  
+
 end module f_utils

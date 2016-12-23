@@ -27,6 +27,9 @@ module box
      !derived data
      real(gp) :: volume_element
      real(gp), dimension(3,3) :: habc !<primitive volume elements in the translation vectors direction
+     real(gp), dimension(3,3) :: gd !<covariant metric needed for non-orthorhombic operations
+     real(gp), dimension(3,3) :: gu !<controvariant metric needed for non-orthorhombic operations
+     real(gp) :: detgd !<determinant of the covariant matrix
   end type cell
 
   type, public :: box_iterator
@@ -483,6 +486,7 @@ contains
     type(cell) :: mesh
     !local variables
     real(gp) :: aa,cc,a2,cosang
+    integer :: i,j
 
     mesh%bc=FREE
     if (geocode /= 'F') mesh%bc(1)=PERIODIC
@@ -521,9 +525,58 @@ contains
        !the volume element
        !Compute unit cell volume
        mesh%volume_element=det_3x3(mesh%habc)
+       !Set the covariant metric
+       mesh%gd(1,1) = 1.0_gp
+       mesh%gd(1,2) = dcos(angrad(1))
+       mesh%gd(1,3) = dcos(angrad(2))
+       mesh%gd(2,2) = 1.0_gp
+       mesh%gd(2,3) = dcos(angrad(3))
+       mesh%gd(3,3) = 1.0_gp 
+       mesh%gd(2,1) = mesh%gd(1,2)
+       mesh%gd(3,1) = mesh%gd(1,3)
+       mesh%gd(3,2) = mesh%gd(2,3)
+       !Set the determinant of the covariant metric
+       mesh%detgd = 1.0_gp - dcos(angrad(1))**2 - dcos(angrad(2))**2 - dcos(angrad(3))**2 +&
+                   2.0_gp*dcos(angrad(1))*dcos(angrad(2))*dcos(angrad(3))
+       !Set the contravariant metric
+       mesh%gu(1,1) = (dsin(angrad(3))**2)/mesh%detgd
+       mesh%gu(1,2) = (dcos(angrad(2))*dcos(angrad(3))-dcos(angrad(1)))/mesh%detgd
+       mesh%gu(1,3) = (dcos(angrad(1))*dcos(angrad(3))-dcos(angrad(2)))/mesh%detgd
+       mesh%gu(2,2) = (dsin(angrad(2))**2)/mesh%detgd
+       mesh%gu(2,3) = (dcos(angrad(1))*dcos(angrad(2))-dcos(angrad(3)))/mesh%detgd
+       mesh%gu(3,3) = (dsin(angrad(1))**2)/mesh%detgd
+       mesh%gu(2,1) = mesh%gu(1,2)
+       mesh%gu(3,1) = mesh%gu(1,3)
+       mesh%gu(3,2) = mesh%gu(2,3)
+       do i=1,3
+        do j=1,3
+         if (abs(mesh%gd(i,j)).lt.1.0d-15) mesh%gd(i,j)=0.0_gp
+         if (abs(mesh%gu(i,j)).lt.1.0d-15) mesh%gu(i,j)=0.0_gp
+        end do
+       end do
     else
        mesh%angrad=onehalf*pi
        mesh%volume_element=product(mesh%hgrids)
+       mesh%gd(1,1) = 1.0_gp
+       mesh%gd(1,2) = 0.0_gp
+       mesh%gd(1,3) = 0.0_gp
+       mesh%gd(2,2) = 1.0_gp
+       mesh%gd(2,3) = 0.0_gp
+       mesh%gd(3,3) = 1.0_gp 
+       mesh%gd(2,1) = mesh%gd(1,2)
+       mesh%gd(3,1) = mesh%gd(1,3)
+       mesh%gd(3,2) = mesh%gd(2,3)
+       mesh%detgd = 1.0_gp 
+       !Set the contravariant metric
+       mesh%gu(1,1) = 1.0_gp/mesh%detgd
+       mesh%gu(1,2) = 0.0_gp
+       mesh%gu(1,3) = 0.0_gp
+       mesh%gu(2,2) = 1.0_gp/mesh%detgd
+       mesh%gu(2,3) = 0.0_gp 
+       mesh%gu(3,3) = 1.0_gp/mesh%detgd
+       mesh%gu(2,1) = mesh%gu(1,2)
+       mesh%gu(3,1) = mesh%gu(1,3)
+       mesh%gu(3,2) = mesh%gu(2,3)
     end if
     mesh%orthorhombic=all(mesh%angrad==onehalf*pi)
   end function cell_new
@@ -665,9 +718,17 @@ contains
     real(gp), dimension(3), intent(in) :: v
     type(cell), intent(in) :: mesh !<definition of the cell
     real(gp) :: square
+    integer :: i,j
 
     if (mesh%orthorhombic) then
        square=v(1)**2+v(2)**2+v(3)**2
+    else
+       square=0.0_gp
+       do i=1,3
+        do j=1,3
+         square=square+mesh%gu(i,j)*v(i)*v(j)
+        end do
+       end do
     end if
 
   end function square

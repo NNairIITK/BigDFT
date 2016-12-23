@@ -76,9 +76,15 @@ module bigdft_run
   !> Public signals for run_objects type.
   character(len = *), parameter, public :: RUN_OBJECTS_TYPE = "run_objects"
   character(len = *), parameter, public :: INIT_SIG = "init"
+  character(len = *), parameter, public :: STATE_CALCULATOR_SIG = "state_calculator"
   character(len = *), parameter, public :: DESTROY_SIG = "destroy"
   character(len = *), parameter, public :: PRE_SCF_SIG = "pre"
   character(len = *), parameter, public :: POST_SCF_SIG = "post"
+
+  character(len = *), parameter, public :: PROCESS_RUN_TYPE = "process_run"
+  character(len = *), parameter, public :: GEOPT_INIT_SIG = "init"
+  character(len = *), parameter, public :: GEOPT_CONDITIONAL_SIG = "convcheck"
+  character(len = *), parameter, public :: GEOPT_POST_SIG = "post"
 
   !> Used to store results of a DFT calculation.
   type, public :: state_properties
@@ -91,7 +97,7 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
-  public :: run_objects_type_init
+  public :: run_objects_type_init, process_run_type_init
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
@@ -878,12 +884,22 @@ contains
     call f_object_add_signal(RUN_OBJECTS_TYPE, PRE_SCF_SIG, 1)
     call f_object_add_signal(RUN_OBJECTS_TYPE, POST_SCF_SIG, 2)
     call f_object_add_signal(RUN_OBJECTS_TYPE, "join", 3)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, STATE_CALCULATOR_SIG, 3)
     call f_object_add_signal(RUN_OBJECTS_TYPE, DESTROY_SIG, 1)
 
     call f_object_new_("state_properties")
     call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
     call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
   end subroutine run_objects_type_init
+
+  subroutine process_run_type_init()
+    use module_f_objects, only: f_object_new_, f_object_add_signal
+
+    call f_object_new_(PROCESS_RUN_TYPE)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG, 2)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_CONDITIONAL_SIG, 3)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_POST_SIG, 2)
+  end subroutine process_run_type_init
 
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
@@ -893,6 +909,7 @@ contains
     write(runObj%label, "(A)") " "
     nullify(runObj%run_mode)
     runObj%nstate=0
+    runObj%add_coulomb_force=.false.
     nullify(runObj%user_inputs)
     nullify(runObj%inputs)
     nullify(runObj%atoms)
@@ -1150,10 +1167,19 @@ contains
        deallocate(runObj%sections)
        nullify(runObj%sections)
     end if
+
+    ln = 0
     if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
-         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
+         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) then
+       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                     ! to test if runObj is top level.
+       call f_release_routine()
+       return
+    end if
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
+    allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                  ! to test if runObj is top level.
     if (ln == 0) then
        call f_release_routine()
        return
@@ -1164,12 +1190,13 @@ contains
     runObj%inputs%multi_pass = f_malloc_ptr(ln, id = "in%multi_pass")
     runObj%inputs%multi_pass = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
 
-    allocate(runObj%sections(ln))
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
        i = dict_item(sect) + 1
 
        call nullify_run_objects(runObj%sections(i))
+       runObj%sections(i)%add_coulomb_force = runObj%inputs%add_coulomb_force
+
        ! We just do a shallow copy here, because we don't need to store the input dictionary.
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
        ! Generate posinp if necessary.
@@ -1243,6 +1270,8 @@ contains
 
     if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, INIT_SIG)) &
          & call run_objects_type_init()
+    if (.not. f_object_has_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG)) &
+         & call process_run_type_init()
 
     call nullify_run_objects(runObj)
 
@@ -1280,7 +1309,8 @@ contains
              call plugin_load(trim(dict_key(iter)), ierr)
              if (ierr /= 0) then
                 call plugin_error(mess)
-                call yaml_warning(trim(mess))
+                if (bigdft_mpi%iproc==0) call yaml_warning('Failing in dlopening the library "'//trim(dict_key(iter))//&
+                     ' ", error message="'//trim(mess)//'"') !put quotes as semicolons usually appear in warnings
              end if
              iter => dict_next(iter)
           end do
@@ -1961,6 +1991,14 @@ contains
        ! Calculates bazant forces betweeen given atomic configuration using
        ! periodic boundary conditions
        call bazant_energyandforces(nat, rxyz_ptr, outs%fxyz, outs%energy)
+    case('PLUGIN_RUN_MODE')
+
+       if (f_object_signal_prepare(RUN_OBJECTS_TYPE, STATE_CALCULATOR_SIG, sig)) then
+          call f_object_signal_add_arg(sig, runObj)
+          call f_object_signal_add_arg(sig, outs)
+          call f_object_signal_add_arg(sig, runObj%inputs%plugin_id)
+          call f_object_signal_emit(sig)
+       end if
 
     case default
        call f_err_throw('Following method for evaluation of '//&

@@ -2383,7 +2383,7 @@ module sparsematrix_init
               read(iunit,*) val(i)
           end do
       else
-          stop 'file not present'
+          call f_err_throw("file '"//trim(filename)//"' not present")
       end if
       close(iunit)
     end subroutine read_ccs_format
@@ -5078,43 +5078,44 @@ module sparsematrix_init
      integer :: iseg, i, ii, irow, icol
      logical,dimension(:,:),allocatable :: mat
 
-     mat = f_malloc((/ncol,ncol/),id='mat')
-     mat = .false.
+     !!mat = f_malloc((/ncol,ncol/),id='mat')
+     !!mat = .false.
 
-     do iseg=1,nseg
-         do i=keyg(1,1,iseg),keyg(2,1,iseg)
-             mat(keyg(1,2,iseg),i) = .true.
-         end do
-     end do
-     ii = 0
-     do irow=1,ncol
-         do icol=1,ncol
-             if (mat(irow,icol)) then
-                 ii = ii + 1
-                 nonzero(2,ii) = irow
-                 nonzero(1,ii) = icol
-                 !!write(200,*) 'ii, nonzero(1,ii), nonzero(2,ii)', ii, nonzero(1,ii), nonzero(2,ii)
-             end if
-         end do
-     end do
-
-     !!! new version... not well tested
-     !!ii = 0
      !!do iseg=1,nseg
      !!    do i=keyg(1,1,iseg),keyg(2,1,iseg)
-     !!        ii = ii + 1
-     !!        nonzero(2,ii) = keyg(1,2,iseg)
-     !!        nonzero(1,ii) = i
-     !!        write(300,*) 'ii, nonzero(1,ii), nonzero(2,ii)', ii, nonzero(1,ii), nonzero(2,ii)
+     !!        mat(keyg(1,2,iseg),i) = .true.
      !!    end do
      !!end do
+     !!ii = 0
+     !!do irow=1,ncol
+     !!    do icol=1,ncol
+     !!        if (mat(irow,icol)) then
+     !!        !if (mat(icol,irow)) then
+     !!            ii = ii + 1
+     !!            nonzero(2,ii) = irow
+     !!            nonzero(1,ii) = icol
+     !!            write(200,*) 'ii, nonzero(1,ii), nonzero(2,ii)', ii, nonzero(1,ii), nonzero(2,ii)
+     !!        end if
+     !!    end do
+     !!end do
+
+     ! New version
+     ii = 0
+     do iseg=1,nseg
+         do i=keyg(1,1,iseg),keyg(2,1,iseg)
+             ii = ii + 1
+             nonzero(2,ii) = keyg(1,2,iseg)
+             nonzero(1,ii) = i
+             !write(300,*) 'ii, nonzero(1,ii), nonzero(2,ii)', ii, nonzero(1,ii), nonzero(2,ii)
+         end do
+     end do
      
 
      if (ii/=nvctr) then
          call f_err_throw('ii/=nvctr')
      end if
 
-     call f_free(mat)
+     !!call f_free(mat)
    end subroutine calculate_nonzero_simple
 
 

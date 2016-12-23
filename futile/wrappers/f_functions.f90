@@ -8,7 +8,8 @@
 !!    For the list of contributors, see ~/AUTHORS
 module f_functions
   use f_precisions
-  use numerics, only: pi,safe_erf
+  use f_enums
+  use numerics, only: pi,safe_erf,safe_exp
   implicit none
   private
 
@@ -31,6 +32,16 @@ module f_functions
   integer, parameter :: FUNC_SINE = 7
   integer, parameter :: FUNC_ATAN = 8
   integer, parameter :: FUNC_ERF = 9
+
+  type(f_enumerator), public :: f_constant=f_enumerator('CONSTANT',FUNC_CONSTANT,null())
+  type(f_enumerator), public :: f_gaussian=f_enumerator('GAUSSIAN',FUNC_GAUSSIAN,null())
+  type(f_enumerator), public :: f_gaussian_shrinked=f_enumerator('GAUSSIAN_SHRINKED',FUNC_GAUSSIAN_SHRINKED,null())
+  type(f_enumerator), public :: f_cosine=f_enumerator('COSINE',FUNC_COSINE,null())
+  type(f_enumerator), public :: f_exp_cosine=f_enumerator('EXP_COSINE',FUNC_EXP_COSINE,null())
+  type(f_enumerator), public :: f_shrink_gaussian=f_enumerator('SHRINK_GAUSSIAN',FUNC_SHRINK_GAUSSIAN,null())
+  type(f_enumerator), public :: f_sine=f_enumerator('SINE',FUNC_SINE,null())
+  type(f_enumerator), public :: f_atan=f_enumerator('ATAN',FUNC_ATAN,null())
+  type(f_enumerator), public :: f_erf=f_enumerator('ERF',FUNC_ERF,null())
 
 
   type, public :: f_function
@@ -85,12 +96,12 @@ module f_functions
          f_function_new%params(EXPONENT_)=exponent
       case(FUNC_GAUSSIAN_SHRINKED,FUNC_SHRINK_GAUSSIAN)
          if (f_err_raise(.not. present(length),'f_function: length')) return
-         f_function_new%params(LENGTH_)=length_
+         f_function_new%params(LENGTH_)=length
       case(FUNC_COSINE,FUNC_EXP_COSINE,FUNC_SINE)
          if (f_err_raise(.not. present(length),'f_function: length')) return
          if (f_err_raise(.not. present(frequency),'f_function: frequency')) return
-         f_function_new%params(LENGTH_)=length_
-         f_function_new%params(FREQUENCY_)=frequency_
+         f_function_new%params(LENGTH_)=length
+         f_function_new%params(FREQUENCY_)=frequency
       case(FUNC_ATAN,FUNC_ERF)
          if (f_err_raise(.not. present(scale),'f_function: scale')) return
          f_function_new%params(SCALE_)=scale
@@ -124,19 +135,25 @@ module f_functions
          y=arctan(1.0_f_double/func%params(SCALE_),x,idiff)
       case(FUNC_ERF)
          y=error_function(func%params(SCALE_),x,idiff)
+      case default
+         y=0.0_f_double
       end select
     end function eval
 
-    pure function diff(func,x) result(y)
+    pure function diff(func,x,order) result(y)
       implicit none
       type(f_function), intent(in) :: func
       real(f_double), intent(in) :: x
+      integer, intent(in), optional :: order
       real(f_double) :: y
       !local variables
-      integer, parameter :: idiff=1
+      integer :: idiff
+      
+      idiff=1
+      if (present(order)) idiff=order
 
       select case(func%function_type)
-      case(FUNC_CONSTANT)
+      case default !(FUNC_CONSTANT)
          y=0.0_f_double
       case(FUNC_GAUSSIAN)
          y=gaussian(func%params(EXPONENT_),x,idiff)
@@ -166,12 +183,12 @@ module f_functions
       !local variables
       real(f_double) :: r2
       r2=a*x**2
-      f=dexp(-r2) !<checked
+      f=safe_exp(-r2) !<checked
       select case(idiff)
       case(1)
-         f=-2.d0*a*x*f !<checked
+         f=-2.0_f_double*a*x*f !<checked
       case(2)
-         f=(-2.d0*a+4.d0*a*r2)*f !<checked
+         f=(-2.0_f_double*a+4.0_f_double*a*r2)*f !<checked
       end select
     end function gaussian
 
@@ -185,7 +202,7 @@ module f_functions
 
       r=pi*x/length
       y=tan(r)
-      f=dexp(-y**2) !<checked
+      f=safe_exp(-y**2) !<checked
       select case(idiff)
       case(1)
          f=-2.d0*pi*f*y/(length*cos(r)**2) !<checked
@@ -210,6 +227,8 @@ module f_functions
          f=-dsin(r)*frequency*pi/length !<checked
       case(2)
          f=-(frequency*pi/length)**2*cos(r) !<checked
+      case default
+         f=0.0_f_double
       end select
     end function cosine
 
@@ -223,16 +242,13 @@ module f_functions
 
       r=pi*nu/a*x
       y=cos(r)
+      f=safe_exp(y) !<checked 
       select case(idiff)
-      case(0)
-         f=exp(y) !<checked 
       case(1)
-         f=exp(y)
          yp=-sin(r)
          f=f*pi*nu/a*yp !<checked
       case(2)
-         yp=-sin(r)
-         f=exp(y)
+         yp=sin(r)
          factor=(pi*nu/a)**2*(-y+yp**2)
          f= factor*f !<checked
       end select
@@ -262,7 +278,9 @@ module f_functions
          h1=gaussian(a,x,1)
          g2=gaussian_shrinked(length,x,2)
          h2=gaussian(a,x,2)
-         f=g2*h+g*h2+2.d0*g1*h1 !<checked
+         f=g2*h+g*h2+2.0_f_double*g1*h1 !<checked
+      case default
+         f=0.0_f_double
       end select
     end function shrinked_gaussian
 
@@ -282,6 +300,8 @@ module f_functions
          f=frequency*pi*cos(r)/length !<checked
       case(2)
          f=-(frequency*pi/length)**2*sin(r) !<checked
+      case default
+         f=0.0_f_double
       end select
     end function sine
 
@@ -303,6 +323,8 @@ module f_functions
       case(2)
          factor=r**2+1.d0
          f=-2.d0*r*a**2/factor**2 !<checked
+      case default
+         f=0.0_f_double
       end select
     end function arctan
 
@@ -315,11 +337,11 @@ module f_functions
       real(f_double) :: factor,y,g,h
 
       factor=sqrt(2.d0/pi)/a
-      if (abs(x)<=1.d-15) then
+      if (abs(x)<=1.e-15_f_double) then
          select case(idiff)
          case(0)
             f=factor
-         case(1)
+         case default !also 1
             f=0.0_f_double
          case(2)
             f=-sqrt(2.d0/pi)/(3.d0*a**3) !<checked
@@ -331,13 +353,13 @@ module f_functions
          case(1)
             y=x*x
             y=y/(2.d0*a**2)
-            g=exp(-y)
+            g=safe_exp(-y)
             h=1.d0/a**2+2.d0/x**2
             f=-f/x+factor*g/x !<checked
          case(2)
             y=x*x
             y=y/(2.d0*a**2)
-            g=exp(-y)
+            g=safe_exp(-y)
             h=1.d0/a**2+2.d0/x**2
             f=-factor*g*h+2.d0*f/x**2  !<checked
          end select

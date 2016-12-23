@@ -22,6 +22,7 @@ module public_keys
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
   character(len = *), parameter :: DFT_VARIABLES = "dft"
   character(len = *), parameter :: HGRIDS = "hgrids"
+  character(len = *), parameter :: NGRIDS = "ngrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
   character(len = *), parameter :: NCHARGE = "qcharge"
@@ -56,6 +57,7 @@ module public_keys
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
   character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
   character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
+  character(len = *), parameter :: OCCUPANCY_CONTROL_NREPMAX= "nrepmax_occ_ctrl"
   character(len = *), parameter :: RESET_DIIS_HISTORY = "reset_DIIS_history"
 
   character(len = *), parameter :: PSOLVER = "psolver"
@@ -136,6 +138,7 @@ module public_keys
   character(len = *), parameter :: RESTART_NOSE="restart_nose"
 
   !mode parameter keywords
+  character(len = *), parameter :: PLUGIN_ID="plugin_id"
   character(len = *), parameter :: ADD_COULOMB_FORCE_KEY = "add_coulomb_force"
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
@@ -595,5 +598,7 @@ module public_enums
        & f_enumerator('BAZANT_RUN_MODE',-987,null()) 
   type(f_enumerator), parameter, public :: ALBORZ_RUN_MODE             = &
        & f_enumerator('ALBORZ_RUN_MODE',-986,null()) 
+  type(f_enumerator), parameter, public :: PLUGIN_RUN_MODE             = &
+       & f_enumerator('PLUGIN_RUN_MODE',-985,null()) 
 
 end module public_enums

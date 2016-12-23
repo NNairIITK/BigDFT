@@ -1120,8 +1120,9 @@ module communications
                   if (nproc>1 .and. rma_sync==RMA_SYNC_ACTIVE) then
                       comm%window = mpiwindow(n1*n2*n3p(iproc)*comm%nspin, sendbuf(1), bigdft_mpi%mpi_comm)
                   else if (nproc>1 .and. rma_sync==RMA_SYNC_PASSIVE) then
-                      call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
-                           size_of_double, MPI_INFO_NULL, bigdft_mpi%mpi_comm, comm%window, ierr)
+                      !call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
+                      !     size_of_double, MPI_INFO_NULL, bigdft_mpi%mpi_comm, comm%window, ierr)
+                      comm%window = mpiwindow(n1*n2*n3p(iproc)*comm%nspin, sendbuf(1), bigdft_mpi%mpi_comm)
                   end if
     
                   !!if (rma_sync==RMA_SYNC_ACTIVE) then

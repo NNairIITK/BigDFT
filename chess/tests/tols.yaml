@@ -3,14 +3,14 @@ Default tolerances:
  Epsilon: 1.1e-11
 
 Keys to ignore:
+ - Walltime since initialization
  - sparse matmul load balancing naive / optimized
  - Max No. of dictionaries used
  - taskgroup summary
  - Memory Consumption Report
- - non-zero elements
- - total elements
- - sparsity in %
+ - Parallel environment
+ - penalty
+
 
 test-random:
-  Keys to ignore:
-  - Parallel environment
+ max error relative: 2.1e-9

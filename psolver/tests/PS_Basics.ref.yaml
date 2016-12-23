@@ -25,12 +25,14 @@
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  1
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Periodic
    Memory Requirements per MPI task:
      Density (MB)                      :  2.00
      Kernel (MB)                       :  0.27
      Full Grid Arrays (MB)             :  2.00
+ ixc                                   :  0
  detg                                  :  1.0
  Angles                                :  [  90.0,  90.0,  90.0 ]
  Contravariant Metric:
@@ -45,19 +47,19 @@
  -  [ 1.0, -3.749399456654644E-033,  0.0]
  -  [-3.749399456654644E-033,  1.0,  0.0]
  -  [ 0.0,  0.0,  1.0]
- monopole                              : -3.3724108228385586E-008
- dipole: [-9.4444355997173097E-007, -9.4437283028415925E-007, -9.4378694501386163E-007]
- offset                                : -144.0043646612883
+ monopole                              : -3.3729665657184588E-008
+ dipole: [-9.4439521094139835E-007, -9.4462836081655828E-007, -9.4400581542583343E-007]
+ offset                                : -144.0043646613033
  Poisson Solver:
    BC                                  : Periodic
    Box                                 :  [  64,  64,  64 ]
    MPI tasks                           :  1
- potential integral                    : -144.0043646612718
+ potential integral                    : -144.0043646613024
  Parallel calculation:
-   Ehartree                            :  48.40220903870092
-   Max diff at                         :  [  33,  33,  61 ]
-   Max diff                            :  1.3450208047126887E-009
-   Result                              : -1.3450300613956484E-009
+   Ehartree                            :  48.40220903870186
+   Max diff at                         :  [  61,  33,  33 ]
+   Max diff                            :  1.3450357551527659E-009
+   Result                              : -1.3450450118357257E-009
    Original                            : -9.2566829597215059E-015
  Memory Consumption Report:
    Tot. No. of Allocations             :  24
@@ -67,8 +69,8 @@
      Peak Value (MB)                   :  14.438
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 29.216 MB
- Walltime since initialization         :  00:00:00.400936062
+     Memory Peak of process            : 35.612 MB
+ Walltime since initialization         :  00:00:00.252131163
  Max No. of dictionaries used          :  516 #( 169 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -98,12 +100,14 @@
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  1
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Surface
    Memory Requirements per MPI task:
      Density (MB)                      :  0.75
      Kernel (MB)                       :  0.21
      Full Grid Arrays (MB)             :  0.75
+ ixc                                   :  0
  detg                                  :  1.0
  Angles                                :  [  90.0,  90.0,  90.0 ]
  Contravariant Metric:
@@ -118,20 +122,20 @@
  -  [ 1.0, -3.749399456654644E-033,  0.0]
  -  [-3.749399456654644E-033,  1.0,  0.0]
  -  [ 0.0,  0.0,  1.0]
- monopole                              : -3.8633292583185228E-008
- dipole: [-592.0620588622832, -1.0814619915516891E-006, -7.5323172130633531E-007]
- offset                                : -1319.553339164573
+ monopole                              : -1.049784082440849E-007
+ dipole: [-1609.391535925285, -2.9398656228279497E-006, -2.0472886393334386E-006]
+ offset                                : -3586.917863533253
  Poisson Solver:
    BC                                  : Surface
    Box                                 :  [  32,  64,  48 ]
    MPI tasks                           :  1
- potential integral                    : -1979.330008578992
+ potential integral                    : -5380.376794843996
  Parallel calculation:
-   Ehartree                            :  235.4577343023666
+   Ehartree                            :  1739.810407687445
    Max diff at                         :  [  17,  8,  1 ]
-   Max diff                            :  8.6519042507120507E-010
-   Result                              : -2.4756707729193278E-006
-   Original                            : -2.4748055824942566E-006
+   Max diff                            :  2.3518468201263012E-009
+   Result                              : -6.7295708906832667E-006
+   Original                            : -6.7272190438631404E-006
  Memory Consumption Report:
    Tot. No. of Allocations             :  882
    Tot. No. of Deallocations           :  882
@@ -140,8 +144,8 @@
      Peak Value (MB)                   :  6.297
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 25.528 MB
- Walltime since initialization         :  00:00:00.231596488
+     Memory Peak of process            : 28.272 MB
+ Walltime since initialization         :  00:00:00.207164240
  Max No. of dictionaries used          :  516 #( 169 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -171,14 +175,16 @@
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  1
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Surface
    Memory Requirements per MPI task:
      Density (MB)                      :  0.75
      Kernel (MB)                       :  0.40
      Full Grid Arrays (MB)             :  0.75
+ ixc                                   :  0
  detg                                  :  0.9996954135095478
- Angles                                :  [  90.0,  89.00000000000001,  90.0 ]
+ Angles                                :  [  90.0,  89.0,  90.0 ]
  Contravariant Metric:
  -  [ 1.000304679291648, -6.0182018903251828E-017, -1.7457723824114469E-002]
  -  [-6.0182018903251828E-017,  1.0, -6.0182018903251828E-017]
@@ -191,20 +197,20 @@
  -  [ 1.0,  9.0518707386200085E-033,  0.0]
  -  [-3.0814879110195774E-033,  1.0,  0.0]
  -  [ 0.0,  1.2325951644078309E-032,  1.0]
- monopole                              : -3.8633291834376385E-008
- dipole: [-592.2424479108601, -1.0812654972301609E-006, -7.5317669336589536E-007]
- offset                                : -1319.352364799618
+ monopole                              : -1.0498116337235034E-007
+ dipole: [-1609.881884198129, -2.940039727972313E-006, -2.0474297821713064E-006]
+ offset                                : -3586.37155856901
  Poisson Solver:
    BC                                  : Surface
    Box                                 :  [  32,  64,  48 ]
    MPI tasks                           :  1
- potential integral                    : -1979.028547031585
+ potential integral                    : -5379.557337397692
  Parallel calculation:
-   Ehartree                            :  235.4708138303236
+   Ehartree                            :  1739.907053052878
    Max diff at                         :  [  17,  8,  1 ]
-   Max diff                            :  8.6519674683299723E-010
-   Result                              : -2.4756707792410896E-006
-   Original                            : -2.4748055824942566E-006
+   Max diff                            :  2.3518660034023829E-009
+   Result                              : -6.7295709098665428E-006
+   Original                            : -6.7272190438631404E-006
  Memory Consumption Report:
    Tot. No. of Allocations             :  1664
    Tot. No. of Deallocations           :  1664
@@ -213,8 +219,8 @@
      Peak Value (MB)                   :  6.491
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 25.724 MB
- Walltime since initialization         :  00:00:00.331828173
+     Memory Peak of process            : 28.464 MB
+ Walltime since initialization         :  00:00:00.278753601
  Max No. of dictionaries used          :  516 #( 169 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -244,14 +250,16 @@
      verbose                           : Yes #    Verbosity switch
      output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  1
+   OpenMP threads per MPI task         :  1
  Poisson Kernel Creation:
    Boundary Conditions                 : Surface
    Memory Requirements per MPI task:
      Density (MB)                      :  0.75
      Kernel (MB)                       :  0.40
      Full Grid Arrays (MB)             :  0.75
+ ixc                                   :  0
  detg                                  :  0.7499999999999999
- Angles                                :  [  90.0,  60.0,  90.0 ]
+ Angles                                :  [  90.0,  59.99999999999999,  90.0 ]
  Contravariant Metric:
  -  [ 1.333333333333333, -4.0821559971578438E-017, -0.666666666666667]
  -  [-4.0821559971578438E-017,  1.0, -4.0821559971578438E-017]
@@ -264,20 +272,20 @@
  -  [ 1.0,  0.0, -1.1102230246251565E-016]
  -  [-6.1629758220391547E-033,  1.0,  0.0]
  -  [-1.1102230246251565E-016,  0.0,  1.0]
- monopole                              : -3.8628503389561065E-008
- dipole: [-789.4160783303603, -1.0816585082218134E-006, -7.5319647782993005E-007]
- offset                                : -1142.766713365103
+ monopole                              : -1.0501115210986316E-007
+ dipole: [-2145.855380818957, -2.9398665400118193E-006, -2.0473825904845569E-006]
+ offset                                : -3106.361991108001
  Poisson Solver:
    BC                                  : Surface
    Box                                 :  [  32,  64,  48 ]
    MPI tasks                           :  1
- potential integral                    : -1714.150069902403
+ potential integral                    : -4659.542986267213
  Parallel calculation:
-   Ehartree                            :  249.7673469286442
+   Ehartree                            :  1845.544938136792
    Max diff at                         :  [  17,  8,  1 ]
-   Max diff                            :  8.6247279420020978E-010
-   Result                              : -2.4756680552884568E-006
-   Original                            : -2.4748055824942566E-006
+   Max diff                            :  2.3444368435023065E-009
+   Result                              : -6.7295634807066427E-006
+   Original                            : -6.7272190438631404E-006
  Memory Consumption Report:
    Tot. No. of Allocations             :  1664
    Tot. No. of Deallocations           :  1664
@@ -286,7 +294,7 @@
      Peak Value (MB)                   :  6.491
      for the array                     : zt
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 25.736 MB
- Walltime since initialization         :  00:00:00.333441652
+     Memory Peak of process            : 28.476 MB
+ Walltime since initialization         :  00:00:00.281821262
  Max No. of dictionaries used          :  516 #( 169 still in use)
  Number of dictionary folders allocated:  1

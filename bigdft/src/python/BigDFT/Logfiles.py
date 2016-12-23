@@ -24,6 +24,7 @@ BUILTIN={
                     ["Ground State Optimization",-1,"Hamiltonian Optimization",-1,"Subspace Optimization","Orbitals"] ]},
     'kpts': {PATH: [["K points"]],
              PRINT: False, GLOBAL: True},
+    'gnrm_cv': {PATH: [["dft","gnrm_cv"]], PRINT: "Convergence criterion on Wfn. Residue", GLOBAL: True},
     'kpt_mesh': {PATH:[['kpt','ngkpt']], PRINT: True, GLOBAL: True},
     'forcemax': {PATH: [["Geometry","FORCES norm(Ha/Bohr)","maxval"],['Clean forces norm (Ha/Bohr)','maxval']],
                  PRINT: "Max val of Forces"},
@@ -47,13 +48,11 @@ def get_logs(files,safe_mode=False,select_document=None):
      rawfile=open(filename, "r").read()
      try:
         logs+=[yaml.load(rawfile, Loader = yaml.CLoader)]
-     except:
+     except Exception,e:
+        print 'WARNING: More than one document are present',e
         if safe_mode or select_document is not None:
             documents=rawfile.split('---\n')
             print 'Safe mode, Found',len(documents),'documents,try loading them separately'
-            #print 'first',documents[0]
-            #print 50*'X'
-            #print 'last',documents[-1]
             actual_doc=-1
             for i,raw_doc in enumerate(documents):
                 if len(raw_doc)==0: continue
@@ -69,7 +68,13 @@ def get_logs(files,safe_mode=False,select_document=None):
                     #print "warning, skipping logfile",filename
         else:
             try: 
-                logs+=yaml.load_all(rawfile, Loader = yaml.CLoader)
+                from futile import Yaml
+                test=Yaml.YamlDB(rawfile)
+                for a in range(len(test)):
+                    # we should use another representation for the logfile, to be changed
+                    lg=dict(test[a]) 
+                    if lg is not None: logs+=[lg]
+                #logs+=yaml.load_all(rawfile, Loader = yaml.CLoader)
             except Exception,e:
                 print e
                 print 'WARNING: Usual loading of the document have some errors, some documents might not be there'
@@ -143,6 +148,31 @@ def process_logfiles(files,instructions,debug=False):
             doc_res=document_quantities(doc,instructions)
             #print doc_res,instructions
             if EVAL in instructions: perform_operations(doc_res,instructions[EVAL],debug=debug)
+
+def find_iterations(log):
+    "Identify the different block of the iterations of the wavefunctions optimization"
+    import numpy
+    for itrp in log['Ground State Optimization']:
+        rpnrm=[]
+        for itsp in itrp['Hamiltonian Optimization']:
+            gnrm_sp=[]
+            for it in itsp['Subspace Optimization']['Wavefunctions Iterations']:
+                gnrm_sp.append(it['gnrm'])
+            rpnrm.append(numpy.array(gnrm_sp))
+    rpnrm=numpy.array(rpnrm)
+    return rpnrm
+
+def plot_wfn_convergence(wfn_it,gnrm_cv):
+    "Plot the convergence of the wavefunction coming from the find_iterations function" 
+    import matplotlib.pyplot as plt
+    import numpy 
+    plt.semilogy(numpy.ravel(wfn_it))
+    plt.axhline(gnrm_cv,color='k',linestyle='--')
+    it=0
+    for itrp in wfn_it:
+        it+=len(itrp)
+        plt.axvline(it,color='k',linestyle='--')
+
 
 
 class Logfile():
@@ -238,6 +268,9 @@ class Logfile():
 	if isinstance(mesh,int): mesh=[mesh,]*3
         if self.astruct['Cell'][1]==float('inf'): mesh[1]=1
         return BZ.BrillouinZone(self.astruct,mesh,self.evals,self.fermi_level)
+    def wfn_plot(self):
+        wfn_it=find_iterations(self.log)
+        plot_wfn_convergence(wfn_it,self.gnrm_cv)
     def geopt_plot(self):
         import numpy
         #for a set of logfiles construct the convergence plot if available
@@ -263,6 +296,7 @@ class Logfile():
             plt.show()
         else:
             print 'No plot necessary, less than two points found'
+    
 
     def _print_information(self):
         import yaml,numpy

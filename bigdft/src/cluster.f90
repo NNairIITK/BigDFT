@@ -23,8 +23,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        & XC_potential, communicate_density, copy_old_wavefunctions, &
        denspot_set_history, &
        & gaussian_pswf_basis, local_analysis, &
-       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication, &
-       writemywaves
+       & orbitals_descriptors, sumrho, system_initialization,readmywaves,FullHamiltonianApplication
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
@@ -53,7 +52,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
   use orbitalbasis
-  use io, only: plot_density,io_files_exists
+  use io, only: plot_density,io_files_exists, writemywaves
   use PSbox, only: PS_gather
   use foe_common, only: init_foe
   implicit none
@@ -580,7 +579,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          !call allocate_matrices(tmb%linmat%l, allocate_full=.false., &
          !     matname='tmb%linmat%ovrlppowers_(i)', mat=tmb%linmat%ovrlppowers_(i))
          tmb%linmat%ovrlppowers_(i)%matrix_compr = &
-             sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_comp')
+             sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='tmb%linmat%ovrlppowers_(i)%matrix_compr')
      end do
 
      !call nullify_sparse_matrix(tmb%linmat%inv_ovrlp_large)
@@ -1060,7 +1059,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !plot the ionic potential, if required by output_denspot
   if (in%output_denspot == 'DENSPOT' .and. DoLastRunThings) then
      if (all(in%plot_pot_axes>=0)) then
-        write(*,*) 'denspot%V_ext(1)', denspot%V_ext(1,1,1,1)
         if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
         call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
              atoms,rxyz,denspot%pkernel,1,denspot%V_ext,ixyz0=in%plot_pot_axes)
@@ -1843,8 +1841,10 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            !if (opt%iter == 1) minres_gpe=denspot%pkernel%minres
            !denspot%pkernel%minres=max(min(1.e-6_gp,opt%gnrm**2) ,minres_gpe)!!opt%gnrm_cv**2)
 
-           nlpsp%apply_gamma_target=((opt%scf .hasattr. 'MIXING') .and. opt%itrp <= in%occupancy_control_itermax) .or. &
-                (.not. (opt%scf .hasattr. 'MIXING') .and. opt%iter <= in%occupancy_control_itermax)
+           nlpsp%apply_gamma_target=((opt%scf .hasattr. 'MIXING') .and. opt%itrp <= in%occupancy_control_itermax &
+                .and. opt%itrep <= in%occupancy_control_nrepmax) .or. &
+                (.not. (opt%scf .hasattr. 'MIXING') .and. opt%iter <= in%occupancy_control_itermax &
+                .and. opt%itrep <= in%occupancy_control_nrepmax)
 
            !Calculates the application of the Hamiltonian on the wavefunction
            call psitohpsi(iproc,nproc,atoms,scpot,denspot,opt%itrp,opt%iter,opt%scf,alphamix,&

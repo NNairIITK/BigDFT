@@ -31,7 +31,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "plot-wavefunction", "suggest-cutoff", "multipole-analysis", "dos", 
            "export-proj", "fit-proj",
            "convert-matrix-format", "calculate-selected-eigenvalues",
-           "kernel-purity", "build-KS-orbitals"]
+           "kernel-purity", "build-KS-orbitals", "manipulate-eigenvalue-spectrum"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -213,6 +213,8 @@ def parse():
              		 help="input file with the kernel matrix multiplication sparsity pattern [default: %default]")
     group.add_option("--fragment_file", type="str", default="fragment.dat", metavar="FRAGMENTSNAME",
              		 help="file with the fragment to be analyzed [default: %default]")
+    group.add_option("--hamiltonian_manipulated_file", type="str", default="hamiltonian_manipulated_sparse.bin", metavar="MATRIXNAME",
+             		 help="output file for the manipulated hamiltonian[default: %default]")
 
     # solve the eigensystem to get the coefficients
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
@@ -312,6 +314,12 @@ def parse():
     group.add_option("--fscale", type="float", default=1.e-2, metavar="NUM",)
     group.add_option("--is_ks", type="float", default=1, metavar="NUM",)
     group.add_option("--ie_ks", type="float", default=2, metavar="NUM",)
+
+    group.add_option("--homo_state", type="int", default=1, metavar="NUM",)
+    group.add_option("--homo_value", type="float", default=0.0, metavar="NUM",)
+    group.add_option("--lumo_value", type="float", default=0.0, metavar="NUM",)
+    group.add_option("--smallest_value", type="float", default=0.0, metavar="NUM",)
+    group.add_option("--largest_value", type="float", default=0.0, metavar="NUM",)
 
     return parser
 
@@ -924,7 +932,7 @@ if __name__ == "__main__":
             searchfor = options.find_key
             matching_keys = closest_keys(allkeys, searchfor)
             print 'matching', searchfor, 'in:', matching_keys
-            print 'keys wich match the most with', searchfor
+            print 'keys which match the most with', searchfor
             foundkeys = []
             doc = []
             for (i, ratio) in matching_keys:
@@ -1163,6 +1171,9 @@ options:
           fitPAW(args[0], options.n_funcs)
     if options.action == "build-KS-orbitals":
         command = "%s %s build-KS-orbitals %s %s %i %i" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.is_ks, options.ie_ks)
+        print command
+    if options.action == "manipulate-eigenvalue-spectrum":
+        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %i %f %f %f %f" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.hamiltonian_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value)
         print command
     if command is not None:
         os.system(command)
