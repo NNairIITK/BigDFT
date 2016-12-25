@@ -62,6 +62,8 @@ module public_keys
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
+  character(len = *), parameter :: CHESS = "chess"
+
   character(len = *), parameter :: OUTPUT_VARIABLES = "output"
   character(len = *), parameter :: ATOMIC_DENSITY_MATRIX = "atomic_density_matrix" 
 

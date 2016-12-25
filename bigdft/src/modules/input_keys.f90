@@ -1819,27 +1819,27 @@ contains
           end if
        case (STORE_INDEX)
           in%store_index = val
-       case (PDSYEV_BLOCKSIZE)
-          !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-          in%lin%blocksize_pdsyev = val
-       case (PDGEMM_BLOCKSIZE)
-          in%lin%blocksize_pdgemm = val
-       case (MAXPROC_PDSYEV)
-          !max number of process uses for pdsyev/pdsygv, pdgemm
-          in%lin%nproc_pdsyev = val
-       case (MAXPROC_PDGEMM)
-          in%lin%nproc_pdgemm = val
-       case (EF_INTERPOL_DET)
-          !FOE: if the determinant of the interpolation matrix to find the Fermi energy
-          !is smaller than this value, switch from cubic to linear interpolation.
-          in%lin%ef_interpol_det = val
-       case (EF_INTERPOL_CHARGEDIFF)
-          in%lin%ef_interpol_chargediff = val
-          !determines whether a mixing step shall be preformed after the input guess !(linear version)
+       !!case (PDSYEV_BLOCKSIZE)
+       !!   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+       !!   in%lin%blocksize_pdsyev = val
+       !!case (PDGEMM_BLOCKSIZE)
+       !!   in%lin%blocksize_pdgemm = val
+       !!case (MAXPROC_PDSYEV)
+       !!   !max number of process uses for pdsyev/pdsygv, pdgemm
+       !!   in%lin%nproc_pdsyev = val
+       !!case (MAXPROC_PDGEMM)
+       !!   in%lin%nproc_pdgemm = val
+       !!case (EF_INTERPOL_DET)
+       !!   !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+       !!   !is smaller than this value, switch from cubic to linear interpolation.
+       !!   in%lin%ef_interpol_det = val
+       !!case (EF_INTERPOL_CHARGEDIFF)
+       !!   in%lin%ef_interpol_chargediff = val
        case (MIXING_AFTER_INPUTGUESS)
+          !determines whether a mixing step shall be preformed after the input guess !(linear version)
           in%lin%mixing_after_inputguess = val
-          !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
        case (ITERATIVE_ORTHOGONALIZATION)
+          !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
           in%lin%iterative_orthogonalization = val
        case (CHECK_SUMRHO)
           in%check_sumrho = val
@@ -1864,12 +1864,12 @@ contains
        case (KAPPA_CONV)
           ! linear scaling: exit kappa for extended input guess (experimental mode)
           in%kappa_conv = val
-       case (EVBOUNDS_NSATUR)
-          ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-          in%evbounds_nsatur = val
-       case(EVBOUNDSSHRINK_NSATUR)
-          ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-          in%evboundsshrink_nsatur = val
+       !!case (EVBOUNDS_NSATUR)
+       !!   ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+       !!   in%evbounds_nsatur = val
+       !!case(EVBOUNDSSHRINK_NSATUR)
+       !!   ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+       !!   in%evboundsshrink_nsatur = val
        case (CALCULATE_GAP)
           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
           in%calculate_gap = val
@@ -1885,12 +1885,12 @@ contains
        case (CORRECTION_CO_CONTRA)
           ! linear scaling: correction covariant / contravariant gradient
           in%correction_co_contra = val
-       case (FSCALE_LOWERBOUND)
-          ! linear scaling: lower bound for the error function decay length
-          in%fscale_lowerbound = val
-       case (FSCALE_UPPERBOUND)
-          ! linear scaling: upper bound for the error function decay length
-          in%fscale_upperbound = val
+       !!case (FSCALE_LOWERBOUND)
+       !!   ! linear scaling: lower bound for the error function decay length
+       !!   in%fscale_lowerbound = val
+       !!case (FSCALE_UPPERBOUND)
+       !!   ! linear scaling: upper bound for the error function decay length
+       !!   in%fscale_upperbound = val
        case (FOE_RESTART)
           ! linear scaling: Restart method to be used for the FOE method
           in%FOE_restart = val
@@ -2255,16 +2255,73 @@ contains
           in%lin%alphaSD_coeff = val
        case (ALPHA_FIT_COEFF)
           in%lin%curvefit_dmin = val
+       !!case (EVAL_RANGE_FOE)
+       !!   dummy_gp(1:2) = val
+       !!   in%lin%evlow = dummy_gp(1)
+       !!   in%lin%evhigh = dummy_gp(2)
+       !!case (FSCALE_FOE)
+       !!   in%lin%fscale = val
+       case (COEFF_SCALING_FACTOR)
+          in%lin%coeff_factor = val
+       case (DELTA_PNRM)
+          in%lin%delta_pnrm = val
+       !!case (PEXSI_NPOLES)
+       !!   in%lin%pexsi_npoles = val
+       !!case (PEXSI_MUMIN)
+       !!   in%lin%pexsi_mumin = val
+       !!case (PEXSI_MUMAX)
+       !!   in%lin%pexsi_mumax = val
+       !!case (PEXSI_MU)
+       !!   in%lin%pexsi_mu = val
+       !!case (PEXSI_DELTAE)
+       !!   in%lin%pexsi_DeltaE = val
+       !!case (PEXSI_TEMPERATURE)
+       !!   in%lin%pexsi_temperature = val
+       !!case (PEXSI_TOL_CHARGE)
+       !!   in%lin%pexsi_tol_charge = val
+       !!case (PEXSI_NP_SYM_FACT)
+       !!   in%lin%pexsi_np_sym_fact = val
+       case DEFAULT
+          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+       ! the KPT variables ------------------------------------------------------
+    ! The CheSS variables...will be moved later
+    case (CHESS)
+       select case (trim(dict_key(val)))
+       case (EF_INTERPOL_DET)
+          !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+          !is smaller than this value, switch from cubic to linear interpolation.
+          in%lin%ef_interpol_det = val
+       case (EF_INTERPOL_CHARGEDIFF)
+          in%lin%ef_interpol_chargediff = val
+       case (PDSYEV_BLOCKSIZE)
+          !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+          in%lin%blocksize_pdsyev = val
+       case (PDGEMM_BLOCKSIZE)
+          in%lin%blocksize_pdgemm = val
+       case (MAXPROC_PDSYEV)
+          !max number of process uses for pdsyev/pdsygv, pdgemm
+          in%lin%nproc_pdsyev = val
+       case (MAXPROC_PDGEMM)
+          in%lin%nproc_pdgemm = val
+       case (EVBOUNDS_NSATUR)
+          ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+          in%evbounds_nsatur = val
+       case(EVBOUNDSSHRINK_NSATUR)
+          ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+          in%evboundsshrink_nsatur = val
+       case (FSCALE_LOWERBOUND)
+          ! linear scaling: lower bound for the error function decay length
+          in%fscale_lowerbound = val
+       case (FSCALE_UPPERBOUND)
+          ! linear scaling: upper bound for the error function decay length
+          in%fscale_upperbound = val
        case (EVAL_RANGE_FOE)
           dummy_gp(1:2) = val
           in%lin%evlow = dummy_gp(1)
           in%lin%evhigh = dummy_gp(2)
        case (FSCALE_FOE)
           in%lin%fscale = val
-       case (COEFF_SCALING_FACTOR)
-          in%lin%coeff_factor = val
-       case (DELTA_PNRM)
-          in%lin%delta_pnrm = val
        case (PEXSI_NPOLES)
           in%lin%pexsi_npoles = val
        case (PEXSI_MUMIN)
@@ -2284,7 +2341,6 @@ contains
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
-       ! the KPT variables ------------------------------------------------------
     case (KPT_VARIABLES)
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)

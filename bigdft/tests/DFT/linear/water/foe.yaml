@@ -16,7 +16,6 @@
    betax: 0.25
  perf:
    mixing_after_inputguess: 2
-   evbounds_nsatur: 100
    correction_co_contra: no
  lin_general:
    nit: [2, 5]
@@ -32,8 +31,6 @@
    alphamix: 0.4
    rpnrm_cv: 1.0000000000000001E-009
    linear_method: FOE
-   eval_range_foe: [-4.3, 4.0]
-   fscale_foe: 2.9999999999999999E-002
  lin_basis_params:
    O:
      ao_confinement: 2.9999999999999999E-002
@@ -127,3 +124,7 @@
    - H: [-2.7733291538944972E-002,  4.9832930564964045E-002, -8.0030878956443091E-002]
    - H: [-7.0858776945101953E-002,  1.2108273228047618E-002, -7.4889421372466587E-003]
    energy (Ha): 0.0
+ chess:
+   evbounds_nsatur: 100
+   eval_range_foe: [-4.3, 4.0]
+   fscale_foe: 2.9999999999999999E-002

@@ -14,9 +14,7 @@
    ncount_cluster_x: 4
    betax: 1.0
  perf:
-   ef_interpol_det: 0.10E-07
    mixing_after_inputguess: 2
-   evbounds_nsatur: 100
    correction_co_contra: no
    check_sumrho: 2
    check_overlap: 2
@@ -33,8 +31,6 @@
    nit: [2, 3]
    rpnrm_cv: 1.0000000000000001E-009
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 3.2000000000000002E-003
@@ -70,3 +66,8 @@
    - H: [ 4.8341049006079325E-003,  2.8363674700312767E-003,  5.0445849294880832E-003]
    - H: [-1.1979163088550456E-002,  9.0469353023931685E-003,  4.9603105529174418E-003]
    - H: [ 8.0658413767783208E-004,  7.3331571569550009E-003, -5.5416678975707748E-003]
+ chess:
+   ef_interpol_det: 0.10E-07
+   evbounds_nsatur: 100
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0000000000000003E-002

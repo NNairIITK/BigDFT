@@ -13,7 +13,6 @@
    inputpsiid: linear
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    experimental_mode: Yes
    calculate_KS_residue: No
    correction_co_contra: Yes
@@ -45,8 +44,6 @@
    idsx: 6
    alphamix: 0.2
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    O:
      nbasis: 4
@@ -177,3 +174,7 @@
    - H: [8.935613632202148, 7.606083869934082, 0.7616853713989258]
    - O: [8.121893882751465, 8.122951507568359, 0.6445345878601074]
    - H: [7.469490051269531, 7.489498138427734, 0.3032360076904297]
+ chess:
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002

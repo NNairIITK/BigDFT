@@ -10,13 +10,11 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    check_sumrho: 1
    experimental_mode: Yes
    write_orbitals: 2
    kappa_conv: 0.7
-   evbounds_nsatur: 100
    calculate_gap: Yes
    correction_co_contra: Yes
  lin_general:
@@ -40,8 +38,6 @@
    alphamix: 0.2
    rpnrm_cv: 1.0E-008
    linear_method: FOE
-   eval_range_foe: [-1.5, 1.5]
-   fscale_foe: 1.0E-002
  lin_basis_params:
    S:
      ao_confinement: 4.8999999999999998E-003
@@ -88,3 +84,8 @@
    properties:
      format: xyz
      source: short
+ chess:
+   ef_interpol_det: 0.10E-19
+   evbounds_nsatur: 100
+   eval_range_foe: [-1.5, 1.5]
+   fscale_foe: 1.0E-002

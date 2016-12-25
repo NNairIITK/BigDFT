@@ -12,7 +12,6 @@
    disablesym: Yes
  perf:
    store_index: No
-   evbounds_nsatur: 100
    correction_co_contra: no
    check_sumrho: 2
    check_overlap: 2
@@ -32,8 +31,6 @@
    nit: [3, 5]
    rpnrm_cv: 1.0000000000000001E-009
    linear_method: FOE
-   eval_range_foe: [-1.6, 1.8]
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 1.0E-002
@@ -83,3 +80,7 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   evbounds_nsatur: 100
+   eval_range_foe: [-1.6, 1.8]
+   fscale_foe: 5.0000000000000003E-002

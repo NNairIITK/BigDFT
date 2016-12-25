@@ -13,12 +13,10 @@
    method: FIRE
    ncount_cluster_x: 2
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    check_sumrho: 1
    experimental_mode: Yes
    kappa_conv: 0.7
-   evbounds_nsatur: 100
    calculate_gap: Yes
    correction_co_contra: Yes
    FOE_restart: 1
@@ -43,8 +41,6 @@
    alphamix: 0.2
    rpnrm_cv: 1.0E-008
    linear_method: FOE
-   eval_range_foe: [-1.5, 1.5]
-   fscale_foe: 1.0E-002
  lin_basis_params:
    N:
      ao_confinement: 2.7E-002
@@ -90,3 +86,8 @@
    - H: [3.765700101852417, 1.603600025177002, 1.496299982070923]
    - H: [2.886300086975098, 0.5688999891281128, -1.525500059127808]
    - H: [1.656499981880188, -0.4185000061988831, -1.948799967765808]
+ chess:
+   ef_interpol_det: 0.10E-19
+   evbounds_nsatur: 100
+   eval_range_foe: [-1.5, 1.5]
+   fscale_foe: 1.0E-002

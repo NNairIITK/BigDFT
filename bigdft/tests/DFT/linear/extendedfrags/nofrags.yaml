@@ -5,7 +5,6 @@
    disablesym: Yes
    inputpsiid: linear
  perf:
-   ef_interpol_chargediff: 1.0
    check_sumrho: 0
    check_overlap: 0
    experimental_mode: Yes
@@ -44,8 +43,6 @@
    idsx: 6
    alphamix: 0.3
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    C:
      nbasis: 4
@@ -54,3 +51,7 @@
      rloc: 4.0
      rloc_kernel: 7.0
      rloc_kernel_foe: 9.0
+ chess:
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002

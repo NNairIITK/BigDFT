@@ -174,9 +174,7 @@ module foe_common
       real(kind=mp),intent(out) :: x_max_error, max_error, mean_error
 
       ! Local variables
-      integer :: k, j, is, np, ii, jj
-      real(kind=mp) :: bma, bpa, y, arg, fac, tt, one_over_n
-      real(kind=mp),dimension(:),allocatable :: cf
+      integer :: is, np
 
       call f_routine(id='get_chebyshev_expansion_coefficients')
 

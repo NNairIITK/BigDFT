@@ -11,10 +11,8 @@
    disablesym: Yes
  perf:
    psp_onfly: No
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    foe_gap: yes
-   ef_interpol_det: 1.e-12
    correction_co_contra: No
    loewdin_charge_analysis: No
    check_overlap: 2
@@ -33,7 +31,6 @@
    fix_basis: 9.9999999999999994E-012
  lin_kernel:
    rpnrm_cv: 1.0E-013
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    Si:
      nbasis: 9
@@ -64,3 +61,8 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+ chess:
+   ef_interpol_det: 0.10E-19
+   ef_interpol_det: 1.e-12
+   fscale_foe: 5.0000000000000003E-002

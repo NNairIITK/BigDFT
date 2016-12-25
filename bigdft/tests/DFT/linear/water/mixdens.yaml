@@ -15,7 +15,6 @@
    ncount_cluster_x: 2
    betax: 0.25
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    correction_co_contra: no
  lin_general:
@@ -31,7 +30,6 @@
    nit: [3, 5]
    alphamix: 0.4
    rpnrm_cv: 1.0000000000000001E-009
-   fscale_foe: 2.9999999999999999E-002
  lin_basis_params:
    O:
      ao_confinement: 2.9999999999999999E-002
@@ -125,3 +123,6 @@
    - H: [-2.7733291538944972E-002,  4.9832930564964045E-002, -8.0030878956443091E-002]
    - H: [-7.0858776945101953E-002,  1.2108273228047618E-002, -7.4889421372466587E-003]
    energy (Ha): 0.0
+ chess:
+   ef_interpol_det: 0.10E-19
+   fscale_foe: 2.9999999999999999E-002

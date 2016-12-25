@@ -9,7 +9,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   evbounds_nsatur: 100
    correction_co_contra: no
  lin_general:
    nit: [1, 3]
@@ -26,7 +25,6 @@
    alphamix: 0.2
    rpnrm_cv: 9.9999999999999998E-013
    linear_method: FOE
-   eval_range_foe: [-2.2, 2.4]
  lin_basis_params:
    C:
      ao_confinement: 1.0E-004
@@ -123,3 +121,6 @@
    - H: [ 1.4606584812564285E-006, -1.3249403939922108E-007, -6.8824162003715272E-008]
    - H: [ 7.5977385148598359E-007, -6.6745171501954395E-007, -1.1953257268823714E-007]
    energy (Ha): -176.6095336060855
+ chess:
+   evbounds_nsatur: 100
+   eval_range_foe: [-2.2, 2.4]

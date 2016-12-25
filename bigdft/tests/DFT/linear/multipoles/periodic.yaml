@@ -45,7 +45,6 @@
    plot_pot_axes: [64, 43, 76]
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    experimental_mode: Yes
    calculate_KS_residue: No
    loewdin_charge_analysis: no
@@ -84,8 +83,6 @@
    alphamix: 0.1
    rpnrm_cv: 1.e-7
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    H:
      nbasis: 1
@@ -111,3 +108,7 @@
    properties:
      format: xyz
      source: periodic.xyz
+ chess:
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002

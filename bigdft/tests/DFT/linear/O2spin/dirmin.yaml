@@ -14,8 +14,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 1.e-10
-   ef_interpol_chargediff: 1.0
    check_matrix_compression: No
    correction_co_contra: Yes
    adjust_kernel_iterations: No
@@ -42,8 +40,6 @@
    idsx: 6
    alphamix: 0.05
    linear_method: DIRMIN
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    O:
      ao_confinement: 2.2e-2
@@ -61,3 +57,8 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   ef_interpol_det: 1.e-10
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002

@@ -12,7 +12,6 @@
    disablesym: Yes
  perf:
    store_index: No
-   ef_interpol_det: 0.10E-19
    check_sumrho: 1
    adjust_kernel_iterations: No
    correction_co_contra: no
@@ -35,8 +34,6 @@
    gnrm_cv_coeff: 9.9999999999999995E-007
    rpnrm_cv: 1.0000000000000001E-009
    linear_method: DIRMIN
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 2.9999999999999999E-002
  lin_basis_params:
    C:
      ao_confinement: 4.9000000000000002E-002
@@ -82,3 +79,7 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   ef_interpol_det: 0.10E-19
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 2.9999999999999999E-002

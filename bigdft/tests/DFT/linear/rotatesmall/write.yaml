@@ -7,7 +7,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    correction_co_contra: no
  lin_general:
@@ -28,7 +27,6 @@
    nit: 2
    alphamix: 1.0
    linear_method: DIRMIN
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    Si:
      ao_confinement: 5.0000000000000001E-003
@@ -50,3 +48,6 @@
    properties:
      format: xyz
      source: write
+ chess:
+   ef_interpol_det: 0.10E-19
+   fscale_foe: 5.0000000000000003E-002

@@ -12,7 +12,6 @@
    disablesym: Yes
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    experimental_mode: Yes
    calculate_KS_residue: No
    check_matrix_compression: No
@@ -53,8 +52,6 @@
    alphamix: 0.1
    rpnrm_cv: 1.0e-8
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    H:
      nbasis: 1
@@ -438,3 +435,7 @@
    properties:
      format: xyz
      source: no.xyz
+ chess:
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002

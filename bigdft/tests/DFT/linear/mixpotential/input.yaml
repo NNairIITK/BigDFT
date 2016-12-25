@@ -11,7 +11,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    correction_co_contra: no
    check_sumrho: 2
@@ -31,7 +30,6 @@
    nit: [2, 3]
    rpnrm_cv: 1.0E-013
    mixing_method: POT
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 0.1
@@ -78,3 +76,6 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   ef_interpol_det: 0.10E-19
+   fscale_foe: 5.0000000000000003E-002

@@ -14,7 +14,6 @@
    inputpsiid: linear
    #qcharge: 1.0
  perf:
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    check_overlap: 1
    experimental_mode: Yes
@@ -56,15 +55,7 @@
    idsx_coeff: [6, 0]
    idsx: 6
    alphamix: 0.2
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
    linear_method: PEXSI
-   #pexsi_npoles                        : 60 #     number of poles used by PEXSI
-   #pexsi_mumin                         : -1.5 #   initial guess for the lower bound of the chemical potential used by PEXSI
-   #pexsi_mumax                         : 1.5 #    initial guess for the upper bound of the chemical potential used by PEXSI
-   #pexsi_mu                            : 0.3 #    initial guess for the  chemical potential used by PEXSI
-   #pexsi_temperature                   : 1.e-4 #  temperature used by PEXSI
-   #pexsi_tol_charge                    : 1.e-5
  lin_basis_params:
    H:
      nbasis: 1
@@ -94,3 +85,15 @@
      rloc: 3.5
      rloc_kernel: 5.5
      rloc_kernel_foe: 8.0
+ chess:
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+   #pexsi_npoles                        : 60 #     number of poles used by PEXSI
+   #pexsi_mumin                         : -1.5 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   #pexsi_mumax                         : 1.5 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   #pexsi_mumin                         : -1.5 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   #pexsi_mumax                         : 1.5 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   #pexsi_mu                            : 0.3 #    initial guess for the  chemical potential used by PEXSI
+   #pexsi_temperature                   : 1.e-4 #  temperature used by PEXSI
+   #pexsi_tol_charge                    : 1.e-5

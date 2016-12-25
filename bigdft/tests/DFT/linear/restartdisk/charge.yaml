@@ -11,7 +11,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    correction_co_contra: no
    check_sumrho: 2
@@ -31,7 +30,6 @@
  lin_kernel:
    nit: [4, 6]
    rpnrm_cv: 1.0000000000000001E-009
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    O:
      ao_confinement: 4.0000000000000001E-002
@@ -55,3 +53,6 @@
      format: xyz
      source: charge
    energy (Ha): -17.17977402367096
+ chess:
+   ef_interpol_det: 0.10E-19
+   fscale_foe: 5.0000000000000003E-002

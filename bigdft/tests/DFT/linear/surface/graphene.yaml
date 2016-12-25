@@ -10,7 +10,6 @@
    inputpsiid: linear
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    experimental_mode: Yes
    calculate_KS_residue: No
@@ -42,8 +41,6 @@
    idsx: 6
    alphamix: 0.05
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 1.0E-002
  lin_basis_params:
    C:
      ao_confinement: 5.e-2
@@ -117,3 +114,7 @@
    properties:
      format: ascii
      source: graphene
+ chess:
+   ef_interpol_chargediff: 1.0
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 1.0E-002

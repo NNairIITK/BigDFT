@@ -33,7 +33,6 @@
    alphamix: 1.0
    gnrm_cv_coeff: 1.0E-003
    linear_method: DIRMIN
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    Be:
      ao_confinement: 2.0E-002
@@ -70,3 +69,5 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   fscale_foe: 5.0000000000000003E-002

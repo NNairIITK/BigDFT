@@ -10,7 +10,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    write_orbitals: 1
    wf_extent_analysis: Yes
    correction_co_contra: no
@@ -33,8 +32,6 @@
    idsx: 7
    alphamix: 0.1
    rpnrm_cv: 1.0E-008
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 1.0E-002
  lin_basis_params:
    C:
      ao_confinement: 0.13
@@ -82,3 +79,7 @@
    properties:
      format: xyz
      source: linear
+ chess:
+   ef_interpol_det: 0.10E-19
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 1.0E-002

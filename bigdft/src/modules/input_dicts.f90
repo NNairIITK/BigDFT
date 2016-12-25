@@ -1584,7 +1584,8 @@ contains
          .item. MINIMAL_FILE_KEY,&
          .item. F_IMPORT_KEY,&
          .item. PY_HOOKS,&
-         .item. PLUGINS])
+         .item. PLUGINS,&
+         .item. CHESS])
     ! If we have mode // sections, then, we need to exclude all
     ! section keys, they will be checked later.
     nullify(mode)
