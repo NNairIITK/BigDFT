@@ -35,7 +35,7 @@ endif
 PS_Check_SOURCES = PS_Check.f90 functions.f90
 PS_Check_LDADD = $(psolver_library) @LINALG_LIBS@
 
-PS_Program_SOURCES = PS_Program.f90
+PS_Program_SOURCES = PS_Program.f90 functions.f90
 PS_Program_LDADD = $(psolver_library) @LINALG_LIBS@
 
 PS_StressCheck_SOURCES = PS_StressCheck.f90

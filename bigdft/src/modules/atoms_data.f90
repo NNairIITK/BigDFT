@@ -25,7 +25,7 @@ module module_atoms
        & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE, ASTRUCT_ATT_CAVRAD
   use dictionaries, only: dictionary
   use f_trees, only: f_tree
-  use f_blas, only: f_matrix,f_matrix_allocate_ptr
+  use f_arrays
   implicit none
 
   private
@@ -424,7 +424,6 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms)
     use module_base
-    use f_blas, only: f_free_matrix_ptr
     use m_pawtab, only: pawtab_free
     use m_pawrad, only: pawrad_free
     use m_pawang, only: pawang_free
@@ -444,7 +443,7 @@ contains
     call f_free_ptr(atoms%nzatom)
     call f_free_ptr(atoms%psppar)
     call f_free_ptr(atoms%dogamma)
-    call f_free_matrix_ptr(atoms%gamma_targets)
+    call f_array_ptr_free(atoms%gamma_targets)
     atoms%apply_gamma_target=.false.
     call f_free_ptr(atoms%nelpsp)
     call f_free_ptr(atoms%ixcpsp)
@@ -574,7 +573,8 @@ contains
 
       sometarget=.false.
 
-      call f_matrix_allocate_ptr(gamma_ntypes,[0.to.lmax,1.to.2,1.to.astruct%ntypes])
+      gamma_ntypes=f_malloc_ptr([0.to.lmax,1.to.2,1.to.astruct%ntypes],&
+           id='gamma_ntypes')
 
       !iterate above atoms
       it=atoms_iter(astruct)
@@ -607,10 +607,10 @@ contains
             ishell=shell_toi(shell)
             !let us now see if the matrix has been already extracted
             do ispin=1,2
-               if (.not. fromname .or. .not. associated(gamma_ntypes(ishell,ispin,it%ityp)%dmat)) &
+               if (.not. fromname .or. .not. associated(gamma_ntypes(ishell,ispin,it%ityp)%ptr)) &
                     call get_gamma_target(iter,ishell,ispin,gamma_targets(ishell,ispin,it%iat))
                if (fromname) then
-                  if (associated(gamma_ntypes(ishell,ispin,it%ityp)%dmat)) then
+                  if (associated(gamma_ntypes(ishell,ispin,it%ityp)%ptr)) then
                      gamma_targets(ishell,ispin,it%iat)=&
                           gamma_ntypes(ishell,ispin,it%ityp)
                   else
@@ -625,8 +625,8 @@ contains
          sometarget=.true.
       end do
 
-      call f_free_matrix_ptr(gamma_ntypes)
-      if (.not. sometarget) call f_free_matrix_ptr(gamma_targets)
+      call f_array_ptr_free(gamma_ntypes)
+      if (.not. sometarget) call f_array_ptr_free(gamma_targets)
 
    call f_release_routine()
 
@@ -636,6 +636,7 @@ contains
     use yaml_strings
     use dictionaries
     use f_blas
+    use dynamic_memory
     implicit none
     integer, intent(in) :: ispin,l
     type(dictionary), pointer :: dict
@@ -657,8 +658,9 @@ contains
     else
        iter => dict
     end if
-    call f_matrix_allocate(mat,n=2*l+1)
-    call get_matrix_from_dict(iter,l,mat%dmat)
+    !call f_matrix_allocate(mat,n=2*l+1)
+    mat=f_malloc_ptr([2*l+1,2*l+1],id='mat')
+    call get_matrix_from_dict(iter,l,mat%ptr)
   end subroutine get_gamma_target
 
   subroutine get_matrix_from_dict(dict,l,mat)
@@ -2106,7 +2108,7 @@ subroutine allocate_atoms_nat(atoms)
   use module_base
   use module_atoms, only: atoms_data
   use ao_inguess, only : aoig_data_null,lmax_ao
-  use f_blas, only: f_matrix_allocate_ptr
+  use f_arrays
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
@@ -2122,7 +2124,7 @@ subroutine allocate_atoms_nat(atoms)
        id='dogamma')
 
   !put also spin in the allocations
-  call f_matrix_allocate_ptr(atoms%gamma_targets,[0.to.lmax_ao,1.to.2,1.to.atoms%astruct%nat])
+  atoms%gamma_targets=f_malloc_ptr([0.to.lmax_ao,1.to.2,1.to.atoms%astruct%nat],id='gamma_targets')
 
 END SUBROUTINE allocate_atoms_nat
 

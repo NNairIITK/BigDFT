@@ -42,6 +42,7 @@ module f_functions
   type(f_enumerator), public :: f_sine=f_enumerator('SINE',FUNC_SINE,null())
   type(f_enumerator), public :: f_atan=f_enumerator('ATAN',FUNC_ATAN,null())
   type(f_enumerator), public :: f_erf=f_enumerator('ERF',FUNC_ERF,null())
+  type(f_enumerator) :: ENUM_1D_GRID=f_enumerator('1D_GRID',-1,null())
 
 
   type, public :: f_function
@@ -54,6 +55,13 @@ module f_functions
      type(f_function), pointer :: multiply
      type(f_function), pointer :: add
   end type f_function
+
+  type, public :: f_grid
+     type(f_enumerator) :: fmt
+     integer :: npts=0
+     real(f_double) :: h=0.0_f_double
+     real(f_double) :: c=0.0_f_double
+  end type f_grid
 
   public :: f_function_new,eval,diff
 
@@ -174,6 +182,52 @@ module f_functions
       end select
     end function diff
 
+    pure function grid_1d_new(npts,h,x0,centered) result(g)
+      implicit none
+      integer, intent(in) :: npts
+      real(f_double), intent(in) :: h
+      logical, intent(in), optional :: centered
+      real(f_double), intent(in), optional :: x0
+      type(f_grid) :: g
+      !local variables
+      !g%fmt=enum_1d_grid
+      g%npts=npts
+      g%h=h
+      g%c=0.0_f_double
+      if (present(centered)) then
+         if (centered) g%c=real(npts/2-1,f_double)
+      else if (present(x0)) then
+         g%c=x0
+      end if
+    end function grid_1d_new
+
+    pure function grid_x(g,i) result(x)
+      implicit none
+      type(f_grid), intent(in) :: g
+      integer, intent(in) :: i
+      real(f_double) :: x
+      
+      !for the moment only 1d grid, but also radial grid might be generalized
+      x=g%h*(real(i,f_double)-g%c)
+    end function grid_x
+
+    !>dump the function and its first derivative in the unit specified
+    subroutine f_function_dump(unit,func,grid)
+      implicit none
+      integer, intent(in) :: unit
+      type(f_function), intent(in) :: func
+      type(f_grid), intent(in) :: grid
+      !local variables
+      integer :: i
+      real(f_double) :: fx,fx1,fx2,x      
+      do i=1,grid%npts
+         x=grid_x(grid,i)
+         fx=eval(func,x)
+         fx1=diff(func,x)
+         fx2=diff(func,x,order=2)
+         write(unit,'(1x,I8,4(1x,e22.15))') i,x,fx,fx1,fx2
+      end do
+    end subroutine f_function_dump
 
     pure function gaussian(a,x,idiff) result(f)
       implicit none

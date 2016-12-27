@@ -1131,7 +1131,7 @@ contains
        !if the matrix is available search for the target
        if (associated(at%gamma_targets)) &
             !if the given point need a target then associate the actual potential
-            occ_ctrl= associated(at%gamma_targets(l-1,ispin,iat)%dmat) .and. nl%apply_gamma_target
+            occ_ctrl= associated(at%gamma_targets(l-1,ispin,iat)%ptr) .and. nl%apply_gamma_target
        do i=1,IMAX
           call nullify_atomic_proj_coeff(prj(i,i,l))
           prj(i,i,l)%hij=hij(i,i,l)
@@ -1139,7 +1139,7 @@ contains
              !it has to be discussed if the coefficient should change in to one
              !and we have to add the h11 term in the diagonal
              prj(i,i,l)%mat=&
-                  f_malloc_ptr(src_ptr=at%gamma_targets(l-1,ispin,iat)%dmat,id='prjmat')
+                  f_malloc_ptr(src_ptr=at%gamma_targets(l-1,ispin,iat)%ptr,id='prjmat')
              do m=1,2*l-1
                 prj(i,i,l)%mat(m,m)=prj(i,i,l)%mat(m,m)+prj(i,i,l)%hij
              end do
