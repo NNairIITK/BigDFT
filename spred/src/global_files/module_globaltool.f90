@@ -186,12 +186,14 @@ end subroutine construct_filename
 subroutine init_nat_rcov(gdat)
     use module_base
     use module_atoms, only: set_astruct_from_file,&
-                            deallocate_atomic_structure
+                            deallocate_atomic_structure,&
+                            nullify_atomic_structure
     implicit none
     !parameter
     type(gt_data), intent(inout) :: gdat
     !local
     character(len=600) :: filename
+    call nullify_atomic_structure(gdat%astruct)
     call check_filename(gdat,1)
     call construct_filename(gdat,1,1,filename)
     call deallocate_atomic_structure(gdat%astruct)
