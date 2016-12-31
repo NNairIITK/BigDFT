@@ -532,9 +532,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call yaml_mapping_open('Density')
          call yaml_map('MPI tasks 0-'//jfd**'(i5)','100%')
          if (jfd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI task '//jhd**'(i5)',npd**'(i5)'//'%')
+              call yaml_map('MPI task '//jhd**'(i5)',npd**'(i5)'+'%')
          if (jhd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI tasks'//jhd**'(i5)'//'-'//&
+              call yaml_map('MPI tasks'//jhd**'(i5)'+'-'+&
               (kernel%mpi_env%nproc-1)**'(i3)','0%')
         call yaml_mapping_close()
         jhk=10000
@@ -559,7 +559,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
            if (jfk < kernel%mpi_env%nproc-1) &
                 call yaml_map('MPI task'//trim(yaml_toa(jhk,fmt='(i5)')),trim(yaml_toa(npk,fmt='(i5)'))//'%')
            if (jhk < kernel%mpi_env%nproc-1) &
-                call yaml_map('MPI tasks'//trim(yaml_toa(jhk,fmt='(i5)'))//'-'//&
+                call yaml_map('MPI tasks'//trim(yaml_toa(jhk,fmt='(i5)'))+'-'+&
                 yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
            call yaml_mapping_close()
         call yaml_map('Complete LB per task','1/3 LB_density + 2/3 LB_kernel')

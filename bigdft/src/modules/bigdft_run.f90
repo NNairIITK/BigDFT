@@ -1844,6 +1844,7 @@ contains
     use SWpotential
     use wrapper_linalg, only: vscal
     use module_f_objects
+    use module_atoms, only: astruct_constraints
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1895,6 +1896,9 @@ contains
           end if
        end if
     end if
+
+    !inform the user about specified constraints (experimental routine)
+    call astruct_constraints(runObj%atoms%astruct)
 
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
