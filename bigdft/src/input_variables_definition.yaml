@@ -2014,7 +2014,7 @@
  ##       This spectrum will be adjusted automatically if not chosen appropriately.
  ##     RANGE: [-10.0,10.0]
  ##     default: [-0.5,0.5]
- ##   fscale_foe:
+ ##   fscale:
  ##     COMMENT: Decay length of the error function
  ##     DESCRIPTION: |
  ##       Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
@@ -2276,7 +2276,7 @@ linear:
    alphamix: 0.1
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0e-2
+   fscale: 5.0e-2
    delta_pnrm: 0.1
  lin_basis_params:
    ao_confinement: -1.0

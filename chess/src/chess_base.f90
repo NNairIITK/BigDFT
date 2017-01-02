@@ -43,7 +43,6 @@ module chess_base
     real(mp) :: fscale_lowerbound
     real(mp) :: fscale_upperbound
     real(mp),dimension(2) :: eval_range_foe
-    real(mp) :: fscale_foe
   end type foe_params
 
   type :: lapack_params
@@ -85,7 +84,6 @@ module chess_base
   character(len=*),parameter :: FSCALE_LOWERBOUND      = "fscale_lowerbound"
   character(len=*),parameter :: FSCALE_UPPERBOUND      = "fscale_upperbound"
   character(len=*),parameter :: EVAL_RANGE_FOE         = "eval_range_foe"
-  character(len=*),parameter :: FSCALE_FOE             = "fscale_foe"
   character(len=*),parameter :: BLOCKSIZE_PDSYEV       = "blocksize_pdsyev"
   character(len=*),parameter :: BLOCKSIZE_PDGEMM       = "blocksize_pdgemm"
   character(len=*),parameter :: MAXPROC_PDSYEV         = "maxproc_pdsyev"
@@ -122,7 +120,6 @@ module chess_base
       fp%fscale_lowerbound = 0.0_mp
       fp%fscale_upperbound = 0.0_mp
       fp%eval_range_foe(1:2) = 0.0_mp
-      fp%fscale_foe = 0.0_mp
     end function foe_params_null
 
     pure function lapack_params_null() result(lp)
@@ -280,8 +277,6 @@ module chess_base
               cp%foe%fscale_upperbound = val
           case(EVAL_RANGE_FOE)
               cp%foe%eval_range_foe = val
-          case(FSCALE_FOE)
-              cp%foe%fscale_foe = val
           case default
               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
           end select

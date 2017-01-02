@@ -295,7 +295,7 @@
     #                                              mininimization.
    eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  decay length of the error function
+   fscale                          : 2.e-2 #  decay length of the error function
    coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
    pexsi_npoles                        : 40 #     number of poles used by PEXSI
    pexsi_mumin                         : -1.0 #   initial guess for the lower bound of the chemical potential used by PEXSI

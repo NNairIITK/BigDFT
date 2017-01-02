@@ -26,7 +26,7 @@
    nit: [8, 1]
    alphamix: 1.0
    linear_method: DIRMIN
-   fscale_foe: 5.0000000000000003E-002
+   fscale: 5.0000000000000003E-002
  lin_basis_params:
    O:
      ao_confinement: 1.0E-003

@@ -206,7 +206,7 @@
    linear_method                       : FOE #    method to optimize the density kernel
    eval_range_foe: [-1.0, 1.0] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 5.0E-002 # decay length of the error function
+   fscale                          : 5.0E-002 # decay length of the error function
    gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
    rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
     #                                              optimization

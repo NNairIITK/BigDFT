@@ -241,7 +241,7 @@
     #                                              mininimization.
    eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  decay length of the error function
+   fscale                          : 2.e-2 #  decay length of the error function
  lin_basis_params:
    nbasis                              : 4 #      number of support functions per atom
    ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
@@ -511,7 +511,7 @@
     #                                              mininimization.
    eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  decay length of the error function
+   fscale                          : 2.e-2 #  decay length of the error function
  lin_basis_params:
    nbasis                              : 4 #      number of support functions per atom
    ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential

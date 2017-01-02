@@ -97,7 +97,7 @@
     
     
      eval_range_foe: [-2.3, 2.7]
-     fscale_foe: 2.9999999999999999E-002
+     fscale: 2.9999999999999999E-002
    pexsi:
     
     

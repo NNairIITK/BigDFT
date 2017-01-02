@@ -99,7 +99,7 @@
     
     
      eval_range_foe: [-1.0, 1.0]
-     fscale_foe: 5.0E-002
+     fscale: 5.0E-002
    pexsi:
      #pexsi_npoles : 60 # number of poles used by PEXSI
      #pexsi_mumin : -1.5 # initial guess for the lower bound of the chemical potential used by PEXSI #pexsi_mumin : -1.5 # initial guess for the lower bound of the chemical potential used by PEXSI

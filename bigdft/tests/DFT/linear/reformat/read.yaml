@@ -30,7 +30,7 @@
    nit: 3
    alphamix: 0.3
    rpnrm_cv: 1.0E-013
-   fscale_foe: 5.0000000000000003E-002
+   fscale: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 0.0

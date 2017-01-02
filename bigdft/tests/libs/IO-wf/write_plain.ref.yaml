@@ -76,7 +76,7 @@
      fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length
      fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
-     fscale_foe : 2.e-2 # Decay length of the error function fscale_foe : 2.e-2 # Decay length of the error function fscale_foe : 2.e-2 # Decay length of the error function fscale_foe : 2.e-2 # Decay length of the error function
+     fscale : 2.e-2 # Decay length of the error function fscale : 2.e-2 # Decay length of the error function fscale : 2.e-2 # Decay length of the error function fscale : 2.e-2 # Decay length of the error function
  input_minimal_file                    : plain
  outdir                                : ./
  dft:
@@ -586,7 +586,7 @@
      fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length
      fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
-     fscale_foe : 2.e-2 # Decay length of the error function fscale_foe : 2.e-2 # Decay length of the error function fscale_foe : 2.e-2 # Decay length of the error function fscale_foe : 2.e-2 # Decay length of the error function
+     fscale : 2.e-2 # Decay length of the error function fscale : 2.e-2 # Decay length of the error function fscale : 2.e-2 # Decay length of the error function fscale : 2.e-2 # Decay length of the error function
  dft:
    hgrids                              : 0.4 #    Grid spacing in the three directions (bohr)
    rmult: [6.0, 8.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius

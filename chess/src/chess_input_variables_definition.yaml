@@ -39,8 +39,11 @@
      default: 4
    fscale:
      COMMENT: Initial guess for the error fucntion decay length
+     DESCRIPTION: |
+       Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+       This value will be adjusted automatically if not chosen appropriately.
      RANGE: [1.e-4,1.e-2]
-     default: 2.e-2
+     default: 5.e-2
    fscale_lowerbound:
      COMMENT: Lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
@@ -56,13 +59,13 @@
        This spectrum will be adjusted automatically if not chosen appropriately.
      RANGE: [-10.0,10.0]
      default: [-0.5,0.5]
-   fscale_foe:
-     COMMENT: Decay length of the error function
-     DESCRIPTION: |
-       Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
-       This value will be adjusted automatically if not chosen appropriately.
-     RANGE: [1.e-3,5.e-2]
-     default: 2.e-2
+   #fscale:
+   #  COMMENT: Decay length of the error function
+   #  DESCRIPTION: |
+   #    Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+   #    This value will be adjusted automatically if not chosen appropriately.
+   #  RANGE: [1.e-3,5.e-2]
+   #  default: 2.e-2
  lapack:
    blocksize_pdsyev:
      COMMENT: SCALAPACK linear scaling blocksize for diagonalization

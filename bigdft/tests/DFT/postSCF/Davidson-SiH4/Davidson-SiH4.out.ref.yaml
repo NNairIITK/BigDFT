@@ -302,7 +302,7 @@
     #                                              mininimization.
    eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  decay length of the error function
+   fscale                          : 2.e-2 #  decay length of the error function
    coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
  lin_basis_params:
    nbasis                              : 4 #      number of support functions per atom

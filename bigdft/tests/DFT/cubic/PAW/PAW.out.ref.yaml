@@ -91,7 +91,7 @@
      fscale_lowerbound : 5.e-3 # linear scaling lower bound for the error function decay length
      fscale_upperbound : 5.e-2 # linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
-     fscale_foe : 2.e-2 # decay length of the error function
+     fscale : 2.e-2 # decay length of the error function
  psppar.C:
    Source                              : C.LDA-PW-paw.abinit.wvl
    Radii of active regions (AU):

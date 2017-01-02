@@ -62,7 +62,7 @@
      fscale_lowerbound : 5.e-3 # Linear scaling lower bound for the error function decay length
      fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length
      eval_range_foe: [-1.0, 1.0] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
-     fscale_foe : 0.05 # Decay length of the error function
+     fscale : 0.05 # Decay length of the error function
  dft:
    disablesym                          : true #   Disable the symmetry detection
    external_potential:

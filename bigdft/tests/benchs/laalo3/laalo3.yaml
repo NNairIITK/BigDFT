@@ -42,7 +42,7 @@
    alphamix: 0.3
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   fscale: 5.0E-002
  lin_basis_params:
    La:
      nbasis: 18
