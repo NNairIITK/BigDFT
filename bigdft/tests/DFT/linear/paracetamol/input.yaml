@@ -84,6 +84,26 @@
      format: xyz
      source: posinp
  chess:
-   evbounds_nsatur: 100
-   eval_range_foe: [-2.3, 2.7]
-   fscale_foe: 2.9999999999999999E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+    
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-2.3, 2.7]
+     fscale_foe: 2.9999999999999999E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

@@ -154,6 +154,26 @@
    - H: [-8.0603186415029171E-004,  1.0255935221177293E-003, -3.9681560089577239E-004]
    energy (Ha): -261.7129559404147
  chess:
-   ef_interpol_chargediff: 1.0
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale_foe: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

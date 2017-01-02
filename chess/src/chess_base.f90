@@ -272,6 +272,8 @@ module chess_base
               cp%foe%evbounds_nsatur = val
           case(EVBOUNDSSHRINK_NSATUR)
               cp%foe%evboundsshrink_nsatur = val
+          case(FSCALE)
+              cp%foe%fscale = val
           case(FSCALE_LOWERBOUND)
               cp%foe%fscale_lowerbound = val
           case(FSCALE_UPPERBOUND)
@@ -312,6 +314,8 @@ module chess_base
               cp%pexsi%pexsi_tol_charge = val
           case(PEXSI_NP_SYM_FACT)
               cp%pexsi%pexsi_np_sym_fact = val
+          case(PEXSI_DELTAE)
+              cp%pexsi%pexsi_DeltaE = val
           case default
               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
           end select

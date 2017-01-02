@@ -57,5 +57,47 @@
      source: posinp
    energy (Ha): -17.17977402367096
  chess:
-   ef_interpol_det: 0.10E-19
-   fscale_foe: 5.0000000000000003E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+    
+    
+    
+    
+    
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+    
+    
+    
+    
+    
+     fscale_foe: 5.0000000000000003E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

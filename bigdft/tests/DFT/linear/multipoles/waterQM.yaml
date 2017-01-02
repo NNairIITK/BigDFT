@@ -69,6 +69,26 @@
    - H: [3.07145313043265089E-01, 2.08503970823405854E-01, 6.73578314472255357E+00]
    - H: [2.15712775822406000E+00, 1.92204932680980578E+00, 8.15614355059263474E+00]
  chess:
-   ef_interpol_chargediff: 1.0
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale_foe: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

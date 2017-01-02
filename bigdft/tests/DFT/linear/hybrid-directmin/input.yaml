@@ -80,6 +80,26 @@
      format: xyz
      source: posinp
  chess:
-   ef_interpol_det: 0.10E-19
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 2.9999999999999999E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale_foe: 2.9999999999999999E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

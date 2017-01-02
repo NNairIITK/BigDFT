@@ -70,4 +70,26 @@
      format: xyz
      source: posinp
  chess:
-   fscale_foe: 5.0000000000000003E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+    
+    
+    
+    
+    
+    
+     fscale_foe: 5.0000000000000003E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

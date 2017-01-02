@@ -63,26 +63,20 @@
  logfile                               : Yes
  run_from_files                        : Yes
  chess:
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
-   blocksize_pdsyev                    : -8 #     SCALAPACK linear scaling blocksize
-   blocksize_pdgemm                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
-   fscale_foe                          : 5.0000000000000003E-002 # decay length of the error function
-   pexsi_npoles                        : 40 #     number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  charge tolerance used PEXSI
+   lapack:
+     blocksize_pdsyev : -8 # SCALAPACK linear scaling blocksize
+     blocksize_pdgemm : -8 # SCALAPACK linear scaling blocksize
+     maxproc_pdsyev : 4 # SCALAPACK linear scaling max num procs
+     maxproc_pdgemm : 4 # SCALAPACK linear scaling max num procs
+   foe:
+     ef_interpol_det : 1.e-12 # FOE max determinant of cubic interpolation matrix
+     ef_interpol_chargediff : 1.0 # FOE max charge difference for interpolation
+     evbounds_nsatur : 3 # Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+     evboundsshrink_nsatur : 4 # maximal number of unsuccessful eigenvalue bounds shrinkings
+     fscale_lowerbound : 5.e-3 # linear scaling lower bound for the error function decay length
+     fscale_upperbound : 5.e-2 # linear scaling upper bound for the error function decay length
+     eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
+     fscale_foe : 5.0000000000000003E-002 # decay length of the error function
  dft:
    hgrids                              : 0.30 #   Grid spacing in the three directions (bohr)
    rmult: [5.0, 7.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius

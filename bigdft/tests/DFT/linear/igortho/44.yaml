@@ -99,6 +99,26 @@
      format: xyz
      source: tt
  chess:
-   ef_interpol_chargediff: 1.0
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale_foe: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

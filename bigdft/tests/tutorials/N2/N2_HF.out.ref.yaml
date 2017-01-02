@@ -61,18 +61,20 @@
  logfile                               : Yes
  run_from_files                        : Yes
  chess:
-   ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0      # FOE max charge difference for interpolation
-   blocksize_pdsyev                    : -8 #     SCALAPACK linear scaling blocksize
-   blocksize_pdgemm                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
-   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
-   fscale_foe                          : 2.e-2 #  decay length of the error function
+   lapack:
+     blocksize_pdsyev : -8 # SCALAPACK linear scaling blocksize
+     blocksize_pdgemm : -8 # SCALAPACK linear scaling blocksize
+     maxproc_pdsyev : 4 # SCALAPACK linear scaling max num procs
+     maxproc_pdgemm : 4 # SCALAPACK linear scaling max num procs
+   foe:
+     ef_interpol_det : 0.10E-19 # FOE max determinant of cubic interpolation matrix
+     ef_interpol_chargediff : 1.0 # FOE max charge difference for interpolation
+     evbounds_nsatur : 3 # Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+     evboundsshrink_nsatur : 4 # maximal number of unsuccessful eigenvalue bounds shrinkings
+     fscale_lowerbound : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
+     fscale_upperbound : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
+     eval_range_foe: [-0.5, 0.5] # lower and upper bound of the eigenvalue spectrum, will be adjusted
+     fscale_foe : 2.e-2 # decay length of the error function
  perf:
    debug                               : No #     Debug option
    fftcache                            : 8192 #   Cache size for the FFT

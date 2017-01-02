@@ -83,7 +83,26 @@
      format: xyz
      source: posinp
  chess:
-   #ef_interpol_chargediff: 0.10E-02
-   evbounds_nsatur: 100
-   eval_range_foe: [-2.0, 2.2]
-   fscale_foe: 2.9999999999999999E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     #ef_interpol_chargediff: 0.10E-02
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-2.0, 2.2]
+     fscale_foe: 2.9999999999999999E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

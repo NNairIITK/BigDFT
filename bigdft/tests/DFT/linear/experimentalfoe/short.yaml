@@ -85,7 +85,26 @@
      format: xyz
      source: short
  chess:
-   ef_interpol_det: 0.10E-19
-   evbounds_nsatur: 100
-   eval_range_foe: [-1.5, 1.5]
-   fscale_foe: 1.0E-002
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-1.5, 1.5]
+     fscale_foe: 1.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    
