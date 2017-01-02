@@ -149,7 +149,10 @@ contains
     dict_tmp => dict_iter(inputdef)
     do while (associated(dict_tmp))
        if (present(nocheck)) localcheck = dict_key(dict_tmp) .notin. nocheck
+       write(*,*) 'trim(dict_key(dict_tmp))',trim(dict_key(dict_tmp))
+       call yaml_map('dict_tmp',dict_tmp)
        call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),localcheck,verb)
+       call yaml_map('dict//trim(dict_key(dict_tmp))',dict//trim(dict_key(dict_tmp)))
        dict_tmp => dict_next(dict_tmp)
     end do
 
@@ -180,6 +183,7 @@ contains
 
     !    call f_routine(id='input_keys_set')
 
+    !write(*,*) 'key  ',key
     ref => inputdef // file // key
 
     !profile_(1:max_field_length) = " "
@@ -187,6 +191,7 @@ contains
     call f_strcpy(src=DEFAULT,dest=profile_)
 
     userDef = key .in. dict !(has_key(dict, key))
+    !write(*,*) 'userDef',userDef
     if (userDef) then
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) then
@@ -243,6 +248,7 @@ contains
 
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) then
+           !write(*,*) 'FIRST if'
 !!$          call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
 !!$               & err_msg = trim(file) // "/" // trim(key) // " has to be presentd with a master key.")
           !          call f_release_routine()
@@ -252,6 +258,7 @@ contains
 
        ! Hard-coded profile from key.
        if (PROF_KEY .in. ref) then
+           !write(*,*) 'SECOND if'
           val = ref // PROF_KEY !this retrieve the value of the driver key
           !if might be a profile
           if (val .in. dict) then
@@ -262,11 +269,13 @@ contains
        ! There is no value in dict, we take it from ref.
        !first check if the provided value is among the profiles of ref
        if (profile_ .notin. ref) then
+          !write(*,*) 'THIRD if, profile_   ', profile_
           !it still might be one of the values of the profiles of ref
           nullify(iter)
           do while(iterating(iter,on=inputdef // file // val))
              if (dict_value(iter) .eqv. profile_) then
                 profile_=dict_key(iter)
+                !write(*,*) 'new profile_  ',profile_
                 exit
              end if
           end do
@@ -275,15 +284,21 @@ contains
        !still search if the chosen profile correspons to the value of another profile
        val = dict_value(ref // profile_)
        if (val .in. ref) then
+           !write(*,*) 'FIRST COPY'
           call dict_copy(dict // key, ref // val)
        else
+           !write(*,*) 'SECOND COPY'
+           !write(*,*) 'key',key
+           !write(*,*) 'profile_',profile_
+           !call yaml_map('ref // val',ref // val)
           call dict_copy(dict // key, ref // profile_)
        end if
     end if
 
     ! Copy the comment.
-    if (has_key(ref, COMMENT)) &
+    if (has_key(ref, COMMENT)) then
          call dict_copy(dict // (trim(key) // ATTRS) // COMMENT, ref // COMMENT)
+     end if
     ! Save the source.
     if (userDef) &
          call set(dict // (trim(key) // ATTRS) // USER_KEY, .true.)
@@ -420,6 +435,10 @@ contains
     ref => inputdef // file
 
     ref_iter => dict_iter(inputdef // file)
+    !call yaml_map('ref',ref)
+    !call yaml_map('ref_iter',ref_iter)
+    !call yaml_map('inputdef',inputdef)
+    !write(*,*) 'DESCRIPTION  ', DESCRIPTION
     hasUserDef = .false.
 !!$    call yaml_map('inputdef_now',inputdef // file)
     do while(associated(ref_iter))
@@ -430,7 +449,9 @@ contains
 !!$          call dump_dict_impl(ref_iter)
           !open a try-catch section to understand where the error is, if any
           call f_err_open_try()
+          !write(*,*) 'dict_key(ref_iter)',dict_key(ref_iter)
           call input_keys_set(inputdef,user, dict // file, file, dict_key(ref_iter))
+          !call yaml_map('dict // file',dict // file)
           call f_err_close_try(exceptions=errs)
           if (associated(errs)) then
              if (verbose) call yaml_map('List of error found while parsing input variables',errs)

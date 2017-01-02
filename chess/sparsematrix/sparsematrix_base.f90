@@ -35,7 +35,7 @@ module sparsematrix_base
   use sparsematrix_errorhandling
   use sparsematrix_timing
   use sparsematrix_types
- use sparsematrix_memory
+  use sparsematrix_memory
 
   implicit none
 

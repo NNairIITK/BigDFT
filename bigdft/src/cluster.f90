@@ -58,7 +58,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
-  type(input_variables), intent(in) :: in
+  type(input_variables), intent(inout) :: in !SM: I had to change this to inout due to the new CheSS parameters within input_variables, maybe to be changed again later...
   type(atoms_data), intent(inout) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb

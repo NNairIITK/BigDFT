@@ -19,6 +19,7 @@ module module_input_keys
   use multipole_base, only: external_potential_descriptors
   use dynamic_memory
   use fragment_base
+  use chess_base, only: chess_params
   implicit none
 
   private
@@ -232,6 +233,10 @@ module module_input_keys
 
      !> solver parameters
      type(dictionary), pointer :: PS_dict,PS_dict_seq
+
+     !> CheSS parameters
+     type(dictionary), pointer :: chess_dict
+     type(chess_params) :: cp
 
      !> atomic density matrix requests
      type(dictionary), pointer :: at_gamma
@@ -653,6 +658,10 @@ contains
     !then other treatments for the sequential solver might be added
     call set(in%PS_dict_seq // SETUP_VARIABLES // VERBOSITY, .false.)
 
+    !copy the CheSS dictionary
+    call dict_copy(src=dict // CHESS, dest=in%chess_dict)
+
+
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
     cfrmults = dict // DFT_VARIABLES // RMULT
@@ -987,11 +996,12 @@ contains
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
     use PStypes, only: PS_input_dict
+    use chess_base, only: chess_input_dict
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested,dict_ps_min,tmp
+    type(dictionary), pointer :: as_is,nested,dict_ps_min,dict_chess_min,tmp
     character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar
@@ -1021,6 +1031,10 @@ contains
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
 
+    !then we can complete the CheSS dictionary
+    !call yaml_map('dict // CHESS',dict // CHESS)
+    call chess_input_dict(dict // CHESS,dict_chess_min)
+
     call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
 
     !create a shortened dictionary which will be associated to the given run
@@ -1037,6 +1051,7 @@ contains
 
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
+    if (associated(dict_chess_min)) call set(dict_minimal // CHESS,dict_chess_min)
     call dict_free(nested,as_is)
 
 
@@ -2287,6 +2302,7 @@ contains
        ! the KPT variables ------------------------------------------------------
     ! The CheSS variables...will be moved later
     case (CHESS)
+       write(*,*) 'trim(dict_key(val)) ',trim(dict_key(val))
        select case (trim(dict_key(val)))
        case (EF_INTERPOL_DET)
           !FOE: if the determinant of the interpolation matrix to find the Fermi energy
@@ -2444,6 +2460,7 @@ contains
     nullify(in%nkptsv_group)
     nullify(in%PS_dict)
     nullify(in%PS_dict_seq)
+    nullify(in%chess_dict)
     nullify(in%at_gamma)
     call f_zero(in%calculate_strten)
     call f_zero(in%nab_options)
@@ -2597,6 +2614,7 @@ contains
     call f_ref_free(in%refcnt)
     call dict_free(in%PS_dict)
     call dict_free(in%PS_dict_seq)
+    call dict_free(in%chess_dict)
     call dict_free(in%at_gamma)
     call free_geopt_variables(in)
     call free_kpt_variables(in)

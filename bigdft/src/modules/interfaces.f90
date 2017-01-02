@@ -1029,7 +1029,7 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc
          integer, intent(out) :: input_wf_format,lnpsidim_orbs,lnpsidim_comp
          type(f_enumerator), intent(inout) :: inputpsi
-         type(input_variables), intent(in) :: in
+         type(input_variables), intent(inout) :: in
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
          logical, intent(in) :: OCLconv

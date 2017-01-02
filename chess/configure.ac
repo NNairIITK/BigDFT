@@ -11,6 +11,12 @@ AC_INIT([Chebyshev Sparse Solvers],[0.1.3],[stephan.mohr@bsc.es],[CheSS])
 
 AC_CONFIG_MACRO_DIR([m4])
 
+dnl All temporary building files are put in this directory.
+dnl his must be called before AM_INIT_AUTOMAKE
+AC_CONFIG_AUX_DIR(config)
+dnl Use a config.h file to store macro definitions, required for CUDA.
+AC_CONFIG_HEADERS(config.h)
+
 dnl Init something, don't know exactly what...
 AM_INIT_AUTOMAKE([-Wno-portability])
 
@@ -30,6 +36,9 @@ AC_SUBST(CHESS_NANO_VERSION)
 dnl Check for sed and put it in the SED variable
 AC_PROG_SED()
 
+dnl We defined CC for the bindings.
+AC_PROG_CC()
+AM_PROG_CC_C_O()
 dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
@@ -40,6 +49,7 @@ dnl Defining Fortran language for tests.
 AC_LANG(Fortran)
 AC_FC_SRCEXT(f90)
 
+AC_FC_WRAPPERS()
 AX_FC_DEFS()
 AX_FC_OPENMP()
 
@@ -50,6 +60,13 @@ AC_SUBST(MODULE_EXT, $ax_fc_mod_ext)
 dnl default installation directories
 AX_FC_MODULEDIR()
 
+dnl Set the FCFLAGS and FFLAGS variable
+if test -z "$FFLAGS" ; then
+  AC_SUBST(FFLAGS, "-O2")
+fi
+if test -n "$FCFLAGS_f90" ; then
+  FCFLAGS="$FCFLAGS $FCFLAGS_f90"
+fi
 if test -z "$FCFLAGS" ; then
   AC_SUBST(FCFLAGS, "-O2")
 fi
@@ -141,6 +158,7 @@ Chebyshev Sparse Solvers configure summary:
 Basics:
   Fortran90 compiler:        $FC
   Fortran90 flags:           $FCFLAGS
+  Fortran77 flags:           $FFLAGS
   Linker flags:              $LDFLAGS
   Linked libraries:          $LIB_CHESS_DEPS $LIBS
 
@@ -182,3 +200,7 @@ if test x"$ac_use_mpi" = x"warn" -o x"$ax_have_etsf_io" = x"warn" -o x"$withscal
   fi
 
 fi
+
+dnl Do not touch this line. On the Cray machine in Basel, the preprocessor
+dnl in Fortran sources does not allow C comments (/*  */), so we remove them.
+$SED -n '1h;1!H;${;g;s%/\*[[^*]]*\*/%%g;p;}' config.h > config.inc
