@@ -39,6 +39,7 @@ module chess_base
     real(mp) :: ef_interpol_chargediff
     integer :: evbounds_nsatur
     integer :: evboundsshrink_nsatur
+    real(mp) :: fscale
     real(mp) :: fscale_lowerbound
     real(mp) :: fscale_upperbound
     real(mp),dimension(2) :: eval_range_foe
@@ -46,8 +47,8 @@ module chess_base
   end type foe_params
 
   type :: lapack_params
-    integer :: pdsyev_blocksize
-    integer :: pdgemm_blocksize
+    integer :: blocksize_pdsyev
+    integer :: blocksize_pdgemm
     integer :: maxproc_pdsyev
     integer :: maxproc_pdgemm
   end type lapack_params
@@ -60,6 +61,7 @@ module chess_base
     real(mp) :: pexsi_temperature
     real(mp) :: pexsi_tol_charge
     integer :: pexsi_np_sym_fact
+    real(mp) :: pexsi_DeltaE
   end type pexsi_params
 
   !> Public types
@@ -79,12 +81,13 @@ module chess_base
   character(len=*),parameter :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
   character(len=*),parameter :: EVBOUNDS_NSATUR        = "evbounds_nsatur"
   character(len=*),parameter :: EVBOUNDSSHRINK_NSATUR  = "evboundsshrink_nsatur"
+  character(len=*),parameter :: FSCALE                 = "fscale"
   character(len=*),parameter :: FSCALE_LOWERBOUND      = "fscale_lowerbound"
   character(len=*),parameter :: FSCALE_UPPERBOUND      = "fscale_upperbound"
   character(len=*),parameter :: EVAL_RANGE_FOE         = "eval_range_foe"
   character(len=*),parameter :: FSCALE_FOE             = "fscale_foe"
-  character(len=*),parameter :: PDSYEV_BLOCKSIZE       = "pdsyev_blocksize"
-  character(len=*),parameter :: PDGEMM_BLOCKSIZE       = "pdgemm_blocksize"
+  character(len=*),parameter :: BLOCKSIZE_PDSYEV       = "blocksize_pdsyev"
+  character(len=*),parameter :: BLOCKSIZE_PDGEMM       = "blocksize_pdgemm"
   character(len=*),parameter :: MAXPROC_PDSYEV         = "maxproc_pdsyev"
   character(len=*),parameter :: MAXPROC_PDGEMM         = "maxproc_pdgemm"
   character(len=*),parameter :: PEXSI_NPOLES           = "pexsi_npoles"
@@ -94,6 +97,7 @@ module chess_base
   character(len=*),parameter :: PEXSI_TEMPERATURE      = "pexsi_temperature"
   character(len=*),parameter :: PEXSI_TOL_CHARGE       = "pexsi_tol_charge"
   character(len=*),parameter :: PEXSI_NP_SYM_FACT      = "pexsi_np_sym_fact"
+  character(len=*),parameter :: PEXSI_DELTAE           = "pexsi_DeltaE"
 
 
 
@@ -114,6 +118,7 @@ module chess_base
       fp%ef_interpol_chargediff = 0.0_mp
       fp%evbounds_nsatur = 0
       fp%evboundsshrink_nsatur = 0
+      fp%fscale = 0.0_mp
       fp%fscale_lowerbound = 0.0_mp
       fp%fscale_upperbound = 0.0_mp
       fp%eval_range_foe(1:2) = 0.0_mp
@@ -123,8 +128,8 @@ module chess_base
     pure function lapack_params_null() result(lp)
       implicit none
       type(lapack_params) :: lp
-      lp%pdsyev_blocksize = 0
-      lp%pdgemm_blocksize = 0
+      lp%blocksize_pdsyev = 0
+      lp%blocksize_pdgemm = 0
       lp%maxproc_pdsyev = 0
       lp%maxproc_pdgemm = 0
     end function lapack_params_null
@@ -139,6 +144,7 @@ module chess_base
       pp%pexsi_temperature = 0.0_mp
       pp%pexsi_tol_charge = 0.0_mp
       pp%pexsi_np_sym_fact = 0
+      pp%pexsi_DeltaE = 0.0_mp
     end function pexsi_params_null
 
 
@@ -181,31 +187,19 @@ module chess_base
   
       !alternative filling of parameters from hard-coded source file
       !call getstaticinputdef(cbuf_add,params_size)
-      write(*,*) 'call getchessinputdefsize'
       call getchessinputdefsize(params_size)
-      write(*,*) 'params_size',params_size
       !allocate array
       params=f_malloc_str(1,params_size,id='params')
       !fill it and parse dictionary
-      write(*,*) 'call getchessinputdef'
       call getchessinputdef(params)
-      write(*,*) 'params',params
   
       call yaml_parse_from_char_array(parsed_parameters,params)
-      call yaml_map('parsed_parameters',parsed_parameters)
       !there is only one document in the input variables specifications
       parameters=>parsed_parameters//0
       profiles => parsed_parameters//1
       call f_free_str(1,params)
-      call yaml_map('parameters',parameters)
-      call yaml_map('profiles',profiles)
   
-      write(*,*) 'call input_file_complete'
-      call yaml_map('dict',dict)
       call input_file_complete(parameters,dict)!,imports=profiles)
-      write(*,*) 'after input_file_complete'
-      call yaml_map('dict',dict)
-      call yaml_map('parameters',parameters)
   
       if (present(dict_minimal)) then
          nullify(nested,asis)
@@ -271,46 +265,33 @@ module chess_base
       case(FOE_PARAMETERS)
           select case (trim(dict_key(val)))
           case(EF_INTERPOL_DET)
-              write(*,*) 'case 1.1'
               cp%foe%ef_interpol_det = val
           case(EF_INTERPOL_CHARGEDIFF)
-              write(*,*) 'case 1.2'
               cp%foe%ef_interpol_chargediff = val
           case(EVBOUNDS_NSATUR)
-              write(*,*) 'case 1.3'
               cp%foe%evbounds_nsatur = val
           case(EVBOUNDSSHRINK_NSATUR)
-              write(*,*) 'case 1.4'
               cp%foe%evboundsshrink_nsatur = val
           case(FSCALE_LOWERBOUND)
-              write(*,*) 'case 1.5'
               cp%foe%fscale_lowerbound = val
           case(FSCALE_UPPERBOUND)
-              write(*,*) 'case 1.6'
               cp%foe%fscale_upperbound = val
           case(EVAL_RANGE_FOE)
-              write(*,*) 'case 1.7'
               cp%foe%eval_range_foe = val
-              write(*,*) 'after case 1.7'
           case(FSCALE_FOE)
-              write(*,*) 'case 1.8'
               cp%foe%fscale_foe = val
           case default
               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
           end select
       case(LAPACK_PARAMETERS)
           select case (trim(dict_key(val)))
-          case(PDSYEV_BLOCKSIZE)
-              write(*,*) 'case 2.1'
-              cp%lapack%pdsyev_blocksize = val
-          case(PDGEMM_BLOCKSIZE)
-              write(*,*) 'case 2.2'
-              cp%lapack%pdgemm_blocksize = val
+          case(BLOCKSIZE_PDSYEV)
+              cp%lapack%blocksize_pdsyev = val
+          case(BLOCKSIZE_PDGEMM)
+              cp%lapack%blocksize_pdgemm = val
           case(MAXPROC_PDSYEV)
-              write(*,*) 'case 2.3'
               cp%lapack%maxproc_pdsyev = val
           case(MAXPROC_PDGEMM)
-              write(*,*) 'case 2.4'
               cp%lapack%maxproc_pdgemm = val
           case default
               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -318,25 +299,18 @@ module chess_base
       case(PEXSI_PARAMETERS)
           select case (trim(dict_key(val)))
           case(PEXSI_NPOLES)
-              write(*,*) 'case 3.1'
               cp%pexsi%pexsi_npoles = val
           case(PEXSI_MUMIN)
-              write(*,*) 'case 3.2'
               cp%pexsi%pexsi_mumin = val
           case(PEXSI_MUMAX)
-              write(*,*) 'case 3.3'
               cp%pexsi%pexsi_mumax = val
           case(PEXSI_MU)
-              write(*,*) 'case 3.4'
               cp%pexsi%pexsi_mu = val
           case(PEXSI_TEMPERATURE)
-              write(*,*) 'case 3.5'
               cp%pexsi%pexsi_temperature = val
           case(PEXSI_TOL_CHARGE)
-              write(*,*) 'case 3.6'
               cp%pexsi%pexsi_tol_charge = val
           case(PEXSI_NP_SYM_FACT)
-              write(*,*) 'case 3.7'
               cp%pexsi%pexsi_np_sym_fact = val
           case default
               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

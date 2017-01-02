@@ -438,12 +438,12 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      charge_fake = f_malloc0(in%nspin,id='charge_fake')
      call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, &
           tmprtr=0.d0, evbounds_nsatur=in%evbounds_nsatur, &
-          evboundsshrink_nsatur=in%evboundsshrink_nsatur, &
-          evlow=0.5d0, evhigh=1.5d0, fscale=in%lin%fscale, &
-          ef_interpol_det=in%lin%ef_interpol_det, &
-          ef_interpol_chargediff=in%lin%ef_interpol_chargediff, &
-          fscale_lowerbound=in%fscale_lowerbound, &
-          fscale_upperbound=in%fscale_upperbound, &
+          evboundsshrink_nsatur=in%cp%foe%evboundsshrink_nsatur, &
+          evlow=0.5d0, evhigh=1.5d0, fscale=in%cp%foe%fscale, &
+          ef_interpol_det=in%cp%foe%ef_interpol_det, &
+          ef_interpol_chargediff=in%cp%foe%ef_interpol_chargediff, &
+          fscale_lowerbound=in%cp%foe%fscale_lowerbound, &
+          fscale_upperbound=in%cp%foe%fscale_upperbound, &
           eval_multiplicator=1.d0)
      call f_free(charge_fake)
 

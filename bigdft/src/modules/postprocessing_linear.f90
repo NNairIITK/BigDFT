@@ -624,9 +624,9 @@ module postprocessing_linear
               energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .true., .false., .true., 0, 0, 0, 0, &
               order_taylor,input%lin%max_inversion_error,&
               input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-              input%tel, input%occopt, input%lin%pexsi_npoles, &
-              input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, input%lin%pexsi_DeltaE, &
-              input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, input%lin%pexsi_np_sym_fact)
+              input%tel, input%occopt, input%cp%pexsi%pexsi_npoles, &
+              input%cp%pexsi%pexsi_mumin, input%cp%pexsi%pexsi_mumax, input%cp%pexsi%pexsi_mu, input%cp%pexsi%pexsi_DeltaE, &
+              input%cp%pexsi%pexsi_temperature, input%cp%pexsi%pexsi_tol_charge, input%cp%pexsi%pexsi_np_sym_fact)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
          if (bigdft_mpi%iproc ==0) then
@@ -788,9 +788,10 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, &
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-           input%tel, input%occopt, input%lin%pexsi_npoles, &
-           input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, input%lin%pexsi_DeltaE, &
-           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, input%lin%pexsi_np_sym_fact, updatekernel=.false.)
+           input%tel, input%occopt, input%cp%pexsi%pexsi_npoles, &
+           input%cp%pexsi%pexsi_mumin, input%cp%pexsi%pexsi_mumax, input%cp%pexsi%pexsi_mu, input%cp%pexsi%pexsi_DeltaE, &
+           input%cp%pexsi%pexsi_temperature, input%cp%pexsi%pexsi_tol_charge, &
+           input%cp%pexsi%pexsi_np_sym_fact, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold

@@ -1981,7 +1981,7 @@
  ##     COMMENT: FOE max charge difference for interpolation
  ##     RANGE: [0., 1000.]
  ##     default: 1.0
- ##   pdsyev_blocksize:
+ ##   blocksize_pdsyev:
  ##     COMMENT: SCALAPACK linear scaling blocksize
  ##     default: -8
  ##   pdgemm_blocksize:

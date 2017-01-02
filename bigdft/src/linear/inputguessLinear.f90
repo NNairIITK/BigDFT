@@ -978,15 +978,17 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            input%SIC,tmb,fnrm,.true.,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor,&
            input%tel, input%occopt, &
-           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE,&
-           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact)
+           input%cp%pexsi%pexsi_npoles,input%cp%pexsi%pexsi_mumin,&
+           input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE,&
+           input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
            input%tel, input%occopt, &
-           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,input%lin%pexsi_DeltaE, &
-           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge,input%lin%pexsi_np_sym_fact)
+           input%cp%pexsi%pexsi_npoles,input%cp%pexsi%pexsi_mumin,&
+           input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE, &
+           input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)

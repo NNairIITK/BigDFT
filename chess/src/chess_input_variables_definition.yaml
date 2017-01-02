@@ -37,12 +37,16 @@
    evboundsshrink_nsatur:
      COMMENT: Maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
+   fscale:
+     COMMENT: Initial guess for the error fucntion decay length
+     RANGE: [1.e-4,1.e-2]
+     default: 2.e-2
    fscale_lowerbound:
-     COMMENT: Linear scaling lower bound for the error function decay length
+     COMMENT: Lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
      default: 5.e-3
    fscale_upperbound:
-     COMMENT: Linear scaling upper bound for the error function decay length
+     COMMENT: Upper bound for the error function decay length
      default: 5.e-2
      RANGE: [1.e-2,1.0]
    eval_range_foe:
@@ -60,11 +64,11 @@
      RANGE: [1.e-3,5.e-2]
      default: 2.e-2
  lapack:
-   pdsyev_blocksize:
-     COMMENT: SCALAPACK linear scaling blocksize
+   blocksize_pdsyev:
+     COMMENT: SCALAPACK linear scaling blocksize for diagonalization
      default: -8
-   pdgemm_blocksize:
-     COMMENT: SCALAPACK linear scaling blocksize
+   blocksize_pdgemm:
+     COMMENT: SCALAPACK linear scaling blocksize for matrix matrix multiplication
      default: -8
    maxproc_pdsyev:
      COMMENT: SCALAPACK linear scaling max num procs
@@ -110,3 +114,8 @@
      DESCRIPTION: Number of tasks used for the symbolic factorization within PEXSI. Too large values can apparently decrease the performance
      default: 16
      RANGE: [1,10000]
+   pexsi_DeltaE:
+     COMMENT: Upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI
+     DESCRIPTION: Upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI. This does not seem to be a critical parameter.
+     default: 10.0
+     RANGE: [-100.0,100.0]

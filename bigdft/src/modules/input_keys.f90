@@ -2301,62 +2301,62 @@ contains
        end select
        ! the KPT variables ------------------------------------------------------
     ! The CheSS variables...will be moved later
-    case (CHESS)
-       write(*,*) 'trim(dict_key(val)) ',trim(dict_key(val))
-       select case (trim(dict_key(val)))
-       case (EF_INTERPOL_DET)
-          !FOE: if the determinant of the interpolation matrix to find the Fermi energy
-          !is smaller than this value, switch from cubic to linear interpolation.
-          in%lin%ef_interpol_det = val
-       case (EF_INTERPOL_CHARGEDIFF)
-          in%lin%ef_interpol_chargediff = val
-       case (PDSYEV_BLOCKSIZE)
-          !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-          in%lin%blocksize_pdsyev = val
-       case (PDGEMM_BLOCKSIZE)
-          in%lin%blocksize_pdgemm = val
-       case (MAXPROC_PDSYEV)
-          !max number of process uses for pdsyev/pdsygv, pdgemm
-          in%lin%nproc_pdsyev = val
-       case (MAXPROC_PDGEMM)
-          in%lin%nproc_pdgemm = val
-       case (EVBOUNDS_NSATUR)
-          ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-          in%evbounds_nsatur = val
-       case(EVBOUNDSSHRINK_NSATUR)
-          ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-          in%evboundsshrink_nsatur = val
-       case (FSCALE_LOWERBOUND)
-          ! linear scaling: lower bound for the error function decay length
-          in%fscale_lowerbound = val
-       case (FSCALE_UPPERBOUND)
-          ! linear scaling: upper bound for the error function decay length
-          in%fscale_upperbound = val
-       case (EVAL_RANGE_FOE)
-          dummy_gp(1:2) = val
-          in%lin%evlow = dummy_gp(1)
-          in%lin%evhigh = dummy_gp(2)
-       case (FSCALE_FOE)
-          in%lin%fscale = val
-       case (PEXSI_NPOLES)
-          in%lin%pexsi_npoles = val
-       case (PEXSI_MUMIN)
-          in%lin%pexsi_mumin = val
-       case (PEXSI_MUMAX)
-          in%lin%pexsi_mumax = val
-       case (PEXSI_MU)
-          in%lin%pexsi_mu = val
-       case (PEXSI_DELTAE)
-          in%lin%pexsi_DeltaE = val
-       case (PEXSI_TEMPERATURE)
-          in%lin%pexsi_temperature = val
-       case (PEXSI_TOL_CHARGE)
-          in%lin%pexsi_tol_charge = val
-       case (PEXSI_NP_SYM_FACT)
-          in%lin%pexsi_np_sym_fact = val
-       case DEFAULT
-          call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
-       end select
+    !!case (CHESS)
+    !!   write(*,*) 'trim(dict_key(val)) ',trim(dict_key(val))
+    !!   select case (trim(dict_key(val)))
+    !!   case (EF_INTERPOL_DET)
+    !!      !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+    !!      !is smaller than this value, switch from cubic to linear interpolation.
+    !!      in%lin%ef_interpol_det = val
+    !!   case (EF_INTERPOL_CHARGEDIFF)
+    !!      in%lin%ef_interpol_chargediff = val
+    !!   case (PDSYEV_BLOCKSIZE)
+    !!      !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+    !!      in%lin%blocksize_pdsyev = val
+    !!   case (PDGEMM_BLOCKSIZE)
+    !!      in%lin%blocksize_pdgemm = val
+    !!   case (MAXPROC_PDSYEV)
+    !!      !max number of process uses for pdsyev/pdsygv, pdgemm
+    !!      in%lin%nproc_pdsyev = val
+    !!   case (MAXPROC_PDGEMM)
+    !!      in%lin%nproc_pdgemm = val
+    !!   case (EVBOUNDS_NSATUR)
+    !!      ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+    !!      in%evbounds_nsatur = val
+    !!   case(EVBOUNDSSHRINK_NSATUR)
+    !!      ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+    !!      in%evboundsshrink_nsatur = val
+    !!   case (FSCALE_LOWERBOUND)
+    !!      ! linear scaling: lower bound for the error function decay length
+    !!      in%fscale_lowerbound = val
+    !!   case (FSCALE_UPPERBOUND)
+    !!      ! linear scaling: upper bound for the error function decay length
+    !!      in%fscale_upperbound = val
+    !!   case (EVAL_RANGE_FOE)
+    !!      dummy_gp(1:2) = val
+    !!      in%lin%evlow = dummy_gp(1)
+    !!      in%lin%evhigh = dummy_gp(2)
+    !!   case (FSCALE_FOE)
+    !!      in%lin%fscale = val
+    !!   case (PEXSI_NPOLES)
+    !!      in%lin%pexsi_npoles = val
+    !!   case (PEXSI_MUMIN)
+    !!      in%lin%pexsi_mumin = val
+    !!   case (PEXSI_MUMAX)
+    !!      in%lin%pexsi_mumax = val
+    !!   case (PEXSI_MU)
+    !!      in%lin%pexsi_mu = val
+    !!   case (PEXSI_DELTAE)
+    !!      in%lin%pexsi_DeltaE = val
+    !!   case (PEXSI_TEMPERATURE)
+    !!      in%lin%pexsi_temperature = val
+    !!   case (PEXSI_TOL_CHARGE)
+    !!      in%lin%pexsi_tol_charge = val
+    !!   case (PEXSI_NP_SYM_FACT)
+    !!      in%lin%pexsi_np_sym_fact = val
+    !!   case DEFAULT
+    !!      call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+    !!   end select
     case (KPT_VARIABLES)
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)

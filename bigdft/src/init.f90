@@ -2612,9 +2612,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
  !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
   if (inputpsi .hasattr. 'LINEAR') then
-     tmb%orthpar%blocksize_pdsyev = in%lin%blocksize_pdsyev
-     tmb%orthpar%blocksize_pdgemm = in%lin%blocksize_pdgemm
-     tmb%orthpar%nproc_pdsyev = in%lin%nproc_pdsyev
+     tmb%orthpar%blocksize_pdsyev = in%cp%lapack%blocksize_pdsyev
+     tmb%orthpar%blocksize_pdgemm = in%cp%lapack%blocksize_pdgemm
+     tmb%orthpar%nproc_pdsyev = in%cp%lapack%maxproc_pdsyev
   end if
 
   !SIC parameters
@@ -3280,8 +3280,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%calculate_KS_residue,in%calculate_gap, &
              energs_work,.false.,in%lin%coeff_factor,in%tel,in%occopt,&
-             in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,in%lin%pexsi_DeltaE,&
-             in%lin%pexsi_temperature,in%lin%pexsi_tol_charge,in%lin%pexsi_np_sym_fact) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             in%cp%pexsi%pexsi_npoles,in%cp%pexsi%pexsi_mumin,&
+             in%cp%pexsi%pexsi_mumax,in%cp%pexsi%pexsi_mu,in%cp%pexsi%pexsi_DeltaE,&
+             in%cp%pexsi%pexsi_temperature,in%cp%pexsi%pexsi_tol_charge,in%cp%pexsi%pexsi_np_sym_fact) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 
