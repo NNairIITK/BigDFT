@@ -97,7 +97,7 @@ libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c malloc_repad.c \
 	razero.f90 getadd.f90 time.f90 \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
-	f_ternary.f90 f_objects.f90 fpython.f90 f_environment.f90 \
+	f_ternary.f90 f_objects.f90 fpython.f90 f_environment.f90 f_arrays.f90\
 	$(flush_files) $(getarg_files) $(CUDA_PROF) $(SIMGRID_SHARED_SOURCE) $(CUDA_SOURCES)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -156,6 +156,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	MODULE_F_OBJECTS.@MODULE_EXT@ \
 	F_PYTHON.@MODULE_EXT@ \
 	SMPI_SHARED.@MODULE_EXT@ \
+	F_ARRAYS.@MODULE_EXT@ \
 	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
 else
 modules = yaml_strings.@MODULE_EXT@ \
@@ -183,6 +184,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
 	f_jmp.@MODULE_EXT@ \
 	smpi_shared.@MODULE_EXT@ \
+	f_arrays.@MODULE_EXT@ \
 	module_razero.@MODULE_EXT@ $(CUDA_MODS)
 endif
 
@@ -203,18 +205,19 @@ NVCC_FLAGS = @NVCC_FLAGS@
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
+dictionaries_base.o: yaml_strings.o
+dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
+yaml_output.o : dictionaries.o f_utils.o f_enums.o $(YAML_INCLUDES)
+yaml_parse.o : dictionaries.o yaml_output.o
+f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o f_malloc.o
+
 f_enums.o: yaml_strings.o
 f_objects.o: f_precisions.o dictionaries.o yaml_output.o
 f_ternary.o: f_precisions.o yaml_strings.o
-dictionaries_base.o: yaml_strings.o
-dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
-dictionaries_base.o: yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)
 $(NVTX_DEP): $(NOOMP_INCLUDES)
 $(SIMGRID_DEP): $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
-yaml_output.o : dictionaries.o f_utils.o f_enums.o $(YAML_INCLUDES)
-yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(SIMGRID_DEP) $(F_MALLOC_INCLUDES)
 f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
@@ -222,12 +225,12 @@ dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profili
 	$(SIMGRID_SHARED_DEP)
 mem_profiling.o: yaml_output.o yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) $(SIMGRID_DEP) time.o f_utils.o f_input_file.o
-f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o f_malloc.o
 f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 randomData.o: f_precisions.o
+f_arrays.o: f_precisions.o dynamic_memory.o f_refcnts.o
 $(flush_object): yaml_output.o dictionaries.o
 fpython.o: dictionaries.o yaml_output.o f_objects.o
 

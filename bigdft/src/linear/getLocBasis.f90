@@ -1203,7 +1203,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       !if (target_function==TARGET_FUNCTION_IS_HYBRID .and. .not.energy_increased) then
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      ! Only need to renormalize the kernel if it is actually used.
+      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. target_function==TARGET_FUNCTION_IS_ENERGY) then
           tmb%ham_descr%can_use_transposed=.false.
           call f_memcpy(src=tmb%linmat%ovrlp_%matrix_compr, dest=ovrlp_old%matrix_compr)
 
@@ -1598,15 +1599,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Only need to reconstruct the kernel if it is actually used.
       !SM: Do we really need this here? We have already renormalized the kernel above in renormalize_kernel...
-      if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
-           .and. .not.complete_reset ) then
-          if(scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
-              call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
-                   tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
-              if (iproc==0) call yaml_map('reconstruct kernel',.true.)
-          else if (experimental_mode .and. .not.complete_reset) then
-          end if
-      end if
+      !!if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
+      !!     .and. .not.complete_reset ) then
+      !!    if(scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
+      !!        call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
+      !!             tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
+      !!        if (iproc==0) call yaml_map('reconstruct kernel',.true.)
+      !!    else if (experimental_mode .and. .not.complete_reset) then
+      !!    end if
+      !!end if
 
       if (iproc==0) then
           call yaml_mapping_close() !iteration

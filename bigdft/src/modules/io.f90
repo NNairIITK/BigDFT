@@ -2967,8 +2967,8 @@ module io
         ! Plain BigDFT files.
         do iorb=1,orbs%norbp
            do ispinor=1,orbs%nspinor
-keyg_fine=>wfd%keygloc(:,wfd%nseg_c+1:)
-keyv_fine=>wfd%keyvloc(wfd%nseg_c+1:)
+              keyg_fine=>wfd%keygloc(:,wfd%nseg_c+1:)
+              keyv_fine=>wfd%keyvloc(wfd%nseg_c+1:)
               call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out,iorb_shift=iorb_shift_)
               call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &

@@ -471,7 +471,6 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   !    write(210,*) pot(i)
   !end do
 
-
   if (.not. present(pkernel)) then
      call LocalHamiltonianApplication(iproc,nproc,at,orbs%npsidim_orbs,orbs,&
           Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
@@ -611,6 +610,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   else
      nullify(pkernelSIC%kernel)
   end if
+
 
   !fill the rest of the potential with the exact-exchange terms
   if (ipotmethod==1) then
@@ -846,6 +846,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               energs%ekin=energs%ekin+fi*ekin
               energs%epot=energs%epot+fi*epot
               energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
+              !print *,'test',psi_it%iorb,sum(hpsi_ptr)
               !  print *,'orbs2',psi_it%iorbp,psi_it%iorb,psi_it%ikpt,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
            end do loop_psi_lr
            !deallocations of work arrays
@@ -1130,7 +1131,7 @@ contains
        !if the matrix is available search for the target
        if (associated(at%gamma_targets)) &
             !if the given point need a target then associate the actual potential
-            occ_ctrl= associated(at%gamma_targets(l-1,ispin,iat)%dmat) .and. nl%apply_gamma_target
+            occ_ctrl= associated(at%gamma_targets(l-1,ispin,iat)%ptr) .and. nl%apply_gamma_target
        do i=1,IMAX
           call nullify_atomic_proj_coeff(prj(i,i,l))
           prj(i,i,l)%hij=hij(i,i,l)
@@ -1138,7 +1139,7 @@ contains
              !it has to be discussed if the coefficient should change in to one
              !and we have to add the h11 term in the diagonal
              prj(i,i,l)%mat=&
-                  f_malloc_ptr(src_ptr=at%gamma_targets(l-1,ispin,iat)%dmat,id='prjmat')
+                  f_malloc_ptr(src_ptr=at%gamma_targets(l-1,ispin,iat)%ptr,id='prjmat')
              do m=1,2*l-1
                 prj(i,i,l)%mat(m,m)=prj(i,i,l)%mat(m,m)+prj(i,i,l)%hij
              end do
@@ -1682,6 +1683,25 @@ contains
 
 END SUBROUTINE NonLocalHamiltonianApplication_old
 
+subroutine inspect_hpsi(orbs,Lzd,hpsi)
+  use module_types
+  use module_defs, only: wp
+  implicit none
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: Lzd
+  real(wp), dimension(*), intent(in) :: hpsi
+  !local variables
+  integer :: ispsi,iorb,nvctr,ilr
+  ispsi=1
+  do iorb=1,orbs%norbp
+     ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
+     nvctr=(Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+     print *,'sum for orb',iorb,sum(hpsi(ispsi:ispsi+nvctr-1))
+     ispsi=ispsi+nvctr
+  end do
+end subroutine inspect_hpsi
+
+
 !> routine which puts a barrier to ensure that both local and nonlocal hamiltonians have been applied
 !! in the GPU case puts a barrier to end the overlapped Local and nonlocal applications
 subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,&
@@ -1702,13 +1722,14 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    !local variables
    character(len=*), parameter :: subname='SynchronizeHamiltonianApplication'
    logical :: exctX
-   integer :: iorb,ispsi,ilr
+   integer :: iorb,ispsi,ilr,nvctr
    real(gp), dimension(4) :: wrkallred
 
    call f_routine(id='SynchronizeHamiltonianApplication')
 
+
    if(GPU%OCLconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
-      if (GPU%OCLconv) call finish_hamiltonian_OCL(orbs,energs%ekin,energs%epot,GPU)
+      call finish_hamiltonian_OCL(orbs,energs%ekin,energs%epot,GPU)
       ispsi=1
       do iorb=1,orbs%norbp
          ilr=orbs%inWhichLocreg(orbs%isorb+iorb)
@@ -1719,6 +1740,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
       end do
       call f_free_ptr(GPU%hpsi_ASYNC)
    endif
+
+
 
    exctX = xc_exctXfac(xc) /= 0.0_gp
 

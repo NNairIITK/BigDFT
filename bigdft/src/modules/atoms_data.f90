@@ -25,7 +25,7 @@ module module_atoms
        & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE, ASTRUCT_ATT_CAVRAD
   use dictionaries, only: dictionary
   use f_trees, only: f_tree
-  use f_blas, only: f_matrix,f_matrix_allocate_ptr
+  use f_arrays
   implicit none
 
   private
@@ -70,6 +70,7 @@ module module_atoms
      integer, dimension(:), pointer :: input_polarization  !< Used in AO generation for WFN input guess
      type(symmetry_data) :: sym                            !< The symmetry operators
      type(f_tree), dimension(:), pointer :: attributes     !< Static attributes per atom
+     type(dictionary), pointer :: properties               !< Global properties
   end type atomic_structure
 
   !> Data containing the information about the atoms in the system
@@ -129,7 +130,7 @@ module module_atoms
   public :: set_astruct_from_file,astruct_dump_to_file
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
-  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next
+  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next,atoms_iter_ensure_attr
   public :: nullify_atomic_neighbours, deallocate_atomic_neighbours
   public :: astruct_neighbours_iter, astruct_neighbours_next
   ! Dictionary inquire
@@ -138,6 +139,7 @@ module module_atoms
   public :: astruct_set_from_dict
   public :: astruct_file_merge_to_dict,atoms_file_merge_to_dict
   public :: psp_dict_analyse, nlcc_set_from_dict,atoms_gamma_from_dict
+  public :: astruct_constraints
 
 
 contains
@@ -234,6 +236,16 @@ contains
     atoms_iter_next=atoms_iter_is_valid(it)
   end function atoms_iter_next
 
+  subroutine atoms_iter_ensure_attr(it)
+    use dictionaries, only: dict_init
+    implicit none
+    type(atoms_iterator), intent(inout) :: it
+
+    if (.not. associated(it%attrs)) then
+       call dict_init(it%astruct_ptr%attributes(it%iat)%d)
+       it%attrs => it%astruct_ptr%attributes(it%iat)%d
+    end if
+  end subroutine atoms_iter_ensure_attr
 
   !> Creators and destructors
   pure function symmetry_data_null() result(sym)
@@ -291,6 +303,7 @@ contains
     nullify(astruct%ixyz_int)
     call nullify_symmetry_data(astruct%sym)
     nullify(astruct%attributes)
+    nullify(astruct%properties)
   end subroutine nullify_atomic_structure
 
 
@@ -405,14 +418,13 @@ contains
     end if
     ! Free additional stuff.
     call deallocate_symmetry_data(astruct%sym)
-
+    if (associated(astruct%properties)) call dict_free(astruct%properties)
   END SUBROUTINE deallocate_atomic_structure
 
 
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms)
     use module_base
-    use f_blas, only: f_free_matrix_ptr
     use m_pawtab, only: pawtab_free
     use m_pawrad, only: pawrad_free
     use m_pawang, only: pawang_free
@@ -432,7 +444,7 @@ contains
     call f_free_ptr(atoms%nzatom)
     call f_free_ptr(atoms%psppar)
     call f_free_ptr(atoms%dogamma)
-    call f_free_matrix_ptr(atoms%gamma_targets)
+    call f_array_ptr_free(atoms%gamma_targets)
     atoms%apply_gamma_target=.false.
     call f_free_ptr(atoms%nelpsp)
     call f_free_ptr(atoms%ixcpsp)
@@ -562,7 +574,8 @@ contains
 
       sometarget=.false.
 
-      call f_matrix_allocate_ptr(gamma_ntypes,[0.to.lmax,1.to.2,1.to.astruct%ntypes])
+      gamma_ntypes=f_malloc_ptr([0.to.lmax,1.to.2,1.to.astruct%ntypes],&
+           id='gamma_ntypes')
 
       !iterate above atoms
       it=atoms_iter(astruct)
@@ -595,10 +608,10 @@ contains
             ishell=shell_toi(shell)
             !let us now see if the matrix has been already extracted
             do ispin=1,2
-               if (.not. fromname .or. .not. associated(gamma_ntypes(ishell,ispin,it%ityp)%dmat)) &
+               if (.not. fromname .or. .not. associated(gamma_ntypes(ishell,ispin,it%ityp)%ptr)) &
                     call get_gamma_target(iter,ishell,ispin,gamma_targets(ishell,ispin,it%iat))
                if (fromname) then
-                  if (associated(gamma_ntypes(ishell,ispin,it%ityp)%dmat)) then
+                  if (associated(gamma_ntypes(ishell,ispin,it%ityp)%ptr)) then
                      gamma_targets(ishell,ispin,it%iat)=&
                           gamma_ntypes(ishell,ispin,it%ityp)
                   else
@@ -613,8 +626,8 @@ contains
          sometarget=.true.
       end do
 
-      call f_free_matrix_ptr(gamma_ntypes)
-      if (.not. sometarget) call f_free_matrix_ptr(gamma_targets)
+      call f_array_ptr_free(gamma_ntypes)
+      if (.not. sometarget) call f_array_ptr_free(gamma_targets)
 
    call f_release_routine()
 
@@ -624,6 +637,7 @@ contains
     use yaml_strings
     use dictionaries
     use f_blas
+    use dynamic_memory
     implicit none
     integer, intent(in) :: ispin,l
     type(dictionary), pointer :: dict
@@ -645,8 +659,9 @@ contains
     else
        iter => dict
     end if
-    call f_matrix_allocate(mat,n=2*l+1)
-    call get_matrix_from_dict(iter,l,mat%dmat)
+    !call f_matrix_allocate(mat,n=2*l+1)
+    mat=f_malloc_ptr([2*l+1,2*l+1],id='mat')
+    call get_matrix_from_dict(iter,l,mat%ptr)
   end subroutine get_gamma_target
 
   subroutine get_matrix_from_dict(dict,l,mat)
@@ -814,10 +829,11 @@ contains
     subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans,pos_format)
       use module_base
       use dictionaries, only: set, dictionary
-      use yaml_strings, only : yaml_toa
+      use yaml_strings
+      use f_utils, only: f_zero
       use internal_coordinates, only: internal_to_cartesian
       use yaml_output, only: yaml_dict_dump
-      use yaml_parse, only: yaml_parse_from_file
+      use yaml_parse, only: yaml_parse_from_file,yaml_load
       implicit none
       !Arguments
       character(len=*), intent(in) :: file                  !< File name containing the atomic positions
@@ -836,15 +852,15 @@ contains
       character(len = 15) :: arFile
       character(len = 6) :: ext
       real(gp) :: energy_
-      type(dictionary), pointer :: yaml_file_dict
+      type(dictionary), pointer :: yaml_file_dict,dict_extensions,iter
       real(gp), dimension(:,:), pointer :: fxyz_
       character(len = 1024) :: comment_, files
       external :: openNextCompress
-      real(gp),parameter :: degree = 57.295779513d0
+      real(gp), parameter :: degree = 57.295779513d0
 
       iunit=99
       file_exists = .false.
-      files = ''
+      call f_zero(files)
       archive = .false.
       nullify(fxyz_)
 
@@ -853,7 +869,6 @@ contains
          write(arFile, "(A)") "posout.tar.bz2"
          if (index(file, "posmd_") == 1) write(arFile, "(A)") "posmd.tar.bz2"
          call f_file_exists(arFile,file_exists)
-         !inquire(FILE = trim(arFile), EXIST = file_exists)
          !arFile tested
          if (file_exists) then
 !!$     call extractNextCompress(trim(arFile), len(trim(arFile)), &
@@ -870,67 +885,88 @@ contains
          end if
       end if
 
-      ! Test file//'.xyz'
+!!$      ! Test file//'.xyz'
+!!$      if (.not. file_exists) then
+!!$         call f_file_exists(file//'.xyz',file_exists)
+!!$         !files = trim(files) // "'" // trim(file)//".xyz'"
+!!$         files = files+"'"+file+".xyz'"
+!!$         if (file_exists) then
+!!$            ext='xyz'
+!!$            !write(filename, "(A)") file//'.xyz'!"posinp.xyz"
+!!$            !write(astruct%inputfile_format, "(A)") "xyz"
+!!$            !write(astruct%source, "(A)") trim(filename)
+!!$            call f_open_file(unit=iunit,file=trim(filename),status='old')
+!!$         end if
+!!$      end if
+!!$
+!!$      ! Test file//'.ascii'
+!!$      if (.not. file_exists) then
+!!$         call f_file_exists(file//'.ascii',file_exists)
+!!$         !files = trim(files) // ", '" //trim(file)//".ascii'"
+!!$         files = files+"'"+file+".ascii'"
+!!$         if (file_exists) then
+!!$            ext='ascii'
+!!$            !write(filename, "(A)") file//'.ascii'!"posinp.ascii"
+!!$            !write(astruct%inputfile_format, "(A)") "ascii"
+!!$            !write(astruct%source, "(A)") trim(filename)
+!!$            call f_open_file(unit=iunit,file=trim(filename),status='old')
+!!$         end if
+!!$      end if
+!!$      ! Test file//'.int'
+!!$      if (.not. file_exists) then
+!!$         call f_file_exists(file//'.int',file_exists)
+!!$         files = files+"'"+file+".int'"
+!!$         if (file_exists) then
+!!$            ext='int'
+!!$            !write(filename, "(A)") file//'.int'!"posinp.int
+!!$            !write(astruct%inputfile_format, "(A)") "int"
+!!$            !write(astruct%source, "(A)") trim(filename)
+!!$            call f_open_file(unit=iunit,file=trim(filename),status='old')
+!!$         end if
+!!$      end if
+!!$      ! Test file//'.yaml'
+!!$      if (.not. file_exists) then
+!!$         call f_file_exists(file//'.yaml',file_exists)
+!!$         files = trim(files) // ", '" //trim(file)//".yaml'"
+!!$         if (file_exists) then
+!!$            write(filename, "(A)") file//'.yaml'!"posinp.yaml
+!!$            write(astruct%inputfile_format, "(A)") "yaml"
+!!$            write(astruct%source, "(A)") trim(filename)
+!!$            ! Pb if toto.yaml because means that there is no key posinp!!
+!!$         end if
+!!$      end if
+
       if (.not. file_exists) then
-         !inquire(FILE = file//'.xyz', EXIST = file_exists)
-         call f_file_exists(file//'.xyz',file_exists)
-         files = trim(files) // "'" // trim(file)//".xyz'"
-         if (file_exists) then
-            write(filename, "(A)") file//'.xyz'!"posinp.xyz"
-            write(astruct%inputfile_format, "(A)") "xyz"
-            write(astruct%source, "(A)") trim(filename)
-            call f_open_file(unit=iunit,file=trim(filename),status='old')
-         end if
+         !general search for the file extension
+         dict_extensions=>yaml_load('[xyz,ascii,int,yaml]')
+         nullify(iter)
+         find_file: do while(iterating(iter,on=dict_extensions))
+            ext=trim(dict_value(iter))
+            files = files+"'"+file+"."+ext+"',"
+            call f_file_exists(file+'.'+ext,file_exists)
+            if (file_exists) then
+               write(filename, "(A)") file//'.'//trim(ext)
+               write(astruct%inputfile_format, "(A)") trim(ext)
+               write(astruct%source, "(A)") trim(filename)
+               exit find_file
+            end if
+         end do find_file
+         call dict_free(dict_extensions)
       end if
 
-      ! Test file//'.ascii'
-      if (.not. file_exists) then
-         !inquire(FILE = file//'.ascii', EXIST = file_exists)
-         call f_file_exists(file//'.ascii',file_exists)
-         files = trim(files) // ", '" //trim(file)//".ascii'"
-         if (file_exists) then
-            write(filename, "(A)") file//'.ascii'!"posinp.ascii"
-            write(astruct%inputfile_format, "(A)") "ascii"
-            write(astruct%source, "(A)") trim(filename)
-            call f_open_file(unit=iunit,file=trim(filename),status='old')
-         end if
-      end if
-      ! Test file//'.int'
-      if (.not. file_exists) then
-         !inquire(FILE = file//'.int', EXIST = file_exists)
-         call f_file_exists(file//'.int',file_exists)
-         if (file_exists) then
-            write(filename, "(A)") file//'.int'!"posinp.int
-            write(astruct%inputfile_format, "(A)") "int"
-            write(astruct%source, "(A)") trim(filename)
-            call f_open_file(unit=iunit,file=trim(filename),status='old')
-         end if
-      end if
-      ! Test file//'.yaml'
-      if (.not. file_exists) then
-         !inquire(FILE = file//'.yaml', EXIST = file_exists)
-         call f_file_exists(file//'.yaml',file_exists)
-         files = trim(files) // ", '" //trim(file)//".yaml'"
-         if (file_exists) then
-            write(filename, "(A)") file//'.yaml'!"posinp.yaml
-            write(astruct%inputfile_format, "(A)") "yaml"
-            write(astruct%source, "(A)") trim(filename)
-            ! Pb if toto.yaml because means that there is no key posinp!!
-         end if
-      end if
 
       ! Check if the format of the file detected corresponds to the specified format
       if (file_exists .and. present(pos_format)) then
          if (astruct%inputfile_format /= pos_format) &
               call f_err_throw("The detected filename '"//trim(filename)//"' has not the specified format '" // &
-              trim(pos_format) // "'.", err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+              trim(pos_format) // "'.", &
+              err_name='BIGDFT_INPUT_VARIABLES_ERROR')
       end if
 
       ! Test the name directly
       if (.not. file_exists) then
-         !inquire(FILE = file, EXIST = file_exists)
+         files = files+"'"+file+"',"
          call f_file_exists(file,file_exists)
-         files = trim(files) // ", '" //trim(file) // "'"
          if (file_exists) then
             write(filename, "(A)") file
             write(astruct%source, "(A)") trim(filename)
@@ -952,19 +988,21 @@ contains
                ! The format is specified
                write(astruct%inputfile_format, "(A)") trim(pos_format)
             end if
-            if (trim(astruct%inputfile_format) /= "yaml") then
-               call f_open_file(unit=iunit,file=trim(filename),status='old')
-            end if
+!!$            if (trim(astruct%inputfile_format) /= "yaml") then
+!!$               call f_open_file(unit=iunit,file=trim(filename),status='old')
+!!$            end if
          end if
       end if
 
       if (f_err_raise(.not.file_exists, &
-         &  "Atomic input file not found. Files looked for were " // trim(files) //".", &
-           &  err_id=BIGDFT_INPUT_FILE_ERROR)) return
+           "Atomic input file not found. Files looked for were: "//&
+           trim(files) //"but none matched.", &
+           err_id=BIGDFT_INPUT_FILE_ERROR)) return
 
       !We found a file
       select case (astruct%inputfile_format)
       case("xyz")
+         call f_open_file(unit=iunit,file=trim(filename),status='old')
          !read atomic positions
          if (.not.archive) then
             call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
@@ -973,6 +1011,7 @@ contains
          end if
 
       case("ascii")
+         call f_open_file(unit=iunit,file=trim(filename),status='old')
          !read atomic positions
          if (.not.archive) then
             call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
@@ -981,6 +1020,7 @@ contains
          end if
 
       case("int")
+         call f_open_file(unit=iunit,file=trim(filename),status='old')
          !read atomic positions
          if (.not.archive) then
             call read_int_positions(iproc,iunit,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
@@ -1001,18 +1041,6 @@ contains
           call yaml_parse_from_file(yaml_file_dict,trim(filename))
           call astruct_set_from_dict(yaml_file_dict//0, astruct, comment_)
           call dict_free(yaml_file_dict)
-!!$          
-!!$          if (f_err_raise(index(file,'posinp') /= 0, &
-!!$             & "Atomic input file in YAML not yet supported, call 'astruct_set_from_dict()' instead.",&
-!!$             &  err_name='BIGDFT_RUNTIME_ERROR')) then
-!!$            return
-!!$         else
-!!$            !There is a radical and the atomic positions are in already dict: need to raise an exception
-!!$            call f_err_throw("Atomic input file not found. Files looked for were "//trim(files) //".", &
-!!$           &  err_id=BIGDFT_INPUT_FILE_ERROR)
-!!$            return
-!!$         end if
-
       case default
          call f_err_throw(err_msg="The specified format '" // trim(astruct%inputfile_format) // "' is not recognised."// &
             & " The format should be 'yaml', 'int', 'ascii' or 'xyz'.",err_id=BIGDFT_INPUT_FILE_ERROR)
@@ -1258,6 +1286,10 @@ contains
          call add(pos, at, last)
       end do
 
+      if (associated(astruct%properties)) then
+         call dict_update(dict // ASTRUCT_PROPERTIES, astruct%properties)
+      end if
+
       if (present(comment)) then
          if (len_trim(comment) > 0) &
               & call add(dict // ASTRUCT_PROPERTIES // "info", comment)
@@ -1265,6 +1297,7 @@ contains
 
       if (len_trim(astruct%inputfile_format) > 0) &
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
+
     end subroutine astruct_merge_to_dict
 
 
@@ -1367,7 +1400,10 @@ contains
          case(ASTRUCT_ATT_CAVRAD)
             if (present(cavity_radius)) cavity_radius= atData
          case default
-            if (dict_len(atData) == 3) then
+            ! Heuristic to find symbol and coordinates.
+            if (dict_len(atData) == 3 .and. &
+                 & (len_trim(str) < 3 .or. (index(str, "_") > 0 .and. &
+                 & index(str, "_") < 4))) then
                if (present(symbol)) symbol = str
                if (present(rxyz)) rxyz = atData
                if (present(rxyz_add)) then
@@ -1400,17 +1436,11 @@ contains
       ityp = 0
       atoms => dict_iter(dict // ASTRUCT_POSITIONS)
       do while(associated(atoms))
-         at => dict_iter(atoms)
-         do while(associated(at))
-            str = dict_key(at)
-            if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
-               ityp = ityp + 1
-               call set(types // str, ityp)
-               nullify(at)
-            else
-               at => dict_next(at)
-            end if
-         end do
+         call astruct_at_from_dict(atoms, symbol = str)
+         if (.not. has_key(types, str)) then
+            ityp = ityp + 1
+            call set(types // str, ityp)
+         end if
          atoms => dict_next(atoms)
       end do
     end subroutine astruct_dict_get_types
@@ -1510,13 +1540,13 @@ contains
       !Try to read the atomic coordinates from files (old way)
       call f_err_open_try()
       nullify(fxyz)
-      if (present(pos_format)) then
-        call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-             & energy = energy, fxyz = fxyz, pos_format=pos_format)
-      else
-        call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-          & energy = energy, fxyz = fxyz)
-      end if
+      ! if (present(pos_format)) then !not needed by fortran spec
+      call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+           energy = energy, fxyz = fxyz, pos_format=pos_format)
+      !else
+      !call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+      !       energy = energy, fxyz = fxyz)
+      !end if
       !print *,'test2',associated(fxyz)
       !Check if BIGDFT_INPUT_FILE_ERROR
       ierr = f_get_last_error(msg)
@@ -1696,6 +1726,7 @@ contains
             astruct%inputfile_format='yaml'
          end if
          if ("source" .in. pos) astruct%source = pos // "source"
+         call dict_copy(astruct%properties, pos)
       else
          if (bigdft_mpi%iproc==0) &
               call yaml_warning('Format not specified in the posinp dictionary, assuming yaml')
@@ -1911,6 +1942,76 @@ contains
       end if
     end subroutine nlcc_set_from_dict
 
+    !identify and inform about defined constraints on the system
+    subroutine astruct_constraints(astruct)
+      use dictionaries
+      use yaml_output
+      use numerics, only: Bohr_Ang
+      use module_base, only: bigdft_mpi
+      implicit none
+      type(atomic_structure), intent(in) :: astruct
+      !local variables
+      !parameters to avoid typos in the keys while writing
+      character(len=*), parameter :: CONSTRAINTS='constraints'
+      character(len=*), parameter :: BONDS='bonds'
+      character(len=*), parameter :: ANGLES='angles'
+      character(len=*), parameter :: DIHEDRAL='dihedral'
+      character(len=*), parameter :: TOLERANCE='tolerance'
+      !fortran variables to store results
+      logical :: msg
+      integer :: iat,jat
+      real(gp) :: tol,bnd,actual_bond,factor
+      type(dictionary), pointer :: dict_cst,iter
+      real(gp), dimension(3) :: dxyz
+
+      !quick return if constraints are not defined according to API
+      if (CONSTRAINTS .notin. astruct%properties) return
+      
+      msg=bigdft_mpi%iproc==0
+      dict_cst=>astruct%properties//CONSTRAINTS
+      select case (astruct%units)
+      case('angstroem','angstroemd0')
+         factor=Bohr_Ang
+      case default
+         factor=1.0_gp
+      end select
+
+      !show how to retrieve different values if needed
+      tol=1.e-6_gp !default value
+      tol=dict_cst .get. TOLERANCE !override if key 'tolerance' is specified
+      !now inspect the different constraints
+      if (BONDS .in. dict_cst) then
+         if (msg) call yaml_sequence_open('Bonds for constraints')
+         !iterate on the various bonds specified
+         nullify(iter)
+         do while(iterating(iter,on=dict_cst//BONDS))
+            !for each loop cycle the iterator points
+            !to the list [iat,jat,bond]
+            !retrieve the values
+            iat=iter//0 
+            jat=iter//1
+            bnd=iter//2
+            !and check if the values are in agreement with 
+            !the positions
+            dxyz=astruct%rxyz(:,iat)-astruct%rxyz(:,jat)
+            actual_bond=factor*sqrt(dxyz(1)**2+dxyz(2)**2+dxyz(3)**2)
+            !inform the user about the bonds
+            if (msg) then
+            call yaml_sequence(advance='no')
+             call yaml_mapping_open('Bond constraint')
+              call yaml_map('Atoms',[iat,jat])
+              call yaml_map('Constraint, actual bond',[bnd,actual_bond])
+             call yaml_mapping_close()
+            end if
+         end do
+         if (msg) call yaml_sequence_close()
+      end if
+      !similar information can be retrieved for other options and 
+      !constraints
+      !...
+    end subroutine astruct_constraints
+
+
 
 END MODULE module_atoms
 
@@ -2091,7 +2192,7 @@ subroutine allocate_atoms_nat(atoms)
   use module_base
   use module_atoms, only: atoms_data
   use ao_inguess, only : aoig_data_null,lmax_ao
-  use f_blas, only: f_matrix_allocate_ptr
+  use f_arrays
   implicit none
   type(atoms_data), intent(inout) :: atoms
   integer :: iat
@@ -2107,7 +2208,7 @@ subroutine allocate_atoms_nat(atoms)
        id='dogamma')
 
   !put also spin in the allocations
-  call f_matrix_allocate_ptr(atoms%gamma_targets,[0.to.lmax_ao,1.to.2,1.to.atoms%astruct%nat])
+  atoms%gamma_targets=f_malloc_ptr([0.to.lmax_ao,1.to.2,1.to.atoms%astruct%nat],id='gamma_targets')
 
 END SUBROUTINE allocate_atoms_nat
 

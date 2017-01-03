@@ -276,8 +276,10 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      call geopt_conditional(outs, it, fluct, runObj%inputs%frac_fluct, &
           & runObj%inputs%forcemax, check)
 
-     if(check > 0) then
-        if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
+     if (check /= 0) then
+        if (iproc==0 .and. check > 0) call yaml_map('Iterations when LOOP converged',it)
+        if (iproc==0 .and. check < 0) call yaml_map('Iterations when LOOP stopped',it)
+        fail = (check > 0)
         return
      endif
 
@@ -682,9 +684,11 @@ END SUBROUTINE rundiis
 subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
   use bigdft_run
+  use module_atoms
   use minpar
   use yaml_output
   use communications_base
+  use dictionaries
 
   implicit none
   !Arguments
@@ -712,6 +716,10 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
        & mass(3*runObj%atoms%astruct%nat)
   real(gp):: eprev,anoise !n(c) ecur
   integer:: Nmin,nstep,it
+  character(len = *), parameter :: ATT_VEL = "velocity"
+  character(len = *), parameter :: ATT_ALPHA = "alpha (FIRE)"
+  character(len = *), parameter :: ATT_DT = "dt (FIRE)"
+  type(atoms_iterator) :: itAt
 
   fluct=0.0_gp
   check=0
@@ -722,16 +730,43 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   alphastart=0.25_gp
   anoise=1.e-8_gp
 
-  alpha=alphastart
+  if (ATT_ALPHA .in. runObj%atoms%astruct%properties) then
+     alpha = runObj%atoms%astruct%properties // ATT_ALPHA
+  else
+     alpha=alphastart
+  end if
   falpha=0.99_gp
   nstep=1
-  dt=runObj%inputs%dtinit
+  if (ATT_DT .in. runObj%atoms%astruct%properties) then
+     dt = runObj%atoms%astruct%properties // ATT_DT
+  else
+     dt=runObj%inputs%dtinit
+  end if
+  if (.not.associated(runObj%atoms%astruct%properties)) then
+     call dict_init(runObj%atoms%astruct%properties)
+  end if
 
   dtmax=runObj%inputs%dtmax
 
   fail=.false.
   fnrm=1.e10_gp
-  velcur=0.0_gp
+  itAt = atoms_iter(runObj%atoms%astruct)
+  do while (atoms_iter_next(itAt))
+     if (ATT_VEL .in. itAt%attrs) then
+        velcur((itAt%iat - 1) * 3 + 1:itAt%iat * 3) = itAt%attrs // ATT_VEL
+     else
+        velcur((itAt%iat - 1) * 3 + 1:itAt%iat * 3) = 0._gp
+     end if
+  end do
+  if (iproc == 0) then
+     call yaml_mapping_open("Initial values")
+     call yaml_map(ATT_ALPHA, alpha)
+     call yaml_map(ATT_DT, dt)
+     if (minval(abs(velcur)) > 0._gp) then
+        call yaml_map(ATT_VEL, velcur)
+     end if
+     call yaml_mapping_close()
+  end if
   call vcopy(3*runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, poscur(1), 1)
   call vcopy(3*outs%fdim, outs%fxyz(1,1), 1, fcur(1), 1)
   mass=1.0_gp
@@ -753,6 +788,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fpred(1), 1)
      ncount_bigdft=ncount_bigdft+1
      call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
+     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
    !  call convcheck(fmax,fluct*runObj%inputs%frac_fluct,runObj%inputs%forcemax,check) !n(m)
 
      do iat=1,3*runObj%atoms%astruct%nat
@@ -760,16 +796,6 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
      enddo
      P=dot_product(fpred,velpred)
      call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%astruct%nat)
-
-     if (iproc == 0) then
-        write(fn4,'(i4.4)') ncount_bigdft
-        write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',sqrt(fnrm)
-        call bigdft_write_atomic_file(runObj,outs,&
-             'posout_'//fn4,trim(comment))
-!!$        call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4,&
-!!$             & outs%energy,pospred,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=fpred)
-     endif
-     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct) !n(m)
 
      if (iproc==0.and.parmin%verbosity > 0) then
          write(ugeopt,'(I5,1x,I5,2x,a10,2x,1pe21.14,2x,e9.2,1(1pe11.3),3(1pe10.2),  & 
@@ -821,9 +847,9 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !  velcur=velpred
 
 !!FIRE Update
-     call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
+     !call fnrmandforcemax(fpred,fnrm,fmax,outs%fdim)
      fnrm=sqrt(fnrm)
-     call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%astruct%nat)
+     !call fnrmandforcemax(velpred,vnrm,vmax,runObj%atoms%astruct%nat)
      vnrm=sqrt(vnrm)
 !Modified velocity update, suggested by Alireza
 !  velcur(:)=(1.0_gp-alpha)*velpred(:)+fpred(:)*min(alpha*vnrm/fnrm,2.0_gp*runObj%inputs%betax)!alpha*fpred(:)/fnrm*vnrm
@@ -840,6 +866,24 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         alpha=alphastart
      endif
      nstep=nstep+1
+
+     ! Store velcur, alpha and dt for restart.
+     itAt = atoms_iter(runObj%atoms%astruct)
+     do while (atoms_iter_next(itAt))
+        call atoms_iter_ensure_attr(itAt)
+        call set(itAt%attrs // ATT_VEL, velcur((itAt%iat - 1) * 3 + 1:itAt%iat * 3))
+     end do
+     call set(runObj%atoms%astruct%properties // ATT_ALPHA, alpha)
+     call set(runObj%atoms%astruct%properties // ATT_DT, dt)
+
+     if (iproc == 0) then
+        write(fn4,'(i4.4)') ncount_bigdft
+        write(comment,'(a,1pe10.3)')'FIRE:fnrm= ',fnrm
+        call bigdft_write_atomic_file(runObj,outs,&
+             'posout_'//fn4,trim(comment))
+!!$        call  write_atomic_file(trim(runObj%inputs%dir_output)//'posout_'//fn4,&
+!!$             & outs%energy,pospred,runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment),forces=fpred)
+     endif
 
 !!$     ! Check velcur consistency (debug).
 !!$     maxdiff=mpimaxdiff(velcur,root=0,comm=bigdft_mpi%mpi_comm)

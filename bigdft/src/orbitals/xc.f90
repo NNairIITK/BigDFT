@@ -525,18 +525,16 @@ contains
     else if (xcObj%kind == XC_MIXED) then
        ! LibXC case with ABINIT rho distribution.
        ! Inititalize all relevant arrays to zero
-       vxc=real(0,dp)
-       exc=real(0,dp)
+       call f_zero(vxc) !=real(0.0,dp)
+       call f_zero(exc) !=real(0.0,dp)
        if (xc_isgga(xcObj)) call f_zero(npts * 3, vxcgr(1))
        if (present(dvxci)) dvxci=real(0,dp)
-
        !Loop over points
        !$omp parallel do default(shared) &
        !!$omp shared(npts,rho,grho2,nspden) &
        !!$omp shared(xc,vxc,exc,vxcgr,dvxci) &
        !$omp private(ipts,ipte,nb,sigma,j,rhotmp,v2rho2,v2rhosigma,v2sigma2) &
        !$omp private(vsigma,i,exctmp,vxctmp)
-       
        do ipts = 1, npts, n_blocks
           ipte = min(ipts + n_blocks - 1, npts)
           nb = ipte - ipts + 1
@@ -566,7 +564,6 @@ contains
                 end do
              end if
           end if
-
           !Loop over functionals
           do i = 1,2
              if (xcObj%id(i) == 0) cycle

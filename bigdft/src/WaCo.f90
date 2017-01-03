@@ -970,7 +970,7 @@ program WaCo
                    (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,atoms%astruct%rxyz,  & 
                    Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c, &
                    Lzd%Llr(iiwann)%wfd%keygloc(1:,1:),Lzd%Llr(iiwann)%wfd%keyglob(1:,1:), &
-                   Lzd%Llr(iiwann)%wfd%keyvgloc(1:), Lzd%Llr(iiwann)%wfd%keyvglob(1:), &
+                   Lzd%Llr(iiwann)%wfd%keyvloc(1:), Lzd%Llr(iiwann)%wfd%keyvglob(1:), &
                    Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
                    Lzd%Llr(iiwann)%wfd%keygloc(1:,Lzd%Llr(iiwann)%wfd%nseg_c+1:),&
                    Lzd%Llr(iiwann)%wfd%keyglob(1:,Lzd%Llr(iiwann)%wfd%nseg_c+1:),&
@@ -984,14 +984,14 @@ program WaCo
                  call open_filename_of_iorb(ifile,.not.outformat,trim(seedname),orbsw,iwann,1,iwann_out)
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
                    atoms%astruct%nat,atoms%astruct%rxyz,  & 
-                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
-                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc,Glr%wfd%keyvloc,  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+1:),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1:), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), ham(1,iwann,iwann))
               else
                  call writeonewave(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz,&
                    atoms%astruct%nat,atoms%astruct%rxyz,  & 
-                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc(1,1),Glr%wfd%keyvloc(1),  & 
-                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
+                   Glr%wfd%nseg_c,Glr%wfd%nvctr_c,Glr%wfd%keygloc,Glr%wfd%keyvloc,  & 
+                   Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1:,Glr%wfd%nseg_c+1:),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1:), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
               end if
               call f_close(ifile)

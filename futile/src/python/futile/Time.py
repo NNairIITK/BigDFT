@@ -1,11 +1,35 @@
+from matplotlib.axes import Axes
+
 def axis_from_data(fig,ax,data):
   "Transform a data tuple into axis coordinates"
   trans=fig.transFigure.inverted()
   ll=trans.transform(ax.transData.transform(data))
   return list(ll)
 
+def data_from_data(fig,dst,src,data):
+  "Transform a data tuple of anothe axis in the figure into data of another axis"
+  trans=dst.transData.inverted()
+  ll=trans.transform(src.transAxes.transform(data))
+  return list(ll)
+
+class AxisSet(Axes):
+  def create_twin(self):
+    self.twin=self.twinx()
+  def cla(self):
+    if hasattr(self,'twin'): self.twin.cla()
+    super(AxisSet,self).cla()
+  @classmethod
+  def twinify(cls,ax):
+    "Include the axis provided as a radix of the set"
+    ax.__class__=cls
+    ax.create_twin()
+
 class FigureSet():
-  """Define a container for a plot with the possiblity to switch between simple and gnuplot plotting"""
+  """Define a container for a plot with the possiblity to switch between simple and gnuplot plotting
+  Arguments:
+  title: The title of the master figure
+  **kwargs: arguments for the axis instance
+"""
   def __init__(self,**kwargs):
     import matplotlib.pyplot as plt
     from Yaml import kw_pop
@@ -55,11 +79,15 @@ class FigureSet():
     newfig=plt.figure(newtitle)
     axargs=kwargs.get('axes')
     #cfm=plt.get_current_fig_manager()
+    totwin=False
+    if 'twinaxes' in kwargs: totwin=kwargs.pop('twinaxes')
     if axargs is None:
       newax=newfig.add_subplot(111)
     else:
       rect=axargs.pop('rect')
       newax=plt.axes(rect,**axargs)
+    if totwin: 
+      AxisSet.twinify(newax)
     #connect the home key execpt for the first figure
     from functools import partial
     newfig.canvas.mpl_connect('key_press_event',partial(self._onkey_home,len(self.figures)))
@@ -107,6 +135,7 @@ class FigureSet():
     for figax in self.figures:
       plt.close(figax['Figure'])
     self.showing=False
+    #self.figures=[] #dereference everything
       
   def _onclick_quitButton(self,event):
     print "Good bye!"
@@ -144,8 +173,9 @@ class polar_axis():
     datatmp=self.data
     self.subdata=self.dump_timing_level(datatmp)
     self.draw_polarplot()
-    self.fig.canvas.mpl_connect('pick_event',self._new_level)
     self.fig.canvas.mpl_connect('motion_notify_event',self._info_callback)
+    #self.fig.canvas.mpl_connect('pick_event',self._new_level)
+    self.fig.canvas.mpl_connect('button_press_event',self._new_level)
 
   def draw_polarplot(self):
     import pylab
@@ -195,6 +225,7 @@ class polar_axis():
       if self.bot[i]==level:
         levth.append(self.theta[i])
         ipiv.append(i)
+    if len(levth)==0: return None
     to_find_zero=np.array(levth)-th
     to_find_zero[to_find_zero > 0]=-4*np.pi
     routine=np.argmin(-to_find_zero)
@@ -229,16 +260,18 @@ class polar_axis():
     return info
 
   def _new_level(self,event):
-    click=event.mouseevent.button
+    #click=event.mouseevent.button
+    click=event.button
     datatmp=self.data
     if click==3:
       if not self.reset:
         self.ax.texts.remove(self.comebackinfo)
         self.reset=True
       nameandlev=None
-    elif click==1:
-      thisline = event.artist
-      xdata, ydata = thisline.get_xy()
+    elif click==1:      
+      #thisline = event.artist
+      #xdata, ydata = thisline.get_xy()
+      xdata, ydata=event.xdata,event.ydata
       level = int(ydata)/self.step
       goodpoint=self._find_name(xdata,level)
       if goodpoint is None: return
@@ -247,6 +280,8 @@ class polar_axis():
       self.reset=False
       nameandlev=(name,level)
       #extract the data to be plotted for the internal level
+    else:
+      return
     self.subdata=self.dump_timing_level(datatmp,starting_point=nameandlev)
     self.ax.cla()
     self.draw_polarplot()
@@ -266,17 +301,6 @@ class polar_axis():
     if xdata is None or ydata is None: return
     level = int(ydata)/self.step
     goodpoint=self._find_name(xdata,level)
-    #print 'level',level
-    #once that the level has been found filter the list of theta
-    #(tt,name,time)=self._find_name(xdata,level)
-    #print "======================="
-    #print "Routine Picked:",name,",",time,"s (",time/self.tot*100.0,"% of total time)"
-    #find lower level
-    #it=range(level)
-    #it.reverse()
-    #for i in it:
-    #  (tt,name,time)=self.find_name(tt,i)
-    #  print "  Called by:",name
 
     #then plot the string
     if self._wrotesome:
@@ -336,6 +360,7 @@ class polar_axis():
   
 class TimeData:
   barwidth=0.9#0.35
+  ignored_counters=['CPU parallelism','Routines timing and number of calls','SUMMARY','Report timestamp','Hostnames']
   def __init__(self,*filenames,**kwargs):
     """
     Class to analyze the timing from a Futile run
@@ -347,6 +372,7 @@ class TimeData:
     static: Show the plot statically for screenshot use
     fontsize: Determine fontsize of the bar chart plot 
     nokey: Remove the visualization of the key from the main plot
+    counter: retrieve as reference value the counter provided
     """
     #here a try-catch section should be added for multiple documents
     #if (len(filename) > 1
@@ -358,7 +384,7 @@ class TimeData:
       except:
         self.log+=yaml.load_all(open(filename, "r").read(), Loader = yaml.CLoader)
     #create the figure environemnt
-    self.figures=FigureSet(title='Profiling',QuitButton=True)
+    self.figures=FigureSet(title='Profiling',QuitButton=True,twinaxes=True)
     #self.barfig = None
     #self.axbars = None
     #self.newfigs =[]
@@ -371,30 +397,54 @@ class TimeData:
     self.fontsize=kwargs.get('fontsize',15)
     self.nokey=kwargs.get('nokey',False)
     counter=kwargs.get('counter','WFN_OPT') #the default value, to be customized
-    self.inspect_counter(counter)
+    if counter in self.counters(): 
+      self.inspect_counter(counter)
+    else:
+      print "Warning: counter not initialized, check the available counters"
+
+  def counters(self):
+    "Inspect the available counters"
+    cnts=[]
+    for doc in self.log:
+      if doc is None: continue
+      for internal_cnts in doc.keys():
+        if internal_cnts not in cnts and internal_cnts not in self.ignored_counters: cnts.append(internal_cnts)
+    return cnts
 
   def _refill_classes(self,main):
     self.classes=[]
+    self.totals=[]
     for doc in self.log:
-        self.routines.append(doc.get("Routines timing and number of calls"))
-        self.hostnames.append(doc.get("Hostnames"))
+        if doc is None: continue
         scf=doc.get(main)
         if scf is not None:
             self.scf.append(scf)
+            self.routines.append(doc.get("Routines timing and number of calls"))
+            self.hostnames.append(doc.get("Hostnames"))
+            self.unbalancings.append(True)
             loclass=scf["Classes"].keys()
+            if 'Total' in loclass: 
+              self.totals.append(scf["Classes"]["Total"][1])
             for cs in loclass:
               if cs not in self.classes and cs != "Total": self.classes.append(cs)
+              if len(scf["Classes"][cs]) == 2: self.unbalancings[-1]=False
             if "Run name" in doc:
                 self.ids.append(doc["Run name"])
             else:
                 mpit=doc.get("CPU parallelism")
                 if mpit is not None:
-                    self.ids.append(mpit["MPI tasks"])
+                  mpi=mpit.get('MPI tasks')
+                  omp=mpit.get('OMP threads')
+                  title=str(mpi) if omp is None else str(mpi)+'-'+str(omp)
+                  self.ids.append(title)
+                  ncores=mpi
+                  if omp is not None: ncores*=omp
                 else:
-                    self.ids.append("Unknown")
-    #to be updated
-    self.classes.append("Unknown") #an evergreen
+                  self.ids.append("Unknown")
+                  ncores=0.0
+                self.ncores.append(ncores)
     self.classes.sort()
+    self.classes.append("Unknown") #an evergreen
     #self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
     #        "Other","PS Computation","Potential",
     #        "Flib LowLevel","Initialization","Unknown"]
@@ -402,8 +452,10 @@ class TimeData:
   def inspect_counter(self,counter,unit=None):
     self.routines=[]
     self.hostnames=[]
+    self.unbalancings=[]
     self.scf=[]
     self.ids=[]
+    self.ncores=[] #number of cores for each of the valid run
     self.vals=self.plot_start if unit is None else unit
     self._refill_classes(counter)
     #here we might add the policy to add new figures or delete previous ones
@@ -419,7 +471,7 @@ class TimeData:
       #erase the plot in case it is already available
       newax.cla()
     else:
-      newfig,newax=self.figures.add(title=cat)
+      newfig,newax=self.figures.add(title=cat,twinaxes=True)
     self.draw_barfigure(newfig,newax,data,title=cat)
     newfig.show()
 
@@ -431,30 +483,41 @@ class TimeData:
     from matplotlib.widgets import RadioButtons,Button
     import matplotlib.pyplot as plt
     if self.static: fig.patch.set_facecolor("white")
-    self.draw_barplot(axis,data,self.vals,title=title,nokey=self.nokey)
-    if self.vals == 'Percent':
-      axis.set_yticks(np.arange(0,100,10))
+    self._draw_barplot(axis,data[0],self.vals,title=title,nokey=self.nokey)
+    totals=data[1]
+    ref=totals[0] # the reference value is assumed to be the first
+    coreref=float(self.ncores[0])
+    #print self.totals
+    if self.vals=='Seconds':
+      label='Speedup'
+      dataline=[ref/b for b in totals]
+    else:
+      label='Parallel Efficiency'
+      dataline=[ (ref/b)/(c/coreref)  for b,c in zip(totals,self.ncores)]
+    self.draw_lineplot(axis.twin,dataline,label)
+    #if self.vals == 'Percent': axis.set_yticks(np.arange(0,100,10))
     if self.radio is None and not self.static:
       self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Seconds', 'Percent'),
                                 active=1 if self.vals=='Percent' else 0)
       self.radio.on_clicked(self.replot)
       tt=axis.get_xticks()
-      routics=[axis_from_data(fig,axis,(tic-0.45*self.barwidth,0.))[0] for tic in tt]
-      unbtics=[axis_from_data(fig,axis,(tic+0.05*self.barwidth,0.))[0] for tic in tt]
+      routics=[axis_from_data(fig,axis,(tic-0.45*self.barwidth,self.barwidth)) for tic in tt]
+      unbtics=[axis_from_data(fig,axis,(tic+0.15*self.barwidth,self.barwidth)) for tic in tt]
       self.routine_buttons=[]
       from functools import partial
       for i,t in enumerate(routics):
         if self.routines[i] is None: continue
-        but=Button(plt.axes([t, 0.0, 0.1, 0.05]), 'R')
+        but=Button(plt.axes([t[0], 0.0, 0.15*t[1], 0.05]), 'R')
         but.on_clicked(partial(self.routines_plot,i))
         self.routine_buttons.append(but)
       for i,t in enumerate(unbtics):
-        if self.scf[i] is None: continue
-        but=Button(plt.axes([t, 0.0, 0.1, 0.05]), 'U')
+        if not self.unbalancings[i]: continue
+        but=Button(plt.axes([t[0], 0.0, 0.15*t[1], 0.05]), 'U')
         but.on_clicked(partial(self.workload_plot,i))
         self.routine_buttons.append(but)
-      fig.canvas.mpl_connect('pick_event',self.onclick_ev)
-      #fig.canvas.mpl_connect('key_press_event',self.onkey_ev)
+      #fig.canvas.mpl_connect('pick_event',self._onclick_ev)
+      fig.canvas.mpl_connect('button_press_event',
+                             partial(self._onclick_ev,fig,axis))
     fig.canvas.draw()
 
   def routines_plot(self,index,event=None):
@@ -464,7 +527,8 @@ class TimeData:
     if self.figures.exists(title): return
     #data=dump_timing_level(toplt)#,starting_point='cluster')
     fig,ax=self.figures.add(title=title,
-                            axes={'rect':[0.025,0.025,0.95,0.95],'polar':True})
+                            axes={'rect':[0.025,0.025,0.95,0.95],
+                                  'polar':True})
     if not hasattr(self,'routine_plots'): self.routine_plots=[]
     plt=polar_axis(fig,ax,toplt)
     self.routine_plots.append(plt)
@@ -476,48 +540,18 @@ class TimeData:
     title='Unbalancing '+str(self.ids[index])+'-'+str(index)
     if self.figures.exists(title): return
     fig,ax=self.figures.add(title=title)
-    leg,plts=self.load_unbalancing(ax,self.scf[index]["Classes"],self.hostnames[index])
+    leg,plts,show=self.load_unbalancing(ax,self.scf[index]["Classes"],self.hostnames[index])
     idx=len(self.lined)
     self.lined.append({})
-    for legline, origline in zip(leg.get_patches(), plts):
+    for legline, origline,yes in zip(leg.get_patches(), plts, show):
           legline.set_picker(5)  # 5 pts tolerance
           self.lined[idx][legline] = origline
+          if not yes: self._toggle_visible(origline,legline)
     fig.canvas.mpl_connect('pick_event', partial(self._onpick_curve,idx,fig))
     fig.show()
 
-##  def bars_data(self,counter="WFN_OPT",vals=None,title='Time bar chart'):
-##    """Extract the data for plotting the different categories in bar chart"""
-##    import numpy as np
-##    import matplotlib.pyplot as plt
-##    from pylab import cm as cm
-##    from matplotlib.widgets import Button,RadioButtons
-##    if not hasattr(self,'counter'): 
-##      self.counter=counter #only for the first time
-##      self._refill_classes(self.counter)
-##    self.vals=self.plot_start if vals is None else vals
-##    if self.barfig is None:
-##      self.barfig, self.axbars = plt.subplots()
-##      if self.static: self.barfig.patch.set_facecolor("white")
-##    dict_list=self.scf
-##    self.plts=[]
-##    self.draw_barplot(self.axbars,self.collect_categories(dict_list,self.vals),self.vals,title=title,nokey=self.nokey,units=self.vals)
-##    active=0
-##    if self.vals == 'Percent':
-##      self.axbars.set_yticks(np.arange(0,100,10))
-##      active=1
-##    if self.radio is None and not self.static:
-##      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Seconds', 'Percent'),
-##                                active=1 if self.vals=='Percent' else 0)
-##      self.radio.on_clicked(self.replot)
-##
-##    if self.quitButton is None and not self.static:
-##      self.quitButton = Button(plt.axes([0.0, 0.0, 0.1, 0.075]), 'Quit')
-##      self.quitButton.on_clicked(self.onclick_quitButton)
-##      self.barfig.canvas.mpl_connect('pick_event',self.onclick_ev)
-##      self.barfig.canvas.mpl_connect('key_press_event',self.onkey_ev)
-
   def find_items(self,category,dict_list):
-    """For a given category find the items which has them"""
+    """For a given category find the items which have them"""
     import numpy as np
     items={}
     for idoc in range( len(dict_list) ):
@@ -527,27 +561,24 @@ class TimeData:
                 if cat not in items:
                     items[cat]=np.zeros(len(dict_list))
                 items[cat][idoc]=dicat["Data"][self.iprc]
-    return [ (cat,items[cat]) for cat in items]
+    return [ (cat,items[cat]) for cat in items],[ doc["Classes"][category][1] for doc in dict_list] 
     
   def collect_categories(self,dict_list,vals):
     """ Collect all the categories which belong to all the dictionaries """
     import numpy as np
-    #classes=[]
-    #for doc in dict_list:
-    #  for cat in doc["Classes"]:
-    #    if cat not in classes and cat != 'Total': classes.append(cat)
-    #print 'found',classes
     if vals == 'Percent':
       self.iprc=0
     elif vals == 'Seconds':
       self.iprc=1
     catsdats=[]
     self.values_legend=[]
+    totals=[]
     for cat in self.classes:
       try:
-        if cat == "Unknown":
+        if cat == "Unknown": #this is always done
             data_unk=[]
             for doc in dict_list:
+                totals.append(doc["Classes"]["Total"][1])
                 percent_unk=100.0-doc["Classes"]["Total"][0]
                 if self.iprc==0:
                     data_unk.append(percent_unk)
@@ -562,62 +593,37 @@ class TimeData:
       except Exception,e:
         print 'EXCEPTION FOUND',e
         print "category",cat,"not present everywhere"
-    return catsdats
+    return catsdats,totals
 
-  def onkey_ev(self,event):
-    number=event.key
-    if number == 'u' or number == 'U':
-      self.toggle_unbalancing = not self.toggle_unbalancing
-      print 'Unbalancing',self.toggle_unbalancing
-    try:
-      number=int(number)
-      if not self.toggle_unbalancing:
-        if self.routines[number] is not None:
-          toplt=self.routines[number]
-          print self.routines[number]
-          data=dump_timing_level(toplt)#,starting_point='cluster')
-          print data
-          plt=polar_axis(data)
-          plt.show()
-      else:
-        if self.scf[number] is not None:
-          self.load_unbalancing(self.scf[number]["Classes"],self.hostnames[number])
-          plt.show()
-    except Exception,e:
-      print e
-      print 'not present or out of range'
-
-  def onclick_ev(self,event):
+  def _onclick_ev(self,fig,axis,event):
     import matplotlib.pyplot as plt
-    thisline = event.artist
-    xdata, ydata = thisline.get_xy()
-    #print 'data',xdata,ydata
+    #thisline = event.artist
+    #xdata, ydata = thisline.get_xy()
+    #print dir(event)
+    #print event.inaxes
+    xdata,ydata=event.x,event.y #event.xdata,event.ydata
+    if xdata is None or ydata is None: return
+    #print 'picked',xdata,ydata
+    xdata,ydata=axis.transData.inverted().transform((xdata,ydata))
+    #print 'transformed',xdata,ydata
+    #data_from_data(fig,dst=axis,src=axis.twin,data=(int(xdata),ydata))
+    #print 'converted',xdata,ydata
+    if ydata < 0.0 or xdata < 0.0 or xdata >= len(self.scf): return
+    xdata=int(xdata)
     #find the category which has been identified
     y0data=0.0
+    category=None
     for cat in self.values_legend:
+      if cat == 'Unknown': continue
       y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
       #print 'cat,y0data',cat,y0data,ydata
       if y0data > ydata:
         category=cat
         break
-    print 'category',category
-    if category != "Unknown": self.inspect_category(category)
-    #data=self.find_items(category,self.scf)
-    #print data
-    ##self.axbars.cla()
-    ##self.draw_barplot(self.axbars,self.find_items(category,self.scf),self.vals)
-    ##self.barfig.canvas.draw()
-    #newfig,newax=self.figures.add(title=category)
-    #newfig=plt.figure()
-    #newax=newfig.add_subplot(111)
-    #here we should add the check not to replot the same thing if already done
-    #self.draw_barfigure(newfig,newax,data,title=category)
-    #self.draw_barplot(newax,self.find_items(category,self.scf),self.vals,title=category)
-    #newfig.show()
-    #self.newfigs.append((newfig,newax))
-  
+    #print 'category',category
+    if category is not None and category != "Unknown": self.inspect_category(category)  
     
-  def draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False,nokey=False):
+  def _draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False,nokey=False):
     import numpy as np
     from pylab import cm as cm
     ndata=len(data[0][1])
@@ -626,10 +632,10 @@ class TimeData:
     width=self.barwidth
     icol=1.0
     for cat,dat in data:
-      print 'cat',cat,dat
-      for i in range(len(self.ids)):
-        print self.ids[i],dat[i]
-      plt=axbars.bar(ind,dat,width,bottom=bot,color=cm.jet(icol/len(self.classes)),picker=True,label=cat)
+      #print 'cat',cat,dat
+      #for i in range(len(self.ids)):
+      #  print self.ids[i],dat[i]
+      plt=axbars.bar(ind,dat,width,bottom=bot,color=cm.jet(icol/len(data)),picker=True,label=cat)
       #self.plts.append(plt)
       bot+=dat
       icol+=1.0
@@ -641,14 +647,16 @@ class TimeData:
     if not nokey:
       self.leg = axbars.legend(loc='upper right',fontsize=self.fontsize)
       self.leg.get_frame().set_alpha(0.4)  
+    #treat the totals differently
+    return bot
+
+  def draw_lineplot(self,ax,data,label):
+    #ax=axbars.twinx()
+    import numpy as np
+    ind=np.arange(len(data))+self.barwidth/2.
+    ax.plot(ind,data,'o-',color='red',label=label)
+    ax.set_ylabel(label,fontsize=self.fontsize)
           
-##  def onclick_quitButton(self,event):
-##    import pylab
-##    print "Good bye!"
-##    for figax in self.newfigs:
-##      pylab.close(figax[0])
-##    pylab.close(self.barfig)
-##    
   def replot(self,label):
     self.vals=label
     #print self.vals
@@ -661,25 +669,6 @@ class TimeData:
       else:
         data=self.find_items(cat,self.scf)
       if data != []: self.draw_barfigure(fx,ax,data,cat)
-      #fx.canvas.draw()
-    #fig,axis=self.figures.get_figure(0)
-    #title=axis.get_title()
-    ##title=self.axbars.get_title()
-    #self.axbars.cla()
-    #self.bars_data(vals=label,title=title)
-    #self.barfig.canvas.draw()
-    #for figax in self.newfigs:
-    #  ax=figax[1]
-    #  fi=figax[0]
-    #  category=ax.get_title()
-    #  ax.cla()
-    #  self.draw_barplot(ax,self.find_items(category,self.scf),self.vals,title=category)
-    #  fi.canvas.draw()
-
-
-  def func(self,label):
-    print 'label,cid',label,self.cid
-    self.barfig.draw()
 
   def unbalanced(self,val):
     """Criterion for unbalancing"""
@@ -702,15 +691,10 @@ class TimeData:
     key_legend=[]
     values_legend=[]
     icol=1.0
-    ##print "dict",dict
-    #open a new figure
-    #newfig=plt.figure()
-    #newax=newfig.add_subplot(111)
+    show_initially=[]
     for cat in self.classes:
       if cat=='Unknown': continue
       try:
-        dat=np.array([dict[cat][0]])
-        #print 'data',dat
         unb=np.array(dict[cat][2:])
         #print 'unbalancing',unb
         #unb2=self.find_unbalanced(unb)
@@ -723,12 +707,14 @@ class TimeData:
         plts.append(pltmp)
         key_legend.append(pltmp[0])
         values_legend.append(cat)
+        show_initially.append(dict[cat][0] > 5.0)
         icol+=1.0
         if (width > 0.05):
           width -= 0.05
       except Exception,e:
         print 'EXCEPTION FOUND',e
         print "cat",cat,"not found in workload data"
+        return None
 
     if len(ind) > 2:
       tmp=np.array(hosts) if hosts is not None else None
@@ -743,19 +729,24 @@ class TimeData:
     ax.axhline(1.0,color='k',linestyle='--')
     leg=ax.legend(np.array(key_legend),np.array(values_legend))#,fancybox=True, shadow=True)
     #leg.get_frame().set_alpha(0.4)
-    return leg,plts
+    #show only the most relevant categories
+    return leg,plts,show_initially
 
   def _onpick_curve(self,index,fig,event):
         # on the pick event, find the orig line corresponding to the
     # legend proxy line, and toggle the visibility
     legline = event.artist
     origline = self.lined[index][legline]
-    for val in origline:
-      vis = not val.get_visible()
-      val.set_visible(vis)
-    if vis:
-        legline.set_alpha(1.0)
-    else:
-        legline.set_alpha(0.2)
+    self._toggle_visible(origline,legline)
     fig.canvas.draw()
   
+  def _toggle_visible(self,data,legend):
+    for val in data:
+      vis = not val.get_visible()
+      val.set_visible(vis)
+    #last value is like all the others
+    if vis:
+        legend.set_alpha(1.0)
+    else:
+        legend.set_alpha(0.2)
+
