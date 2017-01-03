@@ -970,7 +970,6 @@ contains
     select case(trim(at))
     case('H')
        r=2.886d0  
-       !r=2.4d0  
     case('He')
        r=2.362d0
     case('Li')
@@ -1014,7 +1013,6 @@ contains
        r=3.295d0 
     case('Ti')
        r=3.175d0 
-       !r=4.00d0 
     case('V')
        r=3.144d0 
     case('Cr')
@@ -1067,7 +1065,7 @@ contains
        r=3.148d0 !UFF
        !r=3.44d0
     case('Cd') !(+2)
-       r=2.848d0 
+       r=2.848d0
     case('In')
        r=4.463d0 
     case('Sn')
@@ -1128,7 +1126,6 @@ contains
        r=2.840d0 
     case('Pt')
        r=2.754d0 
-       !r=3.50d0 
     case('Au')
        r=3.293d0 
     case('Hg')

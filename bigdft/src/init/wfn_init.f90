@@ -363,6 +363,12 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
 !  end if
 ! END DEBUG
 
+if (iproc ==0 .and. .false.) then
+   call yaml_map('Hamltonian in the subspace',reshape(hamovr(:,1,1),[orbse%norb,orbse%norb]),fmt='(1pe15.7)')
+   call yaml_map('Overlap matrix in the subspace',reshape(hamovr(:,2,1),[orbse%norb,orbse%norb]),fmt='(1pe15.7)')
+end if
+     
+
   !in the case of minimal basis allocate now the transposed wavefunction
   !otherwise do it only in parallel
   if(.not. associated(psit)) then
@@ -539,7 +545,8 @@ END SUBROUTINE LDiagHam
 
 subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
       &   norbsc_arr,hamovr,psi,hpsi)
-   use module_base
+  use module_base
+  !use yaml_output
    implicit none
    integer, intent(in) :: norbe,nvctrp,natsc,ndim_hamovr,nspin,nspinor
    integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
@@ -563,6 +570,9 @@ subroutine overlap_matrices(norbe,nvctrp,natsc,nspin,nspinor,ndim_hamovr,&
    !calculate the overlap matrix for each group of the semicore atoms
    !       hamovr(jorb,iorb,3)=+psit(k,jorb)*hpsit(k,iorb)
    !       hamovr(jorb,iorb,4)=+psit(k,jorb)* psit(k,iorb)
+   !call yaml_map('checksum of psi',sum(psi,dim=1))
+   !call yaml_map('checksum of hpsi',sum(hpsi,dim=1))
+
    iorbst=1
    imatrst=1
    do ispin=1,nspin !this construct assumes that the semicore is identical for both the spins

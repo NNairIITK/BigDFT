@@ -1,5 +1,8 @@
 echo "While sourcing this script the following environment variable will be set:"
-for file in futile_environment.sh
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+sourcefiles="@bindir@/futile_environment.sh @bindir@/bigdft_environment.sh"
+for file in $sourcefiles
 do
 sh $file
 eval `sh $file`

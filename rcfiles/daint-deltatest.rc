@@ -1,0 +1,41 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+conditions.add("python")
+#List the module the this rcfile will build
+modules = ['spred',]
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    import os
+    mkl=os.environ['MKLROOT']
+    cuda=os.environ['CUDATOOLKIT_HOME']
+    return """--with-gobject=yes 'FC=ftn' 'CC=cc' 'CXX=icpc' "FCFLAGS=-I"""+mkl+"""/include -O2 -openmp -fPIC" --with-blas=no --with-lapack=no "--with-ext-linalg=-L"""+mkl+"""/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" '--enable-opencl' '--enable-cuda-gpu' "--with-cuda-path="""+cuda+"""" "--with-ocl-path="""+cuda+"""" "LIBS=-L"""+cuda+"""/lib64 -lnvToolsExt -lstdc++ -lpython2.7" 'CFLAGS=-O2' 'FCLIBS= ' --with-gobject=yes --enable-dynamic-libraries CFLAGS=-fPIC   'NVCC_FLAGS=--compiler-options -fPIC' """ 
+
+#here follow the configuration instructions for the modules built
+
+module_autogenargs.update({
+   
+'libyaml': env_configuration(),
+   
+'futile': env_configuration(),
+   
+'psolver': env_configuration(),
+
+'libxc': env_configuration(),
+
+'chess': env_configuration(),
+   
+'libABINIT': env_configuration(),
+   
+'GaIn': env_configuration(),
+   
+'bigdft': env_configuration(),
+   
+'spred': env_configuration(),
+
+'glib':  "--disable-dtrace",
+
+'pygobject': 'PYTHON=/usr/bin/python'   
+})

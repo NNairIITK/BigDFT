@@ -12,10 +12,11 @@
     !> Read atomic positions from xyz file and create astruct structure from it
     subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine,disableTrans_)
       use module_defs, only: gp,UNINITIALIZED, BIGDFT_INPUT_VARIABLES_ERROR
-      use dictionaries, only: f_err_raise, f_err_throw, max_field_length
+      use dictionaries
       use dynamic_memory
       use numerics, only: Bohr_Ang
       use module_base, only: bigdft_mpi
+      use yaml_parse, only: yaml_parse_from_string
       use yaml_strings, only: yaml_toa
       use yaml_output, only: yaml_warning
       implicit none
@@ -49,6 +50,7 @@
       character(len=20), dimension(100) :: atomnames
       logical :: disableTrans
       character(len = max_field_length) :: errmess
+      type(dictionary), pointer :: dict
 
       if(present(disableTrans_))then
         disableTrans=disableTrans_
@@ -138,6 +140,13 @@
          alat1d0=0.0_gp
          alat2d0=0.0_gp
          alat3d0=0.0_gp
+      end if
+      i = index(line, "{")
+      if (i > 0) then
+         ! Property dictionary may be present.
+         call yaml_parse_from_string(dict, line(i:))
+         if (dict_len(dict) > 0) astruct%properties => dict .pop. 0
+         call dict_free(dict)
       end if
     !!!  end if
 
@@ -297,6 +306,8 @@ END SUBROUTINE read_xyz_positions
 !> Read atomic positions of ascii files.
 subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline,disableTrans_)
   use module_base
+  use dictionaries
+  use yaml_parse
   use yaml_output
   implicit none
   integer, intent(in) :: ifile
@@ -330,6 +341,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
   ! Store the file.
   character(len = 256), dimension(5000) :: lines
   logical :: disableTrans
+  type(dictionary), pointer :: dict
 
   if(present(disableTrans_))then
     disableTrans=disableTrans_
@@ -391,6 +403,10 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            if (i_stat /= 0) then
               energy = UNINITIALIZED(energy)
            end if
+        else if (index(line, 'properties') > 0) then
+           call yaml_parse_from_string(dict, line(index(line, 'properties') + 11:))
+           if (dict_len(dict) > 0) astruct%properties => dict .pop. 0
+           call dict_free(dict)
         end if
         if (index(line, 'forces') > 0) forces = .true.
      end if
@@ -1287,6 +1303,7 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   character(len=20) :: symbol
   character(len=10) :: name
   character(len=11) :: units
+  character(len = 3) :: adv
   !character(len=226) :: extra
   integer :: iat
   real(gp) :: xmax,ymax,zmax,factor
@@ -1315,19 +1332,26 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
      write(iunit,'(i6,2x,a,2x,a)') astruct%nat,trim(units),trim(comment)
   end if
 
+  adv = "yes"
+  if (associated(astruct%properties)) adv = "no "
   select case(astruct%geocode)
   case('P')
-     write(iunit,'(a,3(1x,1pe24.17))')'periodic',&
+     write(iunit,'(a,3(1x,1pe24.17))', advance = adv)'periodic',&
           astruct%cell_dim(1)*factor,astruct%cell_dim(2)*factor,astruct%cell_dim(3)*factor
   case('S')
-     write(iunit,'(a,3(1x,1pe24.17))')'surface',&
+     write(iunit,'(a,3(1x,1pe24.17))', advance = adv)'surface',&
           astruct%cell_dim(1)*factor,astruct%cell_dim(2)*factor,astruct%cell_dim(3)*factor
   case('W')
-     write(iunit,'(a,3(1x,1pe24.17))')'wire',&
+     write(iunit,'(a,3(1x,1pe24.17))', advance = adv)'wire',&
           astruct%cell_dim(1)*factor,astruct%cell_dim(2)*factor,astruct%cell_dim(3)*factor
   case('F')
-     write(iunit,*)'free'
+     write(iunit,'(a)', advance = adv)'free'
   end select
+  if (associated(astruct%properties)) then
+     call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+     call yaml_dict_dump(astruct%properties, flow = .true., unit = iunit)
+     call yaml_mapping_close(unit = iunit)
+  end if
 
   do iat=1,astruct%nat
      name=trim(astruct%atomnames(astruct%iatype(iat)))
@@ -1445,6 +1469,13 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   case('F')
      write(iunit, "(A)") "#keyword: freeBC"
   end select
+
+  if (associated(astruct%properties)) then
+     write(iunit, "(A)", advance = "NO") "#metaData: properties="
+     call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
+     call yaml_dict_dump(astruct%properties, flow = .true., unit = iunit)
+     call yaml_mapping_close(unit = iunit)
+  end if
 
   if (energy /= 0.d0 .and. energy /= UNINITIALIZED(energy)) then
      write(iunit, "(A,e24.17,A)") "#metaData: totalEnergy= ", energy, " Ht"

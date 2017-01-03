@@ -360,6 +360,7 @@ class polar_axis():
   
 class TimeData:
   barwidth=0.9#0.35
+  ignored_counters=['CPU parallelism','Routines timing and number of calls','SUMMARY','Report timestamp','Hostnames']
   def __init__(self,*filenames,**kwargs):
     """
     Class to analyze the timing from a Futile run
@@ -371,6 +372,7 @@ class TimeData:
     static: Show the plot statically for screenshot use
     fontsize: Determine fontsize of the bar chart plot 
     nokey: Remove the visualization of the key from the main plot
+    counter: retrieve as reference value the counter provided
     """
     #here a try-catch section should be added for multiple documents
     #if (len(filename) > 1
@@ -395,7 +397,19 @@ class TimeData:
     self.fontsize=kwargs.get('fontsize',15)
     self.nokey=kwargs.get('nokey',False)
     counter=kwargs.get('counter','WFN_OPT') #the default value, to be customized
-    self.inspect_counter(counter)
+    if counter in self.counters(): 
+      self.inspect_counter(counter)
+    else:
+      print "Warning: counter not initialized, check the available counters"
+
+  def counters(self):
+    "Inspect the available counters"
+    cnts=[]
+    for doc in self.log:
+      if doc is None: continue
+      for internal_cnts in doc.keys():
+        if internal_cnts not in cnts and internal_cnts not in self.ignored_counters: cnts.append(internal_cnts)
+    return cnts
 
   def _refill_classes(self,main):
     self.classes=[]
@@ -591,20 +605,23 @@ class TimeData:
     if xdata is None or ydata is None: return
     #print 'picked',xdata,ydata
     xdata,ydata=axis.transData.inverted().transform((xdata,ydata))
+    #print 'transformed',xdata,ydata
     #data_from_data(fig,dst=axis,src=axis.twin,data=(int(xdata),ydata))
-    xdata=int(xdata)
     #print 'converted',xdata,ydata
-    if ydata < 0.0 or xdata<0 or xdata >= len(self.scf): return
+    if ydata < 0.0 or xdata < 0.0 or xdata >= len(self.scf): return
+    xdata=int(xdata)
     #find the category which has been identified
     y0data=0.0
+    category=None
     for cat in self.values_legend:
+      if cat == 'Unknown': continue
       y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
       #print 'cat,y0data',cat,y0data,ydata
       if y0data > ydata:
         category=cat
         break
     #print 'category',category
-    if category != "Unknown": self.inspect_category(category)  
+    if category is not None and category != "Unknown": self.inspect_category(category)  
     
   def _draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False,nokey=False):
     import numpy as np

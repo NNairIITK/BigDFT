@@ -172,6 +172,7 @@ AC_CONFIG_FILES([
 Makefile
 futile.pc
 futile_environment.sh
+futilevars.sh
 doc/Makefile
 doc/Doxyfile
 flib/Makefile

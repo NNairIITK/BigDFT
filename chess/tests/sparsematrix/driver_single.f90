@@ -155,7 +155,7 @@ program driver_single
 
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
-  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), -1, &
+  call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'standard', -1, &
        smat_in, mat_in, eval_min, eval_max, quiet=.true.)
   if (iproc==0) then
       call yaml_comment('Eigenvalue informations',hfill='-')

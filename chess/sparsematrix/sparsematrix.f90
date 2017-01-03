@@ -2816,86 +2816,109 @@ module sparsematrix
 
 
     !> Get the minimal and maximal eigenvalue of a matrix
-    subroutine get_minmax_eigenvalues(iproc, nproc, comm, scalapack_blocksize, &
-               ovrlp_smat, ovrlp_mat, eval_min, eval_max, quiet)
-      use parallel_linalg, only: dsyev_parallel
+    subroutine get_minmax_eigenvalues(iproc, nproc, comm, mode, scalapack_blocksize, &
+               smat, mat, eval_min, eval_max, &
+               quiet, smat2, mat2, evals)
+      use parallel_linalg, only: dsyev_parallel, dsygv_parallel
       use dynamic_memory
       use yaml_output
       implicit none
 
       ! Calling arguments
       integer, intent(in) :: iproc, nproc, comm, scalapack_blocksize
-      type(sparse_matrix), intent(in) :: ovrlp_smat
-      type(matrices), intent(in) :: ovrlp_mat
-      real(mp),dimension(ovrlp_smat%nspin),intent(out) :: eval_min, eval_max
+      character(len=*),intent(in) :: mode
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+      real(mp),dimension(smat%nspin),intent(out) :: eval_min, eval_max
       logical,intent(in),optional :: quiet
+      type(sparse_matrix),intent(in),optional :: smat2
+      type(matrices),intent(in),optional :: mat2
+      real(mp),dimension(smat%nfvctr*smat%nspin),intent(out),optional :: evals
 
       ! Local variables
-      integer :: iseg, ii, i, lwork, info, ispin, ishift
-      real(kind=mp),dimension(:,:),allocatable :: tempmat
+      integer :: iseg, ii, i, lwork, info, ispin, ishift, imode
+      real(kind=mp),dimension(:,:),allocatable :: tempmat, tempmat2
       real(kind=mp),dimension(:),allocatable :: eval, work
       logical :: quiet_
 
       call f_routine(id='get_minmax_eigenvalues')
 
+      if (trim(mode)=='standard') then
+          !Everything ok, standard eigenvalue problem
+          imode = 1
+      else if (trim(mode)=='generalized') then
+          ! Generalized eigenvalue problem, check the presene of the required optional arguments
+          if (.not.present(smat2)) call f_err_throw('smat2 must be present for a generalized eigenvalue problem')
+          if (.not.present(mat2)) call f_err_throw('mat2 must be present for a generalized eigenvalue problem')
+          imode = 2
+      else
+          call f_err_throw("wrong value for 'mode', must be 'standard' or 'generalized'")
+      end if
+
       quiet_ = .false.
       if (present(quiet)) quiet_ = quiet
 
-      tempmat = f_malloc((/ovrlp_smat%nfvctr,ovrlp_smat%nfvctr/),id='tempmat')
-      eval = f_malloc(ovrlp_smat%nfvctr,id='eval')
+      tempmat = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat')
+      eval = f_malloc(smat%nfvctr,id='eval')
 
-      !!! Workspace query
-      !!lwork=-1
-      !!work = f_malloc(1,id='work')
-      !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-      !!if (info/=0) then
-      !!    call f_err_throw('dsyev issued error code '//trim(yaml_toa(info)))
-      !!end if
-      !!lwork=work(1)
-      !!call f_free(work)
-
-      !!work = f_malloc(lwork,id='work')
-
-      do ispin=1,ovrlp_smat%nspin
+      do ispin=1,smat%nspin
 
           call f_zero(tempmat)
 
-          ishift = (ispin-1)*ovrlp_smat%nvctr
+          ishift = (ispin-1)*smat%nvctr
 
-          do iseg=1,ovrlp_smat%nseg
-              ii=ovrlp_smat%keyv(iseg)
-              do i=ovrlp_smat%keyg(1,1,iseg),ovrlp_smat%keyg(2,1,iseg)
-                  tempmat(i,ovrlp_smat%keyg(1,2,iseg)) = ovrlp_mat%matrix_compr(ishift+ii)
+          do iseg=1,smat%nseg
+              ii=smat%keyv(iseg)
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                  tempmat(i,smat%keyg(1,2,iseg)) = mat%matrix_compr(ishift+ii)
                   ii = ii + 1
               end do
           end do
-          !!if (iproc==0) then
-          !!    do i=1,ovrlp_smat%nfvctr
-          !!        do j=1,ovrlp_smat%nfvctr
-          !!            write(*,'(a,2i6,es17.8)') 'i,j,val',i,j,tempmat(j,i)
-          !!        end do
-          !!    end do
-          !!end if
-          !!call dsyev('n','l', ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, work, lwork, info)
-          call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
-               ovrlp_smat%nfvctr, tempmat, ovrlp_smat%nfvctr, eval, info)
+
+          if (imode==2) then
+              tempmat2 = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
+              do iseg=1,smat2%nseg
+                  ii=smat2%keyv(iseg)
+                  do i=smat2%keyg(1,1,iseg),smat2%keyg(2,1,iseg)
+                      tempmat2(i,smat2%keyg(1,2,iseg)) = mat2%matrix_compr(ishift+ii)
+                      ii = ii + 1
+                  end do
+              end do
+          end if
+
+          if (imode==1) then
+              call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+                   smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+          else if (imode==2) then
+              call dsygv_parallel(iproc, nproc, comm, scalapack_blocksize, nproc, 1, 'n', 'l', &
+                   smat%nfvctr, tempmat, smat%nfvctr, tempmat2, smat%nfvctr, eval, info)
+          end if
           if (info/=0) then
               if (iproc==0) then
-                  call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
+                  if (imode==1) then
+                      call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
+                  else if (imode==2) then
+                      call f_err_throw('dsygv_parallel issued error code '//trim(yaml_toa(info)))
+                  end if
               end if
           end if
-          !if (iproc==0) write(*,*) 'eval',eval
           if (iproc==0 .and. .not.quiet_) then
-              call yaml_map('eval max/min',(/eval(1),eval(ovrlp_smat%nfvctr)/),fmt='(es16.6)')
+              call yaml_map('eval max/min',(/eval(1),eval(smat%nfvctr)/),fmt='(es16.6)')
           end if
           eval_min(ispin) = eval(1)
-          eval_max(ispin) = eval(ovrlp_smat%nfvctr)
+          eval_max(ispin) = eval(smat%nfvctr)
+
+          if (present(evals)) then
+              call vcopy(smat%nfvctr, eval(1), 1, evals((ispin-1)*smat%nfvctr+1), 1)
+          end if
 
       end do
 
       call f_free(tempmat)
+      if (imode==2) then
+          call f_free(tempmat2)
+      end if
       call f_free(eval)
-      !!call f_free(work)
 
       call f_release_routine()
 

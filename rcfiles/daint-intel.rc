@@ -6,27 +6,37 @@ conditions.add("testing")
 #List the module the this rcfile will build
 modules = ['spred',]
 #example of the potentialities of the python syntax in this file
+def intel():
+    import os
+    mkl=os.environ['MKLROOT']
+    return """ 'FC=ftn' 'CC=cc' 'CXX=icpc' "FCFLAGS=-I"""+mkl+"""/include -O2 -qopenmp" --with-blas=no --with-lapack=no "--with-ext-linalg=-L"""+mkl+"""/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" 'CFLAGS=-O2' 'FCLIBS= '"""
+
+def gpu():
+    import os
+    cuda=os.environ['CUDATOOLKIT_HOME']
+    return """ '--enable-opencl' '--enable-cuda-gpu' "--with-cuda-path="""+cuda+"""" "--with-ocl-path="""+cuda+"""" "LIBS=-L"""+cuda+"""/lib64 -lnvToolsExt -lstdc++" """
+
 def env_configuration():
-    return """"FC=ftn" "CC=cc" "CXX=icpc" "FCFLAGS=-I/opt/intel/15.0.1.133/composer_xe_2015/mkl/include -O2 -openmp" "--with-ext-linalg=-L/opt/intel/15.0.1.133/composer_xe_2015/mkl/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_intel_thread -lpthread -lm" "--enable-opencl" "--enable-cuda-gpu" "--with-cuda-path=/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9836.8.1" "--with-ocl-path=/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9836.8.1" "LIBS=-L/opt/nvidia/cudatoolkit6.5/6.5.14-1.0502.9836.8.1/lib64 -lnvToolsExt" "CFLAGS=-O2" "FCLIBS= " """
+    return intel()+gpu()
 #here follow the configuration instructions for the modules built
 module_autogenargs.update({
    
-'libyaml': env_configuration(),
+'libyaml': intel(),
    
-'futile': env_configuration(),
+'futile': intel()+gpu(),
    
-'psolver': env_configuration(),
+'psolver': intel()+gpu(),
 
-'libxc': env_configuration(),
+'libxc': intel(),
 
-'chess': env_configuration(),
+'chess': intel(),
    
-'libABINIT': env_configuration(),
+'libABINIT': intel(),
    
-'GaIn': env_configuration(),
+'GaIn': intel(),
    
-'bigdft': env_configuration(),
+'bigdft': intel()+gpu(),
    
-'spred': env_configuration(),
+'spred': intel(),
    
 })
