@@ -2670,6 +2670,8 @@ contains
           tmpint = tmpint + offset*tmpsize
           tmpaddr= TRANSFER(tmpint, tmpaddr)
           call c_f_pointer(tmpaddr, a)
+       else
+          call c_f_pointer(buf, a)
        end if
     else
       call c_f_pointer(buf, a)
