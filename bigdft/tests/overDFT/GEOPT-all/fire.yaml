@@ -7,13 +7,4 @@
    forcemax: 1.0E-002
    dtmax: 1.57
    dtinit: 0.75000000000000000000000001
- posinp:
-   units: angstroem
-   positions:
-   - H: [5.06, 0.0, 0.0]
-     IGSpin: 1
-   - H: [4.3, 0.0, 0.0]
-     IGSpin: -1
-   properties:
-     format: xyz
-     source: fire.xyz
+ posinp: fire.xyz

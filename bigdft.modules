@@ -13,6 +13,12 @@
   <repository type="tarball" name="unidata"
               href="ftp://ftp.unidata.ucar.edu/pub/"/>
   <repository type="tarball" name="etsf" href="http://www.etsf.eu/system/files/"/>
+
+  <repository type="tarball" name="simgrid" href="http://gforge.inria.fr/frs/download.php/file/35817/"/>
+  <repository type="git" name="simgrid-dev" href="https://scm.gforge.inria.fr/anonscm/git/"/>
+  <repository type="git" name="ipython" href="https://github.com/ipython/"/>
+
+
   <repository type="tarball" name="metis"
               href="http://glaros.dtc.umn.edu/gkhome/fetch/sw/parmetis/"/>
 <!--  <repository type="tarball" name="cmake-rep"
@@ -69,6 +75,9 @@
         <dep package="pygobject"/>
         <dep package="gobject-introspection"/>
       </if>
+      <if condition-set="simulation">
+        <dep package="simgrid-dev"/>
+      </if>
     </dependencies>
   </autotools>
 
@@ -87,7 +96,7 @@
   </autotools>
 
   <autotools id="chess" autogen-sh="autoreconf">
-    <branch repo="local" module="CheSS-1.0.tar.gz" version="1.0" checkoutdir="chess"/>
+    <branch repo="local" module="CheSS-0.1.3.tar.gz" version="0.1.3" checkoutdir="chess"/>
     <dependencies>
       <dep package="futile"/>
       <if condition-set="testing">
@@ -170,6 +179,29 @@
     </dependencies>
   </autotools>
 
+  <cmake id="simgrid" skip-autogen="true">
+    <branch repo="simgrid" module="SimGrid-3.13.tar.gz"
+            version="3.13"/>
+  </cmake>
+
+  <cmake id="simgrid-dev" skip-autogen="true">
+    <branch repo="simgrid-dev"  module="simgrid/simgrid"
+            checkoutdir="simgrid-dev"/>
+  </cmake>
+
+  <cmake id="ipython" skip-autogen="true">
+    <branch repo="ipython"  module="ipython/ipython"
+            checkoutdir="ipython"/>
+  </cmake>
+
+  <distutils id="ipython">
+    <branch repo="local" module="ipython-5.1.0.tar.gz" version="5.1.0" checkoutdir="ipython"/>
+    <dependencies>
+      <dep package="PyYAML"/>
+    </dependencies>
+  </distutils>
+
+
 <!--  <autotools id="cmake-dev">
     <branch repo="cmake-rep" module="cmake-3.3.2.tar.gz"
             version="3.3.2"/>
@@ -190,6 +222,13 @@
     <dependencies>
       <dep package="spred"/>
       <dep package="PyYAML"/>
+      <dep package="ipython"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id="chess-suite">
+    <dependencies>
+      <dep package="chess"/>
     </dependencies>
   </metamodule>
 

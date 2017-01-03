@@ -1,4 +1,25 @@
 !> @file
+!!   Test of the matrix power expansion using the CSS format
+!! @author
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
+
+
+!> @file
 !! Test of the sparsematrix library
 !! @author
 !!    Copyright (C) 2015-2016 BigDFT group
@@ -18,9 +39,12 @@ program driver_css
                                     ccs_data_from_sparse_matrix, ccs_matrix_write, &
                                     matrix_matrix_multiplication, matrix_chebyshev_expansion
   use sparsematrix, only: write_matrix_compressed
+  use sparsematrix_init, only: write_sparsematrix_info
   ! The following module is an auxiliary module for this test
   use utilities, only: get_ccs_data_from_file
   use futile
+  use wrapper_MPI
+
   implicit none
 
   ! Variables
@@ -43,6 +67,8 @@ program driver_css
   iproc=mpirank()
   nproc=mpisize()
 
+  call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
+
   ! Initialize the sparsematrix error handling and timing.
   call sparsematrix_init_errors()
   call sparsematrix_initialize_timing_categories()
@@ -50,14 +76,24 @@ program driver_css
   ! Read from matrix1.dat and create the type containing the sparse matrix descriptors (smat1) as well as
   ! the type which contains the matrix data (overlap). The matrix element are stored in mat1%matrix_compr.
   call sparse_matrix_and_matrices_init_from_file_ccs('matrix1.dat', iproc, nproc, &
-       mpi_comm_world, smat1, mat1)
+       mpi_comm_world, smat1, mat1, init_matmul=.false.)
 
   ! Read from matrix2.dat and creates the type containing the sparse matrix descriptors (smat2).
   call sparse_matrix_init_from_file_ccs('matrix2.dat', iproc, nproc, &
-       mpi_comm_world, smat2)
+       mpi_comm_world, smat2, init_matmul=.true., filename_mult='matrix2.dat')
 
   ! Prepares the type containing the matrix data.
   call matrices_init(smat2, mat2(1))
+
+  ! Write a summary of the sparse matrix layout 
+  if (iproc==0) then
+      call yaml_mapping_open('Matrix properties')
+      call write_sparsematrix_info(smat1, 'Matrix 1')
+      call write_sparsematrix_info(smat2, 'Matrix 2')
+      call yaml_mapping_close()
+  end if
+
+
 
   ! Calculate the square root of the matrix described by the pair smat1/mat1 and store the result in
   ! smat2/mat2. Attention: The sparsity pattern of smat1 must be contained within that of smat2.
@@ -74,7 +110,8 @@ program driver_css
   ! Get these descriptors from an auxiliary routine using again matrix2.dat
   call get_ccs_data_from_file('matrix2.dat', nfvctr, nvctr, row_ind, col_ptr)
   call sparse_matrix_init_from_data_ccs(iproc, nproc, mpi_comm_world, &
-       nfvctr, nvctr, row_ind, col_ptr, smat3)
+       nfvctr, nvctr, row_ind, col_ptr, smat3, &
+       init_matmul=.true., nvctr_mult=nvctr, row_ind_mult=row_ind, col_ptr_mult=col_ptr)
 
   ! Extract the compressed matrix from the data type. The first routine allocates an array with the correct size,
   ! the second one extracts the result.
@@ -144,9 +181,7 @@ program driver_css
   call mpifinalize()
 
   ! Finalize flib
-  ! SM: I have the impression that every task should call this routine, but if I do so
-  ! some things are printed nproc times instead of once.
-  if (iproc==0) call f_lib_finalize()
+  call f_lib_finalize()
 
 
 end program driver_css

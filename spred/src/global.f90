@@ -15,7 +15,7 @@ program MINHOP
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
   use SPREDtypes
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   type(SPRED_inputs) :: spredinputs
@@ -27,7 +27,6 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
-  integer, parameter :: nwrite=1 !write interval
   real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.05d0,beta_N=1.d0/1.05d0
   real(kind=8), parameter :: alpha_A=1.d0/1.05d0,alpha_R=1.05d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
@@ -172,7 +171,8 @@ program MINHOP
   idum=nrandoff
   do i=1,nrandoff
      call random_number(ts)
-     rtmp = builtin_rand(idum)
+     !rtmp = builtin_rand(idum)
+     call f_random_number(rtmp)
   enddo
   if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
@@ -695,7 +695,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
       ! write intermediate results
 
       if (bigdft_mpi%iproc == 0) then
-         if(mod(nlmin,nwrite)==0)then
+         if(mod(nlmin,spredinputs%glbl_nwrite)==0)then
          call yaml_comment('(MH) WINTER')
          call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
                                  nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
@@ -938,7 +938,7 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
+    call randdist_g(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
@@ -1365,10 +1365,10 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(idum,nat,geocode,rxyz,vxyz)
+subroutine randdist_g(idum,nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   implicit none
   integer, intent(in) :: nat
   integer, intent(inout) :: idum
@@ -1381,7 +1381,8 @@ subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   do i=1,3*nat
      !call random_number(tt)
      !add built-in random number generator
-     tt=builtin_rand(idum)
+     !tt=builtin_rand(idum)
+     call f_random_number(tt,seed=idum)
      vxyz(i)=real(tt-.5,gp)*3.e-1_gp
      !if (bigdft_mpi%iproc==0) print *,i,idum,vxyz(i)
   end do
@@ -1392,7 +1393,7 @@ subroutine randdist(idum,nat,geocode,rxyz,vxyz)
      & call elim_torque_reza(nat,rxyz,vxyz)
   !if (bigdft_mpi%iproc==0) call yaml_map('After torque',vxyz,unit=6)
 
-END SUBROUTINE randdist
+END SUBROUTINE randdist_g
 
 
 !>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
@@ -1428,26 +1429,26 @@ END SUBROUTINE gausdist
 
 
 !>  generates n random numbers distributed according to  exp(-x)
-subroutine expdist(nat,geocode,rxyz,vxyz)
-  implicit real*8 (a-h,o-z)
-  real ss
-  character(len=1) :: geocode
-  !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
-  parameter(eps=1.d-8)
-  dimension rxyz(3*nat),vxyz(3*nat)
-
-  do i=1,3*nat
-     call random_number(ss)
-     tt=eps+(1.d0-2.d0*eps)*dble(ss)
-     vxyz(i)=log(tt)
-  enddo
-
-  call elim_moment(nat,vxyz)
-  if (geocode == 'F') &
-     & call  elim_torque_reza(nat,rxyz,vxyz)
-
-  return
-END SUBROUTINE expdist
+!subroutine expdist(nat,geocode,rxyz,vxyz)
+!  implicit real*8 (a-h,o-z)
+!  real ss
+!  character(len=1) :: geocode
+!  !C On Intel the random_number can take on the values 0. and 1.. To prevent overflow introduce eps
+!  parameter(eps=1.d-8)
+!  dimension rxyz(3*nat),vxyz(3*nat)
+!
+!  do i=1,3*nat
+!     call random_number(ss)
+!     tt=eps+(1.d0-2.d0*eps)*dble(ss)
+!     vxyz(i)=log(tt)
+!  enddo
+!
+!  call elim_moment(nat,vxyz)
+!  if (geocode == 'F') &
+!     & call  elim_torque_reza(nat,rxyz,vxyz)
+!
+!  return
+!END SUBROUTINE expdist
 
 
 subroutine localdist(nat,rxyz,vxyz)

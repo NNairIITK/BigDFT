@@ -230,7 +230,7 @@ end subroutine bomd
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,rxyz,vxyz,eke)
   use numerics, only: pi,au_to_k => Ha_K
   use dynamic_memory, only: f_release_routine,f_routine
-  use random, only: builtin_rand
+  use f_random!, only: builtin_rand
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
   REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms), rxyz(ndim,natoms)
@@ -245,8 +245,9 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,rxyz,vxyz,eke)
   !FIXME: a proper ndof has to be determined
   DO iat=1,natoms,2
      DO k=1,ndim
-        dum(1)=real(builtin_rand(idum),8)
-        dum(2)=real(builtin_rand(idum),8)
+        call f_random_number(dum)
+        !dum(1)=real(builtin_rand(idum),8)
+        !dum(2)=real(builtin_rand(idum),8)
         sigma=SQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
         vxyz(k,iat)=sigma*SQRT(-2.D0*LOG(dum(2)))*COS(2.D0*pi*dum(1))
         IF(iat+1.LE.natoms)then 

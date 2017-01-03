@@ -145,7 +145,8 @@ module multipole_base
       ep = external_potential_descriptors_null()
 
       ! Get the number of multipole centers
-      values => dict//'values'
+      nullify(values)
+      if ("values" .in. dict) values => dict//'values'
       ep%nmpl = dict_len(values)
       allocate(ep%mpl(ep%nmpl))
       do impl=1,ep%nmpl

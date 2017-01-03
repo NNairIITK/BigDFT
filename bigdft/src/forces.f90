@@ -1307,7 +1307,7 @@ subroutine atomic_density_matrix_delta(dump,nspin,astruct,nl,gamma_target)
   use yaml_strings
   use yaml_output
   use module_base, only: bigdft_mpi,wp
-  use f_blas, only: f_matrix
+  use f_arrays, only: f_matrix
   implicit none
   logical, intent(in) :: dump
   integer, intent(in) :: nspin
@@ -1341,7 +1341,7 @@ subroutine atomic_density_matrix_delta(dump,nspin,astruct,nl,gamma_target)
         if (igamma(l) == 0) cycle
         maxdiff=0.0_wp
         do ispin=1,nspin
-           if (.not. associated(gamma_target(l,ispin,atit%iat)%dmat)) then
+           if (.not. associated(gamma_target(l,ispin,atit%iat)%ptr)) then
 !!$              do mp=1,2*l+1
 !!$                 do m=1,2*l+1
 !!$                    nl%gamma_mmp(1,m,mp,igamma(l),ispin)=0.0_wp
@@ -1356,7 +1356,7 @@ subroutine atomic_density_matrix_delta(dump,nspin,astruct,nl,gamma_target)
            !the difference between the target and the calculated result
            do mp=1,2*l+1
               do m=1,2*l+1
-                 gt=gamma_target(l,ispin,atit%iat)%dmat(m,mp)
+                 gt=gamma_target(l,ispin,atit%iat)%ptr(m,mp)
                  gg=nl%gamma_mmp(1,m,mp,igamma(l),ispin)
                  diff=gt-gg 
 !!$                 nl%gamma_mmp(1,m,mp,igamma(l),ispin)=gt

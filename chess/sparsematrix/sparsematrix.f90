@@ -1,16 +1,33 @@
 !> @file
-!!  File defining the structures to deal with the sparse matrices
+!!   Basic routines dealing with the sparse matrices
 !! @author
-!!    Copyright (C) 2014-2015 BigDFT group
-!!    This file is distributed under the terms of the
-!!    GNU General Public License, see ~/COPYING file
-!!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS
+!!   Copyright (C) 2016 CheSS developers
+!!
+!!   This file is part of CheSS.
+!!   
+!!   CheSS is free software: you can redistribute it and/or modify
+!!   it under the terms of the GNU Lesser General Public License as published by
+!!   the Free Software Foundation, either version 3 of the License, or
+!!   (at your option) any later version.
+!!   
+!!   CheSS is distributed in the hope that it will be useful,
+!!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+!!   GNU Lesser General Public License for more details.
+!!   
+!!   You should have received a copy of the GNU Lesser General Public License
+!!   along with CheSS.  If not, see <http://www.gnu.org/licenses/>.
 
 
 !> Module to deal with the sparse matrices
 module sparsematrix
+  use dictionaries, only: f_err_throw
+  use yaml_strings
   use sparsematrix_base
+  use time_profiling
+  use wrapper_mpi
+  use wrapper_linalg
+  use f_utils
   implicit none
 
   private
@@ -32,15 +49,17 @@ module sparsematrix
   public :: write_sparsematrix_CCS
   public :: transform_sparsity_pattern
   public :: matrix_matrix_mult_wrapper
-  public :: trace_sparse
+  public :: trace_sparse_matrix
+  public :: trace_sparse_matrix_product
   public :: delete_coupling_terms
   public :: synchronize_matrix_taskgroups
   public :: max_asymmetry_of_matrix
   public :: symmetrize_matrix
   public :: check_deviation_from_unity_sparse
-  public :: operation_using_dense_lapack
+  !!public :: operation_using_dense_lapack
   public :: matrix_power_dense_lapack
   public :: diagonalizeHamiltonian2
+  public :: get_minmax_eigenvalues
 
 
   interface compress_matrix_distributed_wrapper
@@ -52,6 +71,7 @@ module sparsematrix
 
     !> subroutine to compress the matrix to sparse form
     subroutine compress_matrix(iproc,nproc,sparsemat,inmat,outmat)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -153,6 +173,7 @@ module sparsematrix
 
 
     subroutine compress_matrix2(iproc, nproc, sparsemat, inmat, outmat)
+      use dynamic_memory
       implicit none
       
       ! Calling arguments
@@ -272,6 +293,7 @@ module sparsematrix
 
 
     subroutine uncompress_matrix2(iproc, nproc, comm, smat, matrix_compr, matrix)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -292,6 +314,7 @@ module sparsematrix
 
     subroutine check_matrix_compression(iproc, nproc, sparsemat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
       integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: sparsemat
@@ -405,7 +428,8 @@ module sparsematrix
 
 
     subroutine transform_sparse_matrix(iproc, smat, lmat, imode, direction, &
-               smat_in, lmat_in, smat_out, lmat_out)
+         smat_in, lmat_in, smat_out, lmat_out)
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -503,7 +527,7 @@ module sparsematrix
           !$omp shared(smat, lmat, issegstartx, issegendx, idir, icheck, isshift, ilshift, isoffset_tg, iloffset_tg) &
           !$omp shared(smat_in, lmat_in, smat_out, lmat_out) &
           !$omp private(isseg, isstart, isend, ilstart, ilend, iostart, ioend) &
-          !$omp private(isoffset, iloffset, iscostart, ilcostart, ilength) &
+          !$omp private(isoffset, iloffset, iscostart, ilcostart, ilength,ilseg,i) &
           !$omp firstprivate(ilsegstart)
           !$omp do reduction(+:icheck)
           sloop: do isseg=issegstartx,issegendx
@@ -671,6 +695,7 @@ module sparsematrix
 
 
    subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
+     use dynamic_memory
      implicit none
 
      ! Calling arguments
@@ -743,6 +768,7 @@ module sparsematrix
 
    subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, matrix_compr)
      !!use yaml_output
+     use dynamic_memory
      implicit none
 
      ! Calling arguments
@@ -854,7 +880,8 @@ module sparsematrix
    !> Gathers together the matrix parts calculated by other tasks.
    !! Attention: Even if the output array has size smat%nvctrp_tg, only the
    !! relevant part (indicated by smat%istartend_local) is calculated
-   subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
+  subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
+    use dynamic_memory
      implicit none
 
      ! Calling arguments
@@ -1004,7 +1031,9 @@ module sparsematrix
                  end if
              end do jloop
          end do iloop
-         if (.not.found) stop 'get_taskgroup_id did not suceed'
+         if (.not.found) then
+             call f_err_throw('get_taskgroup_id did not suceed')
+         end if
        end function get_taskgroup_id
 
 
@@ -1033,6 +1062,7 @@ module sparsematrix
 
 
   subroutine uncompress_matrix_distributed2(iproc, smat, layout, matrix_compr, matrixp)
+    use dynamic_memory
     implicit none
 
     ! Calling arguments
@@ -1099,6 +1129,7 @@ module sparsematrix
 
 
    subroutine sequential_acces_matrix_fast(smat, a, a_seq)
+     use dynamic_memory
      implicit none
    
      ! Calling arguments
@@ -1129,6 +1160,7 @@ module sparsematrix
    end subroutine sequential_acces_matrix_fast
 
    subroutine sequential_acces_matrix_fast2(smat, a, a_seq)
+     use dynamic_memory
      implicit none
    
      ! Calling arguments
@@ -1164,6 +1196,7 @@ module sparsematrix
 
    subroutine sparsemm_new(iproc, smat, a_seq, b, c)
      use yaml_output
+     use dynamic_memory
      implicit none
    
      !Calling Arguments
@@ -1341,6 +1374,7 @@ module sparsematrix
 
 
    subroutine gather_matrix_from_taskgroups(iproc, nproc, comm, smat, mat_tg, mat_global)
+     use dynamic_memory
      implicit none
    
      ! Calling arguments
@@ -1392,7 +1426,9 @@ module sparsematrix
 
 
    subroutine gather_matrix_from_taskgroups_inplace(iproc, nproc, comm, smat, mat)
+     use dynamic_memory
      implicit none
+
    
      ! Calling arguments
      integer,intent(in) :: iproc, nproc, comm
@@ -1557,6 +1593,7 @@ module sparsematrix
     !> Write a sparse matrix to a file
     subroutine write_sparsematrix(filename, smat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -1620,6 +1657,7 @@ module sparsematrix
     !> Write a sparse matrix to a file, using the CCS format
     subroutine write_sparsematrix_CCS(filename, smat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -1755,6 +1793,7 @@ module sparsematrix
                nvctrp_l, isvctr_l, nseg_l, keyv_l, keyg_l, istsegline_l, direction, &
                matrix_s_in, matrix_l_in, matrix_s_out, matrix_l_out)
       use sparsematrix_init, only: matrixindex_in_compressed_lowlevel
+      use dynamic_memory
       implicit none
       ! Calling arguments
       integer,intent(in) :: iproc, nfvctr, nvctrp_s, isvctr_s, nseg_s, nvctrp_l, isvctr_l, nseg_l
@@ -1843,7 +1882,10 @@ module sparsematrix
 
     !> Calculates c = a*b for matrices a,b,c
     subroutine matrix_matrix_mult_wrapper(iproc, nproc, smat, a, b, c)
+      use dynamic_memory
       implicit none
+
+
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
@@ -1887,12 +1929,54 @@ module sparsematrix
     end subroutine matrix_matrix_mult_wrapper
 
 
+
+
+    !< Calculates the trace of the sparse matrix mat
+    function trace_sparse_matrix(iproc, nproc, comm, smat, mat) result(tr)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc,  nproc, comm
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: mat
+    
+      ! Local variables
+      integer :: irow, ind
+      real(kind=mp) :: tr
+    
+      call f_routine(id='trace_sparse_matrix')
+
+      tr = 0.0_mp 
+      do irow=1,smat%nfvctr
+          ind = matrixindex_in_compressed(smat, irow, irow)
+          if (ind<smat%isvctr+1) cycle
+          if (ind>smat%isvctr+smat%nvctrp) then
+              exit
+          end if
+          tr = tr + mat(ind)
+      end do
+      if (nproc > 1) then
+          call mpiallred(tr, 1, mpi_sum, comm=comm)
+      end if
+    
+      call f_release_routine()
+    
+    end function trace_sparse_matrix
+
+
+
+
+
     !< Calculates the trace of the matrix product amat*bmat.
     !< WARNING: It is mandatory that the sparsity pattern of amat be contained
     !< within the sparsity pattern of bmat!
-    function trace_sparse(iproc, nproc, comm, asmat, bsmat, amat, bmat)
+    function trace_sparse_matrix_product(iproc, nproc, comm, asmat, bsmat, amat, bmat) result(sumn)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
+
     
       ! Calling arguments
       integer,intent(in) :: iproc,  nproc, comm
@@ -1903,7 +1987,7 @@ module sparsematrix
       ! Local variables
       integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, iilarge
       integer :: ierr, iashift, ibshift, iel
-      real(kind=mp) :: sumn, trace_sparse
+      real(kind=mp) :: sumn
     
     
       call f_routine(id='trace_sparse')
@@ -1915,51 +1999,39 @@ module sparsematrix
       !    call f_err_throw('The sparse matrix multiplications must &
       !         &be initialized to use the routine trace_sparse')
       !end if
-    
+
       sumn=0.d0
-      !if (asmat%smmm%nfvctrp>0) then
-          !$omp parallel default(none) &
-          !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
-          !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
-          !$omp do reduction(+:sumn)
-          !do iseg=isegstart,isegend
-          !do iseg=asmat%smmm%isseg,asmat%smmm%ieseg
-          !do iseg=1,asmat%nseg
-          do iseg=asmat%isseg,asmat%ieseg
-              iel = asmat%keyv(iseg) - 1
-              ii=iashift+asmat%keyv(iseg)-1
-              ! A segment is always on one line, therefore no double loop
-              do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
-                  iel = iel + 1
-                  !if (iel<asmat%smmm%isvctr_mm+1) cycle
-                  !if (iel>asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm) then
-                  if (iel<asmat%isvctr+1) cycle
-                  if (iel>asmat%isvctr+asmat%nvctrp) then
-                      !write(*,*) 'exit with iel',iel
-                      exit
-                  end if
-                  ii=ii+1
-                  iiorb = asmat%keyg(1,2,iseg)
-                  jjorb = jorb
-                  iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
-                  !!write(*,'(a,4i8,3es16.8)') 'iproc, ii, iilarge, iend, vals, sumn', &
-                  !!    iproc, ii, iilarge, asmat%smmm%isvctr_mm+asmat%smmm%nvctrp_mm, amat(ii-asmat%isvctrp_tg), bmat(iilarge-bsmat%isvctrp_tg), sumn
-                  sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
-              end do  
-          end do
-          !$omp end do
-          !$omp end parallel
-      !end if
-    
+      !$omp parallel default(none) &
+      !$omp private(iseg, ii, jorb, iiorb, jjorb, iilarge, iel) &
+      !$omp shared(bsmat, asmat, amat, bmat, iashift, ibshift, sumn)
+      !$omp do reduction(+:sumn)
+      do iseg=asmat%isseg,asmat%ieseg
+          iel = asmat%keyv(iseg) - 1
+          ii=iashift+asmat%keyv(iseg)-1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=asmat%keyg(1,1,iseg),asmat%keyg(2,1,iseg)
+              iel = iel + 1
+              if (iel<asmat%isvctr+1) cycle
+              if (iel>asmat%isvctr+asmat%nvctrp) then
+                  exit
+              end if
+              ii=ii+1
+              iiorb = asmat%keyg(1,2,iseg)
+              jjorb = jorb
+              iilarge = ibshift + matrixindex_in_compressed(bsmat, iiorb, jjorb)
+              sumn = sumn + amat(ii-asmat%isvctrp_tg)*bmat(iilarge-bsmat%isvctrp_tg)
+          end do  
+      end do
+      !$omp end do
+      !$omp end parallel
+
       if (nproc > 1) then
           call mpiallred(sumn, 1, mpi_sum, comm=comm)
       end if
     
-      trace_sparse = sumn
-    
       call f_release_routine()
     
-    end function trace_sparse
+    end function trace_sparse_matrix_product
 
 
     !> Set to zero all term which couple different atoms
@@ -2003,7 +2075,8 @@ module sparsematrix
    end subroutine delete_coupling_terms
 
 
-    subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+   subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+     use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2067,8 +2140,9 @@ module sparsematrix
 
 
 
-    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max, ispinx)
+    subroutine max_asymmetry_of_matrix(iproc, nproc, comm, sparsemat, mat_tg, error_max)!, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2076,7 +2150,7 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: sparsemat
       real(kind=mp),dimension(sparsemat%nvctrp_tg),intent(in) :: mat_tg
       real(kind=mp),intent(out) :: error_max
-      integer,intent(in),optional :: ispinx
+      !integer,intent(in),optional :: ispinx
 
       ! Local variables
       real(kind=mp),dimension(:),allocatable :: mat_full
@@ -2090,11 +2164,11 @@ module sparsematrix
       !!call gather_matrix_from_taskgroups(iproc, nproc, comm, sparsemat, mat_tg, mat_full)
 
       error_max = 0.0_mp
-      do ispin=1,sparsemat%nspin
-          if (present(ispinx)) then
-              if (ispin/=ispinx) cycle
-          end if
-          ishift=(ispin-1)*sparsemat%nvctr
+      !!do ispin=1,sparsemat%nspin
+      !!    if (present(ispinx)) then
+      !!        if (ispin/=ispinx) cycle
+      !!    end if
+      !!    ishift=(ispin-1)*sparsemat%nvctr
           ! SM: The function matrixindex_in_compressed is rather expensive, so I think OpenMP is always worth
           !$omp parallel default(none) &
           !$omp shared(sparsemat, mat_tg, error_max) &
@@ -2122,7 +2196,7 @@ module sparsematrix
           end do
           !$omp end do
           !$omp end parallel
-      end do
+      !!end do
       call mpiallred(error_max, 1, mpi_max, comm=comm)
       !if (iproc==0) call yaml_map('max asymmetry',error_max)
 
@@ -2269,6 +2343,7 @@ module sparsematrix
 
     subroutine symmetrize_matrix(smat, csign, mat_in, mat_out, ispinx)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2344,8 +2419,8 @@ module sparsematrix
 
 
     subroutine check_deviation_from_unity_sparse(iproc, smat, mat, max_error, mean_error)
-      use sparsematrix_base, only: sparse_matrix, &
-                                   matrices
+      use sparsematrix_base, only: sparse_matrix,matrices
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -2393,68 +2468,70 @@ module sparsematrix
 
 
 
-    subroutine operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
-      use parallel_linalg, only: dgemm_parallel
+    !!subroutine operation_using_dense_lapack(iproc, nproc, exp_power, smat_in, mat_in)
+    !!  use parallel_linalg, only: dgemm_parallel
+    !!  implicit none
+
+    !!  ! Calling arguments
+    !!  integer,intent(in) :: iproc, nproc
+    !!  real(mp),intent(in) :: exp_power
+    !!  type(sparse_matrix),intent(in) :: smat_in
+    !!  type(matrices),intent(in) :: mat_in
+
+    !!  ! Local variables
+    !!  integer :: blocksize
+    !!  real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+    !!  real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
+    !!  external :: gather_timings
+
+    !!  call f_routine(id='operation_using_dense_lapack')
+
+    !!  blocksize = -100
+    !!  mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+    !!  mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
+    !!  mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
+    !!  call uncompress_matrix(iproc, nproc, &
+    !!       smat_in, mat_in%matrix_compr, mat_in_dense)
+
+    !!  call f_timing_checkpoint(ctr_name='INIT_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+    !!       gather_routine=gather_timings)
+
+    !!  call matrix_power_dense(iproc, nproc, comm, blocksize, smat_in%nfvctr, &
+    !!       mat_in_dense, exp_power, mat_out_dense)
+
+    !!  call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+    !!       gather_routine=gather_timings)
+
+    !!  call matrix_power_dense(iproc, nproc, comm, blocksize, smat_in%nfvctr, &
+    !!       mat_in_dense, -exp_power, mat_check_accur_dense)
+    !!  call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
+    !!       smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
+    !!       1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
+    !!       mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
+    !!  call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
+
+    !!  call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
+    !!       gather_routine=gather_timings)
+
+    !!  call f_free(mat_check_accur_dense)
+    !!  call f_free(mat_in_dense)
+    !!  call f_free(mat_out_dense)
+
+    !!  call f_release_routine()
+
+    !!end subroutine operation_using_dense_lapack
+
+
+
+    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, &
+               exp_power, smat_in, smat_out, mat_in, mat_out)
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm, scalapack_blocksize
       real(mp),intent(in) :: exp_power
-      type(sparse_matrix),intent(in) :: smat_in
-      type(matrices),intent(in) :: mat_in
-
-      ! Local variables
-      integer :: blocksize
-      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
-      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
-      external :: gather_timings
-
-      call f_routine(id='operation_using_dense_lapack')
-
-      blocksize = -100
-      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_out_dense')
-      mat_check_accur_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr,2/),id='mat_check_accur_dense')
-      call uncompress_matrix(iproc, nproc, &
-           smat_in, mat_in%matrix_compr, mat_in_dense)
-
-      call f_timing_checkpoint(ctr_name='INIT_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
-           gather_routine=gather_timings)
-
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
-           mat_in_dense, exp_power, mat_out_dense)
-
-      call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
-           gather_routine=gather_timings)
-
-      call matrix_power_dense(iproc, nproc, blocksize, smat_in%nfvctr, &
-           mat_in_dense, -exp_power, mat_check_accur_dense)
-      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 'n', &
-           smat_in%nfvctr, smat_in%nfvctr, smat_in%nfvctr, &
-           1.d0, mat_out_dense(1,1), smat_in%nfvctr, &
-           mat_check_accur_dense(1,1,1), smat_in%nfvctr, 0.d0, mat_check_accur_dense(1,1,2), smat_in%nfvctr)
-      call check_deviation_from_unity_dense(iproc, smat_in%nfvctr, mat_check_accur_dense(1,1,2))
-
-      call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=nproc,&
-           gather_routine=gather_timings)
-
-      call f_free(mat_check_accur_dense)
-      call f_free(mat_in_dense)
-      call f_free(mat_out_dense)
-
-      call f_release_routine()
-
-    end subroutine operation_using_dense_lapack
-
-
-
-    subroutine matrix_power_dense_lapack(iproc, nproc, exp_power, smat, mat_in, mat_out)
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      real(mp),intent(in) :: exp_power
-      type(sparse_matrix),intent(in) :: smat
+      type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
       type(matrices),intent(out) :: mat_out
 
@@ -2465,15 +2542,14 @@ module sparsematrix
 
       call f_routine(id='operation_using_dense_lapack')
 
-      blocksize = -100
-      mat_in_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat%nfvctr,smat%nfvctr/),id='mat_out_dense')
+      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+      mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
       !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
-           smat, mat_in%matrix_compr, mat_in_dense)
-      call matrix_power_dense(iproc, nproc, blocksize, smat%nfvctr, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
+      call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
            mat_in_dense, exp_power, mat_out_dense)
-      call compress_matrix(iproc, nproc, smat, mat_out_dense, mat_out%matrix_compr)
+      call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
       call f_free(mat_in_dense)
       call f_free(mat_out_dense)
 
@@ -2484,13 +2560,14 @@ module sparsematrix
 
 
     !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
-    subroutine matrix_power_dense(iproc, nproc, blocksize, n, mat_in, ex, mat_out)
+    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out)
       !use module_base
       use parallel_linalg, only: dgemm_parallel, dsyev_parallel
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, blocksize, n
+      integer,intent(in) :: iproc, nproc, comm, blocksize, n
       real(kind=8),dimension(n,n),intent(in) :: mat_in
       real(kind=8),intent(in) :: ex
       real(kind=8),dimension(n,n),intent(out) :: mat_out
@@ -2507,10 +2584,19 @@ module sparsematrix
       ! Diagonalize the matrix
       mat_tmp = f_malloc((/n,n,2/),id='mat_tmp')
       eval = f_malloc(n,id='mat_tmp')
-      call f_memcpy(src=mat_in, dest=mat_tmp)
-      call dsyev_parallel(iproc, nproc, blocksize, mpi_comm_world, 'v', 'l', n, mat_tmp, n, eval, info)
+      ! f_memcpy can cause segfault for large matrices (I assume integer overflows)
+      !call f_memcpy(src=mat_in, dest=mat_tmp)
+      do i=1,n
+          do j=1,n
+              mat_tmp(j,i,1) = mat_in(j,i)
+          end do
+      end do
+
+      call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
       if (info /= 0) then
-          call f_err_throw('wrong infocode, value ='//trim(yaml_toa(info)))
+          if (iproc==0) then
+              call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
+          end if
       end if
 
       ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix
@@ -2535,6 +2621,7 @@ module sparsematrix
 
 
     subroutine check_deviation_from_unity_dense(iproc, n, mat)
+      use yaml_output
       implicit none
 
       ! Calling arguments
@@ -2571,6 +2658,7 @@ module sparsematrix
 
 
     subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
+      use dynamic_memory
       !
       ! Purpose:
       ! ========
@@ -2725,5 +2813,115 @@ module sparsematrix
       call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
     
     end subroutine diagonalizeHamiltonian2
+
+
+    !> Get the minimal and maximal eigenvalue of a matrix
+    subroutine get_minmax_eigenvalues(iproc, nproc, comm, mode, scalapack_blocksize, &
+               smat, mat, eval_min, eval_max, &
+               quiet, smat2, mat2, evals)
+      use parallel_linalg, only: dsyev_parallel, dsygv_parallel
+      use dynamic_memory
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc, comm, scalapack_blocksize
+      character(len=*),intent(in) :: mode
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+      real(mp),dimension(smat%nspin),intent(out) :: eval_min, eval_max
+      logical,intent(in),optional :: quiet
+      type(sparse_matrix),intent(in),optional :: smat2
+      type(matrices),intent(in),optional :: mat2
+      real(mp),dimension(smat%nfvctr*smat%nspin),intent(out),optional :: evals
+
+      ! Local variables
+      integer :: iseg, ii, i, lwork, info, ispin, ishift, imode
+      real(kind=mp),dimension(:,:),allocatable :: tempmat, tempmat2
+      real(kind=mp),dimension(:),allocatable :: eval, work
+      logical :: quiet_
+
+      call f_routine(id='get_minmax_eigenvalues')
+
+      if (trim(mode)=='standard') then
+          !Everything ok, standard eigenvalue problem
+          imode = 1
+      else if (trim(mode)=='generalized') then
+          ! Generalized eigenvalue problem, check the presene of the required optional arguments
+          if (.not.present(smat2)) call f_err_throw('smat2 must be present for a generalized eigenvalue problem')
+          if (.not.present(mat2)) call f_err_throw('mat2 must be present for a generalized eigenvalue problem')
+          imode = 2
+      else
+          call f_err_throw("wrong value for 'mode', must be 'standard' or 'generalized'")
+      end if
+
+      quiet_ = .false.
+      if (present(quiet)) quiet_ = quiet
+
+      tempmat = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat')
+      eval = f_malloc(smat%nfvctr,id='eval')
+
+      do ispin=1,smat%nspin
+
+          call f_zero(tempmat)
+
+          ishift = (ispin-1)*smat%nvctr
+
+          do iseg=1,smat%nseg
+              ii=smat%keyv(iseg)
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                  tempmat(i,smat%keyg(1,2,iseg)) = mat%matrix_compr(ishift+ii)
+                  ii = ii + 1
+              end do
+          end do
+
+          if (imode==2) then
+              tempmat2 = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
+              do iseg=1,smat2%nseg
+                  ii=smat2%keyv(iseg)
+                  do i=smat2%keyg(1,1,iseg),smat2%keyg(2,1,iseg)
+                      tempmat2(i,smat2%keyg(1,2,iseg)) = mat2%matrix_compr(ishift+ii)
+                      ii = ii + 1
+                  end do
+              end do
+          end if
+
+          if (imode==1) then
+              call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+                   smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+          else if (imode==2) then
+              call dsygv_parallel(iproc, nproc, comm, scalapack_blocksize, nproc, 1, 'n', 'l', &
+                   smat%nfvctr, tempmat, smat%nfvctr, tempmat2, smat%nfvctr, eval, info)
+          end if
+          if (info/=0) then
+              if (iproc==0) then
+                  if (imode==1) then
+                      call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
+                  else if (imode==2) then
+                      call f_err_throw('dsygv_parallel issued error code '//trim(yaml_toa(info)))
+                  end if
+              end if
+          end if
+          if (iproc==0 .and. .not.quiet_) then
+              call yaml_map('eval max/min',(/eval(1),eval(smat%nfvctr)/),fmt='(es16.6)')
+          end if
+          eval_min(ispin) = eval(1)
+          eval_max(ispin) = eval(smat%nfvctr)
+
+          if (present(evals)) then
+              call vcopy(smat%nfvctr, eval(1), 1, evals((ispin-1)*smat%nfvctr+1), 1)
+          end if
+
+      end do
+
+      call f_free(tempmat)
+      if (imode==2) then
+          call f_free(tempmat2)
+      end if
+      call f_free(eval)
+
+      call f_release_routine()
+
+    end subroutine get_minmax_eigenvalues
 
 end module sparsematrix

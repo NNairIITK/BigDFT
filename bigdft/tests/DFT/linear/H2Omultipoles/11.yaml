@@ -62,6 +62,7 @@
    linear_method: FOE
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0E-002
+   delta_pnrm: 0.1
  lin_basis_params:
    H:
      nbasis: 1

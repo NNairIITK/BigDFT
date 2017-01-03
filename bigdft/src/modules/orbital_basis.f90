@@ -775,6 +775,7 @@ contains
     npot=psi%nspinor
     if (psi%nspinor == 2) npot=1
 
+
     exctXcoeff=xc_exctXfac(xc)
     call daub_to_isf_locham(psi%nspinor,psi%lr,wrk_lh,psi%phi_wvl,psir)
 
@@ -947,10 +948,10 @@ contains
        !the allocation did not crashed therefore update the database
        if (present(id)) then
           call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
-               f_loc(ob%dd),'dd',id)
+               f_loc(ob%dd),'dd',id,info='')
        else
           call f_update_database(int(orbs%norbp,f_long),sizeof(ob%dd),1,&
-               f_loc(ob%dd),'dd','orbital_basis_associate')
+               f_loc(ob%dd),'dd','orbital_basis_associate',info='')
        end if
        
        do iorb=1,orbs%norbp

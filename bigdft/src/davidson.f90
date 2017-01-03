@@ -141,6 +141,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
         at,VTwfn%orbs,VTwfn%Lzd,VTwfn%comms,rxyz,in%nspin,&
         VTwfn%psi, max(VTwfn%orbs%npsidim_orbs, VTwfn%orbs%npsidim_comp))
 
+   if (bigdft_mpi%nproc > 1) call mpiallred(Vtwfn%orbs%eval,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
    !if(iproc==0) call yaml_map('Orthogonality to occupied psi',.true.)
    !if(iproc==0) write(*,'(1x,a)',advance="no") "Orthogonality to occupied psi..."
 
@@ -541,11 +543,16 @@ subroutine davidson(iproc,nproc,in,at,&
       nspin=1
    end if
 
-
    !prepare the v array starting from a set of gaussians
    call psivirt_from_gaussians(iproc,nproc,trim(in%dir_output) // "virtuals",&
         at,orbsv,Lzd,commsv,rxyz,in%nspin,&
         v, max(orbsv%npsidim_orbs, orbsv%npsidim_comp))
+
+!!$   call input_wf_diag(iproc,nproc, at,denspot,&
+!!$        KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
+!!$        nl,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
+!!$        Gvirt,nspin,GPU,in,.false.)
+
 
    !if(iproc==0) call yaml_mapping_open('Orthogonality to occupied psi',flow=.true.)
    !if(iproc==0)write(*,'(1x,a)',advance="no")"Orthogonality to occupied psi..."
@@ -576,6 +583,7 @@ subroutine davidson(iproc,nproc,in,at,&
    call untranspose_v(iproc,nproc,orbsv,Lzd%Glr%wfd,commsv,v(1),psiw(1))
 
    if (in%itermax_virt <=0) then
+      if (bigdft_mpi%nproc > 1) call mpiallred(orbsv%eval,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
       call plot_and_finalize()
       return
    end if
@@ -670,7 +678,7 @@ subroutine davidson(iproc,nproc,in,at,&
       if (iproc == 0) then
          call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)')))&
               // ' BZ coord. = ' // &
-              trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+              trim(yaml_toa(orbsv%kpts(:, ikpt),fmt='(f12.6)')))
          !call yaml_sequence(advance='no')
          !write(*,"(1x,A,I3.3,A,3F12.6)") " Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
       end if
@@ -766,7 +774,7 @@ subroutine davidson(iproc,nproc,in,at,&
             call yaml_sequence(advance='no')
             call yaml_mapping_open('tt',flow=.true.)
          end if
-         do iorb=1,orbsv%norb
+         do iorb=1,orbsv%norbu
             tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
             if (msg) call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), tt, fmt='(1pe21.14)')
             !if(msg) write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
@@ -829,19 +837,19 @@ subroutine davidson(iproc,nproc,in,at,&
 
             ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
          end do
-
-         if(nproc > 1)then
-            !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-         end if
-
+      end if
+      if(nproc > 1)then
+         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+      end if
+      if (msg) then
          gnrm=0._dp
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
             & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
             call yaml_sequence(advance='no')
             call yaml_mapping_open('tt',flow=.true.)
-            do iorb=1,orbsv%norb
+            do iorb=1,orbsv%norbu
                tt=real(e(iorb,ikpt,2)*orbsv%kwgts(ikpt),dp)
                call yaml_map('Orbital No.'//trim(yaml_toa(iorb)), tt, fmt='(1pe21.14)')
                !write(*,'(1x,i3,1x,1pe21.14)')iorb,tt
@@ -943,12 +951,13 @@ subroutine davidson(iproc,nproc,in,at,&
             end do
             ispsi=ispsi+nvctrp*orbsv%norb*orbsv%nspinor
          end do
-
-         if(nproc > 1)then
-            !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-         end if
-
+      end if
+      
+      if(nproc > 1)then
+         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+      end if
+      if (msg) then
          gnrm=0.0_dp
          do ikpt=1,orbsv%nkpts
             do iorb=1,orbsv%norb
@@ -1020,21 +1029,21 @@ subroutine davidson(iproc,nproc,in,at,&
             ish2=8*ndimovrlp(ispin,ikpt-1)+4*norbs*norb+1
 
             if(msg)then
-               write(*,*)"subspace matrices, upper triangular (diagonal elements first)"
+               call yaml_mapping_open("subspace matrices, upper triangular (diagonal elements first)")
                write(*,'(1x)')
-               write(*,*)"subspace H "
+               call yaml_sequence_open("subspace H")
                do iorb=1,2*norbs
-                  write(*,'(100(1x,1pe12.5))')&
-                     &   (hamovr(ish1-1+iorb+(jorb-1)*2*norbs),jorb=1,2*norb)
-                  write(*,*)
+                  call yaml_sequence(&
+                       yaml_toa([(hamovr(ish1-1+iorb+(jorb-1)*2*norbs),jorb=1,2*norb)],fmt='(1pe12.5)'))
                end do
-               write(*,*)"subspace S"
-               write(*,*)
+               call yaml_sequence_close()
+               call yaml_sequence_open("subspace S")
                do iorb=1,2*norbs
-                  write(*,'(100(1x,1pe12.5))')&
-                     &   (hamovr(ish2-1+iorb+(jorb-1)*2*norbs),jorb=1,2*norb)
-                  write(*,*)
+                  call yaml_sequence(yaml_toa(&
+                       [(hamovr(ish2-1+iorb+(jorb-1)*2*norbs),jorb=1,2*norb)],fmt='(1pe12.5)'))
                end do
+               call yaml_sequence_close()
+               call yaml_mapping_close()
             end if
 
             if (nspinor == 1) then
@@ -1063,18 +1072,17 @@ subroutine davidson(iproc,nproc,in,at,&
             end if
 
             if(msg)then
-               write(*,'(1x,a)')'    e(update)           e(not used)'
+               call yaml_sequence_open('e(update,not used)')
                do iorb=1,orbsv%norb
-                  write(*,'(1x,i3,2(1pe21.14))')iorb, (e(iorb,ikpt,j),j=1,2)
+                  call yaml_sequence(yaml_toa([(e(iorb,ikpt,j),j=1,2)],fmt='(1pe21.14)'))
                end do
-               write(*,*)
-               write(*,*)"and the eigenvectors are"
-               write(*,*)
+               call yaml_sequence_close()
+               call yaml_sequence_open("and the eigenvectors are")
                do iorb=1,2*norbs
-                  write(*,'(100(1x,1pe12.5))')&
-                     &   (hamovr(ish1-1+iorb+(jorb-1)*2*norbs),jorb=1,2*norb)
-                  write(*,*)
+                  call yaml_sequence(yaml_toa(&
+                       [(hamovr(ish1-1+iorb+(jorb-1)*2*norbs),jorb=1,2*norb)],fmt='(1pe12.5)'))
                end do
+               call yaml_sequence_close()
             end if
 
 
@@ -1489,7 +1497,8 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
    mask=f_malloc(ob%orbs%norbp,id='mask')
    chosen=.false.
    binary=.false.
-   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0)
+   it=orbital_basis_iterator(ob,progress_bar=bigdft_mpi%iproc==0,&
+        id='Orbital restart')
    read_loop: do while(ket_next(it))
       mask(it%iorbp)=.false.
       !first check if the file of the virtual wavefunction is present
@@ -1540,7 +1549,6 @@ subroutine psivirt_from_gaussians(iproc,nproc,filerad,at,orbs,Lzd,comms,rxyz,nsp
 
    !the kinetic overlap is correctly calculated only with Free BC
    randinp =.true.!.false.!lr%geocode /= 'F'
-
    if (randinp) then
       call f_zero(gaucoeffs)
       if (G%ncoeff >= orbs%norb) then
@@ -1839,7 +1847,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
          !write(*,'(1x,a)')'Complete list of energy eigenvalues'
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
-            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            & trim(yaml_toa(orbsv%kpts(:, ikpt),fmt='(f12.6)')))
             !if (orbsv%nkpts > 1) write(*,"(1x,A,I3.3,A,3F12.6)") "Kpt #", ikpt, " BZ coord. = ", orbsv%kpts(:, ikpt)
             do iorb=1,orbs%norb
                if (occorbs) then
@@ -1852,10 +1860,12 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                call yaml_comment(trim(yaml_toa(iorb,fmt='(i4.4)')))
                !write(*,'(1x,a,i4,a,1x,1pe21.14)') 'e_occupied(',iorb,')=',val
             end do
-            call yaml_sequence(advance='no')
-            call yaml_map('HOMO LUMO gap (AU, eV)', &
-               &   (/ orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
-               &   Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val) /), fmt='(1pe21.14)')
+            if (orbsv%norb > occnorb) then
+               call yaml_sequence(advance='no')
+               call yaml_map('HOMO LUMO gap (AU, eV)', &
+                    &   (/ orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
+                    &   Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val) /), fmt='(1pe21.14)')
+            end if
             !write(*,'(1x,a,1pe21.14,a,0pf8.4,a)')&
             !   &   'HOMO LUMO gap   =',orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val,&
             !   &   ' (',Ha_eV*(orbsv%eval(1+occnorb+(ikpt-1)*orbsv%norb)-val),&
@@ -1873,7 +1883,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
       else
          do ikpt=1,orbsv%nkpts
             call yaml_comment('Kpt #' // adjustl(trim(yaml_toa(ikpt,fmt='(i4.4)'))) // ' BZ coord. = ' // &
-            & trim(yaml_toa(orbs%kpts(:, ikpt),fmt='(f12.6)')))
+            & trim(yaml_toa(orbsv%kpts(:, ikpt),fmt='(f12.6)')))
             !write(*,'(1x,a)')'Complete list of energy eigenvalues'
             do iorb=1,min(orbs%norbu,orbs%norbd)
                if (occorbs) then
@@ -1920,11 +1930,6 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                &      orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald, &
                &      Ha_eV*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu), &
                &      Ha_eV*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald) /), fmt='(1pe21.14)')
-            !write(*,'(1x,a,1x,1pe21.14,a,0pf8.4,a,a,1x,1pe21.14,a,0pf8.4,a)') &
-            !   &   'HOMO LUMO gap, u =', orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu,&
-            !   &   ' (',Ha_eV*(orbsv%eval(1+occnorbu+(ikpt-1)*orbsv%norb)-valu),' eV)',&
-            !   &   ',d =',orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald,&
-            !   &   ' (',Ha_eV*(orbsv%eval(orbsv%norbu+1+occnorbd+(ikpt-1)*orbsv%norb)-vald),' eV)'
             do iorb=1,min(orbsv%norbu-occnorbu,orbsv%norbd-occnorbd)
                jorb=orbsv%norbu+iorb+occnorbd
                call yaml_sequence(advance='no')
@@ -1936,7 +1941,6 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
                !   &   'e_vrt(',iorb,',u)=',orbsv%eval(iorb+(ikpt-1)*orbsv%norb),&!e(iorb,ikpt,1),&
                !   &   'e_vrt(',iorb,',d)=',orbsv%eval(jorb+(ikpt-1)*orbsv%norb)!e(jorb,ikpt,1)
             end do
-            call yaml_mapping_close()
             if (orbsv%norbu-occnorbu > orbsv%norbd-occnorbd) then
                do iorb=orbsv%norbd+1-occnorbu,orbsv%norbu-occnorbd
                   call yaml_sequence(advance='no')
@@ -2218,7 +2222,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
   call subspace_iterator_zip(ob_prime,ob_occ,ssp,sso)
   do while(subspace_next(ssp))
      mat_ptr=>ob_ss_matrix_map(mat,ssp)
-     if (bigdft_mpi%iproc == 0) call yaml_map('<psi_i| psi_j >'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
+     if (bigdft_mpi%iproc == 0) call yaml_map('<psi_i|psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
           reshape(mat_ptr,[ssp%norb,ssp%norb]),fmt=fmt)
      
      call subspace_update(ssp%ncplx,ssp%nvctr,ssp%norb,&
@@ -2329,7 +2333,7 @@ subroutine evaluate_completeness_relation(ob_occ,ob_virt,ob_prime,hpsiprime,h2ps
   call subspace_iterator_zip(ob_prime,ob_virt,ssp,ssv)
   do while(subspace_next(ssp))
      svp_ptr=>ob_ss_matrix_map(svp,ssp,ssv)
-     if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|h2psi_j>',&!+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
+     if (bigdft_mpi%iproc == 0) call yaml_map('<psiv_i|h2psi_j>'+spinstr(ssp%ispin,ssp%ob%orbs%nspin),&
           reshape(svp_ptr,[ssv%norb,ssp%norb]),fmt=fmt)
   end do
 

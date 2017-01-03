@@ -10,6 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 module box
 
+  use f_precisions
   use PSbase
 
   private
@@ -25,8 +26,12 @@ module box
      real(gp), dimension(3) :: hgrids
      real(gp), dimension(3) :: angrad !<angles between the dimensions in radiant
      !derived data
+     integer(f_long) :: ndim !< product of the dimension, long integer to avoid overflow
      real(gp) :: volume_element
      real(gp), dimension(3,3) :: habc !<primitive volume elements in the translation vectors direction
+     real(gp), dimension(3,3) :: gd !<covariant metric needed for non-orthorhombic operations
+     real(gp), dimension(3,3) :: gu !<controvariant metric needed for non-orthorhombic operations
+     real(gp) :: detgd !<determinant of the covariant matrix
   end type cell
 
   type, public :: box_iterator
@@ -43,6 +48,7 @@ module box
      integer, dimension(2,3) :: nbox 
      real(dp), dimension(3) :: oxyz !<origin of the coordinate system
      real(dp), dimension(3) :: rxyz !<coordinates of the grid point
+     real(dp), dimension(3) :: tmp !< size 3 array buffer to avoid the creation of temporary arrays
      logical :: whole !<to assess if we run over the entire box or not (no check over the internal point)
      !>reference mesh from which it starts
      type(cell), pointer :: mesh
@@ -52,8 +58,16 @@ module box
 !!$     module procedure box_iter_c,box_iter_base
 !!$  end interface box_iter
 
+  interface dotp
+     module procedure dotp,dotp_add1,dotp_add2
+  end interface dotp
+
+  interface square
+     module procedure square,square_add
+  end interface square
+
   public :: cell_r,cell_periodic_dims,distance,closest_r,square,cell_new,box_iter,box_next_point
-  public :: cell_geocode,box_next_x,box_next_y,box_next_z
+  public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp
 
 contains
 
@@ -71,8 +85,8 @@ contains
     boxit%ibox=0
     boxit%ibox(1)=-1
     boxit%nbox=-1 
-    boxit%oxyz=-1
-    boxit%rxyz=-1
+    boxit%oxyz=-1.0_dp
+    boxit%rxyz=-1.0_dp
     nullify(boxit%mesh)
     boxit%whole=.false.
   end subroutine nullify_box_iterator
@@ -94,6 +108,7 @@ contains
 
   !>define an iterator over the cell points
   function box_iter(mesh,nbox,origin,i3s,n3p,centered,cutoff) result(boxit)
+    use f_utils, only: f_zero
     implicit none
     type(cell), intent(in), target :: mesh
     !>when true the origin is placed at the center of the box, origin is ignored
@@ -106,7 +121,7 @@ contains
     integer, dimension(2,3), intent(in), optional :: nbox
     real(dp), intent(in), optional :: cutoff !< determine the box around the origin
     !> real coordinates of the origin in the reference frame of the 
-    !box (the first point has the 000 coordinate)
+    !! box (the first point has the 000 coordinate)
     real(dp), dimension(3), intent(in), optional :: origin
 
     type(box_iterator) :: boxit
@@ -116,6 +131,7 @@ contains
     !associate the mesh
     boxit%mesh => mesh
 
+    call f_zero(boxit%oxyz)
     if (present(origin)) boxit%oxyz=origin
     if (present(centered)) then
        if (centered) boxit%oxyz=0.5_dp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
@@ -145,8 +161,7 @@ contains
     else
        boxit%i3e=boxit%i3s+mesh%ndims(3)-1
     end if
-    boxit%whole=boxit%whole .and. boxit%i3s == 1 &
-         .and. boxit%i3e==mesh%ndims(3)
+    if (boxit%whole) boxit%whole=boxit%i3s == 1 .and. boxit%i3e==mesh%ndims(3)
     call set_starting_point(boxit)
 
     call probe_iterator(boxit)
@@ -162,7 +177,8 @@ contains
     implicit none
     type(box_iterator), intent(inout) :: bit
     !local variables
-    integer(f_long) :: icnt,itgt,iz,iy,ix
+    integer :: iz,iy,ix
+    integer(f_long) :: icnt,itgt
     logical(f_byte), dimension(:), allocatable :: lxyz
     integer, dimension(:), allocatable :: lx,ly,lz
 
@@ -461,9 +477,10 @@ contains
   end subroutine internal_point
 
 
-  pure function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
+  function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
     use numerics, only: onehalf,pi
     use wrapper_linalg, only: det_3x3
+    use f_utils, only: f_assert
     implicit none
     character(len=1), intent(in) :: geocode
     integer, dimension(3), intent(in) :: ndims
@@ -472,6 +489,7 @@ contains
     type(cell) :: mesh
     !local variables
     real(gp) :: aa,cc,a2,cosang
+    integer :: i,j
 
     mesh%bc=FREE
     if (geocode /= 'F') mesh%bc(1)=PERIODIC
@@ -479,6 +497,7 @@ contains
     if (geocode /= 'F') mesh%bc(3)=PERIODIC
     mesh%ndims=ndims
     mesh%hgrids=hgrids
+    mesh%ndim=product(int(ndims,f_long))
     if (present(angrad)) then
        mesh%angrad=angrad
        !some consistency check on the angles should be performed
@@ -510,11 +529,66 @@ contains
        !the volume element
        !Compute unit cell volume
        mesh%volume_element=det_3x3(mesh%habc)
+       !Set the covariant metric
+       mesh%gd(1,1) = 1.0_gp
+       mesh%gd(1,2) = dcos(angrad(1))
+       mesh%gd(1,3) = dcos(angrad(2))
+       mesh%gd(2,2) = 1.0_gp
+       mesh%gd(2,3) = dcos(angrad(3))
+       mesh%gd(3,3) = 1.0_gp 
+       mesh%gd(2,1) = mesh%gd(1,2)
+       mesh%gd(3,1) = mesh%gd(1,3)
+       mesh%gd(3,2) = mesh%gd(2,3)
+       !Set the determinant of the covariant metric
+       mesh%detgd = 1.0_gp - dcos(angrad(1))**2 - dcos(angrad(2))**2 - dcos(angrad(3))**2 +&
+                   2.0_gp*dcos(angrad(1))*dcos(angrad(2))*dcos(angrad(3))
+       !Set the contravariant metric
+       mesh%gu(1,1) = (dsin(angrad(3))**2)/mesh%detgd
+       mesh%gu(1,2) = (dcos(angrad(2))*dcos(angrad(3))-dcos(angrad(1)))/mesh%detgd
+       mesh%gu(1,3) = (dcos(angrad(1))*dcos(angrad(3))-dcos(angrad(2)))/mesh%detgd
+       mesh%gu(2,2) = (dsin(angrad(2))**2)/mesh%detgd
+       mesh%gu(2,3) = (dcos(angrad(1))*dcos(angrad(2))-dcos(angrad(3)))/mesh%detgd
+       mesh%gu(3,3) = (dsin(angrad(1))**2)/mesh%detgd
+       mesh%gu(2,1) = mesh%gu(1,2)
+       mesh%gu(3,1) = mesh%gu(1,3)
+       mesh%gu(3,2) = mesh%gu(2,3)
+       do i=1,3
+        do j=1,3
+         if (abs(mesh%gd(i,j)).lt.1.0d-15) mesh%gd(i,j)=0.0_gp
+         if (abs(mesh%gu(i,j)).lt.1.0d-15) mesh%gu(i,j)=0.0_gp
+        end do
+       end do
     else
        mesh%angrad=onehalf*pi
        mesh%volume_element=product(mesh%hgrids)
+       mesh%gd(1,1) = 1.0_gp
+       mesh%gd(1,2) = 0.0_gp
+       mesh%gd(1,3) = 0.0_gp
+       mesh%gd(2,2) = 1.0_gp
+       mesh%gd(2,3) = 0.0_gp
+       mesh%gd(3,3) = 1.0_gp 
+       mesh%gd(2,1) = mesh%gd(1,2)
+       mesh%gd(3,1) = mesh%gd(1,3)
+       mesh%gd(3,2) = mesh%gd(2,3)
+       mesh%detgd = 1.0_gp 
+       !Set the contravariant metric
+       mesh%gu(1,1) = 1.0_gp/mesh%detgd
+       mesh%gu(1,2) = 0.0_gp
+       mesh%gu(1,3) = 0.0_gp
+       mesh%gu(2,2) = 1.0_gp/mesh%detgd
+       mesh%gu(2,3) = 0.0_gp 
+       mesh%gu(3,3) = 1.0_gp/mesh%detgd
+       mesh%gu(2,1) = mesh%gu(1,2)
+       mesh%gu(3,1) = mesh%gu(1,3)
+       mesh%gu(3,2) = mesh%gu(2,3)
     end if
     mesh%orthorhombic=all(mesh%angrad==onehalf*pi)
+
+    if (geocode == 'S') then
+       call f_assert(mesh%angrad(1)-onehalf*pi,id='Alpha angle invalid')
+       call f_assert(mesh%angrad(3)-onehalf*pi,id='Gamma angle invalid')
+    end if
+
   end function cell_new
 
   !> returns a logical array of size 3 which is .true. for all the periodic dimensions
@@ -646,16 +720,88 @@ contains
 
   end function closest_r
 
+  !> Calculates the square of the vector r in the cell defined by mesh
+  !! Takes into account the non-orthorhombicity of the box
   pure function square(mesh,v)
     implicit none
+    !> array of coordinate in the mesh reference frame
     real(gp), dimension(3), intent(in) :: v
-    type(cell), intent(in) :: mesh
+    type(cell), intent(in) :: mesh !<definition of the cell
     real(gp) :: square
+    integer :: i,j
 
     if (mesh%orthorhombic) then
        square=v(1)**2+v(2)**2+v(3)**2
+    else
+       square=0.0_gp
+       do i=1,3
+        do j=1,3
+         square=square+mesh%gu(i,j)*v(i)*v(j)
+        end do
+       end do
     end if
 
   end function square
 
+  function square_add(mesh,v_add) result(square)
+    implicit none
+    !> array of coordinate in the mesh reference frame
+    real(gp) :: v_add
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: square
+
+    if (mesh%orthorhombic) then
+       call dotp_external_ortho(v_add,v_add,square)
+    end if
+
+  end function square_add
+
+
+  pure function dotp(mesh,v1,v2)
+    implicit none
+    real(gp), dimension(3), intent(in) :: v1,v2
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: dotp
+
+    if (mesh%orthorhombic) then
+       dotp=v1(1)*v2(1)+v1(2)*v2(2)+v1(3)*v2(3)
+    end if
+
+  end function dotp
+
+  function dotp_add2(mesh,v1,v2_add) result(dotp)
+    implicit none
+    real(gp), dimension(3), intent(in) :: v1
+    real(gp) :: v2_add !<intent in, cannot be declared as such
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: dotp
+
+    if (mesh%orthorhombic) then
+       call dotp_external_ortho(v1,v2_add,dotp)
+    end if
+
+  end function dotp_add2
+
+  function dotp_add1(mesh,v1_add,v2) result(dotp)
+    implicit none
+    real(gp), dimension(3), intent(in) :: v2
+    real(gp) :: v1_add !<intent in, cannot be declared as such
+    type(cell), intent(in) :: mesh !<definition of the cell
+    real(gp) :: dotp
+
+    if (mesh%orthorhombic) then
+       call dotp_external_ortho(v1_add,v2,dotp)
+    end if
+
+  end function dotp_add1
+
 end module box
+
+subroutine dotp_external_ortho(v1,v2,dotp)  
+  use PSbase, only: gp
+  implicit none
+  real(gp), dimension(3), intent(in) :: v1,v2
+  real(gp), intent(out) :: dotp
+
+  dotp=v1(1)*v2(1)+v1(2)*v2(2)+v1(3)*v2(3)
+end subroutine dotp_external_ortho

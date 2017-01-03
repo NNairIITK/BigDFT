@@ -341,10 +341,12 @@ END SUBROUTINE fourtrans
 !! @warning Beware of the fact that the nonperiodic direction is y!
 !! SYNOPSIS
 subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
-     h1,h2,h3,itype_scf,karray,mu0_screening,alpha,beta,gamma)!,n3pr2,n3pr1)
+     h1,h2,h3,itype_scf,karray,mu0_screening,alpha)!,beta,gamma)!,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use wrapper_mpi
   use dynamic_memory
+  use f_utils, only: f_zero
+  use module_fft_sg, only: p_index
   implicit none
   include 'perfdata.inc'
   
@@ -358,7 +360,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   integer, intent(in) :: mpi_comm,inplane_comm!n3pr1,n3pr2
   real(dp), intent(in) :: h1,h2,h3         !< Mesh steps in the three dimensions
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< Output array
-  real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
+  real(dp), intent(in) :: mu0_screening,alpha!,beta,gamma
   
   !Local variables 
   character(len=*), parameter :: subname='Surfaces_Kernel'
@@ -383,8 +385,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !metric for monoclinic lattices
-  real(dp), dimension(3,3) :: gu
-  real(dp) :: detg
+  real(dp), dimension(2,2) :: gus
+  real(dp) :: oneodetg
 
   !coefficients for the polynomial interpolation
   real(dp), dimension(9,8) :: cpol
@@ -504,34 +506,47 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   pi=4._dp*datan(1._dp)
 
   !monoclinic cell
-  detg = dsin(alpha)**2
-  !
-  !contravariant metric
-  gu(1,1) = 1.0_dp/detg
-  gu(1,2) = -dcos(alpha)/detg
-  gu(1,3) = 0.0_dp
-  gu(2,2) = 1.0_dp/detg
-  gu(2,3) = 0.0_dp
-  gu(3,3) = 1.0_dp
-  !
-  gu(2,1) = gu(1,2)
-  gu(3,1) = gu(1,3)
-  gu(3,2) = gu(2,3)
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  oneodetg = 1.0_dp/dsin(alpha)**2
 
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+  call f_zero(gus)
+  gus(1,1)=oneodetg
+  gus(2,1)=-cos(alpha)*oneodetg
+  gus(1,2)=-cos(alpha)*oneodetg
+  gus(2,2)=oneodetg
+
+!!$  gus(1,1)=1.0_dp
+!!$  gus(2,1)=cos(alpha)
+!!$  gus(1,2)=cos(alpha)
+!!$  gus(2,2)=1.0_dp
+
+
   !
-  !contravariant metric
-  gu(1,1) = (dsin(gamma)**2)/detg
-  gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
-  gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
-  gu(2,2) = (dsin(beta)**2)/detg
-  gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
-  gu(3,3) = (dsin(alpha)**2)/detg
+!!$  !contravariant metric
+!!$  gu(1,1) = 1.0_dp/detg
+!!$  gu(1,2) = -dcos(alpha)/detg
+!!$  gu(1,3) = 0.0_dp
+!!$  gu(2,2) = 1.0_dp/detg
+!!$  gu(2,3) = 0.0_dp
+!!$  gu(3,3) = 1.0_dp
+!!$  !
+!!$  gu(2,1) = gu(1,2)
+!!$  gu(3,1) = gu(1,3)
+!!$  gu(3,2) = gu(2,3)
+!!$  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!$
+!!$  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
   !
-  gu(2,1) = gu(1,2)
-  gu(3,1) = gu(1,3)
-  gu(3,2) = gu(2,3)
+!!$  !contravariant metric
+!!$  gu(1,1) = (dsin(gamma)**2)/detg
+!!$  gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
+!!$  gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
+!!$  gu(2,2) = (dsin(beta)**2)/detg
+!!$  gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
+!!$  gu(3,3) = (dsin(alpha)**2)/detg
+!!$  !
+!!$  gu(2,1) = gu(1,2)
+!!$  gu(3,1) = gu(1,3)
+!!$  gu(3,2) = gu(2,3)
 
   !print *,'METRIC',gu
 
@@ -559,7 +574,7 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
 
   !let us now calculate the fraction of mu that will be considered 
   j2st=iproc*(nact2/nproc)
-  j2nd=min((iproc+1)*(nact2/nproc),n2/2+1)
+  j2nd=min((iproc+1)*(nact2/nproc),nker2)!n2/2+1) !here we might write nker2 instead of n2/2+1
 
   do ind2=(n1/2+1)*j2st+1,(n1/2+1)*j2nd,num_of_mus
      istart=ind2
@@ -644,16 +659,18 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
         i1=mod(imu,n1/2+1)
         if (i1==0) i1=n1/2+1
         i2=(imu-i1)/(n1/2+1)+1
+        !with these conventions imu=i1+(i2-1)*(n1/2+1), with i1=0,...,n1/2 and (hopefully) i2=0,..,n2/2,-n2/2,-n2/2+1,...,-1
         ponx=real(i1-1,dp)/real(n1,dp)
-        pony=real(i2-1,dp)/real(n2,dp)
+        pony=real(p_index(i2,n2),dp)/real(n2,dp)!real(i2-1,dp)/real(n2,dp) !here we should put the value of p
         
+        !print *,'here',i1,i2,i1-1,p_index(i2,n2)
         
         !acerioni --- adding the mu0_screening
         !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
         !old:
         !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)
         !new:
-        mu1 = 2._dp*pi*sqrt(gu(1,1)*(ponx/h1)**2+gu(2,2)*(pony/h2)**2+2.0_dp*gu(1,2)*(ponx/h1)*(pony/h2))
+        mu1 = 2._dp*pi*sqrt(gus(1,1)*(ponx/h1)**2+gus(2,2)*(pony/h2)**2+2.0_dp*gus(1,2)*(ponx/h1)*(pony/h2))
         mu1 = h3*sqrt(mu1**2+mu0_screening**2)
         !acerioni
 
@@ -2330,14 +2347,14 @@ END SUBROUTINE HighAcc_gequad
 !> Build the kernel of the Poisson operator with wires Boundary conditions
 !! in an interpolating scaling functions basis.
 !! The periodic direction is z
-subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
+subroutine Wires_Kernel(iproc,nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray, &
                         mu0_screening)
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
   implicit none
   !Arguments
-  integer, intent(in) :: nproc              !< Number of processes
+  integer, intent(in) :: iproc,nproc              !< Number of processes
   integer, intent(in) :: n01,n02,n03
   integer, intent(in) :: n1,n2,n3           !< Dimensions for the FFT
   integer, intent(in) :: nker1,nker2,nker3  !< Dimensions of the kernel nker(1,2,3)=n(1,2,3)/2+1
@@ -2349,13 +2366,12 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
   character(len=*), parameter :: subname='Wires_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
   integer, parameter :: n_gauss = 144
-  integer :: i1, i2, i3, n_range, n_cell, k
+  integer :: i1, i2, i3, n_range, n_cell, k,i3s,i3e
   real(dp) :: mu, t0, t1
   !real(dp), dimension(:), allocatable :: fourISFx,fourISFy,fourISFz
   real(dp), dimension(:), allocatable :: fwork
   real(dp), dimension(:,:), allocatable :: kernel_scf,fftwork
   real(dp), dimension(:), pointer :: alpha, w
-
 
   !load alpha(:) and w(:) coefficients from an .inc file
   include 'gaussfit_wires.inc'
@@ -2379,7 +2395,11 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
 
   ! case i2 = 1 (namely mu = 0)
 
-  if (mu0_screening == 0.0_dp) then
+  !parallel region for the nker3
+  i3s=iproc*(nker3/nproc)+1
+  i3e=min((iproc+1)*(nker3/nproc),nker3)
+
+  if (mu0_screening == 0.0_dp .and. i3s==1) then
      !loads the coefficients alpha(:) and w(:) of the Gaussian fit for log(x):
      alpha => p1
      w => w1
@@ -2402,9 +2422,9 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
   do k = 1, n_gauss
      fwork = 0.0_dp
      call gauconv_ffts(itype_scf,alpha(k)*mu**2,h1,h2,h3,n1,n2,n3,nker1,nker2,nker3,n_range,fwork,fftwork,kernel_scf)
-     do i3 = 1, nker3
+     do i3 = i3s,i3e !1, nker3
         do i1 = 1, nker1
-           karray(i1,1,i3) = karray(i1,1,i3) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
+           karray(i1,1,i3-i3s+1) = karray(i1,1,i3-i3s+1) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
         end do
      end do
   end do
@@ -2426,9 +2446,9 @@ subroutine Wires_Kernel(nproc,n01,n02,n03,n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,it
      do k = 1, n_gauss
         fwork = 0.0_dp
         call gauconv_ffts(itype_scf,alpha(k)*mu**2,h1,h2,h3,n1,n2,n3,nker1,nker2,nker3,n_range,fwork,fftwork,kernel_scf)
-        do i3 = 1, nker3
+        do i3 = i3s,i3e !1, nker3
            do i1 = 1, nker1
-             karray(i1,i2,i3) = karray(i1,i2,i3) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
+             karray(i1,i2,i3-i3s+1) = karray(i1,i2,i3-i3s+1) + w(k)*kernel_scf(i1,1)*kernel_scf(i3,3)
            end do
         end do
      end do

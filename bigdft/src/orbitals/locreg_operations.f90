@@ -2064,7 +2064,7 @@ module locreg_operations
     !!!!!#######!> This routine only works if both locregs have free boundary conditions.
     !! @warning 
     !! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
-    subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)    
+    subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspin, Glr, Llr, lpsi, psi)    
      implicit none
     
       ! Subroutine Scalar Arguments
@@ -2072,7 +2072,6 @@ module locreg_operations
       integer :: Gdim          ! dimension of psi 
       integer :: Ldim          ! dimension of lpsi
       integer :: norb          ! number of orbitals
-      integer :: nspinor       ! number of spinors
       integer :: nspin         ! number of spins 
       type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
       type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 

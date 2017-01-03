@@ -9,11 +9,12 @@
 
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-    energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
+    energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,&
+    calculate_pspandkin,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
-    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
     pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
-    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
+    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel,hphi_pspandkin,eproj,ekin)
   use module_base
   use module_types
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, optimize_coeffs
@@ -45,7 +46,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft
+  integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, occopt
   integer,intent(inout) :: order_taylor
   real(kind=8),intent(in) :: max_inversion_error
   type(orbitals_data),intent(inout) :: orbs
@@ -59,12 +60,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(DFT_PSP_projectors),intent(inout) :: nlpsp
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
-  logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
+  logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix, calculate_pspandkin
   logical,intent(in):: communicate_phi_for_lsumrho
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(work_mpiaccumulate),intent(inout) :: energs_work
   logical,intent(in) :: remove_coupling_terms
-  real(kind=8), intent(in) :: factor
+  real(kind=8), intent(in) :: factor, tel
   integer,intent(in) :: pexsi_npoles
   real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
@@ -75,6 +76,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer, intent(in) :: extra_states
   logical, optional, intent(in) :: reorder
   logical, optional, intent(in) :: updatekernel
+  ! The foloowing array contains the psp and kinetic part of the Hamiltonian appllication.. Can be used to spped up the code in case phi does not change between calls, but only the potential
+  real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
+  real(kind=8),intent(inout),optional :: eproj, ekin
 
   ! Local variables 
   integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm, jproc, j
@@ -82,7 +86,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
-  logical :: update_kernel
+  logical :: update_kernel, auxiliary_arguments_present
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff, tt
@@ -90,7 +94,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   integer,dimension(:),allocatable :: row_ind, col_ptr, n3p
 
   call f_routine(id='get_coeff')
-
 
   if(calculate_ham) then
       !!energs_work = work_mpiaccumulate_null()
@@ -138,26 +141,67 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       allocate(confdatarrtmp(tmb%orbs%norbp))
       call default_confinement_data(confdatarrtmp,tmb%orbs%norbp)
 
-      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+      call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+           tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%psi, tmb%ham_descr%psi)
 
-      if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      ! Check the optional arguments
+      if (any((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+          if (all((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+              auxiliary_arguments_present = .true.
+          else
+              call f_err_throw('The arguments hphi_pspandkin, eproj and ekin miust be present at the same time',&
+                   err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+      else
+          auxiliary_arguments_present = .false.
+      end if
 
-      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
-      ! only kinetic as waiting for communications
-      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-           tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
-           & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
-           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
-           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+      if (.not.calculate_pspandkin) then
+          if (.not.auxiliary_arguments_present) then
+              call f_err_throw('The optionals arguments hphi_pspandkin, eproj and ekin must be present &
+                   &when calculate_pspandkin is wrong')
+          end if
+      end if
+
+
+      if(calculate_pspandkin) then
+
+          if (tmb%ham_descr%npsidim_orbs > 0) call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+
+          call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
+          ! only kinetic as waiting for communications
+          call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
+               & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+          if (auxiliary_arguments_present) then
+              if (tmb%ham_descr%npsidim_orbs > 0) then
+                  call f_memcpy(src=tmb%hpsi, dest=hphi_pspandkin)
+                  eproj = energs%eproj
+                  ekin = energs%ekin
+              end if
+          end if
+          if (iproc==0) then
+              call yaml_map('PSP and kinetic Hamiltonian application','recalculated')
+          end if
+      else
+          call f_memcpy(src=hphi_pspandkin, dest=tmb%hpsi)
+          energs%eproj = eproj
+          energs%ekin = ekin
+          if (iproc==0) then
+              call yaml_map('PSP and kinetic Hamiltonian application','from memory')
+          end if
+      end if
       !!do i=1,tmb%ham_descr%comgp%nrecvbuf
       !!    write(8000+iproc,'(a,i8,es16.6)') 'i, recvbuf(i)', i, tmb%ham_descr%comgp%recvbuf(i)
       !!end do
       !call wait_p2p_communication(iproc, nproc, tmb%ham_descr%comgp)
       ! only potential
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
+           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
            tmb%ham_descr%lzd,confdatarrtmp,denspot%dpbox%ngatherarr,denspot%pot_work,&
            & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,2,denspot%xc,&
@@ -415,15 +459,19 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           end do
 
           ! Copy the diagonalized matrix to the coeff array.
-          ! In principle I would prefer to copy orbs%norbu/orbs%norbd states.
-          ! However this is not possible since the extra states are not included in there (WHY?!)
-          ! Therefore as a workaround I use the following dirty solution with different cases.
+          ! SM: I think it is ok now...
+          !!! In principle I would prefer to copy orbs%norbu/orbs%norbd states.
+          !!! However this is not possible since the extra states are not included in there (WHY?!)
+          !!! Therefore as a workaround I use the following dirty solution with different cases.
           if (tmb%linmat%l%nspin/=1) then
-              if (extra_states>0) stop 'extra states and spin polarization not possible at the moment'
+              !write(*,*) 'orbs%norbu, orbs%norbd, orbs%norb, extra_states', orbs%norbu, orbs%norbd, orbs%norb, extra_states
+              !if (extra_states>0) stop 'extra states and spin polarization not possible at the moment'
               ! Only copy the occupied states
               if (ispin==1) then
+                  !write(*,*) 'DEBUG NORBU', orbs%norbu
                   call vcopy(orbs%norbu*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,1), 1)
               else if (ispin==2) then
+                  !write(*,*) 'DEBUG NORBD', orbs%norbd
                   call vcopy(orbs%norbd*tmb%linmat%m%nfvctr, matrixElements(1,1,1), 1, tmb%coeff(1,orbs%norbu+1), 1)
               end if
           else
@@ -459,6 +507,10 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           err_name='BIGDFT_RUNTIME_ERROR')
      ! call routine which updates coeffs for tmb%orbs%norb or orbs%norb depending on whether or not extra states are required
      if (iproc==0) call yaml_map('method','directmin')
+     !do i=1,orbs%norb
+     !    write(*,*) 'i, eval(i)', i, orbs%eval(i)
+     !end do
+     !write(*,*) 'orbs%norbu, orbs%norbd, orbs%norb, extra_states', orbs%norbu, orbs%norbd, orbs%norb, extra_states
      if (extra_states>0) then
         call optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, convcrit_dmin, nitdmin, energs%ebs, &
              curvefit_dmin, factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder, extra_states)
@@ -481,10 +533,18 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
   if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
+      !write(*,*) 'BEFORE orbs%occup', orbs%occup
+      call evaltoocc(iproc,nproc,.false.,tel,orbs,occopt)
+      !write(*,*) 'AFTER orbs%occup', orbs%occup
       ! Calculate the band structure energy and update kernel
       if (scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
          !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
          !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         !if (Tel > 0.0_gp) then
+             !write(*,*) 'BEFORE orbs%occup', orbs%occup
+       !      call evaltoocc(iproc,nproc,.false.,tel,orbs,occopt)
+             !write(*,*) 'AFTER orbs%occup', orbs%occup
+         !end if
          call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
               tmb%coeff,orbs,tmb%orbs,update_kernel)
@@ -713,8 +773,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
     correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
-    wt_philarge,  wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
-    cdft, input_frag, ref_frags)
+    wt_philarge,  wt_hphi, wt_phi, fnrm, energs_work, frag_calc, reset_DIIS_history, &
+    cdft, input_frag, ref_frags, hphi_pspandkin, eproj, ekin)
   !
   ! Purpose:
   ! ========
@@ -779,11 +839,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
   type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
   type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
-  logical, intent(in) :: frag_calc
+  logical, intent(in) :: frag_calc, reset_DIIS_history
   !these must all be present together
   type(cdft_data),intent(inout),optional :: cdft
   type(fragmentInputParameters),optional,intent(in) :: input_frag
   type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+  real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
+  real(kind=8),intent(inout),optional :: eproj, ekin
  
   ! Local variables
   integer :: iorb, it, it_tot, ncount, ncharge, ii, kappa_satur, nit_exit, ispin, jproc
@@ -794,7 +856,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8),dimension(:),allocatable :: hpsit_c_tmp, hpsit_f_tmp, hpsi_tmp, psidiff, tmparr1, tmparr2
   real(kind=8),dimension(:),allocatable :: delta_energy_arr, hpsi_noprecond, kernel_compr_tmp, kernel_best, hphi_nococontra
   logical :: energy_increased, overlap_calculated, energy_diff, energy_increased_previous, complete_reset, even
-  logical :: calculate_inverse, allow_increase
+  logical :: calculate_inverse, allow_increase, recovered_old_kernel
   real(kind=8),dimension(:),pointer :: lhphiold, lphiold, hpsit_c, hpsit_f, hpsi_small
   type(energy_terms) :: energs
   real(kind=8), dimension(2):: reducearr
@@ -802,14 +864,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   real(kind=8) :: energy_first, trH_ref, charge, fnrm_old
   real(kind=8),dimension(3),save :: kappa_history
   integer,save :: nkappa_history
+  logical :: auxiliary_arguments_present
   logical,save :: has_already_converged
   logical,dimension(7) :: exit_loop
   type(matrices) :: ovrlp_old
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
-  integer,dimension(1) :: power
   integer,dimension(:),allocatable :: n3p
   character(len=6) :: label
+  integer,dimension(3) :: power
   interface
      subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
@@ -916,6 +979,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ldiis%resetDIIS=.false.
   ldiis%immediateSwitchToSD=.false.
   allow_increase=.false.
+
  
   call timing(iproc,'getlocbasinit','OF')
 
@@ -978,6 +1042,21 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       has_already_converged=.false.
   end if
 
+  ! Check the optional arguments
+  if (any((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+      if (all((/present(hphi_pspandkin),present(eproj),present(ekin)/))) then
+          auxiliary_arguments_present = .true.
+      else
+          call f_err_throw('The arguments hphi_pspandkin, eproj and ekin miust be present at the same time',&
+               err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+  else
+      auxiliary_arguments_present = .false.
+  end if
+
+  energy_increased = .false.
+  recovered_old_kernel = .false.
+
   iterLoop: do
 
 
@@ -999,6 +1078,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           !!else if (target_function==TARGET_FUNCTION_IS_HYBRID) then
           !!    call yaml_map('target function','HYBRID')
           !!end if
+          ! Reset the DIIS history
+          if (it_tot==1) then
+              if (reset_DIIS_history) then
+                  ldiis%is = 0
+                  if (iproc==0) call yaml_map('reset DIIS history',.true.)
+              else
+                  if (iproc==0) call yaml_map('reset DIIS history',.false.)
+              end if
+          end if
       end if
 
       ! Synchronize the mpi_get before starting a new communication
@@ -1010,8 +1098,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! Calculate the unconstrained gradient by applying the Hamiltonian.
       if (tmb%ham_descr%npsidim_orbs > 0)  call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
-      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+      call small_to_large_locreg(iproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%inwhichlocreg, &
+           tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%psi, tmb%ham_descr%psi)
 
       ! Start the nonblocking transposition (the results will be gathered in
       ! orthoconstraintNonorthogonal)
@@ -1027,6 +1116,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
            & tmb%ham_descr%psi,tmb%hpsi,energs,SIC,GPU,3,denspot%xc,&
            & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
            & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      !!if (auxiliary_arguments_present .and. &
+      !!    (target_function==TARGET_FUNCTION_IS_ENERGY .or. target_function==TARGET_FUNCTION_IS_HYBRID)) then
+      if (auxiliary_arguments_present) then
+          if (tmb%ham_descr%npsidim_orbs > 0) then
+              call f_memcpy(src=tmb%hpsi, dest=hphi_pspandkin)
+              eproj = energs%eproj
+              ekin = energs%ekin
+          end if
+      end if
       call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
            & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
       ! only potential
@@ -1104,13 +1202,12 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call yaml_map('Orthoconstraint',.true.)
       end if
 
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID .and. .not.energy_increased) then
+      ! Only need to renormalize the kernel if it is actually used.
+      if (target_function==TARGET_FUNCTION_IS_HYBRID .or. target_function==TARGET_FUNCTION_IS_ENERGY) then
           tmb%ham_descr%can_use_transposed=.false.
-          do ispin=1,tmb%linmat%s%nspin
-              call vcopy(tmb%linmat%s%nvctrp_tg, &
-                   tmb%linmat%ovrlp_%matrix_compr((ispin-1)*tmb%linmat%s%isvctrp_tg+1), 1, &
-                   ovrlp_old%matrix_compr((ispin-1)*tmb%linmat%s%nvctrp_tg+1), 1)
-          end do
+          call f_memcpy(src=tmb%linmat%ovrlp_%matrix_compr, dest=ovrlp_old%matrix_compr)
+
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
                tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
           !if (iproc==0) call yaml_newline()
@@ -1119,7 +1216,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! Calculate S^1/2, as it can not be taken from memory
               power(1)=2
               call overlapPowerGeneral(iproc, nproc,bigdft_mpi%mpi_comm,&
-                   order_taylor, 1, power, -1, &
+                   order_taylor, 1, power(1), -1, &
                    imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
                    ovrlp_mat=ovrlp_old, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
                    verbosity=0, &
@@ -1127,18 +1224,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                    ice_obj=tmb%ice_obj)
               call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
           end if
-          call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
-          !if (iproc==0) call yaml_sequence_close()
-      else
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+          !if (.not.energy_increased) then
+          if (.not.recovered_old_kernel) then
+              call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
+          end if
       end if
 
-      ! Gather the data in case it has not been done before
-      if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-               TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
-      end if
+      ! Gather the data
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_GATHER, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
       ncount=tmb%ham_descr%collcom%ndimind_c
       if(ncount>0) call vcopy(ncount, hpsit_c(1), 1, hpsit_c_tmp(1), 1)
       ncount=7*tmb%ham_descr%collcom%ndimind_f
@@ -1168,7 +1262,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
       ! use hpsi_tmp as temporary array for hpsi_noprecond, even if it is allocated with a larger size
       !write(*,*) 'calling calc_energy_and.., correction_co_contra',correction_co_contra
-      calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID)
+      calculate_inverse = (target_function/=TARGET_FUNCTION_IS_HYBRID) .or. energy_increased
       !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
       call calculate_energy_and_gradient_linear(iproc, nproc, it, ldiis, fnrmOldArr, &
            fnrm_old, alpha, trH, trH_old, fnrm, &
@@ -1195,7 +1289,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       end if
 
       if (target_function==TARGET_FUNCTION_IS_ENERGY.and.extra_states>0) then
-          if (tmb%linmat%l%nspin>1) stop 'THIS IS NOT TESTED FOR SPIN POLARIZED SYSTEMS!'
+          !if (tmb%linmat%l%nspin>1) stop 'THIS IS NOT TESTED FOR SPIN POLARIZED SYSTEMS!'
           call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, &
                tmb%linmat%kernel_%matrix_compr(1), 1)
           call f_free(kernel_compr_tmp)
@@ -1311,6 +1405,23 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           can_use_ham=.false.
           call vcopy(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin, kernel_best(1), 1, &
                tmb%linmat%kernel_%matrix_compr(1), 1)
+          if (iproc==0) then
+              call yaml_map('Recovering old support functions and kernel',.true.)
+          end if
+          recovered_old_kernel = .true.
+
+
+          ! Recalculate the matrix powers
+          power=(/2,-2,1/)
+          call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
+               order_taylor, 3, power, -1, &
+               imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+               verbosity=0, &
+               check_accur=order_taylor<1000, max_error=max_error, mean_error=mean_error, &
+               ice_obj=tmb%ice_obj)
+          call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
+
           trH_old=0.d0
           it=it-2 !go back one iteration (minus 2 since the counter was increased)
           overlap_calculated=.false.
@@ -1336,6 +1447,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           end if
       else
           can_use_ham=.true.
+          recovered_old_kernel = .false.
       end if 
 
 
@@ -1486,15 +1598,16 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
 
 
       ! Only need to reconstruct the kernel if it is actually used.
-      if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
-           .and. .not.complete_reset ) then
-          if(scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
-              call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
-                   tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
-              if (iproc==0) call yaml_map('reconstruct kernel',.true.)
-          else if (experimental_mode .and. .not.complete_reset) then
-          end if
-      end if
+      !SM: Do we really need this here? We have already renormalized the kernel above in renormalize_kernel...
+      !!if ((target_function/=TARGET_FUNCTION_IS_TRACE .or. scf_mode==LINEAR_DIRECT_MINIMIZATION) &
+      !!     .and. .not.complete_reset ) then
+      !!    if(scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
+      !!        call reconstruct_kernel(iproc, nproc, order_taylor, tmb%orthpar%blocksize_pdsyev, &
+      !!             tmb%orthpar%blocksize_pdgemm, orbs, tmb, overlap_calculated)
+      !!        if (iproc==0) call yaml_map('reconstruct kernel',.true.)
+      !!    else if (experimental_mode .and. .not.complete_reset) then
+      !!    end if
+      !!end if
 
       if (iproc==0) then
           call yaml_mapping_close() !iteration
@@ -2221,7 +2334,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
                   basis_overlap%nfvctr, coeff_tmp, basis_overlap%nfvctrp, 0.d0, ovrlp_coeff, norbx)
              !!do iorb=1,norbx
              !!    do jorb=1,norbx
-             !!        write(2200+iproc,'(a,2i9,es13.5)') 'iorb, jorb, ovrlp_coeff(jorb,iorb)', iorb, jorb, ovrlp_coeff(jorb,iorb)
+             !!        write(2200+iproc,'(a,i3,3x,2i9,es13.5)') 'ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)', &
+             !!            ispin, iorb, jorb, ovrlp_coeff(jorb,iorb)
              !!    end do
              !!end do
           else
@@ -2821,36 +2935,23 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   type(matrices),intent(inout) :: ovrlp, ovrlp_old
 
   ! Local variables
-  real(kind=8) :: max_error, mean_error
+  real(kind=8) :: max_error, mean_error, tt, tt1, tt2
   type(matrices) :: inv_ovrlp
   real(kind=8),dimension(:,:),pointer :: inv_ovrlpp, tempp
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
   integer,dimension(3) :: power
-  !!real(8) :: tr
-  !!integer :: ind, iorb
-
+  integer :: ispin, ilshift
 
   call f_routine(id='renormalize_kernel')
-
-  !!inv_ovrlp%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
-  !!                         iaction=SPARSE_FULL, id='inv_ovrlp%matrix_compr')
-  !!inv_ovrlpp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='inv_ovrlpp')
-  !!tempp = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_MATMUL, id='tempp'
-  !!inv_ovrlp_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_compr_seq')
-  !!kernel_compr_seq = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
-
-
-
 
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
   ! calculated in the last call to this routine or (it it is the first call)
   ! just before the call.
-  !!call retransform_local(tmb%linmat%ovrlppowers_(1))
-  !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
-  !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(1)%matrix_compr)
-  call retransform_ext(iproc, nproc, tmb%linmat%l, &
-       tmb%linmat%ovrlppowers_(1)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
-
+  do ispin=1,tmb%linmat%l%nspin
+      ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
+      call retransform_ext(iproc, nproc, tmb%linmat%l, &
+           tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+  end do
 
   ! Calculate S^1/2 for the overlap matrix
   power=(/2,-2,1/)
@@ -2863,71 +2964,14 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
-
-  !!tr=0.d0
-  !!do iorb=1,tmb%orbs%norb
-  !!    ind=tmb%linmat%l%matrixindex_in_compressed_fortransposed(iorb,iorb)
-  !!    tr = tr + tmb%linmat%kernel_%matrix_compr(ind)
-  !!end do
-  !!write(*,*) 'trace',tr
-
-  !!! Calculate S^-1/2 for the new overlap matrix
-  !!call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
-  !!     imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-  !!     ovrlp_mat=ovrlp, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
-  !!     check_accur=.true., max_error=max_error, mean_error=mean_error)
-  !!call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-
   ! Calculate S^-1/2 * K * S^-1/2
-  !!call retransform_local(tmb%linmat%ovrlppowers_(2))
-  !!call retransform_ext(iproc, nproc, tmb%linmat%l, &
-  !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%ovrlppowers_(2)%matrix_compr)
-  call retransform_ext(iproc, nproc, tmb%linmat%l, &
-       tmb%linmat%ovrlppowers_(2)%matrix_compr, tmb%linmat%kernel_%matrix_compr)
-
-
-  !!call f_free_ptr(inv_ovrlpp)
-  !!call f_free_ptr(tempp)
-  !!call f_free(inv_ovrlp_compr_seq)
-  !!call f_free(kernel_compr_seq)
-  !!call f_free_ptr(inv_ovrlp%matrix_compr)
+  do ispin=1,tmb%linmat%l%nspin
+      ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
+      call retransform_ext(iproc, nproc, tmb%linmat%l, &
+           tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+  end do
 
   call f_release_routine()
-
-  !!contains
-
-  !!    subroutine retransform_local(mat)
-  !!        use sparsematrix, only: sequential_acces_matrix_fast2, sparsemm, &
-  !!             uncompress_matrix_distributed2, compress_matrix_distributed, &
-  !!             sequential_acces_matrix_fast
-  !!        type(matrices),intent(in) :: mat
-  !!        integer :: ncount
-
-  !!        call f_routine(id='retransform_local')
-
-  !!        call sequential_acces_matrix_fast2(tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, kernel_compr_seq)
-  !!        call sequential_acces_matrix_fast2(tmb%linmat%l, &
-  !!             mat%matrix_compr, inv_ovrlp_compr_seq)
-  !!        call uncompress_matrix_distributed2(iproc, tmb%linmat%l, DENSE_MATMUL, &
-  !!             mat%matrix_compr, inv_ovrlpp)
-
-  !!        ncount=tmb%linmat%l%nfvctr*tmb%linmat%l%smmm%nfvctrp
-  !!        if (ncount>0) then
-  !!            call f_zero(ncount, tempp(1,1))
-  !!        end if
-  !!        call sparsemm(tmb%linmat%l, kernel_compr_seq, inv_ovrlpp, tempp)
-  !!        if (ncount>0) then
-  !!            call f_zero(ncount, inv_ovrlpp(1,1))
-  !!        end if
-  !!        call sparsemm(tmb%linmat%l, inv_ovrlp_compr_seq, tempp, inv_ovrlpp)
-
-  !!        !call f_zero(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1))
-  !!        call compress_matrix_distributed(iproc, nproc, tmb%linmat%l, DENSE_MATMUL, &
-  !!             inv_ovrlpp, tmb%linmat%kernel_%matrix_compr)
-
-  !!        call f_release_routine()
-
-  !!    end subroutine retransform_local
 
 end subroutine renormalize_kernel
 
@@ -3032,123 +3076,190 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   
   ! Local variables
   type(foe_data) :: foe_obj
-  real(kind=8) :: dq, ebs, tt
-  real(kind=8),dimension(input%nspin) :: e_homo, e_lumo
-  integer :: ispin, norder_taylor, ind, iorb, norb, ntmb
+  real(kind=8) :: dq, ebs, tt, qq
+  real(kind=8) :: e_homo, e_lumo
+  integer :: ispin, norder_taylor, ind, iorb, norb, ntmb, iqq, iispin, jspin
   type(matrices),dimension(2) :: kernel
-  logical,dimension(input%nspin) :: calculation_possible
+  logical :: calculation_possible, calculation_possible_all
+  integer,dimension(input%nspin) :: ntmb_spin
+  real(kind=8),dimension(input%nspin) :: e_homo_spin, e_lumo_spin
+  logical,dimension(input%nspin) :: calculate_spin_channels
 
   if (iproc==0) call yaml_comment('FOE calculation for HOMO-LUMO analysis',hfill='=')
 
   ! Check whether the gap calculation is possible.
   ! This is the case if there are more support functions than occupied orbitals.
-  if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
-  calculation_possible(1:input%nspin) = .true.
+  !if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
+  calculation_possible = .true.
+  calculation_possible_all = .true.
   do ispin=1,input%nspin
-      if (ispin==1) then
-          norb = orbs_KS%norbu
-          ntmb = tmb%orbs%norbu
-      else if (ispin==2) then
-          norb = orbs_KS%norbd
-          ntmb = tmb%orbs%norbd
-      end if
-      if (ntmb<=norb) then
-          calculation_possible(ispin) = .false.
-      end if
-      if (iproc==0) then
-          call yaml_mapping_open('Checking individual spin component')
-          call yaml_map('ispin',ispin)
-          call yaml_map('norb',norb)
-          call yaml_map('ntmb',ntmb)
-          call yaml_map('Calculation possible',calculation_possible(ispin))
-          call yaml_mapping_close()
-      end if
-  end do
-  if (iproc==0) then
-      call yaml_map('Calculation possible',all(calculation_possible))
-      call yaml_mapping_close()
-  end if
-                      
-  if (all(calculation_possible)) then
 
-      ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
-      ! systems of one half electron for open shell systems.
+      if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
+
+      !!if (ispin==1) then
+      !!    norb = orbs_KS%norbu
+      !!    ntmb = tmb%orbs%norbu
+      !!else if (ispin==2) then
+      !!    norb = orbs_KS%norbd
+      !!    ntmb = tmb%orbs%norbd
+      !!end if
+      !!do ispin=1,input%nspin
+          !!qq_spin(ispin) = 0.d0
+          qq = 0.d0
+          if (ispin==1) then
+              !!ntmb_spin(ispin) = tmb%orbs%norbu
+              ntmb = tmb%orbs%norbu
+              do iorb=1,orbs_KS%norbu
+                  !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
+                  qq = qq + orbs_KS%occup(iorb)
+              end do
+          else if (ispin==2) then
+              !ntmb_spin(ispin) = tmb%orbs%norbd
+              ntmb = tmb%orbs%norbd
+              do iorb=orbs_KS%norbu+1,orbs_KS%norbu+orbs_KS%norbd
+                  !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
+                  qq = qq + orbs_KS%occup(iorb)
+              end do
+          end if
+      !!end do
+      !!iispin = maxloc(qq_spin,1)
+      !!ntmb = ntmb_spin(iispin)
+      !!qq = qq_spin(iispin)
       if (input%nspin==1) then
-          dq = 1.d0
+          if (2*ntmb<=qq) then
+              calculation_possible = .false.
+          end if
       else if (input%nspin==2) then
-          dq = 0.5d0
+          if (ntmb<=qq) then
+              calculation_possible = .false.
+          end if
       end if
-
-      ! determine the HOMO
-      if (iproc==0) call yaml_mapping_open('calculate HOMO kernel')
-      kernel(1) = matrices_null()
-      kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
-      foe_obj = foe_data_null()
-      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
-      do ispin=1,input%nspin
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)-dq,ispin)
-      end do
-      call foe_data_set_real(foe_obj,"fscale",1.d-2)
-      norder_taylor = input%lin%order_taylor
-      !call fermi_operator_expansion_new(iproc, nproc, &
-      !     ebs, &
-      !     .true., 2, &
-      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
-      call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
-      !call fermi_operator_expansion(iproc, nproc, &
-      !     ebs, norder_taylor, input%lin%max_inversion_error, &
-      !     .true., 2, &
-      !     'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
-      do ispin=1,input%nspin
-          e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
-      end do
-      call foe_data_deallocate(foe_obj)
-      if (iproc==0) call yaml_mapping_close()
-
-      ! determine the LUMO
-      if (iproc==0) call yaml_mapping_open('calculate LUMO kernel')
-      kernel(2) = matrices_null()
-      kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
-      foe_obj = foe_data_null()
-      call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
-      do ispin=1,input%nspin
-          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)+dq,ispin)
-      end do
-      call foe_data_set_real(foe_obj,"fscale",1.d-2)
-      norder_taylor = input%lin%order_taylor
-      !call fermi_operator_expansion_new(iproc, nproc, &
-      !     ebs, &
-      !     .true., 2, &
-      !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
-      call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
-           foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-           ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)
-      !call fermi_operator_expansion(iproc, nproc, &
-      !     ebs, norder_taylor, input%lin%max_inversion_error, &
-      !     .true., 2, &
-      !     'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
-      do ispin=1,input%nspin
-          e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
-      end do
-      call foe_data_deallocate(foe_obj)
-      if (iproc==0) call yaml_mapping_close()
-
       if (iproc==0) then
-          call yaml_mapping_open('HOMO-LUMO analysis')
-          call yaml_map('HOMO energy',e_homo)
-          call yaml_map('LUMO energy',e_lumo)
-          call yaml_map('HOMO-LUMO gap (Ha)',e_lumo-e_homo)
-          call yaml_map('HOMO-LUMO gap (eV)',(e_lumo-e_homo)*Ha_eV)
+          !!call yaml_mapping_open('Checking individual spin component')
+          !!call yaml_map('ispin',ispin)
+          !call yaml_map('spin charges',qq_spin)
+          call yaml_map('spin channel',ispin)
+          call yaml_map('charge for calculation',qq)
+          call yaml_map('ntmb',ntmb)
+          call yaml_map('Calculation possible',calculation_possible)
+          !!call yaml_mapping_close()
+      end if
+      !end do
+      if (iproc==0) then
+          !!call yaml_map('Calculation possible',all(calculation_possible))
           call yaml_mapping_close()
       end if
+                          
+      if (calculation_possible) then
+
+          do jspin=1,input%nspin
+              calculate_spin_channels(jspin) = (jspin==ispin)
+          end do
+
+          ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
+          ! systems of one half electron for open shell systems.
+          if (input%nspin==1) then
+              dq = 1.d0
+          else if (input%nspin==2) then
+              dq = 0.5d0
+          end if
+
+          ! determine the HOMO
+          kernel(1) = matrices_null()
+          kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
+          foe_obj = foe_data_null()
+          call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
+
+          ! Round up the target charge (required for systems with non-integer charge)
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+          !!qq = foe_data_get_real(foe_obj,"charge",1)
+          iqq = nint(qq)
+          if (real(iqq,kind=8)<qq) then
+              qq = real(iqq+1,kind=8)
+          else
+              qq = real(iqq,kind=8)
+          end if
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)-dq,1)
+          call foe_data_set_real(foe_obj,"fscale",1.d-2)
+          norder_taylor = input%lin%order_taylor
+          !call fermi_operator_expansion_new(iproc, nproc, &
+          !     ebs, &
+          !     .true., 2, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+          if (iproc==0) then
+              call yaml_mapping_open('calculate HOMO kernel')
+              call yaml_map('target charge',foe_data_get_real(foe_obj,"charge",1))
+          end if
+          call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+               foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+               calculate_spin_channels=calculate_spin_channels)
+          !call fermi_operator_expansion(iproc, nproc, &
+          !     ebs, norder_taylor, input%lin%max_inversion_error, &
+          !     .true., 2, &
+          !     'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
+          !do ispin=1,input%nspin
+              !e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
+              e_homo = foe_data_get_real(foe_obj,"ef",1)
+          !end do
+          call foe_data_deallocate(foe_obj)
+          if (iproc==0) call yaml_mapping_close()
+
+          ! determine the LUMO
+          kernel(2) = matrices_null()
+          kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
+          foe_obj = foe_data_null()
+          call init_foe_wrapper(iproc, nproc, input, orbs_KS, 0.d0, foe_obj)
+
+          ! Round up the target charge (required for systems with non-integer charge)
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+          !!qq = foe_data_get_real(foe_obj,"charge",1)
+          iqq = nint(qq)
+          if (real(iqq,kind=8)<qq) then
+              qq = real(iqq+1,kind=8)
+          else
+              qq = real(iqq,kind=8)
+          end if
+          call foe_data_set_real(foe_obj,"charge",qq,1)
+
+          call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",1)+dq,1)
+          call foe_data_set_real(foe_obj,"fscale",1.d-2)
+          norder_taylor = input%lin%order_taylor
+          !call fermi_operator_expansion_new(iproc, nproc, &
+          !     ebs, &
+          !     .true., 2, &
+          !     tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+          if (iproc==0) then
+              call yaml_mapping_open('calculate LUMO kernel')
+              call yaml_map('target charge',foe_data_get_real(foe_obj,"charge",1))
+          end if
+          call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
+               foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
+               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+               calculate_spin_channels=calculate_spin_channels)
+          !call fermi_operator_expansion(iproc, nproc, &
+          !     ebs, norder_taylor, input%lin%max_inversion_error, &
+          !     .true., 2, &
+          !     'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+          !     tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
+          !do ispin=1,input%nspin
+              !e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
+              e_lumo = foe_data_get_real(foe_obj,"ef",1)
+          !end do
+          call foe_data_deallocate(foe_obj)
+          if (iproc==0) call yaml_mapping_close()
+
+          e_homo_spin(ispin) = e_homo
+          e_lumo_spin(ispin) = e_lumo
+
+
 
       !!if (iproc==0) then
       !!    tt = sqrt(kernel(2)%matrix_compr(1)-kernel(1)%matrix_compr(1))
@@ -3160,6 +3271,29 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call deallocate_matrices(kernel(1))
       call deallocate_matrices(kernel(2))
 
+      else
+          calculation_possible_all = .false.
+      end if
+  end do
+
+  if (calculation_possible_all) then
+      if (iproc==0) then
+          call yaml_mapping_open('HOMO-LUMO analysis')
+          do ispin=1,input%nspin
+              if (ispin==1) then
+                  call yaml_mapping_open('spin channel up')
+              else
+                  call yaml_mapping_open('spin channel down')
+              end if
+              call yaml_map('spin_channel',ispin)
+              call yaml_map('HOMO energy',e_homo_spin(ispin))
+              call yaml_map('LUMO energy',e_lumo_spin(ispin))
+              call yaml_map('HOMO-LUMO gap (Ha)',e_lumo_spin(ispin)-e_homo_spin(ispin))
+              call yaml_map('HOMO-LUMO gap (eV)',(e_lumo_spin(ispin)-e_homo_spin(ispin))*Ha_eV)
+              call yaml_mapping_close()
+          end do
+          call yaml_mapping_close()
+      end if
   end if
 
 end subroutine calculate_gap_FOE

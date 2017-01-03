@@ -1,6 +1,8 @@
 module multipole
   use module_base
   use multipole_base, only: external_potential_descriptors, lmax
+  use public_enums
+  use f_harmonics, only: solid_harmonic
   implicit none
 
   private
@@ -164,7 +166,7 @@ module multipole
       real(8),dimension(:),allocatable :: monopole
       real(8),dimension(:,:),allocatable :: norm, dipole, quadrupole, norm_check
       real(kind=8),dimension(:,:,:),allocatable :: gaussians1, gaussians2, gaussians3
-      logical,dimension(:),allocatable :: norm_ok
+      logical,dimension(:),allocatable :: norm_ok, skip3_array
       real(kind=8),parameter :: norm_threshold = 1.d-2
       real(kind=8),dimension(0:lmax) :: max_error
       integer :: ixc_tmp, nzatom, npspcode, ilr, j1s, j1e, j2s, j2e, j3s, j3e, j1, j2, j3
@@ -252,7 +254,8 @@ module multipole
           call geocode_buffers('F', lzd%glr%geocode, nl1, nl2, nl3)
           call calculate_gaussian(is1, ie1, 1, nl1, lzd%glr%d%n1i, perx, hx, shift, ep, gaussians1)
           call calculate_gaussian(is2, ie2, 2, nl2, lzd%glr%d%n2i, pery, hy, shift, ep, gaussians2)
-          call calculate_gaussian(is3, ie3, 3, nl3, lzd%glr%d%n3i, perz, hz, shift, ep, gaussians3)
+          skip3_array = f_malloc(ep%nmpl,id='skip3_array')
+          call calculate_gaussian(is3, ie3, 3, nl3, lzd%glr%d%n3i, perz, hz, shift, ep, gaussians3, skip3_array)
     
     
           norm = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm')
@@ -267,7 +270,9 @@ module multipole
           ! First calculate the norm of the Gaussians for each multipole
           !norm = 0.d0
           call calculate_norm(nproc, is1, ie1, is2, ie2, is3, ie3, ep, &
-               hhh, gaussians1, gaussians2, gaussians3, norm)
+               hhh, gaussians1, gaussians2, gaussians3, skip3_array, norm)
+
+          call f_free(skip3_array)
     
           ! Check whether they are ok.
           do impl=1,ep%nmpl
@@ -504,7 +509,7 @@ module multipole
                                               qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                           end if
                                           ttt = qq*&
-                                                real(2*l+1,kind=8)*solid_harmonic(0, rmin, l, m, r(1), r(2), r(3))*&
+                                                real(2*l+1,kind=8)*solid_harmonic(0, l, m, r(1), r(2), r(3))*&
                                                 sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
                                           tt = tt + ttt
                                           ttl = ttl + ttt
@@ -516,20 +521,20 @@ module multipole
                               ll = 0
                               m = 0
                               monopole(impl) = monopole(impl) + tt*hhh*&
-                                               solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
+                                               solid_harmonic(0,ll,m,r(1),r(2),r(3))*&
                                                sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               ll = 1
                               do m=-ll,ll
                                   ii = m + 2
                                   dipole(ii,impl) = dipole(ii,impl) + tt*hhh*&
-                                                   solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
+                                                   solid_harmonic(0,ll,m,r(1),r(2),r(3))*&
                                                    sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               end do
                               ll = 2
                               do m=-ll,ll
                                   ii = m + 3
                                   quadrupole(ii,impl) = quadrupole(ii,impl) + tt*hhh*&
-                                                   solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
+                                                   solid_harmonic(0,ll,m,r(1),r(2),r(3))*&
                                                    sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               end do
                           end do i1loop
@@ -945,6 +950,7 @@ module multipole
       real(kind=8),parameter :: sqrt3=sqrt(3.d0)
       !real(kind=8),parameter :: factor=sqrt(4.d0*pi/15.d0)
       real(kind=8),parameter :: factor=1.d0/sqrt3
+      real(kind=8),parameter :: factor3=3.d0*factor
       real(kind=8),dimension(3) :: Qr
 
       !!qq(1,1) = q(1)
@@ -958,11 +964,11 @@ module multipole
       !!qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
 
       qq(1,1) = factor*(-sqrt3*q(3)+q(5))
-      qq(2,1) = factor*q(1)
-      qq(3,1) = factor*q(4)
+      qq(2,1) = factor3*q(1)
+      qq(3,1) = factor3*q(4)
       qq(1,2) = qq(2,1)
       qq(2,2) = factor*(-sqrt3*q(3)-q(5))
-      qq(3,2) = factor*q(2)
+      qq(3,2) = factor3*q(2)
       qq(1,3) = qq(3,1)
       qq(2,3) = qq(3,2)
       qq(3,3) = factor*2.d0*sqrt3*q(3)
@@ -988,88 +994,6 @@ module multipole
     end function calc_quadropole
 
 
-
-    !> Calculate either:
-    !! - S^1/2 * K * S^1/2, which is the kernel corresponding to a orthonormal set of support functions.
-    !! - S^-1/2 * S * S^-1/2, which is the overlap corresponding to a orthonormal set of support functions.
-    !! To keep it simple, always call the matrix in the middle matrix
-    subroutine matrix_for_orthonormal_basis(iproc, nproc, meth_overlap, smats, smatl, &
-               ovrlp, matrix, operation, weight_matrix_compr)
-      use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, SPARSE_TASKGROUP, &
-                                   matrices_null, assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
-                                   deallocate_matrices
-      use matrix_operations, only: overlapPowerGeneral
-      use sparsematrix, only: matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
-      use yaml_output
-      implicit none
-
-      ! Calling arguments
-      integer :: iproc, nproc,  meth_overlap
-      type(sparse_matrix),intent(in) :: smats, smatl
-      type(matrices),intent(in) :: matrix
-      type(matrices),intent(in) :: ovrlp
-      character(len=*),intent(in) :: operation
-      real(kind=8),dimension(smatl%nvctrp_tg*smatl%nspin),intent(out) :: weight_matrix_compr
-
-      ! Local variables
-      type(matrices),dimension(1) :: inv_ovrlp
-      real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, proj_ovrlp_half_compr
-      real(kind=8) :: max_error, mean_error
-      integer :: ioperation
-      integer, dimension(1) :: power
-
-      call f_routine(id='matrix_for_orthonormal_basis')
-
-      select case (trim(operation))
-      case ('plus')
-          ioperation = 2
-      case ('minus')
-          ioperation = -2
-      case default
-          call f_err_throw('wrong value of operation')
-      end select
-
-      !!if (iproc==0) then
-      !!    call yaml_comment('Calculating matrix for orthonormal support functions',hfill='~')
-      !!end if
-
-      inv_ovrlp(1) = matrices_null()
-      inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
-
-      power(1)=ioperation
-      call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
-           meth_overlap, 1, power, -1, &
-           imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.false., verbosity=0)
-      !call f_free_ptr(ovrlp%matrix)
-
-      proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
-      !if (norbp>0) then
-         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-              matrix%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
-      !end if
-      !weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
-      !if (norbp>0) then
-         call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-              inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr)
-      !end if
-      call f_free(proj_ovrlp_half_compr)
-
-      call deallocate_matrices(inv_ovrlp(1))
-
-      !!! Maybe this can be improved... not really necessary to gather the entire matrix
-      !!!weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
-      !!call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
-
-      !call f_free(weight_matrix_compr_tg)
-
-      !!if (iproc==0) then
-      !!    call yaml_comment('Kernel calculated',hfill='~')
-      !!end if
-
-      call f_release_routine()
-
-    end subroutine matrix_for_orthonormal_basis
 
 
 
@@ -1540,85 +1464,6 @@ module multipole
     end subroutine gaussian_density
 
 
-    !> Calculates the solid harmonic S_lm (possibly multplied by a power or r) for given values of l, m, x, y, z.
-    !! They are normalized such that the integral over the angle gives r^2, i.e.
-    !! \int d\Omega S_{lm}*S_{l'm'}/r^{2l} = r^2 \delta_{ll'}\delta_{mm'}
-    !! r_exponent indicates how the function is multiplied by r: The final result is given by S_lm*r^(r_exponent*l), with the
-    !! definition of the S_lm given above. r_exponent can also be negative, e.g. -1 to yield the "real" spherical harmonics.
-    !! rmin gives the minimal radius that is used for the multiplication by r^(r_exponent*l) (can be used to avoid the divergence
-    !! around r=0)
-    function solid_harmonic(r_exponent, rmin, l, m, x, y, z) result(sh)
-      use module_base, only: pi => pi_param
-      implicit none
-      ! Calling arguments
-      integer,intent(in) :: r_exponent
-      integer,intent(in) :: l, m
-      real(kind=8),intent(in) :: rmin, x, y, z
-      real(kind=8) :: sh
-
-      ! Local variables
-      integer,parameter :: l_max=2
-      real(kind=8) :: r, r2, r2min
-
-      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
-      if (l>l_max) call f_err_throw('solid harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
-          err_name='BIGDFT_RUNTIME_ERROR')
-      if (abs(m)>l) call f_err_throw('abs of m ('//trim(yaml_toa(m))//') must not be larger than l ('//trim(yaml_toa(l))//')', &
-                    err_name='BIGDFT_RUNTIME_ERROR')
-
-
-      select case (l)
-      case (0)
-          ! No need for r, as l=0
-          sh = sqrt(1.d0/(4.d0*pi))
-      case (1)
-          r2 = x**2+y**2+z**2
-          !r2min = rmin**2
-          !r2 = max(r2,r2min)
-          r = sqrt(r2)
-          select case (m)
-          case (-1)
-              sh = sqrt(3.d0/(4.d0*pi))*y
-          case (0)
-              sh = sqrt(3.d0/(4.d0*pi))*z
-          case (1)
-              sh = sqrt(3.d0/(4.d0*pi))*x
-          end select
-          ! Multiply by r^{r_exp*l}
-          sh = sh*r**r_exponent
-      case (2)
-          r2 = x**2+y**2+z**2
-          !r2min = rmin**2
-          !r2 = max(r2,r2min)
-          select case (m)
-          case (-2)
-              sh = sqrt(15.d0/(4.d0*pi))*x*y
-          case (-1)
-              sh = sqrt(15.d0/(4.d0*pi))*y*z
-          case (0)
-              sh = sqrt(5.d0/(16.d0*pi))*(-x**2-y**2+2.d0*z**2)
-          case (1)
-              sh = sqrt(15.d0/(4.d0*pi))*z*x
-          case (2)
-              sh = sqrt(15.d0/(16.d0*pi))*(x**2-y**2)
-          end select
-          ! Multiply by r^{r_exp*l}
-          sh = sh*r2**r_exponent
-      end select
-
-      !r2 = x**2+y**2+z**2
-      !r = sqrt(r2)
-      !if (r<1.d-1) then
-      !    sh = 0.d0
-      !end if
-
-      !if (sh>10.d0) then
-      !    r2 = x**2+y**2+z**2
-      !    write(*,*) 'LARGE, value, r', sh, sqrt(r2)
-      !end if
-
-    end function solid_harmonic
-
     !!!!!!> Calculates the prefactor of the solid harmonics S_lm  for given values of l, m, x, y, z.
     !!!!!function prefactor_solid_harmonic(l, m, x, y, z) result(psh)
     !!!!!  use module_base, only: pi => pi_param
@@ -1785,7 +1630,7 @@ module multipole
                      if (sphere) then
                         if (x**2+y**2+z**2>rmax**2) cycle
                      end if
-                     tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                     tt = solid_harmonic(0, l, m, x, y, z)
                      tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
                      sphi2r(ind) = tt*phi2r(ind)
                   end do
@@ -1888,7 +1733,7 @@ module multipole
                      end if
                      do l=0,lmax
                         do m=-l,l
-                           tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                           tt = solid_harmonic(0, l, m, x, y, z)
                            tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
                            Qlm_work(m,l)=Qlm_work(m,l)+tt*phi2r(ind)
                         end do
@@ -2014,9 +1859,9 @@ module multipole
 
 
      
-    subroutine multipole_analysis_driver_new(iproc, nproc, lmax, ixc, smmd, smats, smatm, smatl, &
+    subroutine multipole_analysis_driver_new(iproc, nproc, comm, lmax, ixc, smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
-               calculate_multipole_matrices, do_check, write_multipole_matrices, &
+               calculate_multipole_matrices, do_check, write_multipole_matrices_mode, &
                nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
                lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj, filename)
       use module_base
@@ -2034,14 +1879,15 @@ module multipole
       use multipole_base, only: external_potential_descriptors_null, multipole_set_null, multipole_null, &
            deallocate_external_potential_descriptors
       use orbitalbasis
-      use matrix_operations, only: overlapPowerGeneral
+      use matrix_operations, only: overlapPowerGeneral, matrix_for_orthonormal_basis
       !use Poisson_Solver, only: H_potential
       use Poisson_Solver, except_dp => dp, except_gp => gp
       use foe_base, only: foe_data
       use box
+      use io, only: get_sparse_matrix_format
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, lmax, ixc
+      integer,intent(in) :: iproc, nproc, comm, lmax, ixc
       type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smats
       type(sparse_matrix),intent(in) :: smatm
@@ -2053,7 +1899,8 @@ module multipole
       character(len=*),intent(in) :: method
       character(len=*),intent(in) :: do_ortho
       character(len=*),intent(in) :: projectormode
-      logical,intent(in) :: calculate_multipole_matrices, do_check, write_multipole_matrices
+      logical,intent(in) :: calculate_multipole_matrices, do_check
+      integer,intent(in) :: write_multipole_matrices_mode
       integer,intent(in),optional :: nphi, nphir
       real(kind=8),dimension(:),intent(in),optional :: lphi
       real(kind=8),dimension(3),intent(in),optional :: hgrids
@@ -2088,8 +1935,8 @@ module multipole
       !type(matrices),target :: multipole_matrix_
       type(matrices) :: newovrlp, ovrlp_large, multipole_matrix_large
       type(matrices),dimension(-1:1,0:1) :: lower_multipole_matrices
-      type(matrices),dimension(1) :: inv_ovrlp
-      logical :: perx, pery, perz
+      type(matrices),dimension(1) :: inv_ovrlp, inv_minus_onehalf_ovrlp
+      logical :: perx, pery, perz, write_matrices
       logical,dimension(:,:),allocatable :: neighborx
       integer,dimension(:),allocatable :: nx
       character(len=20),dimension(:),allocatable :: names
@@ -2116,9 +1963,14 @@ module multipole
       type(cell) :: mesh
       character(len=2) :: lname, mname
       character(len=14) :: matname
+      character(len=128) :: sparse_format
 
 
       call f_routine(id='multipole_analysis_driver')
+
+      if (smatl%nspin/=1) then
+          call f_err_throw('Atomic multipole analysis not yet ready for nspin>1')
+      end if
 
       perx=(smmd%geocode /= 'F')
       pery=(smmd%geocode == 'P')
@@ -2215,10 +2067,13 @@ module multipole
           call f_err_throw('wrong projectormode',err_name='BIGDFT_RUNTIME_ERROR')
       end select
 
-      if (write_multipole_matrices) then
+      if (mod(write_multipole_matrices_mode,10)/=MATRIX_FORMAT_NONE) then
           if (.not.present(filename)) then
               call f_err_throw('filename not present',err_name='BIGDFT_RUNTIME_ERROR')
           end if
+          write_matrices = .true.
+      else
+          write_matrices = .false.
       end if
 
 
@@ -2230,7 +2085,7 @@ module multipole
       ! Loewdin it is S^-1/2*K*S^-1/2.
       if (do_ortho==yes) then
           methTransformOverlap = 1020
-          call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
+          call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
                ovrlp, kernel, 'plus', kernel_ortho)
       else if (do_ortho==no) then
           ovrlp_large = matrices_null()
@@ -2261,10 +2116,13 @@ module multipole
           newoverlap_large = sparsematrix_malloc(smatl, SPARSE_TASKGROUP, id='newoverlap_large')
           ovrlp_large = matrices_null()
           ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
+          inv_minus_onehalf_ovrlp(1) = matrices_null()
+          inv_minus_onehalf_ovrlp(1)%matrix_compr = &
+              sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_minus_onehalf_ovrlp(1)%matrix_compr')
           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
-          call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
-               ovrlp, ovrlp_large, 'minus', newoverlap_large)
+          call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
+               ovrlp, ovrlp_large, 'minus', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
           call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                lmat_in=newoverlap_large, smat_out=newovrlp%matrix_compr)
           call deallocate_matrices(ovrlp_large)
@@ -2326,11 +2184,12 @@ module multipole
               if (calculate_multipole_matrices) then
                   call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
                        orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
-                  if (write_multipole_matrices) then
+                  if (write_matrices) then
+                      call get_sparse_matrix_format(write_multipole_matrices_mode, sparse_format)
                       write(lname,'(i0)') l
                       write(mname,'(i0)') m
-                      matname = 'mpmat_'//trim(lname)//'_'//trim(mname)//'.bin'
-                      call write_sparse_matrix(iproc, nproc, bigdft_mpi%mpi_comm, &
+                      matname = 'mpmat_'//trim(lname)//'_'//trim(mname)
+                      call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
                            smats, multipole_matrix, &
                            filename=trim(filename//matname))
                   end if
@@ -2346,8 +2205,11 @@ module multipole
                   ovrlp_large%matrix_compr = sparsematrix_malloc_ptr(smatl, SPARSE_TASKGROUP, id='ovrlp_large%matrix_compr')
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'small_to_large', &
                        smat_in=multipole_matrix%matrix_compr, lmat_out=ovrlp_large%matrix_compr)
-                  call matrix_for_orthonormal_basis(iproc, nproc, methTransformOverlap, smats, smatl, &
-                       ovrlp, ovrlp_large, 'minus', newoverlap_large)
+                  !!call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
+                  !!     ovrlp, ovrlp_large, 'minus', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
+                  ! Take S^-1/2 from memory...
+                  call matrix_for_orthonormal_basis(iproc, nproc, comm, methTransformOverlap, smats, smatl, &
+                       ovrlp, ovrlp_large, 'none', newoverlap_large, inv_ovrlp_ext=inv_minus_onehalf_ovrlp)
                   call transform_sparse_matrix(iproc, smats, smatl, SPARSE_TASKGROUP, 'large_to_small', &
                        lmat_in=newoverlap_large, smat_out=multipole_matrix%matrix_compr)
                   call deallocate_matrices(ovrlp_large)
@@ -2418,6 +2280,10 @@ module multipole
 
           end do
       end do
+
+      if (do_ortho==yes) then
+          call deallocate_matrices(inv_minus_onehalf_ovrlp(1))
+      end if
 
 
       if (calculate_multipole_matrices) then
@@ -2536,9 +2402,6 @@ module multipole
               dipole_check=dipole_check/Debye_AU  ! au2debye              
 
               !# NEW: compare the density and potential ##########################
-              if (smatl%nspin/=1) then
-                  call f_err_throw('Multipole analysis check not yet ready for nspin>1')
-              end if
               ! Get the exact charge density
               ioffset = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
                         denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,4)
@@ -2546,8 +2409,6 @@ module multipole
               call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
                    src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
               call f_memcpy(src=rho_exact, dest=pot_exact)
-!!$              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
-!!$                   quiet='yes')
               call Electrostatic_Solver(denspot%pkernel,pot_exact,pot_ion=denspot%V_ext)
               !mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
               call compare_charge_and_potential(denspot%dpbox%bitp,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
@@ -3278,7 +3139,7 @@ module multipole
                               factor = factor/(15.d0*sigma**4)
                            end if
                            phi2r(ist+ind) = phi2r(ist+ind) + &
-                                gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
+                                gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, l, m , x, y, z)/sqrt(twopi**3)
                        end do
                    end do
                end do
@@ -3497,6 +3358,10 @@ module multipole
    real(wp), dimension(:,:,:), allocatable :: Qlm
 
    call f_routine(id='support_function_gross_multipoles')
+
+   if (tmb%linmat%l%nspin/=1) then
+       call f_err_throw('Support function multipole analysis not yet ready for nspin>1')
+   end if
 
    phi_ortho = f_malloc(size(tmb%psi),id='phi_ortho')
    call f_memcpy(src=tmb%psi, dest=phi_ortho)
@@ -3950,7 +3815,7 @@ module multipole
 
  !!end subroutine get_optimal_sigmas
 
- subroutine calculate_gaussian(is, ie, idim, nl, nglob, periodic, hh, shift, ep, gaussian_array)
+ subroutine calculate_gaussian(is, ie, idim, nl, nglob, periodic, hh, shift, ep, gaussian_array, skip_array)
    use module_base
    use multipole_base, only: lmax, external_potential_descriptors
    implicit none
@@ -3962,10 +3827,13 @@ module multipole
    real(kind=8),dimension(3),intent(in) :: shift
    type(external_potential_descriptors),intent(in) :: ep
    real(kind=8),dimension(0:lmax,is:ie,ep%nmpl),intent(out) :: gaussian_array
+   logical,dimension(ep%nmpl),intent(out),optional :: skip_array
 
    ! Local variables
    integer :: i, ii, impl, l, isx, iex, n, imod, nn, nu, nd, js, je, j
-   real(kind=8) :: x, tt, sig, dr
+   real(kind=8) :: x, tt, sig, dr, gg, maxval_gaussian
+   logical,dimension(:),allocatable :: skip_array_
+   logical :: skip_array_present
 
    call f_routine(id='calculate_gaussian')
 
@@ -3973,6 +3841,9 @@ module multipole
    !    write(*,*) 'idim, shift(idim), ep%mpl(impl)%rxyz(idim)', idim, shift(idim), ep%mpl(impl)%rxyz(idim)
    !end do
 
+   skip_array_present = present(skip_array)
+
+   skip_array_ = f_malloc(ep%nmpl,id='skip_array_')
    call f_zero(gaussian_array)
 
    ! Calculate the boundaries of the Gaussian to be calculated. To make it simple, take always the maximum:
@@ -3988,9 +3859,11 @@ module multipole
 
    !$omp parallel default(none) &
    !$omp shared(is, ie, hh, shift, idim, ep, gaussian_array, js, je, nl, nglob) &
-   !$omp private(i, ii, x, impl, tt, l, sig, j, dr)
+   !$omp shared(skip_array_present, skip_array_) &
+   !$omp private(i, ii, x, impl, tt, l, sig, j, dr, gg, maxval_gaussian)
    !$omp do
    do impl=1,ep%nmpl
+       maxval_gaussian = 0.d0
        do i=is,ie
            ii = i - nl - 1
            tt = huge(tt)
@@ -4001,12 +3874,29 @@ module multipole
            tt = tt**2
            do l=0,lmax
                sig = ep%mpl(impl)%sigma(l)
-               gaussian_array(l,i,impl) = gaussian(sig,tt)
+               gg = gaussian(sig,tt)
+               gaussian_array(l,i,impl) = gg
+               if (skip_array_present) then
+                   maxval_gaussian = max(gg,maxval_gaussian)
+               end if
            end do
        end do
+       if (skip_array_present) then
+           if (maxval_gaussian>0.d0) then
+               skip_array_(impl) = .false.
+           else
+               skip_array_(impl) = .true.
+           end if
+       end if
    end do
    !$omp end do
    !$omp end parallel
+
+   if (skip_array_present) then
+       call f_memcpy(src=skip_array_, dest=skip_array)
+   end if
+
+   call f_free(skip_array_)
 
    call f_release_routine()
 
@@ -4034,7 +3924,7 @@ module multipole
  end subroutine calculate_gaussian
 
  subroutine calculate_norm(nproc, is1, ie1, is2, ie2, is3, ie3, ep, &
-            hhh, gaussians1, gaussians2, gaussians3, norm)
+            hhh, gaussians1, gaussians2, gaussians3, skip3_array, norm)
    use module_base
    use multipole_base, only: external_potential_descriptors
    implicit none
@@ -4046,6 +3936,7 @@ module multipole
    real(kind=8),dimension(0:lmax,is1:ie1,1:ep%nmpl),intent(in) :: gaussians1
    real(kind=8),dimension(0:lmax,is2:ie2,1:ep%nmpl),intent(in) :: gaussians2
    real(kind=8),dimension(0:lmax,is3:ie3,1:ep%nmpl),intent(in) :: gaussians3
+   logical,dimension(ep%nmpl),intent(in) :: skip3_array
    real(kind=8),dimension(0:2,ep%nmpl),intent(out) :: norm
 
    ! Local variables
@@ -4059,10 +3950,14 @@ module multipole
 
    !$omp parallel default(none) &
    !$omp shared(ep, is1, ie1, is2, ie2, is3, ie3, norm, hhh) &
-   !$omp shared(gaussians1, gaussians2, gaussians3) &
+   !$omp shared(gaussians1, gaussians2, gaussians3, skip3_array) &
    !$omp private(impl, i1, i2, i3, ii1, ii2, ii3, l, gg23, gg) 
    !$omp do schedule(guided)
-   do impl=1,ep%nmpl
+   impl_loop: do impl=1,ep%nmpl
+       if (skip3_array(impl)) then
+           !write(*,'(a,i0)') '#skip impl ',impl
+           cycle impl_loop
+       end if
        i3loop: do i3=is3,ie3
            if (maxval(gaussians3(:,i3,impl))<1.d-20) cycle i3loop
            ii3 = i3 - 15
@@ -4084,7 +3979,7 @@ module multipole
                end do i1loop
            end do i2loop
        end do i3loop
-   end do
+   end do impl_loop
    !$omp end do
    !$omp end parallel
 
@@ -5436,7 +5331,7 @@ end subroutine calculate_rpowerx_matrices
     real(kind=8),parameter :: min_distance = 2.0d0
 !!$    logical,dimension(:,:,:),allocatable :: is_close
 
-    call f_routine(id='compare_charge_and_potential')
+    call f_routine(id='estimate_system_volume_from_density')
 
 !!$    ! Determine the grid points which are farther away from the atoms than the minimal distance
 !!$    is_close = f_malloc((/0.to.kernel%ndims(1)-31-1,0.to.kernel%ndims(2)-31-1,is3.to.ie3/),id='is_close')

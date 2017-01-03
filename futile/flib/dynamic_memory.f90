@@ -16,9 +16,11 @@ module dynamic_memory_base
   use module_f_malloc 
   use f_precisions
   use yaml_parse, only: yaml_load
+  use yaml_output, only: yaml_map
   use f_utils, only: f_time,f_zero
   use iso_c_binding
   use smpi_shared
+  use f_environment
   implicit none
 
   private 
@@ -162,7 +164,7 @@ module dynamic_memory_base
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr,f_malloc_dump_status
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database,f_subptr
-  public :: assignment(=),operator(.to.)
+  public :: assignment(=),operator(.to.),operator(.plus.)
 
   !for internal f_lib usage
   public :: dynamic_memory_errors
@@ -286,7 +288,7 @@ contains
     implicit none
     integer, intent(in) :: depth
     mems(ictrl)%depth=mems(ictrl)%depth+depth
-    track_origins = &
+    track_origins = bigdebug .or. &
          mems(ictrl)%depth <= mems(ictrl)%profiling_depth .or. &
          mems(ictrl)%profiling_depth ==-1
   end subroutine set_depth
@@ -512,9 +514,10 @@ contains
 
   !> Update the memory database with the data provided
   !! Use when allocating Fortran structures
-  subroutine f_update_database(size,kind,rank,address,id,routine)
+  subroutine f_update_database(size,kind,rank,address,id,routine,info)
     use metadata_interfaces, only: long_toa
     use yaml_output, only: yaml_flush_document
+    use dictionaries
     implicit none
     !> Number of elements of the buffer
     integer(kind=8), intent(in) :: size
@@ -531,8 +534,11 @@ contains
     character(len=*), intent(in) :: id
     !> Id of the allocating routine
     character(len=*), intent(in) :: routine
+    !> Further information, provided for the array if needed
+    character(len=*), intent(in) :: info
     !local variables
     integer(kind=8) :: ilsize,jproc
+    character(len=1024) :: dbinfo
     !$ include 'remove_omp-inc.f90' 
 
     ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
@@ -542,9 +548,11 @@ contains
        if (.not. associated(mems(ictrl)%dict_routine)) then
           call dict_init(mems(ictrl)%dict_routine)
        end if
+       dbinfo='[ '//trim(id)//', '//trim(routine)//', '//&
+            trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))
+       if (len_trim(info)>0) dbinfo=trim(dbinfo)//', '//trim(info)
        call set(mems(ictrl)%dict_routine//long_toa(address),&
-            '[ '//trim(id)//', '//trim(routine)//', '//&
-            trim(yaml_toa(ilsize))//', '//trim(yaml_toa(rank))//']')
+            trim(dbinfo)//' ]')
     end if
     call memstate_update(memstate,ilsize,id,routine)
     if (mems(ictrl)%output_level==2) then
@@ -559,7 +567,7 @@ contains
 
   !> Clean the database with the information of the array
   !! Use when allocating Fortran structures
-  subroutine f_purge_database(size,kind,address,id,routine)
+  subroutine f_purge_database(size,kind,address,id,routine,info)
     use metadata_interfaces, only: long_toa
     use yaml_output, only: yaml_flush_document
     use yaml_strings, only: f_strcpy
@@ -577,6 +585,10 @@ contains
     character(len=*), intent(in), optional :: id
     !> Id of the allocating routine
     character(len=*), intent(in), optional :: routine
+    !> Optional information of the allocated dictionary.
+    !! Might contain information about the deallocation to be used
+    !! Shoould be nullified on inputs
+    type(dictionary), pointer, optional :: info
     !local variables
     logical :: use_global
     integer :: jproc
@@ -619,7 +631,8 @@ contains
           array_id=dict_add//0
           routine_id=dict_add//1
           jlsize=dict_add//2
-
+          if (present(info) .and. dict_len(dict_add)>=5) &
+               call dict_copy(info,dict_add//4)
           call dict_free(dict_add)
 
           if (ilsize /= jlsize) then
@@ -795,10 +808,8 @@ contains
 
   !> Opens a new instance of the dynamic memory handling
   subroutine f_malloc_initialize()
+    use f_environment
     implicit none
-    !local variables
-    integer :: istat
-    character(len=1) :: val
     !increase the number of active instances
     ictrl=ictrl+1
     if (f_err_raise(ictrl > max_ctrl,&
@@ -811,9 +822,8 @@ contains
     !in the first instance initialize the global memory info
     if (ictrl==1) then
        call memstate_init(memstate)
-       !check if we are in the bigdebug mode or not
-       call get_environment_variable('FUTILE_DEBUG_MODE', val,status=istat)
-       bigdebug = val == '1' .and. istat == 0
+       bigdebug = f_debug_level >= 1 !we might tune the level
+       !ndebug=f_nan_pad_size
     end if
 
     !initialize the memprofiling counters

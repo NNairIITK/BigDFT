@@ -66,9 +66,25 @@ module bigdft_run
 
      !> Subparts that needs to be executed separately
      type(run_objects), dimension(:), pointer :: sections
+     !> Mapping of atom ids. map(i) is the id in the parent
+     !! run object of atom #i in the section.
+     integer, dimension(:), pointer :: astruct_map
 
      integer(kind = 8) :: c_obj !< Pointer to a C wrapper
   end type run_objects
+
+  !> Public signals for run_objects type.
+  character(len = *), parameter, public :: RUN_OBJECTS_TYPE = "run_objects"
+  character(len = *), parameter, public :: INIT_SIG = "init"
+  character(len = *), parameter, public :: STATE_CALCULATOR_SIG = "state_calculator"
+  character(len = *), parameter, public :: DESTROY_SIG = "destroy"
+  character(len = *), parameter, public :: PRE_SCF_SIG = "pre"
+  character(len = *), parameter, public :: POST_SCF_SIG = "post"
+
+  character(len = *), parameter, public :: PROCESS_RUN_TYPE = "process_run"
+  character(len = *), parameter, public :: GEOPT_INIT_SIG = "init"
+  character(len = *), parameter, public :: GEOPT_CONDITIONAL_SIG = "convcheck"
+  character(len = *), parameter, public :: GEOPT_POST_SIG = "post"
 
   !> Used to store results of a DFT calculation.
   type, public :: state_properties
@@ -81,15 +97,17 @@ module bigdft_run
      integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
-  public :: run_objects_type_init
+  public :: run_objects_type_init, process_run_type_init
   public :: init_state_properties,deallocate_state_properties
   public :: run_objects_free,copy_state_properties
   public :: nullify_run_objects
-  public :: run_objects_associate,bigdft_set_rxyz
+  public :: run_objects_associate,bigdft_set_rxyz,section_extract
   public :: state_properties_set_from_dict,bigdft_get_rxyz_ptr
-  public :: run_objects_init,bigdft_init,bigdft_command_line_options,bigdft_nruns
-  public :: init_QM_restart_objects,init_MM_restart_objects,set_run_objects,nullify_QM_restart_objects
-  public :: nullify_MM_restart_objects
+  public :: run_objects_init,run_objects_update
+  public :: bigdft_init,bigdft_command_line_options,bigdft_nruns
+  !public :: init_QM_restart_objects,init_MM_restart_objects,nullify_QM_restart_objects
+  public :: set_run_objects
+  !public :: nullify_MM_restart_objects
   public :: bigdft_nat,bigdft_state,free_run_objects
   public :: release_run_objects,bigdft_get_cell,bigdft_get_cell_ptr,bigdft_get_geocode,bigdft_get_run_properties
   public :: bigdft_get_units, bigdft_set_units
@@ -165,6 +183,7 @@ contains
   subroutine init_MM_restart_objects(mm_rst,inputs,astruct,run_mode)
     use f_utils
     use dynamic_memory
+    use f_refcnts
     use public_enums
     use module_atoms
     use module_morse_bulk
@@ -173,6 +192,7 @@ contains
     use module_lj
     use module_lenosky_si
     use module_cp2k
+    use module_alborz
     use module_tdpot
     use yaml_output
     use SWpotential
@@ -247,6 +267,11 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_tersoff(astruct%nat,astruct,inputs%mm_paramset,&
             inputs%mm_paramfile,astruct%geocode)
+    case('ALBORZ_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call initialize_alborz(astruct%nat,astruct)
     case('BMHTF_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -280,9 +305,8 @@ contains
        !@todo SW is missing the rescalling here.
        call init_potential_SW(astruct%nat, astruct%ntypes, inputs%sw_factor)
     case default
-       call nullify_MM_restart_objects(mm_rst)
-       !create reference counter
-       mm_rst%refcnt=f_ref_new('mm_rst')
+       if (.not. f_associated(mm_rst%refcnt)) &
+            mm_rst%refcnt=f_ref_new('mm_rst')
     end select
 
     mm_rst%run_mode=run_mode
@@ -292,6 +316,7 @@ contains
     use dynamic_memory
     use yaml_output
     use module_cp2k
+    use module_alborz
     use module_BornMayerHugginsTosiFumi
     use f_enums, enum_int => toi
     use yaml_strings
@@ -307,6 +332,8 @@ contains
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
        call finalize_cp2k()
+    case('ALBORZ_RUN_MODE') ! CP2K run mode
+       call finalize_alborz()
     case('SW_RUN_MODE')
        call free_potential_SW()
     case default
@@ -848,22 +875,31 @@ contains
   end subroutine state_properties_set_from_dict
 
   subroutine run_objects_type_init()
-    use module_f_objects, only: f_object_new, f_object_add_signal
+    use module_f_objects, only: f_object_new_, f_object_add_signal
 
-    call f_object_new("run_objects")
-    
-    call f_object_add_method("run_objects", "nat", bigdft_nat_bind, 1)
+    call f_object_new_(RUN_OBJECTS_TYPE)
+    call f_object_add_method(RUN_OBJECTS_TYPE, "nat", bigdft_nat_bind, 1)
 
-    call f_object_add_signal("run_objects", "init", 1)
-    call f_object_add_signal("run_objects", "pre", 1)
-    call f_object_add_signal("run_objects", "post", 2)
-    call f_object_add_signal("run_objects", "destroy", 1)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, INIT_SIG, 1)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, PRE_SCF_SIG, 1)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, POST_SCF_SIG, 2)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, "join", 3)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, STATE_CALCULATOR_SIG, 3)
+    call f_object_add_signal(RUN_OBJECTS_TYPE, DESTROY_SIG, 1)
 
-    call f_object_new("state_properties")
-
+    call f_object_new_("state_properties")
     call f_object_add_method("state_properties", "fxyz", state_properties_get_fxyz_ndarray, 1)
     call f_object_add_method("state_properties", "energy", state_properties_get_energy, 1)
   end subroutine run_objects_type_init
+
+  subroutine process_run_type_init()
+    use module_f_objects, only: f_object_new_, f_object_add_signal
+
+    call f_object_new_(PROCESS_RUN_TYPE)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG, 2)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_CONDITIONAL_SIG, 3)
+    call f_object_add_signal(PROCESS_RUN_TYPE, GEOPT_POST_SIG, 2)
+  end subroutine process_run_type_init
 
   !> Routines to handle the argument objects of bigdft_state().
   pure subroutine nullify_run_objects(runObj)
@@ -873,6 +909,7 @@ contains
     write(runObj%label, "(A)") " "
     nullify(runObj%run_mode)
     runObj%nstate=0
+    runObj%add_coulomb_force=.false.
     nullify(runObj%user_inputs)
     nullify(runObj%inputs)
     nullify(runObj%atoms)
@@ -880,6 +917,7 @@ contains
     nullify(runObj%mm_rst)
     nullify(runObj%py_hooks)
     nullify(runObj%sections)
+    nullify(runObj%astruct_map)
     runObj%c_obj = 0
   END SUBROUTINE nullify_run_objects
 
@@ -941,6 +979,9 @@ contains
        end do
        deallocate(runObj%sections)
     end if
+    if (associated(runObj%astruct_map)) then
+       call f_free_ptr(runObj%astruct_map)
+    end if
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
 
@@ -952,21 +993,21 @@ contains
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
     use module_input_keys, only: free_input_variables
-    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+    use module_f_objects
     implicit none
     type(run_objects), intent(inout) :: runObj
     logical :: release
     integer :: claim, i
-
+    type(signal_ctx) :: sig
 
     ! Fortran release ownership
     release = .true.
 
-    if (.not. f_object_has_signal("run_objects", "destroy")) &
+    if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, DESTROY_SIG)) &
          & call run_objects_type_init()
-    if (f_object_signal_prepare("run_objects", "destroy")) then
-       call f_object_signal_add_arg("run_objects", "destroy", runObj)
-       call f_object_signal_emit("run_objects", "destroy")
+    if (f_object_signal_prepare(RUN_OBJECTS_TYPE, DESTROY_SIG, sig)) then
+       call f_object_signal_add_arg(sig, runObj)
+       call f_object_signal_emit(sig)
     end if
 
     if (runObj%c_obj /= 0) then
@@ -1002,6 +1043,10 @@ contains
           end do
           deallocate(runObj%sections)
        end if
+       if (associated(runObj%astruct_map)) then
+          call f_free_ptr(runObj%astruct_map)
+          nullify(runObj%astruct_map)
+       end if
        call nullify_run_objects(runObj)
     else
        call run_objects_wrapper_attach(runObj%c_obj, runObj)
@@ -1016,7 +1061,6 @@ contains
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
-    use public_keys, only: PY_HOOKS
     use dictionaries
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -1046,25 +1090,59 @@ contains
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
     runObj%add_coulomb_force = runObj%inputs%add_coulomb_force
-    !@todo Decorate the run mode, ugly here.
     if (runObj%run_mode == QM_RUN_MODE .or. runObj%run_mode == MULTI_RUN_MODE) then
        call f_enum_attr(runObj%run_mode, RUN_MODE_CREATE_DOCUMENT)
-    end if
-
-    ! Save the python additional code
-    if (PY_HOOKS .in. runObj%user_inputs) then
-       call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
     end if
 
     call f_release_routine()
     
   END SUBROUTINE set_run_objects
 
+  !> @todo make this routine private by reacting on a change to main coordinates.
+  subroutine section_extract(asub, map, runObj, section, passivation, buf, last)
+    use module_atoms, only: atomic_structure, astruct_at_from_dict
+    use public_keys, only: ASTRUCT_ATT_ORIG_ID
+    use dictionaries
+    use dynamic_memory
+    use f_utils
+    implicit none
+    ! Parameters
+    type(atomic_structure), intent(out) :: asub
+    integer, dimension(:), pointer :: map
+    type(run_objects), intent(in) :: runObj
+    character(len = *), intent(in) :: section
+    logical, intent(in) :: passivation, last
+    integer, intent(in) :: buf
+    ! Local variables
+    integer :: iat
+    logical, dimension(:), allocatable :: mask
+    character(len = max_field_length) :: mode
+
+    ! Generate the mask from the MODE atomic attribute.
+    mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
+    do iat = 1, runObj%atoms%astruct%nat
+       call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
+       mask(iat) = (trim(mode) == section) .or. (last .and. len_trim(mode) == 0)
+    end do
+    call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, &
+         & mask, passivation, buf, "yes")
+    call f_free(mask)
+
+    ! Generate a map of atom ids for the subset.
+    if (associated(map)) call f_free_ptr(map)
+    map = f_malloc_ptr((/ asub%nat /), id = "map")
+    call f_zero(map)
+    do iat = 1, asub%nat
+       if (ASTRUCT_ATT_ORIG_ID .in. asub%attributes(iat)%d) then
+          map(iat) = asub%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID
+       end if
+    end do
+  END SUBROUTINE section_extract
 
   !> Currently, set_run_objects() is not set recursively.
   !! This routine, handle a subpar of it for sections.
   subroutine set_section_objects(runObj)
-    use module_base, only: bigdft_mpi
+    use module_base, only: bigdft_mpi,mpibarrier
     use module_interfaces, only: atoms_new, inputs_new
     use module_atoms, only: atomic_structure, astruct_at_from_dict, &
          & astruct_merge_to_dict, deallocate_atomic_structure
@@ -1081,6 +1159,7 @@ contains
     type(dictionary), pointer :: sect
     type(atomic_structure) :: asub
 
+    call f_routine(id='set_section_objects')
     if (associated(runObj%sections)) then
        do i = 1, size(runObj%sections)
           call release_run_objects(runObj%sections(i))
@@ -1089,27 +1168,40 @@ contains
        nullify(runObj%sections)
     end if
 
+    ln = 0
     if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
-         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
+         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) then
+       allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                     ! to test if runObj is top level.
+       call f_release_routine()
+       return
+    end if
 
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
-    if (ln == 0) return
+    allocate(runObj%sections(ln)) ! associated(runObj%sections) can be used
+                                  ! to test if runObj is top level.
+    if (ln == 0) then
+       call f_release_routine()
+       return
+    end if
 
     runObj%inputs%multi_buf = f_malloc_ptr(ln, id = "in%multi_buf")
     runObj%inputs%multi_buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
     runObj%inputs%multi_pass = f_malloc_ptr(ln, id = "in%multi_pass")
     runObj%inputs%multi_pass = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
 
-    allocate(runObj%sections(ln))
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
        i = dict_item(sect) + 1
+
        call nullify_run_objects(runObj%sections(i))
+       runObj%sections(i)%add_coulomb_force = runObj%inputs%add_coulomb_force
+
        ! We just do a shallow copy here, because we don't need to store the input dictionary.
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
        ! Generate posinp if necessary.
        if (POSINP .notin. runObj%sections(i)%user_inputs) then
-          call multi_mode_extract(asub, runObj, trim(dict_value(sect)), &
+          call section_extract(asub, runObj%sections(i)%astruct_map, runObj, trim(dict_value(sect)), &
                & runObj%inputs%multi_pass(i), runObj%inputs%multi_buf(i), (i == ln))
           call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
                & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))
@@ -1133,6 +1225,9 @@ contains
 
        sect => dict_next(sect)
     end do
+
+    call f_release_routine()
+
   end subroutine set_section_objects
 
   !> Read all input files and create the objects to run BigDFT
@@ -1143,7 +1238,8 @@ contains
     use module_input_keys, only: user_dict_from_files
     use yaml_output
     use dynamic_memory
-    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+    use module_f_objects
+    use public_keys, only: PY_HOOKS, PLUGINS
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -1164,13 +1260,18 @@ contains
     type(run_objects), intent(in), optional :: source
     !local variables
     logical :: dict_from_files
-    integer :: ierr, i
+    integer :: i, ierr
     character(len=max_field_length) :: radical, posinp_id
+    type(signal_ctx) :: sig
+    type(dictionary), pointer :: iter
+    character(len = 256) :: mess
 
     call f_routine(id='run_objects_init')
 
-    if (.not. f_object_has_signal("run_objects", "init")) &
+    if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, INIT_SIG)) &
          & call run_objects_type_init()
+    if (.not. f_object_has_signal(PROCESS_RUN_TYPE, GEOPT_INIT_SIG)) &
+         & call process_run_type_init()
 
     call nullify_run_objects(runObj)
 
@@ -1194,7 +1295,29 @@ contains
        ! Create sections if any.
        call set_section_objects(runObj)
 
+       ! Save the python additional code
+       if (PY_HOOKS .in. runObj%user_inputs) then
+          call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
+       end if
+
+       ! Load plugins if any.
+       if (PLUGINS .in. runObj%user_inputs) then
+          iter => dict_iter(runObj%user_inputs // PLUGINS)
+          do while (associated(iter))
+             call plugin_reset_arg()
+             call plugin_add_arg(runObj)
+             call plugin_load(trim(dict_key(iter)), ierr)
+             if (ierr /= 0) then
+                call plugin_error(mess)
+                if (bigdft_mpi%iproc==0) call yaml_warning('Failing in dlopening the library "'//trim(dict_key(iter))//&
+                     ' ", error message="'//trim(mess)//'"') !put quotes as semicolons usually appear in warnings
+             end if
+             iter => dict_next(iter)
+          end do
+       end if
+
        !the user input is not needed anymore
+       if (USE_FILES .in. runObj%user_inputs) dict_from_files = runObj%user_inputs // USE_FILES
        if (dict_from_files) call dict_free(runObj%user_inputs)
 
        !decide what to do with restart
@@ -1210,9 +1333,9 @@ contains
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
        end if
 
-       if (f_object_signal_prepare("run_objects", "init")) then
-          call f_object_signal_add_arg("run_objects", "init", runObj)
-          call f_object_signal_emit("run_objects", "init")
+       if (f_object_signal_prepare(RUN_OBJECTS_TYPE, INIT_SIG, sig)) then
+          call f_object_signal_add_arg(sig, runObj)
+          call f_object_signal_emit(sig)
        end if
 
     else if (present(source)) then
@@ -1231,6 +1354,82 @@ contains
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
+  
+  subroutine run_objects_update(runObj, dict)
+    use module_base, only: bigdft_mpi
+    use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
+    use yaml_output
+    use module_input_dicts, only: create_log_file
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    type(dictionary), pointer :: dict
+    !local variables
+    type(dictionary), pointer :: item
+    logical :: dict_from_files
+    integer :: i,count
+
+    if (associated(runObj%user_inputs)) then
+       item => dict_iter(dict)
+       do while (associated(item))
+          if (index(dict_key(item),'psppar') == 1) then
+             call dict_copy(runObj%user_inputs//trim(dict_key(item)),item)
+          end if
+          item => dict_next(item)
+       end do
+    end if
+
+    ! We merge the previous dictionary with new entries.
+    call dict_update(runObj%user_inputs, dict)
+
+    call create_log_file(runObj%user_inputs,dict_from_files)
+
+    ! Parse new dictionary.
+    call set_run_objects(runObj)
+    ! Create sections if any.
+    call set_section_objects(runObj)
+
+!!$    !init and update the restart objects
+!!$    if (associated(runObj%rst)) then
+!!$       call f_unref(runObj%rst%refcnt,count=count)
+!!$       if (count==0) then
+!!$          call free_QM_restart_objects(runObj%rst)
+!!$       else
+!!$          nullify(runObj%rst)
+!!$       end if
+!!$    else
+!!$       allocate(runObj%rst)
+!!$    end if
+!!$    call nullify_QM_restart_objects(runObj%rst)
+    if(.not. associated(runObj%rst)) then
+       allocate(runObj%rst)
+       call nullify_QM_restart_objects(runObj%rst)
+    end if
+    call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
+         runObj%rst)
+!!$    if (associated(runObj%mm_rst)) then
+!!$       call f_unref(runObj%mm_rst%refcnt,count=count)
+!!$       if (count==0) then
+!!$          call free_MM_restart_objects(runObj%mm_rst)
+!!$       else
+!!$          nullify(runObj%mm_rst)
+!!$       end if
+!!$    else
+!!$       allocate(runObj%mm_rst)
+!!$    end if
+!!$    !call free_MM_restart_objects(runObj%mm_rst)
+!!$    call nullify_MM_restart_objects(runObj%mm_rst)
+    if (.not. associated(runObj%mm_rst)) then
+       allocate(runObj%mm_rst)
+       call nullify_MM_restart_objects(runObj%mm_rst)
+    end if
+    call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
+
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call init_restart_objects(runObj%sections(i), bigdft_mpi%iproc)
+       end do
+    end if
+  END SUBROUTINE run_objects_update
 
   subroutine associate_restart_objects(runObj, rst, mm_rst)
     use f_refcnts
@@ -1636,6 +1835,7 @@ contains
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
     use module_cp2k
+    use module_alborz
     use module_dftbp
     use module_tdpot
     use module_bazant
@@ -1643,7 +1843,8 @@ contains
     use f_enums, enum_int => toi
     use SWpotential
     use wrapper_linalg, only: vscal
-    use module_f_objects, only: f_object_signal_prepare, f_object_has_signal, f_object_signal_emit
+    use module_f_objects
+    use module_atoms, only: astruct_constraints
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1651,12 +1852,13 @@ contains
     integer, intent(inout) :: infocode
     !local variables
     logical :: write_mapping
-    integer :: nat, ierr
+    integer :: nat
     integer :: icc !for amber
     real(gp) :: maxdiff
     real(gp), dimension(3) :: alatint
     real(gp), dimension(:,:), pointer :: rxyz_ptr
     integer :: policy_tmp
+    type(signal_ctx) :: sig
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
     call f_routine(id='bigdft_state')
@@ -1695,17 +1897,20 @@ contains
        end if
     end if
 
+    !inform the user about specified constraints (experimental routine)
+    call astruct_constraints(runObj%atoms%astruct)
+
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then
         call constraints_internal(runObj%atoms%astruct)
     end if
 
     ! Run any pre hook
-    if (.not. f_object_has_signal("run_objects", "pre")) &
+    if (.not. f_object_has_signal(RUN_OBJECTS_TYPE, PRE_SCF_SIG)) &
          & call run_objects_type_init()
-    if (f_object_signal_prepare("run_objects", "pre")) then
-       call f_object_signal_add_arg("run_objects", "pre", runObj)
-       call f_object_signal_emit("run_objects", "pre")
+    if (f_object_signal_prepare(RUN_OBJECTS_TYPE, PRE_SCF_SIG, sig)) then
+       call f_object_signal_add_arg(sig, runObj)
+       call f_object_signal_emit(sig)
     end if
 
     call clean_state_properties(outs) !zero the state first
@@ -1726,6 +1931,8 @@ contains
         call morse_bulk_wrapper(nat,bigdft_get_cell(runObj),rxyz_ptr, outs%fxyz, outs%energy)
     case('TERSOFF_RUN_MODE')
         call tersoff(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%strten,outs%energy)
+    case('ALBORZ_RUN_MODE')
+        call call_to_alborz_get(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%energy,outs%strten)
     case('BMHTF_RUN_MODE')
         call energyandforces_bmhtf(nat,rxyz_ptr,outs%fxyz,outs%energy)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
@@ -1788,6 +1995,14 @@ contains
        ! Calculates bazant forces betweeen given atomic configuration using
        ! periodic boundary conditions
        call bazant_energyandforces(nat, rxyz_ptr, outs%fxyz, outs%energy)
+    case('PLUGIN_RUN_MODE')
+
+       if (f_object_signal_prepare(RUN_OBJECTS_TYPE, STATE_CALCULATOR_SIG, sig)) then
+          call f_object_signal_add_arg(sig, runObj)
+          call f_object_signal_add_arg(sig, outs)
+          call f_object_signal_add_arg(sig, runObj%inputs%plugin_id)
+          call f_object_signal_emit(sig)
+       end if
 
     case default
        call f_err_throw('Following method for evaluation of '//&
@@ -1813,10 +2028,10 @@ contains
     call broadcast_state_properties(outs)
 
     ! Run any hook post run.
-    if (f_object_signal_prepare("run_objects", "post")) then
-       call f_object_signal_add_arg("run_objects", "post", runObj)
-       call f_object_signal_add_arg("run_objects", "post", outs)
-       call f_object_signal_emit("run_objects", "post")
+    if (f_object_signal_prepare(RUN_OBJECTS_TYPE, POST_SCF_SIG, sig)) then
+       call f_object_signal_add_arg(sig, runObj)
+       call f_object_signal_add_arg(sig, outs)
+       call f_object_signal_emit(sig)
     end if
 
     call f_increment(runObj%nstate)
@@ -2531,7 +2746,6 @@ contains
 !!$    end select
   end subroutine bigdft_set_input_policy
 
-
 end module bigdft_run
 
 !external wrapper temporary to make the code compiling with wrappers
@@ -2555,45 +2769,18 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
   !call dict_free(run_dict) In this case the run_dict has not to be freed
 END SUBROUTINE run_objects_init_from_run_name
 
-subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi
-  use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
-  use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
-  use yaml_output
-  use module_input_dicts, only: create_log_file
-  implicit none
-  type(run_objects), intent(inout) :: runObj
-  type(dictionary), pointer :: dict
-  !local variables
-  type(dictionary), pointer :: item
-  logical :: dict_from_files
+subroutine run_objects_update_bind(runObj, dict)
+    use bigdft_run, only: run_objects_update, run_objects
+    use dictionaries, only: dictionary
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    type(dictionary), pointer :: dict
 
-  if (associated(runObj%user_inputs)) then
-     item => dict_iter(dict)
-     do while (associated(item))
-        if (index(dict_key(item),'psppar') == 1) then
-           call dict_copy(runObj%user_inputs//trim(dict_key(item)),item)
-        end if
-        item => dict_next(item)
-     end do
-  end if
-
-  ! We merge the previous dictionary with new entries.
-  call dict_update(runObj%user_inputs, dict)
-
-  call create_log_file(runObj%user_inputs,dict_from_files)
-
-  ! Parse new dictionary.
-  call set_run_objects(runObj)
-
-  !init and update the restart objects
-  call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
-       runObj%rst)
-  call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
-END SUBROUTINE run_objects_update
+    call run_objects_update(runObj, dict)
+END SUBROUTINE run_objects_update_bind
 
 !> this routine should be used in memguess executable also
-subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
+subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, mem)
   use module_base, only: gp,f_memcpy,f_enumerator,f_int
   use bigdft_run
   use module_types
@@ -2605,7 +2792,6 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   type(run_objects), intent(inout) :: runObj
   integer, intent(in) :: iproc, nproc
   real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: rxyz
-  real(gp), dimension(3), intent(out) :: shift
   type(memory_estimation), intent(out) :: mem
 
   integer :: input_wf_format
@@ -2624,7 +2810,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &
        & runObj%rst%tmb%orbs, runObj%rst%KSwfn%Lzd, runObj%rst%tmb%Lzd, &
-       & nlpsp, runObj%rst%KSwfn%comms, shift, &
+       & nlpsp, runObj%rst%KSwfn%comms, &
        & ref_frags)
   call MemoryEstimator(nproc,runObj%inputs%idsx,runObj%rst%KSwfn%Lzd%Glr,&
        & runObj%rst%KSwfn%orbs%norb,runObj%rst%KSwfn%orbs%nspinor,&

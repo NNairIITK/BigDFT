@@ -16,11 +16,13 @@ module public_keys
   character(len = *), parameter :: RUN_NAME_KEY = "name"
   
   character(len = *), parameter :: PY_HOOKS = "py_hooks"
+  character(len = *), parameter :: PLUGINS = "plugins"
   character(len = *), parameter :: POSINP = "posinp"
   character(len = *), parameter :: OCCUPATION = "occupation"
   character(len = *), parameter :: IG_OCCUPATION = "ig_occupation"
   character(len = *), parameter :: DFT_VARIABLES = "dft"
   character(len = *), parameter :: HGRIDS = "hgrids"
+  character(len = *), parameter :: NGRIDS = "ngrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
   character(len = *), parameter :: NCHARGE = "qcharge"
@@ -55,6 +57,8 @@ module public_keys
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
   character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
   character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
+  character(len = *), parameter :: OCCUPANCY_CONTROL_NREPMAX= "nrepmax_occ_ctrl"
+  character(len = *), parameter :: RESET_DIIS_HISTORY = "reset_DIIS_history"
 
   character(len = *), parameter :: PSOLVER = "psolver"
 
@@ -134,6 +138,7 @@ module public_keys
   character(len = *), parameter :: RESTART_NOSE="restart_nose"
 
   !mode parameter keywords
+  character(len = *), parameter :: PLUGIN_ID="plugin_id"
   character(len = *), parameter :: ADD_COULOMB_FORCE_KEY = "add_coulomb_force"
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
@@ -266,6 +271,7 @@ module public_keys
   character(len=*), parameter :: CONSTRAINED_DFT  ='constrained_dft'
   character(len=*), parameter :: FIX_BASIS       ='fix_basis'
   character(len=*), parameter :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
+  character(len=*), parameter :: ORTHOGONALIZE_AO = 'orthogonalize_ao'
   character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
   character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
   character(len=*), parameter :: EXTRA_STATES="extra_states"
@@ -280,6 +286,7 @@ module public_keys
   character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
+  character(len=*), parameter :: DELTA_PNRM='delta_pnrm'
   character(len=*), parameter :: PEXSI_NPOLES='pexsi_npoles'
   character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
   character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
@@ -295,6 +302,7 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_ATT_FROZEN = 'Frozen'
   character(len=*), parameter :: ASTRUCT_ATT_IGSPIN = 'IGSpin'
   character(len=*), parameter :: ASTRUCT_ATT_IGCHRG = 'IGChg'
+  character(len=*), parameter :: ASTRUCT_ATT_CAVRAD = 'rcav' !< custom radius of the cavity
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1'
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2'
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3'
@@ -370,13 +378,21 @@ module public_enums
   integer, parameter :: BINARY=2
   integer, parameter :: ETSF=3
   integer, parameter :: CUBE=22
+  integer, parameter :: MPI_NATIVE=4 !<native (i.e. non-portable) MPI format
 
 
   !> Output wf parameters.
-  integer, parameter, public :: WF_FORMAT_NONE   = NONE
-  integer, parameter, public :: WF_FORMAT_PLAIN  = TEXT
-  integer, parameter, public :: WF_FORMAT_BINARY = BINARY
-  integer, parameter, public :: WF_FORMAT_ETSF   = ETSF
+  integer, parameter, public :: WF_FORMAT_NONE       = NONE
+  integer, parameter, public :: WF_FORMAT_PLAIN      = TEXT
+  integer, parameter, public :: WF_FORMAT_BINARY     = BINARY
+  integer, parameter, public :: WF_FORMAT_ETSF       = ETSF
+
+  !> Output matrix parameters.
+  integer, parameter, public :: MATRIX_FORMAT_NONE       = NONE
+  integer, parameter, public :: MATRIX_FORMAT_PLAIN      = TEXT
+  integer, parameter, public :: MATRIX_FORMAT_BINARY     = BINARY
+  integer, parameter, public :: MATRIX_FORMAT_ETSF       = ETSF
+  integer, parameter, public :: MATRIX_FORMAT_MPI_NATIVE = MPI_NATIVE
 
   !> Output grid parameters.
   ! with these options we would have
@@ -580,5 +596,9 @@ module public_enums
        & f_enumerator('SW_RUN_MODE',-988,null())
   type(f_enumerator), parameter, public :: BAZANT_RUN_MODE             = &
        & f_enumerator('BAZANT_RUN_MODE',-987,null()) 
+  type(f_enumerator), parameter, public :: ALBORZ_RUN_MODE             = &
+       & f_enumerator('ALBORZ_RUN_MODE',-986,null()) 
+  type(f_enumerator), parameter, public :: PLUGIN_RUN_MODE             = &
+       & f_enumerator('PLUGIN_RUN_MODE',-985,null()) 
 
 end module public_enums

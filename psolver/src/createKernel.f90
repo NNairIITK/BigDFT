@@ -169,24 +169,6 @@ end function pkernel_init_old
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !! calculating the convolution with the kernel expressed in the interpolating scaling
 !! function basis. The kernel pointer is unallocated on input, allocated on output.
-!! SYNOPSIS
-!!    @param iproc,nproc number of process, number of processes
-!!    @param n01,n02,n03 dimensions of the real space grid to be hit with the Poisson Solver
-!!    @param itype_scf   order of the interpolating scaling functions used in the decomposition
-!!    @param hx,hy,hz grid spacings. For the isolated BC case for the moment they are supposed to
-!!                    be equal in the three directions
-!!    @param kernel   pointer for the kernel FFT. Unallocated on input, allocated on output.
-!!                    Its dimensions are equivalent to the region of the FFT space for which the
-!!                    kernel is injective. This will divide by two each direction,
-!!                    since the kernel for the zero-padded convolution is real and symmetric.
-!!    @param gpu      tag for CUDA gpu   0: CUDA GPU is disabled
-!!
-!! @warning
-!!    Due to the fact that the kernel dimensions are unknown before the calling, the kernel
-!!    must be declared as pointer in input of this routine.
-!!    To avoid that, one can properly define the kernel dimensions by adding
-!!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
-!!    declaration.
 !! @ingroup PSOLVER
 subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !optional arguments
   use yaml_output
@@ -194,6 +176,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   use time_profiling, only: f_timing
   use dictionaries, only: f_err_throw
   use yaml_strings, only: operator(+)
+  use numerics
   implicit none
   !Arguments
   type(coulomb_operator), intent(inout) :: kernel
@@ -218,7 +201,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   character(len=*), parameter :: subname='createKernel'
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
-  real(kind=8) :: alphat,betat,gammat,mu0t,pi
+  real(kind=8) :: alphat,betat,gammat,mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
@@ -227,7 +210,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
   call f_routine(id='pkernel_set')
-  pi=4.0_dp*atan(1.0_dp)
+  !pi=4.0_dp*atan(1.0_dp)
   wrtmsg=.true.
   if (present(verbose)) wrtmsg=verbose
 
@@ -322,7 +305,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      end if
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,&
+          kernel%igpu,.false.,non_ortho=kernel%angrad(1)/= onehalf*pi)
+
 
      if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
@@ -374,7 +359,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
           kernel%mpi_env%mpi_comm,kernel%inplane_mpi%mpi_comm,&
           n1,n2,n3,m3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
-          kernel%itype_scf,kernel%kernel,mu0t,alphat,betat,gammat)!,n3pr2,n3pr1)
+          kernel%itype_scf,kernel%kernel,mu0t,alphat)!,betat,gammat)!,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2
@@ -499,7 +484,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 !!$     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
-     call Wires_Kernel(kernelnproc,&
+     call Wires_Kernel(kernel%mpi_env%iproc,kernelnproc,&
           kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           n1,n2,n3,nd1,nd2,nd3,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
           kernel%itype_scf,kernel%kernel,mu0t)
@@ -547,9 +532,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call yaml_mapping_open('Density')
          call yaml_map('MPI tasks 0-'//jfd**'(i5)','100%')
          if (jfd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI task '//jhd**'(i5)',npd**'(i5)'//'%')
+              call yaml_map('MPI task '//jhd**'(i5)',npd**'(i5)'+'%')
          if (jhd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI tasks'//jhd**'(i5)'//'-'//&
+              call yaml_map('MPI tasks'//jhd**'(i5)'+'-'+&
               (kernel%mpi_env%nproc-1)**'(i3)','0%')
         call yaml_mapping_close()
         jhk=10000
@@ -574,7 +559,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
            if (jfk < kernel%mpi_env%nproc-1) &
                 call yaml_map('MPI task'//trim(yaml_toa(jhk,fmt='(i5)')),trim(yaml_toa(npk,fmt='(i5)'))//'%')
            if (jhk < kernel%mpi_env%nproc-1) &
-                call yaml_map('MPI tasks'//trim(yaml_toa(jhk,fmt='(i5)'))//'-'//&
+                call yaml_map('MPI tasks'//trim(yaml_toa(jhk,fmt='(i5)'))+'-'+&
                 yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
            call yaml_mapping_close()
         call yaml_map('Complete LB per task','1/3 LB_density + 2/3 LB_kernel')

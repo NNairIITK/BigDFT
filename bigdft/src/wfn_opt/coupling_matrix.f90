@@ -431,8 +431,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !!$$if (iproc==0) call yaml_comment('Computation of all the different coupling matrix elements done')
 
   !Deallocations
-  call f_free(rhov_ij)
-  call f_free(rho_ab)
+  if (exc_fac .ne. 0.0 .and. ispin==jspin) then
+     call f_free(rhov_ij)
+     call f_free(rho_ab)
+  end if
   call f_free(v_ias)
   call f_free(rho_ias)
 
