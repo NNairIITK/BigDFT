@@ -500,10 +500,10 @@ subroutine test_functions_new2(mesh,acell,a_gauss,mu0,density,potential)
      factor=1.0_dp
      separable=.true.
   case('S')
-     funcs(1)=f_function_new(f_shrink_gaussian,&
-          length=acell)
-     funcs(2)=f_function_new(f_exp_cosine,&
+     funcs(1)=f_function_new(f_exp_cosine,&
           length=acell,frequency=2.0_dp)
+     funcs(2)=f_function_new(f_shrink_gaussian,&
+          length=acell)
      funcs(3)=funcs(1)
      factor=1.0_dp
      separable=.true.
