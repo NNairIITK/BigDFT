@@ -2406,8 +2406,10 @@ module multipole
               ioffset = denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*&
                         denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,4)
               !write(*,*) 'MP: ioffset', ioffset
-              call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
-                   src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
+              if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)>0) then
+                  call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
+                       src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
+              end if
               call f_memcpy(src=rho_exact, dest=pot_exact)
               call Electrostatic_Solver(denspot%pkernel,pot_exact,pot_ion=denspot%V_ext)
               !mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)

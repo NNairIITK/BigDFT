@@ -2634,7 +2634,7 @@ module matrix_operations
 
       ! Local variables
       integer :: nat, natp, isat, ii, iorb, iiat, iiat_old, n, jorb, jjat, ind, korb, isshift, ilshift, ispin
-      integer :: iiorb_min, iiorb_max, isegstart, isegend, iiorb, jjorb, iseg
+      integer :: iiorb_min, iiorb_max, iiorb, jjorb, iseg
       real(kind=mp),dimension(:,:),allocatable :: matrix
       real(kind=mp),dimension(:),allocatable :: matrix_compr_notaskgroup
 
@@ -2713,11 +2713,11 @@ module matrix_operations
 
 
       !# NEW ######################################################################
-      isegstart=smatl%istsegline(smatl%isfvctr+1)
-      isegend=smatl%istsegline(smatl%isfvctr+smatl%nfvctrp)+smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
+      !isegstart=smatl%istsegline(smatl%isfvctr+1)
+      !isegend=smatl%istsegline(smatl%isfvctr+smatl%nfvctrp)+smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
       iiorb_min = smatl%nfvctr
       iiorb_max = 0
-      do iseg=isegstart,isegend
+      do iseg=smatl%iseseg_tg(1),smatl%iseseg_tg(2)
           ii=smatl%keyv(iseg)-1
           ! A segment is always on one line, therefore no double loop
           do jorb=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
