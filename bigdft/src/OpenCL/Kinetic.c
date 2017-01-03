@@ -16,7 +16,7 @@
 #include "Kinetic_Generator.h"
 #include "Kinetic_k_Generator.h"
 
-inline void kinetic_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
+void kinetic_generic(cl_kernel kernel, bigdft_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
   int FILTER_WIDTH = 32;
   cl_int ciErrNum;
   assert(*n>=FILTER_WIDTH);
@@ -41,7 +41,7 @@ inline void kinetic_generic(cl_kernel kernel, bigdft_command_queue command_queue
 }
 
 
-inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
+void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in, cl_mem *x_out, cl_mem *y_in, cl_mem *y_out) {
   int FILTER_WIDTH = 32;
   cl_int ciErrNum;
   assert(*n>=FILTER_WIDTH);
@@ -62,7 +62,7 @@ inline void kinetic_k_generic(cl_kernel kernel, cl_command_queue command_queue, 
   oclErrorCheck(ciErrNum,"Failed to enqueue kinetic_k kernel!");
 } 
 
-inline void kinetic_k_generic_2(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in_r, cl_mem *x_in_i, cl_mem *x_out_r, cl_mem *x_out_i, cl_mem *y_in_r, cl_mem *y_in_i, cl_mem *y_out_r, cl_mem *y_out_i) {
+void kinetic_k_generic_2(cl_kernel kernel, cl_command_queue command_queue, cl_uint *n, cl_uint *ndat, double *scale1, double *scale2, cl_mem *x_in_r, cl_mem *x_in_i, cl_mem *x_out_r, cl_mem *x_out_i, cl_mem *y_in_r, cl_mem *y_in_i, cl_mem *y_out_r, cl_mem *y_out_i) {
   int FILTER_WIDTH = 32;
   cl_int ciErrNum;
   assert(*n>=FILTER_WIDTH);
