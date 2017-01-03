@@ -3212,7 +3212,7 @@ module sparsematrix_init
 
 
     subroutine init_matrix_taskgroups(iproc, nproc, comm, parallel_layout, smat, &
-         ind_minx, ind_maxx, ind_trans_minx, ind_trans_maxx, iirow, iicol)
+         ind_minx, ind_maxx, iirow, iicol)
       use dynamic_memory
       implicit none
 
@@ -3220,7 +3220,7 @@ module sparsematrix_init
       integer,intent(in) :: iproc, nproc, comm
       logical,intent(in) :: parallel_layout
       type(sparse_matrix),intent(inout) :: smat
-      integer,intent(in),optional :: ind_minx, ind_maxx, ind_trans_minx, ind_trans_maxx
+      integer,intent(in),optional :: ind_minx, ind_maxx
       integer,dimension(2),intent(in),optional :: iirow, iicol
 
       ! Local variables
@@ -3232,7 +3232,7 @@ module sparsematrix_init
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
       !logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax, ind_trans_min, ind_trans_max, niter
+      integer :: iproc_start, iproc_end, imin, imax, niter
       logical :: found, found_start, found_end
       !integer :: jstart, kkproc, kproc, jend, lproc, llproc
       !integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
@@ -3264,13 +3264,9 @@ module sparsematrix_init
           if (.not.present(iicol)) call f_err_throw("Optional argument 'iicol' is not present")
           if (.not.present(ind_minx)) call f_err_throw("Optional argument 'ind_minx' is not present")
           if (.not.present(ind_maxx)) call f_err_throw("Optional argument 'ind_maxx' is not present")
-          if (.not.present(ind_trans_minx)) call f_err_throw("Optional argument 'ind_trans_minx' is not present")
-          if (.not.present(ind_trans_maxx)) call f_err_throw("Optional argument 'ind_trans_maxx' is not present")
 
           ind_min = ind_minx
           ind_max = ind_maxx
-          ind_trans_min = ind_trans_minx
-          ind_trans_max = ind_trans_maxx
 
         !!  ind_min = smat%nvctr
         !!  ind_max = 0
@@ -3355,8 +3351,6 @@ module sparsematrix_init
           ! The matrices can not be parallelized
           ind_min = 1
           ind_max = smat%nvctr
-          ind_trans_min = ind_min
-          ind_trans_max = ind_max
       end if parallel_if
 
       call find_startendseg_transposed(ind_min,ind_max,smat)

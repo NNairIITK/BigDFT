@@ -737,7 +737,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   integer,dimension(2) :: irow, icol, iirow, iicol
   logical :: wrap_around
   real(gp) :: ddot
-  integer :: ind_min, ind_mas, ind_trans_min, ind_trans_max
+  integer :: ind_min, ind_mas
   !!real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp
   !!real(wp), allocatable, dimension(:,:,:) :: psirold
   !!integer, dimension(3) :: nl, nr
@@ -1009,7 +1009,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   iicol(2) = 1
   call check_local_matrix_extents(iproc, nproc, &
        collcom_tmp, collcom_tmp, tmb%linmat%smmd, smat_tmp, &
-       ind_min, ind_mas, ind_trans_min, ind_trans_max, irow, icol)
+       ind_min, ind_mas, irow, icol)
   iirow(1) = min(irow(1),iirow(1))
   iirow(2) = max(irow(2),iirow(2))
   iicol(1) = min(icol(1),iicol(1))

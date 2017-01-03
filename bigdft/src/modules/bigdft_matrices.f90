@@ -11,7 +11,7 @@ module bigdft_matrices
   contains
 
     subroutine check_local_matrix_extents(iproc, nproc, collcom, collcom_sr, smmd, smat, &
-               ind_min, ind_max, ind_trans_min, ind_trans_max, irow, icol)
+               ind_min, ind_max, irow, icol)
           use module_base
           use sparsematrix_base, only: sparse_matrix, sparse_matrix_metadata
           use sparsematrix_init, only: matrixindex_in_compressed, check_matmul_layout, &
@@ -24,7 +24,7 @@ module bigdft_matrices
           type(comms_linear),intent(in) :: collcom, collcom_sr
           type(sparse_matrix_metadata),intent(in) :: smmd
           type(sparse_matrix),intent(in) :: smat
-          integer,intent(out) :: ind_min, ind_max, ind_trans_min, ind_trans_max
+          integer,intent(out) :: ind_min, ind_max
           integer,dimension(2),intent(out) :: irow, icol
     
           ! Local variables
@@ -48,8 +48,6 @@ module bigdft_matrices
           !call check_transposed_layout()
           call get_modulo_array(smat, moduloarray)
           call find_minmax_transposed(smat%matrixindex_in_compressed_fortransposed,collcom,smat%nfvctr,moduloarray,ind_min,ind_max)
-          ind_trans_min = ind_min
-          ind_trans_max = ind_max
 
           !write(*,'(a,2i8)') 'after check_transposed_layout: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr1)
