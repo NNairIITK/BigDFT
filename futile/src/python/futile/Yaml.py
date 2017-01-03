@@ -115,7 +115,7 @@ class YamlDB(dict):
     """Yaml Database, read from a file or a stream
     Attributes:
 
-    file: take the databese from a file
+    file: take the database from a file
     stream: associate the stream as the value of the dictionary
     singledoc: guarantees that the provided stream can only contain one document
     ignore: A list of keys that will not be considered in the loading.
