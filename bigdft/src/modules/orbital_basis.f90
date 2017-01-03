@@ -775,6 +775,7 @@ contains
     npot=psi%nspinor
     if (psi%nspinor == 2) npot=1
 
+
     exctXcoeff=xc_exctXfac(xc)
     call daub_to_isf_locham(psi%nspinor,psi%lr,wrk_lh,psi%phi_wvl,psir)
 

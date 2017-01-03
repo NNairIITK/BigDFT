@@ -157,7 +157,7 @@ def find_iterations(log):
         for itsp in itrp['Hamiltonian Optimization']:
             gnrm_sp=[]
             for it in itsp['Subspace Optimization']['Wavefunctions Iterations']:
-                gnrm_sp.append(it['gnrm'])
+                if 'gnrm' in it: gnrm_sp.append(it['gnrm'])
             rpnrm.append(numpy.array(gnrm_sp))
     rpnrm=numpy.array(rpnrm)
     return rpnrm

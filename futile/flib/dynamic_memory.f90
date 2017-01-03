@@ -164,7 +164,7 @@ module dynamic_memory_base
   public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr,f_malloc_dump_status
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database,f_subptr
-  public :: assignment(=),operator(.to.)
+  public :: assignment(=),operator(.to.),operator(.plus.)
 
   !for internal f_lib usage
   public :: dynamic_memory_errors
@@ -288,7 +288,7 @@ contains
     implicit none
     integer, intent(in) :: depth
     mems(ictrl)%depth=mems(ictrl)%depth+depth
-    track_origins = &
+    track_origins = bigdebug .or. &
          mems(ictrl)%depth <= mems(ictrl)%profiling_depth .or. &
          mems(ictrl)%profiling_depth ==-1
   end subroutine set_depth

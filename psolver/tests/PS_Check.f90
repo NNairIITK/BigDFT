@@ -218,8 +218,10 @@ program PS_Check
      ispden = 1
      call yaml_map('Number of Spins',ispden)
 
-     call test_functions(geocode,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
+     call test_functions_new(mesh,ispden,a_gauss,&
           density,potential,rhopot,pot_ion,offset)
+     !call test_functions(geocode,n01,n02,n03,ispden,acell,a_gauss,hx,hy,hz,&
+     !density,potential,rhopot,pot_ion,offset)
      potential=extra_ref !use the previoulsy defined reference
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)

@@ -300,9 +300,6 @@ AC_SUBST(LIB_BIGDFT_PKG)
 dnl LIB_BIGDFT_DEPS="$LIB_BIGDFT_DEPS $LIB_PSOLVER_LIBS $LIB_FUTILE_LIBS"
 AC_SUBST(LIB_BIGDFT_DEPS)
 
-dnl Test for the documentation.
-AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
-AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes")
 dnl Test for the developers' documentation.
 AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
 AC_ARG_ENABLE(devel-doc,
@@ -310,6 +307,11 @@ AC_ARG_ENABLE(devel-doc,
                              [compile documentation for developers using Doxygen.]),
               ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
+dnl Test for the documentation.
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
+AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes" -a x"$ac_devel_doc" = x"yes")
+
+
 
 dnl default installation directories
 docdir="${docdir}"
@@ -325,6 +327,7 @@ AC_CONFIG_FILES([
 Makefile
 bigdft.pc
 bigdft_environment.sh
+bigdftvars.sh
 config/Doxyfile
 utils/Makefile
 utils/PSPfiles/Makefile

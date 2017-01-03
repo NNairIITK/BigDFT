@@ -6,7 +6,7 @@ EXTRA_DIST = \
 	op2p_check.f90 \
 	linalg_check.f90
 
-check_PROGRAMS = op2p_check linalg_check
+check_PROGRAMS = op2p_check linalg_check numerics_check
 
 check: regtest report #op2p_check.report.yaml $(check_PROGRAMS)
 
@@ -30,6 +30,10 @@ endif
 op2p_check_SOURCES = op2p_check.f90
 op2p_check_LDADD = @LIB_FUTILE_LIBS@
 
+numerics_check_SOURCES = numerics_check.f90
+numerics_check_LDADD = @LIB_FUTILE_LIBS@
+
+
 linalg_check_SOURCES = linalg_check.f90
 linalg_check_LDADD = @LIB_FUTILE_LIBS@
 
@@ -37,7 +41,7 @@ linalg_check_LDADD = @LIB_FUTILE_LIBS@
 mpi_check_SOURCES = mpi_check.f90
 mpi_check_LDADD =  @LIB_FUTILE_LIBS@
 
-op2p_check.o linalg_check.o: $(top_builddir)/wrappers/libwrappers.a
+numerics_check.o op2p_check.o linalg_check.o: $(top_builddir)/wrappers/libwrappers.a
 
 op2p_check.out.yaml: op2p_check
 	$(run_parallel) ./op2p_check -o [10,10,10,10] -n 100 > $@
@@ -52,6 +56,9 @@ regtest: op2p_check linalg_check
 	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir)
 
 define F_REGTEST_INSTRUCTIONS
+- numerics_check:
+   runs:
+    - ./numerics_check
 - op2p_check:
    runs:
     - $(run_parallel) ./op2p_check -o [10,10,10,10] -n 100 > op2p_check.out.yaml

@@ -2853,6 +2853,7 @@ lj_connect.mhgps.ref.yaml:
 GEOPT-all_sqnmbiomode:
   EH: 1.1e-10
   Epot: 1.1e-10
+  Ion-Ion interaction energy: 1.28e-11
 MD_LJ-NVE:
     T: 0.005
 MD_LJ-NVT:
