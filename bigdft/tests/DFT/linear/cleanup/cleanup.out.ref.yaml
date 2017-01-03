@@ -63,8 +63,6 @@
      fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
      fscale : 5.0000000000000003E-002 # Decay length of the error function fscale : 5.0000000000000003E-002 # Decay length of the error function
-   lapack:
-   foe:
  chess:
    lapack:
      blocksize_pdsyev : -8 # SCALAPACK linear scaling blocksize blocksize_pdsyev : -8 # SCALAPACK linear scaling blocksize
@@ -80,8 +78,6 @@
      fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length fscale_upperbound : 5.e-2 # Linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
      fscale : 5.0000000000000003E-002 # Decay length of the error function fscale : 5.0000000000000003E-002 # Decay length of the error function
-   lapack:
-   foe:
  dft:
    hgrids                              : 0.5 #    Grid spacing in the three directions (bohr)
    rmult                               : 4.0 #    c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius

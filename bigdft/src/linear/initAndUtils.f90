@@ -39,7 +39,7 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
   !!write(*,*) 'charges',charges
   if (input%nspin/=1 .and. input%nspin /=2) call f_err_throw('Wrong value for nspin')
   call init_foe(iproc, nproc, input%nspin, charges, foe_obj, &
-       tmprtr=tmprtr, evbounds_nsatur=input%evbounds_nsatur, &
+       tmprtr=tmprtr, evbounds_nsatur=input%cp%foe%evbounds_nsatur, &
        evboundsshrink_nsatur=input%cp%foe%evboundsshrink_nsatur, &
        evlow=input%cp%foe%eval_range_foe(1), evhigh=input%cp%foe%eval_range_foe(2), fscale=input%cp%foe%fscale, &
        ef_interpol_det=input%cp%foe%ef_interpol_det, &
@@ -668,7 +668,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
       ! Do the same for the object which handles the calculation of the inverse.
       charge_fake = f_malloc0(input%nspin,id='charge_fake')
       call init_foe(iproc, nproc, input%nspin, charge_fake, lice, &
-           tmprtr=0.d0, evbounds_nsatur=input%evbounds_nsatur, &
+           tmprtr=0.d0, evbounds_nsatur=input%cp%foe%evbounds_nsatur, &
            evboundsshrink_nsatur=input%cp%foe%evboundsshrink_nsatur, &
            evlow=0.5d0, evhigh=1.5d0, fscale=input%cp%foe%fscale, &
            ef_interpol_det=input%cp%foe%ef_interpol_det, &

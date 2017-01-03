@@ -94,15 +94,16 @@ module module_input_keys
      integer :: mixHist_lowaccuracy
      integer :: mixHist_highaccuracy
      integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
-     integer :: blocksize_pdgemm, blocksize_pdsyev
-     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+     !integer :: blocksize_pdgemm, blocksize_pdsyev
+     integer :: correctionOrthoconstraint!, nproc_pdsyev, nproc_pdgemm
      integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
      integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy, nit_extendedIG
      real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, convCrit_extendedIG
-     real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
+     real(kind=8) :: alphaSD, alphaDIIS!, evlow, evhigh!, ef_interpol_chargediff
      real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
      integer :: plotBasisFunctions
-     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
+     !real(kind=8) :: fscale
+     real(kind=8) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
      real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
      real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
      real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -129,11 +130,11 @@ module module_input_keys
      real(kind=8) :: frag_neighbour_cutoff !< distance cutoff for including neighbouring atoms
      integer :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density (0:no, >0:yes)
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
-     integer :: pexsi_npoles !< number of poles used by PEXSI
-     real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
-     real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
-     real(kind=8) :: pexsi_DeltaE ! An upper bound for the spectral radius of S^-1H for PEXSI
-     integer :: pexsi_np_sym_fact !< number of prcos used for the symbolic factorization used by PEXSI
+     !integer :: pexsi_npoles !< number of poles used by PEXSI
+     !real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
+     !real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
+     !real(kind=8) :: pexsi_DeltaE ! An upper bound for the spectral radius of S^-1H for PEXSI
+     !integer :: pexsi_np_sym_fact !< number of prcos used for the symbolic factorization used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
      logical :: plot_locreg_grids
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
@@ -385,11 +386,11 @@ module module_input_keys
      !> linear scaling: exit kappa for extended input guess (experimental mode)
      real(kind=8) :: kappa_conv
 
-     !> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-     integer :: evbounds_nsatur
+     !!!> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+     !!integer :: evbounds_nsatur
 
-     !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-     integer :: evboundsshrink_nsatur
+     !!!> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+     !!integer :: evboundsshrink_nsatur
 
      !> linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
      logical :: calculate_gap
@@ -406,11 +407,11 @@ module module_input_keys
      !> linear scaling: correction covariant / contravariant gradient
      logical :: correction_co_contra
 
-     !> linear scaling: lower bound for the error function decay length
-     real(kind=8) :: fscale_lowerbound
+     !!!> linear scaling: lower bound for the error function decay length
+     !!real(kind=8) :: fscale_lowerbound
 
-     !> linear scaling: upper bound for the error function decay length
-     real(kind=8) :: fscale_upperbound
+     !!!> linear scaling: upper bound for the error function decay length
+     !!real(kind=8) :: fscale_upperbound
 
      !> linear scaling: Restart method to be used for the FOE method
      integer :: FOE_restart

@@ -2067,8 +2067,10 @@ linear_accurate:
     hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
+  chess:
+    foe:
+      ef_interpol_chargediff: 1.0
   perf:
-    ef_interpol_chargediff: 1.0
     experimental_mode: Yes
     correction_co_contra: Yes
     #check_sumrho: 1
@@ -2120,8 +2122,10 @@ linear_moderate:
     hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
+  chess:
+    foe:
+      ef_interpol_chargediff: 1.0
   perf:
-    ef_interpol_chargediff: 1.0
     experimental_mode: Yes
     correction_co_contra: Yes
   lin_general:
@@ -2232,8 +2236,12 @@ linear:
    hgrids: 0.50
    disablesym: Yes
    inputpsiid: linear
+ chess:
+   foe:
+     ef_interpol_chargediff: 1.0
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0e-2
  perf:
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    check_overlap: 1
    experimental_mode: Yes
@@ -2275,8 +2283,6 @@ linear:
    rpnrm_cv: 1.0e-8
    alphamix: 0.1
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale: 5.0e-2
    delta_pnrm: 0.1
  lin_basis_params:
    ao_confinement: -1.0

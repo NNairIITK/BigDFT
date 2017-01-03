@@ -42,7 +42,7 @@
      DESCRIPTION: |
        Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
        This value will be adjusted automatically if not chosen appropriately.
-     RANGE: [1.e-4,1.e-2]
+     RANGE: [1.e-4,1.e-1]
      default: 5.e-2
    fscale_lowerbound:
      COMMENT: Lower bound for the error function decay length
