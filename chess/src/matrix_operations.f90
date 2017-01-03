@@ -2657,7 +2657,7 @@ module matrix_operations
 
 
       call f_zero(inv_ovrlp_%matrix_compr)
-      matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
+      !matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
 
       do ispin=1,smats%nspin
 
@@ -2687,8 +2687,9 @@ module matrix_operations
                   do jorb=iorb,iorb+n-1
                       do korb=iorb,iorb+n-1
                           ind = matrixindex_in_compressed(smatl, korb, jorb) - smatl%isvctrp_tg + ilshift
-                          !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
-                          matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                          !ind = matrixindex_in_compressed(smatl, korb, jorb) + ilshift
+                          inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                          !matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
                       end do
                   end do
                   call f_free(matrix)
@@ -2699,11 +2700,11 @@ module matrix_operations
 
       end do
 
-      !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      call mpiallred(matrix_compr_notaskgroup, mpi_sum, comm=comm)
-      call extract_taskgroup(smatl, matrix_compr_notaskgroup, inv_ovrlp_%matrix_compr)
+      !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=comm)
+      !call mpiallred(matrix_compr_notaskgroup, mpi_sum, comm=comm)
+      !call extract_taskgroup(smatl, matrix_compr_notaskgroup, inv_ovrlp_%matrix_compr)
 
-      call f_free(matrix_compr_notaskgroup)
+      !call f_free(matrix_compr_notaskgroup)
 
       call f_release_routine()
 
