@@ -620,7 +620,7 @@ rotate_read1:
  EXC: 1.1e-10
  EH: 1.0e-9
  orthog_energy: 2.4e-11
- energy: 9.1e-11
+ energy: 9.2e-11
  energydiff: 8.3e-11
  Omega: 8.1e-11
  D: 1.1e-10
@@ -634,7 +634,7 @@ rotate_read2:
  energy: 7.4e-11
  Omega: 7.1e-11
  Epot: 1.1e-9
- Energy (Hartree): 6.4e-11
+ Energy (Hartree): 6.5e-11
  Maxdiff for transpose (checksum): 9.4e-10
 
 rotate_write:
@@ -644,7 +644,7 @@ rotate_write:
  energy: 2.2e-11
  Omega: 2.1e-11
  Maxdiff for transpose (checksum): 9.4e-10
- Energy (Hartree): 2.0e-11
+ Energy (Hartree): 2.1e-11
  Patterns to ignore:
  - Wavefunction written
 
@@ -1004,7 +1004,7 @@ deltascf_read_charge:
  Omega: 3.2e-10
  Raw forces norm (Ha/Bohr): 2.1e-10
  EH: 1.1e-9
- Energy (Hartree): 2.3e-10
+ Energy (Hartree): 2.4e-10
  D: 1.01e-9
  Maxdiff for transpose (checksum): 9.4e-10
  Total charge: 2.1e-11
@@ -1023,7 +1023,7 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.5e-10
  D: 6.1e-9
- Energy (Hartree): 2.0e-10
+ Energy (Hartree): 2.1e-10
  Maxdiff for transpose (checksum): 3.8e-9
  Total charge: 2.1e-11
 
@@ -1335,7 +1335,7 @@ reformat_write:
  e: 1.3e-11
  EvXC: 1.1e-10
  Epot: 1.0e-9
- Energy (Hartree): 7.5e-11
+ Energy (Hartree): 7.7e-11
  Atomic Forces (Ha/Bohr): 2.5e-11
  Force Norm (Hartree/Bohr): 3.7e-11
  Maxdiff for transpose (checksum): 1.2e-9
