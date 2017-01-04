@@ -7,12 +7,15 @@
    nrepmax: accurate
    inputpsiid: linear_restart
    disablesym: Yes
+ chess:
+   foe:
+     ef_interpol_det: 0.10E-19
+     fscale: 5.0000000000000003E-002
  geopt:
    method: BFGS
    ncount_cluster_x: 3
    betax: 1.0
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    correction_co_contra: no
  lin_general:
@@ -30,7 +33,6 @@
    nit: 3
    alphamix: 0.3
    rpnrm_cv: 1.0E-013
-   fscale: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 0.0
