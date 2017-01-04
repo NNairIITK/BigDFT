@@ -216,7 +216,8 @@ module unitary_tests
     end subroutine check_communication_potential
 
 
-    subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
+    subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, &
+               collcom_sr, denspot, denskern, aux, denskern_, check_sumrho)
       use module_base
       use module_types
       use yaml_output
@@ -234,6 +235,7 @@ module unitary_tests
       type(comms_linear),intent(inout) :: collcom_sr
       type(DFT_local_fields),intent(in) :: denspot
       type(sparse_matrix),intent(in) :: denskern
+      type(linmat_auxiliary),intent(in) :: aux
       type(matrices),intent(inout) :: denskern_
       integer,intent(in) :: check_sumrho
 
@@ -677,7 +679,7 @@ module unitary_tests
           ! Now calculate the charge density in the transposed way using the standard routine
           rho=f_malloc(max(lzd%glr%d%n1i*lzd%glr%d%n2i*(ii3e-ii3s+1)*denskern%nspin,1),id='rho')
           !denskern_%matrix_compr = denskern%matrix_compr
-          call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, denskern_, &
+          call sumrho_for_TMBs(iproc, nproc, lzd%hgrids(1), lzd%hgrids(2), lzd%hgrids(3), collcom_sr, denskern, aux, denskern_, &
                denspot%dpbox%ndimrhopot, rho, rho_negative, .false.)
 
           ! Determine the difference between the two versions
@@ -855,9 +857,9 @@ module unitary_tests
     end subroutine check_communication_sumrho
 
 
-    subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,mat,npsidim_orbs,npsidim_comp,check_overlap)
+    subroutine check_communications_locreg(iproc,nproc,orbs,nspin,Lzd,collcom,smat,aux,mat,npsidim_orbs,npsidim_comp,check_overlap)
        use module_base!, only: wp, bigdft_mpi, mpi_sum, mpi_max, mpiallred
-       use module_types, only: orbitals_data, local_zone_descriptors, linear_matrices
+       use module_types, only: orbitals_data, local_zone_descriptors, linear_matrices, linmat_auxiliary
        use yaml_output
        use communications_base, only: comms_linear, TRANSPOSE_FULL
        use communications, only: transpose_localized, untranspose_localized
@@ -873,6 +875,7 @@ module unitary_tests
        type(local_zone_descriptors), intent(in) :: lzd
        type(comms_linear), intent(in) :: collcom
        type(sparse_matrix),intent(in) :: smat
+       type(linmat_auxiliary),intent(in) :: aux
        type(matrices),intent(inout) :: mat
        integer, intent(in) :: npsidim_orbs, npsidim_comp
        !local variables
@@ -1049,7 +1052,7 @@ module unitary_tests
            !@NEW: check the calculation of the overlap matrices #############
            if (check_overlap > 1) then
                call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, &
-                    psit_c, psit_f, psit_f, smat, mat)
+                    psit_c, psit_f, psit_f, smat, aux, mat)
                !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, smat, mat)
                !!do i=1,smat%nvctr*nspin
                !!    write(6000+iproc,'(a,2i8,es16.7)') 'i, mod(i-1,nvctr)+1, val', i, mod(i-1,smat%nvctr)+1, mat%matrix_compr(i)

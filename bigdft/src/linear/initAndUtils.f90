@@ -808,28 +808,29 @@ subroutine destroy_DFT_wavefunction(wfn)
 
   call deallocate_p2pComms(wfn%comgp)
   call deallocate_p2pComms(wfn%ham_descr%comgp)
-  if (associated(wfn%linmat%ks)) then
-      do ispin=1,wfn%linmat%l%nspin
-          call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
-      end do
-      deallocate(wfn%linmat%ks)
-  end if
-  if (associated(wfn%linmat%ks_e)) then
-      do ispin=1,wfn%linmat%l%nspin
-          call deallocate_sparse_matrix(wfn%linmat%ks_e(ispin))
-      end do
-      deallocate(wfn%linmat%ks_e)
-  end if
-  call deallocate_sparse_matrix_metadata(wfn%linmat%smmd)
-  call deallocate_sparse_matrix(wfn%linmat%s)
-  call deallocate_sparse_matrix(wfn%linmat%m)
-  call deallocate_sparse_matrix(wfn%linmat%l)
-  call deallocate_matrices(wfn%linmat%ovrlp_)
-  call deallocate_matrices(wfn%linmat%ham_)
-  call deallocate_matrices(wfn%linmat%kernel_)
-  do i=1,size(wfn%linmat%ovrlppowers_)
-      call deallocate_matrices(wfn%linmat%ovrlppowers_(i))
-  end do
+  !!if (associated(wfn%linmat%ks)) then
+  !!    do ispin=1,wfn%linmat%l%nspin
+  !!        call deallocate_sparse_matrix(wfn%linmat%ks(ispin))
+  !!    end do
+  !!    deallocate(wfn%linmat%ks)
+  !!end if
+  !!if (associated(wfn%linmat%ks_e)) then
+  !!    do ispin=1,wfn%linmat%l%nspin
+  !!        call deallocate_sparse_matrix(wfn%linmat%ks_e(ispin))
+  !!    end do
+  !!    deallocate(wfn%linmat%ks_e)
+  !!end if
+  !!call deallocate_sparse_matrix_metadata(wfn%linmat%smmd)
+  !!call deallocate_sparse_matrix(wfn%linmat%s)
+  !!call deallocate_sparse_matrix(wfn%linmat%m)
+  !!call deallocate_sparse_matrix(wfn%linmat%l)
+  !!call deallocate_matrices(wfn%linmat%ovrlp_)
+  !!call deallocate_matrices(wfn%linmat%ham_)
+  !!call deallocate_matrices(wfn%linmat%kernel_)
+  !!do i=1,size(wfn%linmat%ovrlppowers_)
+  !!    call deallocate_matrices(wfn%linmat%ovrlppowers_(i))
+  !!end do
+  call deallocate_linear_matrices(wfn%linmat)
   call deallocate_orbitals_data(wfn%orbs)
   call deallocate_comms_linear(wfn%collcom)
   call deallocate_comms_linear(wfn%ham_descr%collcom)
@@ -1360,7 +1361,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, &
+          tmb%linmat%auxm)
 
      ! Do not initialize the matrix multiplication to save memory. The multiplications
      ! are always done with the tmb%linmat%l type.
@@ -1369,7 +1371,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s, &
+          tmb%linmat%auxs)
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
@@ -1377,7 +1380,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
      call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
+          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, &
+          tmb%linmat%auxl)
 
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()
      !call sparse_copy_pattern(tmb%linmat%l, tmb%linmat%inv_ovrlp_large, iproc, subname)
@@ -1387,7 +1391,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
      call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, tmb%linmat%auxs, &
           ind_min_s, ind_mas_s, &
           irow, icol)
      iirow(1) = min(irow(1),iirow(1))
@@ -1395,7 +1399,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, tmb%linmat%auxm, &
           ind_min_m, ind_mas_m, &
           irow, icol)
      iirow(1) = min(irow(1),iirow(1))
@@ -1403,7 +1407,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, &
+          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, tmb%linmat%auxl, &
           ind_min_l, ind_mas_l, &
           irow, icol)
      iirow(1) = min(irow(1),iirow(1))

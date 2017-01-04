@@ -738,6 +738,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   logical :: wrap_around
   real(gp) :: ddot
   integer :: ind_min, ind_mas
+  type(linmat_auxiliary) :: aux
   !!real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp
   !!real(wp), allocatable, dimension(:,:,:) :: psirold
   !!integer, dimension(3) :: nl, nr
@@ -998,17 +999,19 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
        tmb%linmat%m%nspin, collcom_tmp)
 
   smat_tmp = sparse_matrix_null()
+  aux = linmat_auxiliary_null()
   ! Do not initialize the matrix multiplication to save memory. 
   call init_sparse_matrix_wrapper(iproc, nproc, tmb%linmat%s%nspin, tmb%orbs, &
        lzd_tmp, at%astruct, .false., init_matmul=.false., imode=2, smat=smat_tmp)
   call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-       collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp)
+       collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp, &
+       aux)
   iirow(1) = smat_tmp%nfvctr
   iirow(2) = 1
   iicol(1) = smat_tmp%nfvctr
   iicol(2) = 1
   call check_local_matrix_extents(iproc, nproc, &
-       collcom_tmp, collcom_tmp, tmb%linmat%smmd, smat_tmp, &
+       collcom_tmp, collcom_tmp, tmb%linmat%smmd, smat_tmp, aux, &
        ind_min, ind_mas, irow, icol)
   iirow(1) = min(irow(1),iirow(1))
   iirow(2) = max(irow(2),iirow(2))
@@ -1035,12 +1038,13 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   !!call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
   !!     psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, collcom_tmp, &
-                 psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, smat_tmp, mat_tmp)
+                 psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, smat_tmp, aux, mat_tmp)
   !call uncompress_matrix(iproc, tmb%linmat%s, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
   call uncompress_matrix(iproc, nproc, smat_tmp, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
 
   call deallocate_matrices(mat_tmp)
   call deallocate_sparse_matrix(smat_tmp)
+  call deallocate_linmat_auxiliary(aux)
 
 !!!# DEBUG #######
 !!call deallocate_local_zone_descriptors(lzd_tmp)

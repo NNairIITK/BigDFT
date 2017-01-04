@@ -326,7 +326,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
      !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      !!call f_free(tmparr)
@@ -886,7 +886,8 @@ tmb%can_use_transposed=.false.
       !call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
       !     tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
       call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, &
-           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, &
+           tmb%linmat%l, tmb%linmat%auxl, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
 
   call deallocate_matrices(tmb%linmat%ovrlp_)
@@ -894,7 +895,7 @@ tmb%can_use_transposed=.false.
   ! allocate_matrices takes much memory for large systems...
   call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
-       tmb%linmat%s, tmb%linmat%ovrlp_)
+       tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
 
   ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
   max_deviation=0.d0
@@ -920,14 +921,15 @@ tmb%can_use_transposed=.false.
       !call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
       !     tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
       call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, &
-           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, &
+           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%l, tmb%linmat%auxl, &
+           tmb%collcom, tmb%orthpar, tmb%psi, &
            tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   call deallocate_matrices(tmb%linmat%ovrlp_)
   tmb%linmat%ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
-       tmb%linmat%s, tmb%linmat%ovrlp_)
+       tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
 
   ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
   max_deviation=0.d0
@@ -1212,7 +1214,7 @@ end if
       end if
           ! Recalculate the charge density...
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+               tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
                denspot%rhov, rho_negative)
           if (rho_negative) then
               call corrections_for_negative_charge(iproc, nproc, at, denspot)
@@ -1231,7 +1233,7 @@ end if
                rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices=.true., do_check=.true., &
                write_multipole_matrices_mode=input%lin%output_mat_format, &
-               nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
+               auxs=tmb%linmat%auxs, nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
                hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
                lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=at%astruct%shift, &
                ice_obj=tmb%ice_obj, filename=trim(input%dir_output))
@@ -1459,7 +1461,7 @@ end if
   !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
   !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
   !!call f_free(tmparr)
@@ -1719,7 +1721,7 @@ end if
            !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+                tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, &
                 denspot%dpbox%ndimrhopot, &
                 denspot%rhov, rho_negative)
            !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
@@ -2338,7 +2340,7 @@ end if
       !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
       !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       !!call f_free(tmparr)

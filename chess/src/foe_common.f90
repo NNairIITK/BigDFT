@@ -1092,8 +1092,12 @@ module foe_common
       call f_timing(TCAT_CME_AUXILIARY,'ON')
 
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
+      nullify(dict)
+      dict => dict_new()
       call chess_input_dict(dict)
       call chess_init(dict, cp)
+      call dict_free(dict)
+
 
       ef_ = 0.0_mp
       evbounds_nsatur_ = cp%foe%evbounds_nsatur !3

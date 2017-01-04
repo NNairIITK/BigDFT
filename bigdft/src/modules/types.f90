@@ -184,6 +184,9 @@ module module_types
   !  integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   !end type foe_data
 
+  type,public :: linmat_auxiliary
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed !< lookup arrays for transposed operations
+  end type linmat_auxiliary
   
   type,public :: linear_matrices
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
@@ -194,6 +197,9 @@ module module_types
       type(sparse_matrix_metadata) :: smmd !< metadata of the sparse matrices
       type(matrices) :: ham_, ovrlp_, kernel_
       type(matrices),dimension(3) :: ovrlppowers_
+      type(linmat_auxiliary) :: auxs
+      type(linmat_auxiliary) :: auxm
+      type(linmat_auxiliary) :: auxl
   end type linear_matrices
 
   type,public :: work_mpiaccumulate
@@ -595,6 +601,8 @@ module module_types
  public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
  public :: nullify_orbitals_data
  public :: SIC_data,orthon_data,input_variables,evaltoocc
+ public :: linear_matrices_null, linmat_auxiliary_null, deallocate_linmat_auxiliary
+ public :: deallocate_linear_matrices
 
 
 
@@ -1534,6 +1542,74 @@ contains
     !!end if
 
   END SUBROUTINE evaltoocc
+
+  function linmat_auxiliary_null() result (aux)
+    implicit none
+    type(linmat_auxiliary) :: aux
+    nullify(aux%matrixindex_in_compressed_fortransposed)
+  end function linmat_auxiliary_null
+
+  function linear_matrices_null() result(linmat)
+    use sparsematrix_memory, only: sparse_matrix_metadata_null, sparse_matrix_null, matrices_null
+    implicit none
+    type(linear_matrices) :: linmat
+    integer :: i
+    linmat%smmd = sparse_matrix_metadata_null()
+    linmat%s = sparse_matrix_null()
+    linmat%m = sparse_matrix_null()
+    linmat%l = sparse_matrix_null()
+    nullify(linmat%ks)
+    nullify(linmat%ks_e)
+    linmat%ovrlp_ = matrices_null()
+    linmat%ham_ = matrices_null()
+    linmat%kernel_ = matrices_null()
+    do i=1,size(linmat%ovrlppowers_)
+        linmat%ovrlppowers_(i) = matrices_null()
+    end do
+    linmat%auxs = linmat_auxiliary_null()
+    linmat%auxs = linmat_auxiliary_null()
+    linmat%auxs = linmat_auxiliary_null()
+  end function linear_matrices_null
+
+  subroutine deallocate_linmat_auxiliary(aux)
+    implicit none
+    type(linmat_auxiliary),intent(inout) :: aux
+    call f_free_ptr(aux%matrixindex_in_compressed_fortransposed)
+  end subroutine deallocate_linmat_auxiliary
+
+  subroutine deallocate_linear_matrices(linmat)
+    use sparsematrix_memory, only: deallocate_sparse_matrix_metadata, &
+                                   deallocate_sparse_matrix, &
+                                   deallocate_matrices
+    implicit none
+    type(linear_matrices),intent(inout) :: linmat
+    integer :: i, ispin
+    call deallocate_sparse_matrix_metadata(linmat%smmd)
+    call deallocate_sparse_matrix(linmat%s)
+    call deallocate_sparse_matrix(linmat%m)
+    call deallocate_sparse_matrix(linmat%l)
+    call deallocate_matrices(linmat%ovrlp_)
+    call deallocate_matrices(linmat%ham_)
+    call deallocate_matrices(linmat%kernel_)
+    do i=1,size(linmat%ovrlppowers_)
+        call deallocate_matrices(linmat%ovrlppowers_(i))
+    end do
+    if (associated(linmat%ks)) then
+        do ispin=lbound(linmat%ks,1),ubound(linmat%ks,1)
+            call deallocate_sparse_matrix(linmat%ks(ispin))
+        end do
+        deallocate(linmat%ks)
+    end if
+    if (associated(linmat%ks_e)) then
+        do ispin=lbound(linmat%ks_e,1),ubound(linmat%ks_e,1)
+            call deallocate_sparse_matrix(linmat%ks_e(ispin))
+        end do
+        deallocate(linmat%ks_e)
+    end if
+    call deallocate_linmat_auxiliary(linmat%auxs)
+    call deallocate_linmat_auxiliary(linmat%auxm)
+    call deallocate_linmat_auxiliary(linmat%auxl)
+  end subroutine deallocate_linear_matrices
 
 
 end module module_types

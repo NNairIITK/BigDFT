@@ -73,7 +73,7 @@ module sparsematrix_types
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
       integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
-      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
+      !integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
       logical :: store_index
       type(sparse_matrix_matrix_multiplication) :: smmm
       integer :: ntaskgroup !< total number of MPI taskgroups

@@ -242,7 +242,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
 
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%auxm, tmb%linmat%ham_)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
 
 
@@ -271,7 +271,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
       if (iproc==0) call yaml_map('calculate overlap matrix',.true.)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
 
@@ -996,7 +996,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
           call f_memcpy(src=tmb%linmat%ovrlp_%matrix_compr, dest=ovrlp_old%matrix_compr)
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-               tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+               tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
           !if (iproc==0) call yaml_newline()
           !if (iproc==0) call yaml_sequence_open('kernel update by renormalization')
           if (it==1 .or. energy_increased .or. .not.experimental_mode) then
@@ -1322,7 +1322,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               ! Calculate the Hamiltonian matrix, since we have all quantities ready. This matrix can then be used in the first
               ! iteration of get_coeff.
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, tmb%linmat%m, tmb%linmat%ham_)
+                   tmb%ham_descr%psit_c, hpsit_c_tmp, tmb%ham_descr%psit_f, hpsit_f_tmp, &
+                   tmb%linmat%m, tmb%linmat%auxm, tmb%linmat%ham_)
               !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
           end if
 
@@ -1970,7 +1971,8 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
      !call timing(iproc,'renormCoefComp','OF')
 
      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
+          tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
      ! This can then be deleted if the transition to the new type has been completed.
      !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
@@ -2548,7 +2550,7 @@ subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
        matname='gradmat', mat=gradmat)
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-       hpsit_c, hpsit_c, hpsit_f, hpsit_f, tmb%linmat%m, gradmat)
+       hpsit_c, hpsit_c, hpsit_f, hpsit_f, tmb%linmat%m, tmb%linmat%auxm, gradmat)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, gradmat)
 
 

@@ -274,6 +274,7 @@ orthonormalization.o: types.o communications.o transposed_operations.o atoms_dat
 locregs_init.o: types.o communications.o sort.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
 sw_potential.o: atoms_data.o
+bigdft_matrices.o: types.o
 ##pexsi.o also depends on pexsi_interfaces, but it is not known which one...
 #if HAVE_PEXSI
 #pexsi_interfaces.o: pexsi_base.o

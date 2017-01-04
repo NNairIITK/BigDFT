@@ -1756,9 +1756,9 @@ module multipole
 
 
     subroutine calculate_multipole_matrix(iproc, nproc, l, m, nphi, phi1, phi2, nphir, hgrids, &
-               orbs, collcom, lzd, smmd, smat, locregcenter, ingegration_volume, multipole_matrix)
+               orbs, collcom, lzd, smmd, smat, aux, locregcenter, ingegration_volume, multipole_matrix)
       use module_base
-      use module_types, only: orbitals_data, comms_linear, local_zone_descriptors
+      use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, linmat_auxiliary
       use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
       use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_metadata
       use communications_base, only: TRANSPOSE_FULL
@@ -1778,6 +1778,7 @@ module multipole
       type(local_zone_descriptors),intent(in) :: lzd
       type(sparse_matrix_metadata),intent(in) :: smmd
       type(sparse_matrix),intent(in) :: smat
+      type(linmat_auxiliary),intent(in) :: aux
       real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregcenter
       type(matrices),intent(inout) :: multipole_matrix
       character(len=*),intent(in) :: ingegration_volume
@@ -1823,7 +1824,7 @@ module multipole
 
       call orbital_basis_release(psi_ob)
 
-      call overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,multipole_matrix,sphi2)      
+      call overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,aux,multipole_matrix,sphi2)      
 
       call f_free(sphi2)
 
@@ -1862,10 +1863,11 @@ module multipole
     subroutine multipole_analysis_driver_new(iproc, nproc, comm, lmax, ixc, smmd, smats, smatm, smatl, &
                ovrlp, ham, kernel, rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices, do_check, write_multipole_matrices_mode, &
-               nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
+               auxs, nphi, lphi, nphir, hgrids, orbs, collcom, collcom_sr, &
                lzd, at, denspot, orthpar, shift, multipole_matrix_in, ice_obj, filename)
       use module_base
-      use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear
+      use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data, DFT_local_fields, comms_linear, &
+                              linmat_auxiliary
       use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc0, assignment(=), &
                                    sparsematrix_malloc, matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                    SPARSE_TASKGROUP, sparse_matrix_metadata
@@ -1901,6 +1903,7 @@ module multipole
       character(len=*),intent(in) :: projectormode
       logical,intent(in) :: calculate_multipole_matrices, do_check
       integer,intent(in) :: write_multipole_matrices_mode
+      type(linmat_auxiliary),intent(in),optional :: auxs
       integer,intent(in),optional :: nphi, nphir
       real(kind=8),dimension(:),intent(in),optional :: lphi
       real(kind=8),dimension(3),intent(in),optional :: hgrids
@@ -2008,7 +2011,8 @@ module multipole
       !!end if
 
       if (calculate_multipole_matrices) then
-          if (.not.present(orbs) .or. &
+          if (.not.present(auxs) .or. &
+              .not.present(orbs) .or. &
               .not.present(lzd) .or. &
               .not.present(nphi) .or. &
               .not.present(nphir) .or. &
@@ -2183,7 +2187,7 @@ module multipole
               ! Calculate the multipole matrix
               if (calculate_multipole_matrices) then
                   call calculate_multipole_matrix(iproc, nproc, l, m, nphi, lphi, lphi, nphir, hgrids, &
-                       orbs, collcom, lzd, smmd, smats, locregcenter, 'box', multipole_matrix) 
+                       orbs, collcom, lzd, smmd, smats, auxs, locregcenter, 'box', multipole_matrix) 
                   if (write_matrices) then
                       call get_sparse_matrix_format(write_multipole_matrices_mode, sparse_format)
                       write(lname,'(i0)') l
@@ -3376,7 +3380,8 @@ module multipole
        can_use_transposed = .false.
        call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
             1.d-8, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-            tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+            tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%l, tmb%linmat%auxl, &
+            tmb%collcom, tmb%orthpar, &
             phi_ortho, phit_c, phit_f, &
             can_use_transposed)
        !!!@ TEST @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -4319,9 +4324,9 @@ subroutine calculate_dipole_moment(dpbox,nspin,at,rxyz,rho,calculate_quadrupole,
 END SUBROUTINE calculate_dipole_moment
 
 
-subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, collcom, phi, smat, rpower_matrix)
+subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, collcom, phi, smat, aux, rpower_matrix)
   use module_base
-  use module_types, only: local_zone_descriptors, orbitals_data, comms_linear
+  use module_types, only: local_zone_descriptors, orbitals_data, comms_linear, linmat_auxiliary
   use locreg_operations,only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
@@ -4337,6 +4342,7 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
   type(comms_linear),intent(in) :: collcom
   real(kind=8),dimension(nphi),intent(in) :: phi
   type(sparse_matrix),intent(in) :: smat
+  type(linmat_auxiliary),intent(in) :: aux
   type(matrices),dimension(24),intent(inout) :: rpower_matrix
   
   ! Local variables
@@ -4427,7 +4433,7 @@ subroutine calculate_rpowerx_matrices(iproc, nproc, nphi, nphir, lzd, orbs, coll
       call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
            TRANSPOSE_FULL, xphi(:,i), xphit_c, xphit_f, lzd)
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-           phit_c, xphit_c, phit_f, xphit_f, smat, rpower_matrix(i))
+           phit_c, xphit_c, phit_f, xphit_f, smat, aux, rpower_matrix(i))
   end do
   !call transpose_localized(iproc, nproc, nphi, orbs, collcom, &
   !     TRANSPOSE_FULL, xphi(:,2), xphit_c, xphit_f, lzd)

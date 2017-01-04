@@ -111,7 +111,7 @@ module sparsematrix_memory
       nullify(sparsemat%istsegline)
       nullify(sparsemat%matrixindex_in_compressed_arr)
       !nullify(sparsemat%orb_from_index)
-      nullify(sparsemat%matrixindex_in_compressed_fortransposed)
+      !nullify(sparsemat%matrixindex_in_compressed_fortransposed)
       nullify(sparsemat%nvctr_par)
       nullify(sparsemat%isvctr_par)
       nullify(sparsemat%nfvctr_par)
@@ -275,7 +275,7 @@ module sparsematrix_memory
       call f_free_ptr(sparseMat%keyv)
       call f_free_ptr(sparseMat%nsegline)
       call f_free_ptr(sparseMat%istsegline)
-      call f_free_ptr(sparseMat%matrixindex_in_compressed_fortransposed)
+      !call f_free_ptr(sparseMat%matrixindex_in_compressed_fortransposed)
       call f_free_ptr(sparseMat%matrixindex_in_compressed_arr)
       call f_free_ptr(sparseMat%isvctr_par)
       call f_free_ptr(sparseMat%nvctr_par)
@@ -369,7 +369,7 @@ module sparsematrix_memory
       smat_out%nfvctrp = smat_in%nfvctrp
       smat_out%isfvctr = smat_in%isfvctr
       smat_out%nspin = smat_in%nspin
-      smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
+      !smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
       smat_out%store_index = smat_in%store_index
       smat_out%ntaskgroup = smat_in%ntaskgroup
       smat_out%ntaskgroupp = smat_in%ntaskgroupp
@@ -391,8 +391,8 @@ module sparsematrix_memory
       smat_out%keyg=f_malloc_ptr(src_ptr=smat_in%keyg, id='smat_out%keyg')
       smat_out%matrixindex_in_compressed_arr=f_malloc_ptr(src_ptr=smat_in%matrixindex_in_compressed_arr, &
            id='smat_out%matrixindex_in_compressed_arr')
-      smat_out%matrixindex_in_compressed_fortransposed=f_malloc_ptr(src_ptr=smat_in%matrixindex_in_compressed_fortransposed, &
-           id='smat_out%matrixindex_in_compressed_fortransposed')
+      !smat_out%matrixindex_in_compressed_fortransposed=f_malloc_ptr(src_ptr=smat_in%matrixindex_in_compressed_fortransposed, &
+      !     id='smat_out%matrixindex_in_compressed_fortransposed')
       smat_out%taskgroup_startend=f_malloc_ptr(src_ptr=smat_in%taskgroup_startend, id='smat_out%taskgroup_startend')
       smat_out%taskgroupid=f_malloc_ptr(src_ptr=smat_in%taskgroupid, id='smat_out%taskgroupid')
       smat_out%inwhichtaskgroup=f_malloc_ptr(src_ptr=smat_in%inwhichtaskgroup, id='smat_out%inwhichtaskgroup')

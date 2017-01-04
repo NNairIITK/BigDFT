@@ -13,13 +13,14 @@ module transposed_operations
 
 
     subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
-               psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
+               psit_c1, psit_c2, psit_f1, psit_f2, smat, aux, ovrlp)
       use module_base
       use module_types, only: orbitals_data
       use communications_base, only: comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices
       use bigdft_matrices, only: get_modulo_array
       use sparsematrix, only: synchronize_matrix_taskgroups
+      use module_types, only: linmat_auxiliary
       implicit none
       
       ! Calling arguments
@@ -29,6 +30,7 @@ module transposed_operations
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psit_c1, psit_c2
       real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: psit_f1, psit_f2
       type(sparse_matrix),intent(in) :: smat
+      type(linmat_auxiliary),intent(in) :: aux
       type(matrices),intent(inout) :: ovrlp
     
       ! Local variables
@@ -206,7 +208,7 @@ module transposed_operations
         
     
           !$omp parallel default(none) &
-          !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n, moduloarray) &
+          !$omp shared(collcom, smat, aux, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n, moduloarray) &
           !$omp private(tid, ispin, iend, istart, ipt, ii, i0, i, iiorb, m, j, i0j, jjorb, ishift_mat, iorb_shift, ind0) &
           !$omp private(jjorb0, jjorb1, ind1, jjorb2, ind2, jjorb3, ind3, jjorb4, ind4, jjorb5, ind5, jjorb6, ind6) &
           !$omp private(i0i, i07i, i07j, tt06, tt05, tt04, tt03, tt02, tt01, tt00) &
@@ -228,7 +230,7 @@ module transposed_operations
         
     
           !SM: check if the modulo operations take a lot of time. If so, try to use an
-          !auxiliary array with shifted bounds in order to access smat%matrixindex_in_compressed_fortransposed
+          !auxiliary array with shifted bounds in order to access aux%matrixindex_in_compressed_fortransposed
           spin_loop: do ispin=1,smat%nspin
         
               ishift_mat=(ispin-1)*smat%nvctrp_tg-smat%isvctrp_tg
@@ -251,9 +253,9 @@ module transposed_operations
                                   jjorb=collcom%indexrecvorbital_c(i0j) - iorb_shift
                                   jorb=moduloarray(jjorb)
                                   !jjorb=mod(jjorb-1,smat%nfvctr)+1
-                                  !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                                  !ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                                  ind0 = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                                  !ind0 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                                  !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                                  ind0 = aux%matrixindex_in_compressed_fortransposed(jorb,iorb)
                                   !ind0 = get_transposed_index(smat,jjorb,iiorb)
                                   ind0=ind0+ishift_mat
                                   !if (ind0>=smat%nvctr-smat%nfvctr .and.  ind0<=smat%nvctr) then
@@ -269,9 +271,9 @@ module transposed_operations
                               jjorb0=collcom%indexrecvorbital_c(i0j+0) - iorb_shift
                               jorb0=moduloarray(jjorb0)
                               !jjorb0=mod(jjorb0-1,smat%nfvctr)+1
-                              !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                              !ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                              ind0 = smat%matrixindex_in_compressed_fortransposed(jorb0,iorb)
+                              !ind0 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                              !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                              ind0 = aux%matrixindex_in_compressed_fortransposed(jorb0,iorb)
                               !ind0 = get_transposed_index(smat,jjorb0,iiorb)
                               ind0=ind0+ishift_mat
                               ovrlp%matrix_compr(ind0) = ovrlp%matrix_compr(ind0) + psit_c1(i0i)*psit_c2(i0j+0)
@@ -279,9 +281,9 @@ module transposed_operations
                               jjorb1=collcom%indexrecvorbital_c(i0j+1) - iorb_shift
                               jorb1=moduloarray(jjorb1)
                               !jjorb1=mod(jjorb1-1,smat%nfvctr)+1
-                              !ind1 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-                              !ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-                              ind1 = smat%matrixindex_in_compressed_fortransposed(jorb1,iorb)
+                              !ind1 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                              !ind1 = aux%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                              ind1 = aux%matrixindex_in_compressed_fortransposed(jorb1,iorb)
                               !ind1 = get_transposed_index(smat,jjorb1,iiorb)
                               ind1=ind1+ishift_mat
                               ovrlp%matrix_compr(ind1) = ovrlp%matrix_compr(ind1) + psit_c1(i0i)*psit_c2(i0j+1)
@@ -289,9 +291,9 @@ module transposed_operations
                               jjorb2=collcom%indexrecvorbital_c(i0j+2) - iorb_shift
                               jorb2=moduloarray(jjorb2)
                               !jjorb2=mod(jjorb2-1,smat%nfvctr)+1
-                              !ind2 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-                              !ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-                              ind2 = smat%matrixindex_in_compressed_fortransposed(jorb2,iorb)
+                              !ind2 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                              !ind2 = aux%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                              ind2 = aux%matrixindex_in_compressed_fortransposed(jorb2,iorb)
                               !ind2 = get_transposed_index(smat,jjorb2,iiorb)
                               ind2=ind2+ishift_mat
                               ovrlp%matrix_compr(ind2) = ovrlp%matrix_compr(ind2) + psit_c1(i0i)*psit_c2(i0j+2)
@@ -299,9 +301,9 @@ module transposed_operations
                               jjorb3=collcom%indexrecvorbital_c(i0j+3) - iorb_shift
                               jorb3=moduloarray(jjorb3)
                               !jjorb3=mod(jjorb3-1,smat%nfvctr)+1
-                              !ind3 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-                              !ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-                              ind3 = smat%matrixindex_in_compressed_fortransposed(jorb3,iorb)
+                              !ind3 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                              !ind3 = aux%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                              ind3 = aux%matrixindex_in_compressed_fortransposed(jorb3,iorb)
                               !ind3 = get_transposed_index(smat,jjorb3,iiorb)
                               ind3=ind3+ishift_mat
                               ovrlp%matrix_compr(ind3) = ovrlp%matrix_compr(ind3) + psit_c1(i0i)*psit_c2(i0j+3)
@@ -309,9 +311,9 @@ module transposed_operations
                               jjorb4=collcom%indexrecvorbital_c(i0j+4) - iorb_shift
                               jorb4=moduloarray(jjorb4)
                               !jjorb4=mod(jjorb4-1,smat%nfvctr)+1
-                              !ind4 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-                              !ind4 = smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-                              ind4 = smat%matrixindex_in_compressed_fortransposed(jorb4,iorb)
+                              !ind4 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                              !ind4 = aux%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                              ind4 = aux%matrixindex_in_compressed_fortransposed(jorb4,iorb)
                               !ind4 = get_transposed_index(smat,jjorb4,iiorb)
                               ind4=ind4+ishift_mat
                               ovrlp%matrix_compr(ind4) = ovrlp%matrix_compr(ind4) + psit_c1(i0i)*psit_c2(i0j+4)
@@ -319,9 +321,9 @@ module transposed_operations
                               jjorb5=collcom%indexrecvorbital_c(i0j+5) - iorb_shift
                               jorb5=moduloarray(jjorb5)
                               !jjorb5=mod(jjorb5-1,smat%nfvctr)+1
-                              !ind5 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-                              !ind5 = smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-                              ind5 = smat%matrixindex_in_compressed_fortransposed(jorb5,iorb)
+                              !ind5 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                              !ind5 = aux%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                              ind5 = aux%matrixindex_in_compressed_fortransposed(jorb5,iorb)
                               !ind5 = get_transposed_index(smat,jjorb5,iiorb)
                               ind5=ind5+ishift_mat
                               ovrlp%matrix_compr(ind5) = ovrlp%matrix_compr(ind5) + psit_c1(i0i)*psit_c2(i0j+5)
@@ -329,9 +331,9 @@ module transposed_operations
                               jjorb6=collcom%indexrecvorbital_c(i0j+6) - iorb_shift
                               jorb6=moduloarray(jjorb6)
                               !jjorb6=mod(jjorb6-1,smat%nfvctr)+1
-                              !ind6 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-                              !ind6 = smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-                              ind6 = smat%matrixindex_in_compressed_fortransposed(jorb6,iorb)
+                              !ind6 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                              !ind6 = aux%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                              ind6 = aux%matrixindex_in_compressed_fortransposed(jorb6,iorb)
                               !ind6 = get_transposed_index(smat,jjorb6,iiorb)
                               ind6=ind6+ishift_mat
                               ovrlp%matrix_compr(ind6) = ovrlp%matrix_compr(ind6) + psit_c1(i0i)*psit_c2(i0j+6)
@@ -395,7 +397,7 @@ module transposed_operations
         
     
           !$omp parallel default(none) &
-          !$omp shared(collcom, smat, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n, moduloarray) &
+          !$omp shared(collcom, smat, aux, ovrlp, psit_c1, psit_c2, psit_f1, psit_f2, n, moduloarray) &
           !$omp private(tid, ispin, iend, istart, ipt, ii, i0, i, iiorb, m, j, i0j, jjorb, ishift_mat, iorb_shift, ind0) &
           !$omp private(jjorb0, jjorb1, ind1, jjorb2, ind2, jjorb3, ind3, jjorb4, ind4, jjorb5, ind5, jjorb6, ind6) &
           !$omp private(i0i, i07i, i07j, tt06, tt05, tt04, tt03, tt02, tt01, tt00) &
@@ -439,9 +441,9 @@ module transposed_operations
                                   jjorb0=collcom%indexrecvorbital_f(i0j) - iorb_shift
                                   jorb0=moduloarray(jjorb0)
                                   !jjorb0=mod(jjorb0-1,smat%nfvctr)+1
-                                  !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                                  !ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                                  ind0 = smat%matrixindex_in_compressed_fortransposed(jorb0,iorb)
+                                  !ind0 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                                  !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                                  ind0 = aux%matrixindex_in_compressed_fortransposed(jorb0,iorb)
                                   !ind0 = get_transposed_index(smat,jjorb0,iiorb)
                                   ind0=ind0+ishift_mat
                                   tt06 = psit_f1(i07i-6)*psit_f2(i07j-6)
@@ -462,9 +464,9 @@ module transposed_operations
                               jjorb0=collcom%indexrecvorbital_f(i0j+0) - iorb_shift
                               jorb0=moduloarray(jjorb0)
                               !jjorb0=mod(jjorb0-1,smat%nfvctr)+1
-                              !ind0 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                              !ind0 = smat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                              ind0 = smat%matrixindex_in_compressed_fortransposed(jorb0,iorb)
+                              !ind0 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                              !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                              ind0 = aux%matrixindex_in_compressed_fortransposed(jorb0,iorb)
                               !ind0 = get_transposed_index(smat,jjorb0,iiorb)
                               ind0=ind0+ishift_mat
                               tt06 = psit_f1(i07i-6)*psit_f2(i07j-6)
@@ -479,9 +481,9 @@ module transposed_operations
                               jjorb1=collcom%indexrecvorbital_f(i0j+1) - iorb_shift
                               jorb1=moduloarray(jjorb1)
                               !jjorb1=mod(jjorb1-1,smat%nfvctr)+1
-                              !ind1 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-                              !ind1 = smat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-                              ind1 = smat%matrixindex_in_compressed_fortransposed(jorb1,iorb)
+                              !ind1 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                              !ind1 = aux%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                              ind1 = aux%matrixindex_in_compressed_fortransposed(jorb1,iorb)
                               !ind1 = get_transposed_index(smat,jjorb1,iiorb)
                               ind1=ind1+ishift_mat
                               tt16 = psit_f1(i07i-6)*psit_f2(i07j+1) !+1*7-6
@@ -496,9 +498,9 @@ module transposed_operations
                               jjorb2=collcom%indexrecvorbital_f(i0j+2) - iorb_shift
                               jorb2=moduloarray(jjorb2)
                               !jjorb2=mod(jjorb2-1,smat%nfvctr)+1
-                              !ind2 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-                              !ind2 = smat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-                              ind2 = smat%matrixindex_in_compressed_fortransposed(jorb2,iorb)
+                              !ind2 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                              !ind2 = aux%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                              ind2 = aux%matrixindex_in_compressed_fortransposed(jorb2,iorb)
                               !ind2 = get_transposed_index(smat,jjorb2,iiorb)
                               ind2=ind2+ishift_mat
                               tt26 = psit_f1(i07i-6)*psit_f2(i07j+8) !+2*7-6
@@ -513,9 +515,9 @@ module transposed_operations
                               jjorb3=collcom%indexrecvorbital_f(i0j+3) - iorb_shift
                               jorb3=moduloarray(jjorb3)
                               !jjorb3=mod(jjorb3-1,smat%nfvctr)+1
-                              !ind3 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-                              !ind3 = smat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-                              ind3 = smat%matrixindex_in_compressed_fortransposed(jorb3,iorb)
+                              !ind3 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                              !ind3 = aux%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                              ind3 = aux%matrixindex_in_compressed_fortransposed(jorb3,iorb)
                               !ind3 = get_transposed_index(smat,jjorb3,iiorb)
                               ind3=ind3+ishift_mat
                               tt36 = psit_f1(i07i-6)*psit_f2(i07j+15) !+3*7-6
@@ -530,9 +532,9 @@ module transposed_operations
                               jjorb4=collcom%indexrecvorbital_f(i0j+4) - iorb_shift
                               jorb4=moduloarray(jjorb4)
                               !jjorb4=mod(jjorb4-1,smat%nfvctr)+1
-                              !ind4 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-                              !ind4 = smat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-                              ind4 = smat%matrixindex_in_compressed_fortransposed(jorb4,iorb)
+                              !ind4 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                              !ind4 = aux%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                              ind4 = aux%matrixindex_in_compressed_fortransposed(jorb4,iorb)
                               !ind4 = get_transposed_index(smat,jjorb4,iiorb)
                               ind4=ind4+ishift_mat
                               tt46 = psit_f1(i07i-6)*psit_f2(i07j+22) !+4*7-6
@@ -547,9 +549,9 @@ module transposed_operations
                               jjorb5=collcom%indexrecvorbital_f(i0j+5) - iorb_shift
                               jorb5=moduloarray(jjorb5)
                               !jjorb5=mod(jjorb5-1,smat%nfvctr)+1
-                              !ind5 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-                              !ind5 = smat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-                              ind5 = smat%matrixindex_in_compressed_fortransposed(jorb5,iorb)
+                              !ind5 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                              !ind5 = aux%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                              ind5 = aux%matrixindex_in_compressed_fortransposed(jorb5,iorb)
                               !ind5 = get_transposed_index(smat,jjorb5,iiorb)
                               ind5=ind5+ishift_mat
                               tt56 = psit_f1(i07i-6)*psit_f2(i07j+29) !+5*7-6
@@ -564,9 +566,9 @@ module transposed_operations
                               jjorb6=collcom%indexrecvorbital_f(i0j+6) - iorb_shift
                               jorb6=moduloarray(jjorb6)
                               !jjorb6=mod(jjorb6-1,smat%nfvctr)+1
-                              !ind6 = ishift_mat + smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-                              !ind6 = smat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-                              ind6 = smat%matrixindex_in_compressed_fortransposed(jorb6,iorb)
+                              !ind6 = ishift_mat + aux%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                              !ind6 = aux%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                              ind6 = aux%matrixindex_in_compressed_fortransposed(jorb6,iorb)
                               !ind6 = get_transposed_index(smat,jjorb6,iiorb)
                               ind6=ind6+ishift_mat
                               tt66 = psit_f1(i07i-6)*psit_f2(i07j+36) !+6*7-6
@@ -834,16 +836,18 @@ module transposed_operations
     end subroutine normalize_transposed
     
     
-    subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
+    subroutine build_linear_combination_transposed(collcom, sparsemat, aux, mat, psitwork_c, psitwork_f, &
          reset, psit_c, psit_f, iproc)
       use module_base
       use communications_base, only: comms_linear
       use sparsematrix_base, only: sparse_matrix, matrices
       use bigdft_matrices, only: get_modulo_array
+      use module_types, only: linmat_auxiliary
       implicit none
       
       ! Calling arguments
       type(sparse_matrix),intent(in) :: sparsemat
+      type(linmat_auxiliary),intent(in) :: aux
       type(matrices),intent(in) :: mat
       type(comms_linear),intent(in) :: collcom
       real(kind=8),dimension(collcom%ndimind_c),intent(in) :: psitwork_c
@@ -886,7 +890,7 @@ module transposed_operations
           iorb_shift=(ispin-1)*sparsemat%nfvctr
     
           !$omp parallel default(private) &
-          !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat) &
+          !$omp shared(collcom, psit_c, psitwork_c, psit_f, psitwork_f, sparsemat, aux) &
           !$omp shared(mat, ispin, ishift_mat, iorb_shift, moduloarray)
     
           !$omp do schedule(static,1)
@@ -906,8 +910,8 @@ module transposed_operations
                           jjorb=collcom%indexrecvorbital_c(i0j) - iorb_shift
                           jorb=moduloarray(jjorb)
                           !jjorb=mod(jjorb-1,sparsemat%nfvctr)+1
-                          !ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind0 = aux%matrixindex_in_compressed_fortransposed(jorb,iorb)
                           !ind0 = get_transposed_index(sparsemat,jjorb,iiorb)
                           ind0=ind0+ishift_mat
                           tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j)
@@ -919,8 +923,8 @@ module transposed_operations
                       jjorb0=collcom%indexrecvorbital_c(i0j+0) - iorb_shift
                       jorb0=moduloarray(jjorb0)
                       !jjorb0=mod(jjorb0-1,sparsemat%nfvctr)+1
-                      !ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                      ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jorb0,iorb)
+                      !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      ind0 = aux%matrixindex_in_compressed_fortransposed(jorb0,iorb)
                       !ind0 = get_transposed_index(sparsemat,jjorb0,iiorb)
                       ind0=ind0+ishift_mat
                       tt0=tt0+mat%matrix_compr(ind0)*psitwork_c(i0j+0)
@@ -928,8 +932,8 @@ module transposed_operations
                       jjorb1=collcom%indexrecvorbital_c(i0j+1) - iorb_shift
                       jorb1=moduloarray(jjorb1)
                       !jjorb1=mod(jjorb1-1,sparsemat%nfvctr)+1
-                      !ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-                      ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jorb1,iorb)
+                      !ind1 = aux%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      ind1 = aux%matrixindex_in_compressed_fortransposed(jorb1,iorb)
                       !ind1 = get_transposed_index(sparsemat,jjorb1,iiorb)
                       ind1=ind1+ishift_mat
                       tt1=tt1+mat%matrix_compr(ind1)*psitwork_c(i0j+1)
@@ -937,8 +941,8 @@ module transposed_operations
                       jjorb2=collcom%indexrecvorbital_c(i0j+2) - iorb_shift
                       jorb2=moduloarray(jjorb2)
                       !jjorb2=mod(jjorb2-1,sparsemat%nfvctr)+1
-                      !ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-                      ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jorb2,iorb)
+                      !ind2 = aux%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      ind2 = aux%matrixindex_in_compressed_fortransposed(jorb2,iorb)
                       !ind2 = get_transposed_index(sparsemat,jjorb2,iiorb)
                       ind2=ind2+ishift_mat
                       tt2=tt2+mat%matrix_compr(ind2)*psitwork_c(i0j+2)
@@ -946,8 +950,8 @@ module transposed_operations
                       jjorb3=collcom%indexrecvorbital_c(i0j+3) - iorb_shift
                       jorb3=moduloarray(jjorb3)
                       !jjorb3=mod(jjorb3-1,sparsemat%nfvctr)+1
-                      !ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-                      ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jorb3,iorb)
+                      !ind3 = aux%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      ind3 = aux%matrixindex_in_compressed_fortransposed(jorb3,iorb)
                       !ind3 = get_transposed_index(sparsemat,jjorb3,iiorb)
                       ind3=ind3+ishift_mat
                       tt3=tt3+mat%matrix_compr(ind3)*psitwork_c(i0j+3)
@@ -955,8 +959,8 @@ module transposed_operations
                       jjorb4=collcom%indexrecvorbital_c(i0j+4) - iorb_shift
                       jorb4=moduloarray(jjorb4)
                       !jjorb4=mod(jjorb4-1,sparsemat%nfvctr)+1
-                      !ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-                      ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jorb4,iorb)
+                      !ind4 = aux%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      ind4 = aux%matrixindex_in_compressed_fortransposed(jorb4,iorb)
                       !ind4 = get_transposed_index(sparsemat,jjorb4,iiorb)
                       ind4=ind4+ishift_mat
                       tt4=tt4+mat%matrix_compr(ind4)*psitwork_c(i0j+4)
@@ -964,8 +968,8 @@ module transposed_operations
                       jjorb5=collcom%indexrecvorbital_c(i0j+5) - iorb_shift
                       jorb5=moduloarray(jjorb5)
                       !jjorb5=mod(jjorb5-1,sparsemat%nfvctr)+1
-                      !ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-                      ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jorb5,iorb)
+                      !ind5 = aux%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      ind5 = aux%matrixindex_in_compressed_fortransposed(jorb5,iorb)
                       !ind5 = get_transposed_index(sparsemat,jjorb5,iiorb)
                       ind5=ind5+ishift_mat
                       tt5=tt5+mat%matrix_compr(ind5)*psitwork_c(i0j+5)
@@ -973,8 +977,8 @@ module transposed_operations
                       jjorb6=collcom%indexrecvorbital_c(i0j+6) - iorb_shift
                       jorb6=moduloarray(jjorb6)
                       !jjorb6=mod(jjorb6-1,sparsemat%nfvctr)+1
-                      !ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-                      ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jorb6,iorb)
+                      !ind6 = aux%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      ind6 = aux%matrixindex_in_compressed_fortransposed(jorb6,iorb)
                       !ind6 = get_transposed_index(sparsemat,jjorb6,iiorb)
                       ind6=ind6+ishift_mat
                       tt6=tt6+mat%matrix_compr(ind6)*psitwork_c(i0j+6)
@@ -1009,8 +1013,8 @@ module transposed_operations
                           jjorb=collcom%indexrecvorbital_f(i0j) - iorb_shift
                           jorb=moduloarray(jjorb)
                           !jjorb=mod(jjorb-1,sparsemat%nfvctr)+1
-                          !ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind0 = aux%matrixindex_in_compressed_fortransposed(jorb,iorb)
                           !ind0 = get_transposed_index(sparsemat,jjorb,iiorb)
                           ind0=ind0+ishift_mat
                           tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
@@ -1028,8 +1032,8 @@ module transposed_operations
                       jjorb0=collcom%indexrecvorbital_f(i0j+0) - iorb_shift
                       jorb0=moduloarray(jjorb0)
                       !jjorb0=mod(jjorb0-1,sparsemat%nfvctr)+1
-                      !ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
-                      ind0 = sparsemat%matrixindex_in_compressed_fortransposed(jorb0,iorb)
+                      !ind0 = aux%matrixindex_in_compressed_fortransposed(jjorb0,iiorb)
+                      ind0 = aux%matrixindex_in_compressed_fortransposed(jorb0,iorb)
                       !ind0 = get_transposed_index(sparsemat,jjorb0,iiorb)
                       ind0=ind0+ishift_mat
                       tt06 = tt06 + mat%matrix_compr(ind0)*psitwork_f(i07j-6)
@@ -1043,8 +1047,8 @@ module transposed_operations
                       jjorb1=collcom%indexrecvorbital_f(i0j+1) - iorb_shift
                       jorb1=moduloarray(jjorb1)
                       !jjorb1=mod(jjorb1-1,sparsemat%nfvctr)+1
-                      !ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
-                      ind1 = sparsemat%matrixindex_in_compressed_fortransposed(jorb1,iorb)
+                      !ind1 = aux%matrixindex_in_compressed_fortransposed(jjorb1,iiorb)
+                      ind1 = aux%matrixindex_in_compressed_fortransposed(jorb1,iorb)
                       !ind1 = get_transposed_index(sparsemat,jjorb1,iiorb)
                       ind1=ind1+ishift_mat
                       tt16 = tt16 + mat%matrix_compr(ind1)*psitwork_f(i07j+1) !+1*7-6
@@ -1058,8 +1062,8 @@ module transposed_operations
                       jjorb2=collcom%indexrecvorbital_f(i0j+2) - iorb_shift
                       jorb2=moduloarray(jjorb2)
                       !jjorb2=mod(jjorb2-1,sparsemat%nfvctr)+1
-                      !ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
-                      ind2 = sparsemat%matrixindex_in_compressed_fortransposed(jorb2,iorb)
+                      !ind2 = aux%matrixindex_in_compressed_fortransposed(jjorb2,iiorb)
+                      ind2 = aux%matrixindex_in_compressed_fortransposed(jorb2,iorb)
                       !ind2 = get_transposed_index(sparsemat,jjorb2,iiorb)
                       ind2=ind2+ishift_mat
                       tt26 = tt26 + mat%matrix_compr(ind2)*psitwork_f(i07j+8) !+2*7-6
@@ -1073,8 +1077,8 @@ module transposed_operations
                       jjorb3=collcom%indexrecvorbital_f(i0j+3) - iorb_shift
                       jorb3=moduloarray(jjorb3)
                       !jjorb3=mod(jjorb3-1,sparsemat%nfvctr)+1
-                      !ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
-                      ind3 = sparsemat%matrixindex_in_compressed_fortransposed(jorb3,iorb)
+                      !ind3 = aux%matrixindex_in_compressed_fortransposed(jjorb3,iiorb)
+                      ind3 = aux%matrixindex_in_compressed_fortransposed(jorb3,iorb)
                       !ind3 = get_transposed_index(sparsemat,jjorb3,iiorb)
                       ind3=ind3+ishift_mat
                       tt36 = tt36 + mat%matrix_compr(ind3)*psitwork_f(i07j+15) !+3*7-6
@@ -1088,8 +1092,8 @@ module transposed_operations
                       jjorb4=collcom%indexrecvorbital_f(i0j+4) - iorb_shift
                       jorb4=moduloarray(jjorb4)
                       !jjorb4=mod(jjorb4-1,sparsemat%nfvctr)+1
-                      !ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
-                      ind4 = sparsemat%matrixindex_in_compressed_fortransposed(jorb4,iorb)
+                      !ind4 = aux%matrixindex_in_compressed_fortransposed(jjorb4,iiorb)
+                      ind4 = aux%matrixindex_in_compressed_fortransposed(jorb4,iorb)
                       !ind4 = get_transposed_index(sparsemat,jjorb4,iiorb)
                       ind4=ind4+ishift_mat
                       tt46 = tt46 + mat%matrix_compr(ind4)*psitwork_f(i07j+22) !+4*7-6
@@ -1103,8 +1107,8 @@ module transposed_operations
                       jjorb5=collcom%indexrecvorbital_f(i0j+5) - iorb_shift
                       jorb5=moduloarray(jjorb5)
                       !jjorb5=mod(jjorb5-1,sparsemat%nfvctr)+1
-                      !ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
-                      ind5 = sparsemat%matrixindex_in_compressed_fortransposed(jorb5,iorb)
+                      !ind5 = aux%matrixindex_in_compressed_fortransposed(jjorb5,iiorb)
+                      ind5 = aux%matrixindex_in_compressed_fortransposed(jorb5,iorb)
                       !ind5 = get_transposed_index(sparsemat,jjorb5,iiorb)
                       ind5=ind5+ishift_mat
                       tt56 = tt56 + mat%matrix_compr(ind5)*psitwork_f(i07j+29) !+5*7-6
@@ -1118,8 +1122,8 @@ module transposed_operations
                       jjorb6=collcom%indexrecvorbital_f(i0j+6) - iorb_shift
                       jorb6=moduloarray(jjorb6)
                       !jjorb6=mod(jjorb6-1,sparsemat%nfvctr)+1
-                      !ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
-                      ind6 = sparsemat%matrixindex_in_compressed_fortransposed(jorb6,iorb)
+                      !ind6 = aux%matrixindex_in_compressed_fortransposed(jjorb6,iiorb)
+                      ind6 = aux%matrixindex_in_compressed_fortransposed(jorb6,iorb)
                       !ind6 = get_transposed_index(sparsemat,jjorb6,iiorb)
                       ind6=ind6+ishift_mat
                       tt66 = tt66 + mat%matrix_compr(ind6)*psitwork_f(i07j+36) !+6*7-6
