@@ -64,7 +64,7 @@
      fscale_lowerbound : 5.e-3 # linear scaling lower bound for the error function decay length
      fscale_upperbound : 5.e-2 # linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # lower and upper bound of the eigenvalue spectrum, will be adjusted
-     fscale : 2.e-2 # decay length of the error function
+     fscale : 5.e-2 # decay length of the error function
  dft:
    hgrids: [0.35, 0.35, 0.35] #                   Grid spacing in the three directions (bohr)
    rmult: [5.0, 8.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius

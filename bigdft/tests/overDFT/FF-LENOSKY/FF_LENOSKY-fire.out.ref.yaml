@@ -73,7 +73,7 @@
      fscale_lowerbound : 5.e-3 # linear scaling lower bound for the error function decay length
      fscale_upperbound : 5.e-2 # linear scaling upper bound for the error function decay length
      eval_range_foe: [-0.5, 0.5] # Lower and upper bound of the eigenvalue spectrum, will be adjusted
-     fscale : 2.e-2 # decay length of the error function
+     fscale : 5.e-2 # decay length of the error function
  mode:
    method                              : lensib # Run method of BigDFT call
    mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
