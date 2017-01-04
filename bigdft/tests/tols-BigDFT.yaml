@@ -620,7 +620,7 @@ rotate_read1:
  EXC: 1.1e-10
  EH: 1.0e-9
  orthog_energy: 2.4e-11
- energy: 9.0e-11
+ energy: 9.1e-11
  energydiff: 8.3e-11
  Omega: 8.1e-11
  D: 1.1e-10
@@ -634,7 +634,7 @@ rotate_read2:
  energy: 7.4e-11
  Omega: 7.1e-11
  Epot: 1.1e-9
- Energy (Hartree): 6.2e-11
+ Energy (Hartree): 6.4e-11
  Maxdiff for transpose (checksum): 9.4e-10
 
 rotate_write:
@@ -694,15 +694,15 @@ molecule_dmix:
  Epot: 1.3e-08
  energy: 1.3e-9
  Omega: 1.4e-8
- Atomic Forces (Ha/Bohr): 1.2e-10
- Clean forces norm (Ha/Bohr): 7.5e-11
- Raw forces norm (Ha/Bohr): 7.5e-11
+ Atomic Forces (Ha/Bohr): 3.8e-10
+ Clean forces norm (Ha/Bohr): 3.9e-10
+ Raw forces norm (Ha/Bohr): 3.9e-10
  Average noise forces: 1.1e-8
  e: 1.4e-10
  Total charge: 1.1e-08
  Energy (Hartree): 1.6e-10
  Maxdiff for transpose (checksum): 1.9e-09
- Force Norm (Hartree/Bohr): 1.7e-10
+ Force Norm (Hartree/Bohr): 8.9e-10
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -715,14 +715,14 @@ molecule_pmix:
  energy: 1.2e-8
  Omega: 1.4e-8
  Epot: 1.3e-08
- Atomic Forces (Ha/Bohr): 4.4e-10
- Clean forces norm (Ha/Bohr): 4.1e-10
+ Atomic Forces (Ha/Bohr): 5.3e-10
+ Clean forces norm (Ha/Bohr): 5.4e-10
  e: 1.9e-10
- Raw forces norm (Ha/Bohr): 5.0e-10
+ Raw forces norm (Ha/Bohr): 5.4e-10
  Energy (Hartree): 5.0e-10
- Average noise forces: 6.1e-10
+ Average noise forces: 8.0e-10
  Maxdiff for transpose (checksum): 1.9e-09
- Force Norm (Hartree/Bohr): 1.1e-9
+ Force Norm (Hartree/Bohr): 1.3e-9
 
 molecule_dmin:
  Enl: 6.6e-9
@@ -1024,7 +1024,7 @@ deltascf_write_neut:
  energy: 2.5e-10
  D: 6.1e-9
  Energy (Hartree): 2.0e-10
- Maxdiff for transpose (checksum): 2.8e-9
+ Maxdiff for transpose (checksum): 3.8e-9
  Total charge: 2.1e-11
 
 foe:
@@ -1071,7 +1071,7 @@ onlyhigh:
  Average noise forces: 4.1e-10
  maxval: 1.3e-10
  Energy (Hartree): 1.6e-11
- Maxdiff for overlap calculation: 2.7e-08
+ Maxdiff for overlap calculation: 2.8e-08
  Maxdiff for transpose (checksum): 3.0e-11
 
 rotatesmall_read1:
@@ -1621,7 +1621,7 @@ O2spin_foe:
  spin occupations: 2.7e-05
  exp accur: 1.0e-08
  D: 2.1e-7
- number of corrected points: 821
+ number of corrected points: 953
  total charge correction: 5.5e-09
 
 O2spin_dirmin:
@@ -1651,7 +1651,7 @@ O2spin_dirmin:
  delta out: 1.1e-10
  Force Norm (Hartree/Bohr): 3.45e-5
  Maxdiff for transpose (checksum): 5.9e-11
- number of corrected points: 24.0
+ number of corrected points: 33.0
 
 verysparse:
  Total charge: 2.3e-8
