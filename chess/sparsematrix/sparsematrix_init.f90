@@ -3337,13 +3337,14 @@ module sparsematrix_init
           end do
           if (ind_min>ind_min1) then
               write(*,*) 'ind_min, ind_min1', ind_min, ind_min1
-              stop 'ind_min>ind_min1'
+              call f_err_throw('ind_min>ind_min1')
           end if
           if (ind_max<ind_max1) then
               write(*,*) 'ind_max, ind_max1', ind_max, ind_max1
-              stop 'ind_max<ind_max1'
+              call f_err_throw('ind_max<ind_max1')
           end if
-          !!write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', iproc,  ind_min, ind_max,  ind_min1, ind_max1
+          !!write(*,'(a,i3,3x,2(2i6,4x))') 'iproc, ind_min, ind_max, ind_min1, ind_max1', &
+          !!    iproc, ind_min, ind_max,  ind_min1, ind_max1
           !@ END NEW #################################################################
 
 

@@ -497,8 +497,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     !!write(*,*) 'after s: iirow', iirow
-     !!write(*,*) 'after s: iicol', iicol
+     !!write(*,*) 'after s: iproc, iirow', iproc, iirow
+     !!write(*,*) 'after s: iproc, iicol', iproc, iicol
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
           tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, &
           ind_min_m, ind_mas_m, &
@@ -507,8 +507,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     !!write(*,*) 'after m: iirow', iirow
-     !!write(*,*) 'after m: iicol', iicol
+     !!write(*,*) 'after m: iproc, iirow', iproc, iirow
+     !!write(*,*) 'after m: iproc, iicol', iproc, iicol
      call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
           tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, &
           ind_min_l, ind_mas_l, &
@@ -517,8 +517,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     !!write(*,*) 'after l: iirow', iirow
-     !!write(*,*) 'after l: iicol', iicol
+     !!write(*,*) 'after l: iproc, iirow', iproc, iirow
+     !!write(*,*) 'after l: iproc, iicol', iproc, iicol
 
      call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%s, &
           ind_min_s, ind_mas_s, &

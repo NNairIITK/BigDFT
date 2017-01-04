@@ -2717,7 +2717,7 @@ module matrix_operations
       !isegend=smatl%istsegline(smatl%isfvctr+smatl%nfvctrp)+smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
       iiorb_min = smatl%nfvctr
       iiorb_max = 0
-      do iseg=smatl%iseseg_tg(1),smatl%iseseg_tg(2)
+      do iseg=smatl%istartendseg_local(1),smatl%istartendseg_local(2)
           ii=smatl%keyv(iseg)-1
           ! A segment is always on one line, therefore no double loop
           do jorb=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
@@ -2750,7 +2750,10 @@ module matrix_operations
               do jorb=iorb,iorb+n-1
                   do korb=iorb,iorb+n-1
                       ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg + isshift
+                      !!write(2000+iproc,*) 'iorb, jorb, korb, mic, is, ind', &
+                      !!     iorb, jorb, korb, matrixindex_in_compressed(smats, korb, jorb), smats%isvctrp_tg, ind
                       matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+                      !!write(1000+iproc,*) 'iorb, jorb, korb, ind, val', iorb, jorb, korb, ind, ovrlp_%matrix_compr(ind)
                   end do
               end do
               ! Passing 0 as comm... not best practice
