@@ -1039,6 +1039,8 @@ module foe_common
                npl_min, npl_max, npl_stride, betax, ntemp)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       use dynamic_memory
+      use chess_base, only: chess_params, chess_input_dict, chess_init
+      use dictionaries
       implicit none
 
       ! Calling arguments
@@ -1083,21 +1085,26 @@ module foe_common
       integer :: npl_stride_
       real(kind=mp) :: betax_
       integer :: ntemp_
+      type(chess_params) :: cp
+      type(dictionary),pointer :: dict
 
       !call timing(iproc,'init_matrCompr','ON')
       call f_timing(TCAT_CME_AUXILIARY,'ON')
 
       ! Define the default values... Is there a way to get them from input_variables_definition.yaml?
+      call chess_input_dict(dict)
+      call chess_init(dict, cp)
+
       ef_ = 0.0_mp
-      evbounds_nsatur_ = 3
-      evboundsshrink_nsatur_ =4
-      evlow_ = -0.5_mp
-      evhigh_ = 0.5_mp
-      fscale_ = 2.d-2
-      ef_interpol_det_ = 1.d-12
-      ef_interpol_chargediff_ = 1.0_mp
-      fscale_lowerbound_ = 5.d-3
-      fscale_upperbound_ = 5.d-2
+      evbounds_nsatur_ = cp%foe%evbounds_nsatur !3
+      evboundsshrink_nsatur_ = cp%foe%evboundsshrink_nsatur !4
+      evlow_ = cp%foe%eval_range_foe(1) !-0.5_mp
+      evhigh_ = cp%foe%eval_range_foe(2) !0.5_mp
+      fscale_ = cp%foe%fscale !2.d-2
+      ef_interpol_det_ = cp%foe%ef_interpol_det !1.d-12
+      ef_interpol_chargediff_ = cp%foe%ef_interpol_chargediff !1.0_mp
+      fscale_lowerbound_ = cp%foe%fscale_lowerbound !5.d-3
+      fscale_upperbound_ = cp%foe%fscale_upperbound !5.d-2
       tmprtr_ = 0.0_mp
       eval_multiplicator_ = 1.0_mp
       npl_min_ = 10
