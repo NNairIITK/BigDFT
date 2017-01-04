@@ -2393,6 +2393,7 @@ end subroutine eigensystem_info
 
 !> find the gap once the fermi level has been found
  subroutine orbs_get_gap(orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo,occup_lumo)
+   use module_base
    use module_defs, only: gp
    use module_types, only: orbitals_data
    use dictionaries, only: f_err_throw
