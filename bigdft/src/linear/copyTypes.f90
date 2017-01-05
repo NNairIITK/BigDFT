@@ -575,4 +575,5 @@ subroutine copy_linmat_auxiliary(aux_in, aux_out)
   type(linmat_auxiliary),intent(out) :: aux_out
   aux_out%matrixindex_in_compressed_fortransposed = f_malloc_ptr(src_ptr=aux_in%matrixindex_in_compressed_fortransposed, &
       id='aux_out%matrixindex_in_compressed_fortransposed')
+  aux_out%offset_matrixindex_in_compressed_fortransposed = aux_in%offset_matrixindex_in_compressed_fortransposed
 end subroutine copy_linmat_auxiliary

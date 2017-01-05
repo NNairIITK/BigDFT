@@ -64,7 +64,7 @@ module transposed_operations
     
       call f_routine(id='calculate_overlap_transposed')
 
-      call get_modulo_array(smat, moduloarray)
+      call get_modulo_array(smat%nfvctr, aux%offset_matrixindex_in_compressed_fortransposed, moduloarray)
     
       call f_zero(smat%nvctrp_tg*smat%nspin, ovrlp%matrix_compr(1))
     
@@ -873,7 +873,7 @@ module transposed_operations
       call f_routine(id='build_linear_combination_transposed')
       call timing(iproc,'lincombtrans  ','ON')
 
-      call get_modulo_array(sparsemat, moduloarray)
+      call get_modulo_array(sparsemat%nfvctr, aux%offset_matrixindex_in_compressed_fortransposed, moduloarray)
 
       if(reset) then
          call f_zero(psit_c)

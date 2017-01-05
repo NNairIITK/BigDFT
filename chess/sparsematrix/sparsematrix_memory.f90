@@ -370,7 +370,7 @@ module sparsematrix_memory
       smat_out%nfvctrp = smat_in%nfvctrp
       smat_out%isfvctr = smat_in%isfvctr
       smat_out%nspin = smat_in%nspin
-      smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
+      !smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
       smat_out%store_index = smat_in%store_index
       smat_out%ntaskgroup = smat_in%ntaskgroup
       smat_out%ntaskgroupp = smat_in%ntaskgroupp

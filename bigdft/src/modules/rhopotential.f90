@@ -427,7 +427,7 @@ module rhopotential
     
       call f_routine('sumrho_for_TMBs')
 
-      call get_modulo_array(denskern, moduloarray)
+      call get_modulo_array(denskern%nfvctr, aux%offset_matrixindex_in_compressed_fortransposed, moduloarray)
     
       ! check whether all entries of the charge density are positive
       rho_negative=.false.

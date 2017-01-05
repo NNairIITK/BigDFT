@@ -48,7 +48,7 @@ module bigdft_matrices
           if (extra_timing) call cpu_time(tr0)
           ! The operations done in the transposed wavefunction layout
           !call check_transposed_layout()
-          call get_modulo_array(smat, moduloarray)
+          call get_modulo_array(smat%nfvctr, aux%offset_matrixindex_in_compressed_fortransposed, moduloarray)
           call find_minmax_transposed(aux%matrixindex_in_compressed_fortransposed,collcom,smat%nfvctr,moduloarray,ind_min,ind_max)
 
           !write(*,'(a,2i8)') 'after check_transposed_layout: ind_min, ind_max', ind_min, ind_max
@@ -376,22 +376,21 @@ module bigdft_matrices
     end subroutine check_ortho_inguess
 
 
-    subroutine get_modulo_array(smat, moduloarray)
+    subroutine get_modulo_array(nfvctr, offset_matrixindex_in_compressed_fortransposed, moduloarray)
       use module_base
-      use sparsematrix_base, only: sparse_matrix
       implicit none
       ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
+      integer,intent(in) :: nfvctr, offset_matrixindex_in_compressed_fortransposed
       integer,dimension(:),pointer :: moduloarray
       ! Local variables
       integer :: i
-      moduloarray = f_malloc_ptr(smat%nfvctr,id='moduloarray')
+      moduloarray = f_malloc_ptr(nfvctr,id='moduloarray')
       !$omp parallel default(none) &
-      !$omp shared(moduloarray,smat) &
+      !$omp shared(moduloarray,nfvctr, offset_matrixindex_in_compressed_fortransposed) &
       !$omp private(i)
       !$omp do
-      do i=1,smat%nfvctr
-          moduloarray(i) = modulo(i-smat%offset_matrixindex_in_compressed_fortransposed,smat%nfvctr)+1
+      do i=1,nfvctr
+          moduloarray(i) = modulo(i-offset_matrixindex_in_compressed_fortransposed,nfvctr)+1
       end do
       !$omp end do
       !$omp end parallel
@@ -529,7 +528,7 @@ module bigdft_matrices
       !!end if
     
       nlen = imax - imin + 1
-      sparsemat%offset_matrixindex_in_compressed_fortransposed = imin
+      aux%offset_matrixindex_in_compressed_fortransposed = imin
     
       !!! This is a temporary solution for spin polarized systems
       !!imax=min(imax,orbs%norbu)

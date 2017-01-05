@@ -186,6 +186,7 @@ module module_types
 
   type,public :: linmat_auxiliary
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed !< lookup arrays for transposed operations
+      integer :: offset_matrixindex_in_compressed_fortransposed
   end type linmat_auxiliary
   
   type,public :: linear_matrices
@@ -1547,6 +1548,7 @@ contains
     implicit none
     type(linmat_auxiliary) :: aux
     nullify(aux%matrixindex_in_compressed_fortransposed)
+    aux%offset_matrixindex_in_compressed_fortransposed = 0
   end function linmat_auxiliary_null
 
   function linear_matrices_null() result(linmat)
