@@ -1460,27 +1460,28 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
 
-  if (associated(tmb_old%linmat%ks)) then
-      do ispin=1,tmb_old%linmat%l%nspin
-          call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
-      end do
-      deallocate(tmb_old%linmat%ks)
-  end if
-  if (associated(tmb_old%linmat%ks_e)) then
-      do ispin=1,tmb_old%linmat%l%nspin
-          call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
-      end do
-      deallocate(tmb_old%linmat%ks_e)
-  end if
-  call deallocate_sparse_matrix(tmb_old%linmat%s)
-  call deallocate_sparse_matrix(tmb_old%linmat%m)
-  call deallocate_sparse_matrix(tmb_old%linmat%l)
-  call deallocate_matrices(tmb_old%linmat%ham_)
-  call deallocate_matrices(tmb_old%linmat%ovrlp_)
-  call deallocate_matrices(tmb_old%linmat%kernel_)
-  do i=1,3
-      call deallocate_matrices(tmb_old%linmat%ovrlppowers_(i))
-  end do
+  !!if (associated(tmb_old%linmat%ks)) then
+  !!    do ispin=1,tmb_old%linmat%l%nspin
+  !!        call deallocate_sparse_matrix(tmb_old%linmat%ks(ispin))
+  !!    end do
+  !!    deallocate(tmb_old%linmat%ks)
+  !!end if
+  !!if (associated(tmb_old%linmat%ks_e)) then
+  !!    do ispin=1,tmb_old%linmat%l%nspin
+  !!        call deallocate_sparse_matrix(tmb_old%linmat%ks_e(ispin))
+  !!    end do
+  !!    deallocate(tmb_old%linmat%ks_e)
+  !!end if
+  !!call deallocate_sparse_matrix(tmb_old%linmat%s)
+  !!call deallocate_sparse_matrix(tmb_old%linmat%m)
+  !!call deallocate_sparse_matrix(tmb_old%linmat%l)
+  !!call deallocate_matrices(tmb_old%linmat%ham_)
+  !!call deallocate_matrices(tmb_old%linmat%ovrlp_)
+  !!call deallocate_matrices(tmb_old%linmat%kernel_)
+  !!do i=1,3
+  !!    call deallocate_matrices(tmb_old%linmat%ovrlppowers_(i))
+  !!end do
+  call deallocate_linear_matrices(tmb_old%linmat)
   call deallocate_comms_linear(tmb_old%collcom)
   call deallocate_local_zone_descriptors(tmb_old%lzd)
 

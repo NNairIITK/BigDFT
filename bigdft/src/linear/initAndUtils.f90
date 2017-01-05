@@ -1177,7 +1177,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=), sparsematrix_malloc_ptr
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
-  use sparsematrix_init, only: init_matrix_taskgroups
+  use sparsematrix_init, only: init_matrix_taskgroups, sparse_matrix_metadata_init
   use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
@@ -1256,27 +1256,28 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      !call deallocate_sparse_matrix(tmb%linmat%ovrlp)
      !!call deallocate_sparse_matrix(tmb%linmat%ham)
 
-     if (associated(tmb%linmat%ks)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
-         end do
-         deallocate(tmb%linmat%ks)
-     end if
-     if (associated(tmb%linmat%ks_e)) then
-         do ispin=1,tmb%linmat%l%nspin
-             call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
-         end do
-         deallocate(tmb%linmat%ks_e)
-     end if
-     call deallocate_sparse_matrix(tmb%linmat%s)
-     call deallocate_sparse_matrix(tmb%linmat%m)
-     call deallocate_sparse_matrix(tmb%linmat%l)
-     call deallocate_matrices(tmb%linmat%ovrlp_)
-     call deallocate_matrices(tmb%linmat%ham_)
-     call deallocate_matrices(tmb%linmat%kernel_)
-     do i=1,size(tmb%linmat%ovrlppowers_)
-         call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
-     end do
+     !!if (associated(tmb%linmat%ks)) then
+     !!    do ispin=1,tmb%linmat%l%nspin
+     !!        call deallocate_sparse_matrix(tmb%linmat%ks(ispin))
+     !!    end do
+     !!    deallocate(tmb%linmat%ks)
+     !!end if
+     !!if (associated(tmb%linmat%ks_e)) then
+     !!    do ispin=1,tmb%linmat%l%nspin
+     !!        call deallocate_sparse_matrix(tmb%linmat%ks_e(ispin))
+     !!    end do
+     !!    deallocate(tmb%linmat%ks_e)
+     !!end if
+     !!call deallocate_sparse_matrix(tmb%linmat%s)
+     !!call deallocate_sparse_matrix(tmb%linmat%m)
+     !!call deallocate_sparse_matrix(tmb%linmat%l)
+     !!call deallocate_matrices(tmb%linmat%ovrlp_)
+     !!call deallocate_matrices(tmb%linmat%ham_)
+     !!call deallocate_matrices(tmb%linmat%kernel_)
+     !!do i=1,size(tmb%linmat%ovrlppowers_)
+     !!    call deallocate_matrices(tmb%linmat%ovrlppowers_(i))
+     !!end do
+     call deallocate_linear_matrices(tmb%linmat)
 
      locregCenter = f_malloc((/ 3, lzd_tmp%nlr /),id='locregCenter')
      locrad_kernel = f_malloc(lzd_tmp%nlr,id='locrad_kernel')
@@ -1349,6 +1350,13 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      call f_free_ptr(tmb%ham_descr%psit_f)
      tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
      tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
+
+
+     call sparse_matrix_metadata_init(at%astruct%geocode, at%astruct%cell_dim, tmb%orbs%norb, &
+          at%astruct%nat, at%astruct%ntypes, at%astruct%units, &
+          at%nzatom, at%nelpsp, at%astruct%atomnames, at%astruct%iatype, &
+          at%astruct%rxyz, tmb%orbs%onwhichatom, tmb%linmat%smmd)
+
 
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)

@@ -57,6 +57,7 @@ module sparsematrix_memory
   public :: copy_sparse_matrix,copy_matrices
   public :: sparse_matrix_metadata_null
   public :: deallocate_sparse_matrix_metadata
+  public :: copy_sparse_matrix_metadata
 !!$
 !!$
   type, public :: sparse_matrix_info_ptr
@@ -369,7 +370,7 @@ module sparsematrix_memory
       smat_out%nfvctrp = smat_in%nfvctrp
       smat_out%isfvctr = smat_in%isfvctr
       smat_out%nspin = smat_in%nspin
-      !smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
+      smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
       smat_out%store_index = smat_in%store_index
       smat_out%ntaskgroup = smat_in%ntaskgroup
       smat_out%ntaskgroupp = smat_in%ntaskgroupp
@@ -503,6 +504,28 @@ module sparsematrix_memory
     end subroutine copy_matrices
 
 
+    subroutine copy_sparse_matrix_metadata(smmd_in, smmd_out)
+      use dynamic_memory
+      implicit none
+      type(sparse_matrix_metadata),intent(in) :: smmd_in
+      type(sparse_matrix_metadata),intent(out) :: smmd_out
+      smmd_out%geocode = smmd_in%geocode
+      smmd_out%cell_dim = smmd_in%cell_dim
+      smmd_out%shift = smmd_in%shift
+      smmd_out%nfvctr = smmd_in%nfvctr
+      smmd_out%nat = smmd_in%nat
+      smmd_out%ntypes = smmd_in%ntypes
+      smmd_out%units = smmd_in%units
+      smmd_out%nzatom = f_malloc_ptr(src_ptr=smmd_in%nzatom, id='smmd_out%nzatom')
+      smmd_out%nelpsp = f_malloc_ptr(src_ptr=smmd_in%nelpsp, id='smmd_out%nelpsp')
+      smmd_out%atomnames = f_malloc_str_ptr(len(smmd_in%atomnames), size(smmd_in%atomnames), id='smmd_out%atomnames')
+      smmd_out%atomnames = smmd_in%atomnames
+      smmd_out%iatype = f_malloc_ptr(src_ptr=smmd_in%iatype, id='smmd_out%iatype')
+      smmd_out%rxyz = f_malloc_ptr(src_ptr=smmd_in%rxyz, id='smmd_out%rxyz')
+      smmd_out%on_which_atom = f_malloc_ptr(src_ptr=smmd_in%on_which_atom, id='smmd_out%on_which_atom')
+    end subroutine copy_sparse_matrix_metadata
+
+
     subroutine deallocate_sparse_matrix_matrix_multiplication(smmm)
       use dynamic_memory
       implicit none
@@ -546,7 +569,8 @@ module sparsematrix_memory
               call f_err_throw('sparse matrix multiplication not initialized', &
                    err_name='SPARSEMATRIX_RUNTIME_ERROR')
           end if
-          smat_ptr = f_malloc_ptr(max(1,smat_info_ptr%smat%smmm%nseq*smat_info_ptr%smat%nspin),id=smat_info_ptr%id)
+          !smat_ptr = f_malloc_ptr(max(1,smat_info_ptr%smat%smmm%nseq*smat_info_ptr%smat%nspin),id=smat_info_ptr%id)
+          smat_ptr = f_malloc_ptr(max(1,smat_info_ptr%smat%smmm%nseq),id=smat_info_ptr%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
                err_name='SPARSEMATRIX_ALLOCATION_ERROR')
@@ -626,7 +650,8 @@ module sparsematrix_memory
               call f_err_throw('sparse matrix multiplication not initialized', &
                    err_name='SPARSEMATRIX_RUNTIME_ERROR')
           end if
-          smat = f_malloc(max(1,smat_info%smat%smmm%nseq*smat_info%smat%nspin),id=smat_info%id)
+          !smat = f_malloc(max(1,smat_info%smat%smmm%nseq*smat_info%smat%nspin),id=smat_info%id)
+          smat = f_malloc(max(1,smat_info%smat%smmm%nseq),id=smat_info%id)
       case default
           call f_err_throw('The action specified for the 1d matrix allocation is invalid',&
                err_name='SPARSEMATRIX_ALLOCATION_ERROR')

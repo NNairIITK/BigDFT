@@ -431,7 +431,10 @@ end subroutine copy_local_zone_descriptors
 
 subroutine copy_linear_matrices(linmat_in, linmat_out)
   use module_types
-  use sparsematrix_base, only: sparse_matrix_null,copy_sparse_matrix,copy_matrices
+  use sparsematrix_base, only: copy_sparse_matrix_metadata, &
+                               sparse_matrix_null, &
+                               copy_sparse_matrix, &
+                               copy_matrices
   implicit none
 
   ! Calling arguments
@@ -439,8 +442,9 @@ subroutine copy_linear_matrices(linmat_in, linmat_out)
   type(linear_matrices),intent(out) :: linmat_out
 
   ! Local variables
-  integer :: ispin
+  integer :: ispin, i
 
+  call copy_sparse_matrix_metadata(linmat_in%smmd, linmat_out%smmd)
   call copy_sparse_matrix(linmat_in%s, linmat_out%s)
   call copy_sparse_matrix(linmat_in%m, linmat_out%m)
   call copy_sparse_matrix(linmat_in%l, linmat_out%l)
@@ -465,6 +469,12 @@ subroutine copy_linear_matrices(linmat_in, linmat_out)
   call copy_matrices(linmat_in%ham_, linmat_out%ham_)
   call copy_matrices(linmat_in%ovrlp_, linmat_out%ovrlp_)
   call copy_matrices(linmat_in%kernel_, linmat_out%kernel_)
+  do i=1,3
+      call copy_matrices(linmat_in%ovrlppowers_(i), linmat_out%ovrlppowers_(i))
+  end do
+  call copy_linmat_auxiliary(linmat_in%auxs, linmat_out%auxs)
+  call copy_linmat_auxiliary(linmat_in%auxm, linmat_out%auxm)
+  call copy_linmat_auxiliary(linmat_in%auxl, linmat_out%auxl)
 
 end subroutine copy_linear_matrices
 
@@ -556,3 +566,13 @@ subroutine copy_comms_linear(comms_in, comms_out)
  comms_out%psit_f=f_malloc_ptr(src_ptr=comms_in%psit_f, id='comms_out%psit_f')
 
 end subroutine copy_comms_linear
+
+subroutine copy_linmat_auxiliary(aux_in, aux_out)
+  use dynamic_memory
+  use module_types, only: linmat_auxiliary
+  implicit none
+  type(linmat_auxiliary),intent(in) :: aux_in
+  type(linmat_auxiliary),intent(out) :: aux_out
+  aux_out%matrixindex_in_compressed_fortransposed = f_malloc_ptr(src_ptr=aux_in%matrixindex_in_compressed_fortransposed, &
+      id='aux_out%matrixindex_in_compressed_fortransposed')
+end subroutine copy_linmat_auxiliary

@@ -1775,7 +1775,7 @@ module foe_common
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
                              fermilevel_get_real, fermilevel_get_logical
-      use chebyshev, only: chebyshev_clean, chebyshev_fast
+      use chebyshev, only: chebyshev_fast
       !!use foe_common, only: scale_and_shift_matrix, evnoise, &
       !!                      check_eigenvalue_spectrum_new, retransform_ext, get_chebyshev_expansion_coefficients
       use module_func
