@@ -10,6 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 module box
 
+  use f_precisions
   use PSbase
 
   private
@@ -25,6 +26,7 @@ module box
      real(gp), dimension(3) :: hgrids
      real(gp), dimension(3) :: angrad !<angles between the dimensions in radiant
      !derived data
+     integer(f_long) :: ndim !< product of the dimension, long integer to avoid overflow
      real(gp) :: volume_element
      real(gp), dimension(3,3) :: habc !<primitive volume elements in the translation vectors direction
      real(gp), dimension(3,3) :: gd !<covariant metric needed for non-orthorhombic operations
@@ -159,8 +161,7 @@ contains
     else
        boxit%i3e=boxit%i3s+mesh%ndims(3)-1
     end if
-    boxit%whole=boxit%whole .and. boxit%i3s == 1 &
-         .and. boxit%i3e==mesh%ndims(3)
+    if (boxit%whole) boxit%whole=boxit%i3s == 1 .and. boxit%i3e==mesh%ndims(3)
     call set_starting_point(boxit)
 
     call probe_iterator(boxit)
@@ -176,7 +177,8 @@ contains
     implicit none
     type(box_iterator), intent(inout) :: bit
     !local variables
-    integer(f_long) :: icnt,itgt,iz,iy,ix
+    integer :: iz,iy,ix
+    integer(f_long) :: icnt,itgt
     logical(f_byte), dimension(:), allocatable :: lxyz
     integer, dimension(:), allocatable :: lx,ly,lz
 
@@ -475,9 +477,10 @@ contains
   end subroutine internal_point
 
 
-  pure function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
+  function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
     use numerics, only: onehalf,pi
     use wrapper_linalg, only: det_3x3
+    use f_utils, only: f_assert
     implicit none
     character(len=1), intent(in) :: geocode
     integer, dimension(3), intent(in) :: ndims
@@ -494,6 +497,7 @@ contains
     if (geocode /= 'F') mesh%bc(3)=PERIODIC
     mesh%ndims=ndims
     mesh%hgrids=hgrids
+    mesh%ndim=product(int(ndims,f_long))
     if (present(angrad)) then
        mesh%angrad=angrad
        !some consistency check on the angles should be performed
@@ -579,6 +583,12 @@ contains
        mesh%gu(3,2) = mesh%gu(2,3)
     end if
     mesh%orthorhombic=all(mesh%angrad==onehalf*pi)
+
+    if (geocode == 'S') then
+       call f_assert(mesh%angrad(1)-onehalf*pi,id='Alpha angle invalid')
+       call f_assert(mesh%angrad(3)-onehalf*pi,id='Gamma angle invalid')
+    end if
+
   end function cell_new
 
   !> returns a logical array of size 3 which is .true. for all the periodic dimensions

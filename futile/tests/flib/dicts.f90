@@ -217,6 +217,7 @@ subroutine test_dictionaries1()
   use yaml_output
   use yaml_strings
   use dictionaries
+  use yaml_parse
   implicit none
   !local variables
    integer :: ival,i
@@ -500,6 +501,17 @@ subroutine test_dictionaries1()
 !!! [newiter]
    call dict_free(dictA)
 
+   !again the iterator on the elements of a list
+   call yaml_mapping_open('Test of the iterator over a provided sequence')
+   dictA=>yaml_load('[xyz,ascii,int,yaml]')
+   call yaml_map('Provided list',dictA)
+   nullify(dict_tmp)
+   do while(iterating(dict_tmp,on=dictA))
+      call yaml_map('Extension probed',trim(dict_value(dict_tmp)))
+   end do
+   call dict_free(dictA)
+   call yaml_mapping_close()
+   
    !fill a list and iterate over it
    dictA=>dict_new()
    do i=1,10

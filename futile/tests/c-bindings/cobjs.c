@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "futile.h"
 #include "futileC_objects.h"
+
 
 void FC_FUNC_(obj_print, OBJ_PRINT)(void *obj);
 void FC_FUNC_(obj_set, OBJ_SET)(void *obj, int *val);
