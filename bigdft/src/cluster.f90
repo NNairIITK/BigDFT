@@ -1687,11 +1687,13 @@ contains
     nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
     if (bigdft_mpi%nproc>1) then
        nodename_local=mpihostname()
-       !call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
-       !gather the result between all the process
-       call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
-            nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
-            bigdft_mpi%mpi_comm,ierr)
+
+       call mpigather(MPI_MAX_PROCESSOR_NAME,nodename_local,nodename,&
+            comm=bigdft_mpi%mpi_comm)
+!!$       !gather the result between all the process
+!!$       call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+!!$            nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+!!$            bigdft_mpi%mpi_comm,ierr)
        if (bigdft_mpi%iproc==0) call set(dict_info//'Hostnames',&
                list_new(.item. nodename))
     end if
