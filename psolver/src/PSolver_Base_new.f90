@@ -335,7 +335,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   integer :: ithread, nthread
   integer,parameter :: max_memory_zt = 500 !< maximal memory for zt array, in megabytes
   ! OpenMP variables
-  !$ integer :: omp_get_thread_num, omp_get_max_threads, omp_get_num_threads
+  !$ integer :: omp_get_thread_num, omp_get_max_threads !, omp_get_num_threads
 
   call f_routine(id='G_PoissonSolver')
 

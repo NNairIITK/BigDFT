@@ -283,17 +283,8 @@ program PSolver_Program
   
   call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm,nproc=karray%mpi_env%nproc,gather_routine=gather_timings)
   call pkernel_free(karray)
-  !comparison (each process compare its own part)
-  !call compare(n01,n02,ncomp,potential(1,1,i3sd),density(1,1,i3sd),&
-  !     i1_max,i2_max,i3_max,max_diff)
-  call compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,diff_par)
 
-!!$  !extract the max
-!!$  if (nproc > 1) then
-!!$     call mpiallred(sendbuf=max_diff,recvbuf=diff_par,count=1,op=MPI_MAX)
-!!$  else
-!!$  diff_par=max_diff
-!!$  end if
+  call compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,diff_par)
   
   if (iproc == 0) then
      call yaml_mapping_open('Report on comparison')
