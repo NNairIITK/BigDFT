@@ -192,6 +192,10 @@ class BigDFTInstaller():
             print indent + 'Configuration options:'
             print indent*2 + "Source: Configuration file '%s'" % os.path.abspath(self.rcfile)
         while not self.yes:
+            if not self.branch: 
+                print indent + '#WARNING: You are compiling from a User Branch. Developments are discouraged in this case' 
+                print indent + '# as compilation errors might lead to source deletion. For extensive developments the usage'
+                print indent + '# of a versioned branch is advised. Please ignore this warning if you are not a developer.'
             ok = raw_input('Do you want to continue (Y/n)? ')
             if ok == 'n' or ok=='N':
                 exit(0)

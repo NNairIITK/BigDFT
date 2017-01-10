@@ -73,12 +73,6 @@ PS_Check.out.yaml: PS_Check Generalized_PSolver
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm tmp
 
-PS_Basics.out.yaml: PS_Program PS_Exercise 
-	-$(run_parallel) ./PS_Program -n [57,48,63] -g F > $@
-	-$(run_parallel) ./PS_Program -n [64,64,64] -g P >> $@
-	-$(run_parallel) ./PS_Program -n [32,64,48] -g S >> $@
-	-$(run_parallel) ./PS_Program -n [32,64,48] -g W >> $@
-
 check: regtest report #PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
 
 report: PS_Basics.report.yaml PS_Check.report.yaml PS_Basics.out.yaml
