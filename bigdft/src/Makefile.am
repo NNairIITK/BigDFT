@@ -1,3 +1,4 @@
+
 ## Process this file with automake to produce Makefile.in
 
 # Main targets.
@@ -259,7 +260,7 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(bigdft_library)
+bigdft_LDADD = $(bigdft_library) @FC_EXPORTS@
 
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(bigdft_library)
@@ -287,13 +288,13 @@ test_forces_LDADD = $(bigdft_library)
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 MPIfake.f90
-memguess_LDADD = $(bigdft_library)
+memguess_LDADD = $(bigdft_library) @FC_EXPORTS@
 
 utilities_SOURCES = utilities.f90
 utilities_LDADD = $(bigdft_library)
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(bigdft_library)
+frequencies_LDADD = $(bigdft_library) @FC_EXPORTS@
 
 if BUILD_DYNAMIC_LIBS
 bigdft_LDADD += @LIB_FUTILE_LIBS@

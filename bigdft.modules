@@ -96,7 +96,7 @@
   </autotools>
 
   <autotools id="chess" autogen-sh="autoreconf">
-    <branch repo="local" module="CheSS-0.1.2.tar.gz" version="0.1.2" checkoutdir="chess"/>
+    <branch repo="local" module="CheSS-0.1.3.tar.gz" version="0.1.3" checkoutdir="chess"/>
     <dependencies>
       <dep package="futile"/>
       <if condition-set="testing">
@@ -223,6 +223,12 @@
       <dep package="spred"/>
       <dep package="PyYAML"/>
       <dep package="ipython"/>
+    </dependencies>
+  </metamodule>
+
+  <metamodule id="chess-suite">
+    <dependencies>
+      <dep package="chess"/>
     </dependencies>
   </metamodule>
 

@@ -185,6 +185,13 @@ class YamlDB(dict):
                 return self.docs[key]
         else:
             return self.get(key)
+    def documents(self):
+        "Generator over the whole documents"
+        if hasattr(self,'docs'):
+            for d in self.docs:
+                yield dict(d)
+        else:
+            yield dict(self)
     def _doc_finder(self,stream):
         #first find the stream of the document start
         startpos=0

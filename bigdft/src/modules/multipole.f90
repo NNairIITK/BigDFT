@@ -5411,7 +5411,7 @@ end subroutine calculate_rpowerx_matrices
     real(kind=8),parameter :: min_distance = 2.0d0
 !!$    logical,dimension(:,:,:),allocatable :: is_close
 
-    call f_routine(id='compare_charge_and_potential')
+    call f_routine(id='estimate_system_volume_from_density')
 
 !!$    ! Determine the grid points which are farther away from the atoms than the minimal distance
 !!$    is_close = f_malloc((/0.to.kernel%ndims(1)-31-1,0.to.kernel%ndims(2)-31-1,is3.to.ie3/),id='is_close')

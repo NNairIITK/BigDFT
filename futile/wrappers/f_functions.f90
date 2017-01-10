@@ -186,9 +186,9 @@ module f_functions
       f=safe_exp(-r2) !<checked
       select case(idiff)
       case(1)
-         f=-2.d0*a*x*f !<checked
+         f=-2.0_f_double*a*x*f !<checked
       case(2)
-         f=(-2.d0*a+4.d0*a*r2)*f !<checked
+         f=(-2.0_f_double*a+4.0_f_double*a*r2)*f !<checked
       end select
     end function gaussian
 

@@ -4195,7 +4195,7 @@ subroutine writemyproj(filename,iformat,orbs,hx,hy,hz,at,rxyz,nl)
                          & nl%pspd(iat)%plr%wfd%keyglob, &
                          & nl%pspd(iat)%plr%wfd%keyvglob, &
                          & mbseg_f, mbvctr_f, &
-                         & nl%pspd(iat)%plr%wfd%keyglob(1,mbseg_c+1:), &
+                         & nl%pspd(iat)%plr%wfd%keyglob(1:,mbseg_c+1:), &
                          & nl%pspd(iat)%plr%wfd%keyvglob(mbseg_c+1:), &
                          & nl%proj(istart:), nl%proj(istart + mbvctr_c:), &
                          & UNINITIALIZED(1._wp))

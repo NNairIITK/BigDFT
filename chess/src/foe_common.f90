@@ -2510,9 +2510,9 @@ module foe_common
       ! Local variables
       integer :: ilshift, i, jspin, imshift
       real(mp),dimension(:),allocatable :: max_error, x_max_error, mean_error
-      real(mp) :: anoise
+      real(mp) :: anoise, tt
       real(kind=mp),dimension(:,:,:),pointer :: cc_
-      logical,dimension(2) :: eval_bounds_ok, eval_bounds_ok_allspins
+      logical,dimension(2) :: eval_bounds_ok, eval_bounds_ok_allspins, scale_matrix
       type(matrices) :: ham_scaled
 
       call f_routine(id='get_bounds_and_polynomials')
@@ -2564,6 +2564,7 @@ module foe_common
           call yaml_map('beta for penaltyfunction',foe_data_get_real(foe_obj,"betax"),fmt='(f7.1)')
           call yaml_sequence_open('determine eigenvalue bounds')
       end if
+      scale_matrix(1:2) = .false.
       bounds_loop: do
           eval_bounds_ok_allspins(:) = .true.
           if (do_scaling) then
@@ -2659,7 +2660,15 @@ module foe_common
                   !!eval_multiplicator = 2.0d0
                   call foe_data_set_real(foe_obj,"evlow",foe_data_get_real(foe_obj,"evlow",1)*bounds_factor_low,1)
                   if (do_scaling) then
-                      eval_multiplicator = scaling_factor_low
+                      ! Scale by a smaller amount if there are oscillations
+                      if (.not.scale_matrix(2)) then
+                          tt = scaling_factor_low
+                      else
+                          tt = 0.5_mp*(1.0_mp+scaling_factor_low)
+                      end if
+                      eval_multiplicator = tt
+                      scale_matrix(1) = .true.
+                      scale_matrix(2) = .false.
                   end if
               else if (.not.eval_bounds_ok_allspins(2)) then
                   ! upper bound not ok
@@ -2667,7 +2676,15 @@ module foe_common
                   !!eval_multiplicator = 1.d0/2.0d0
                   call foe_data_set_real(foe_obj,"evhigh",foe_data_get_real(foe_obj,"evhigh",1)*bounds_factor_up,1)
                   if (do_scaling) then
-                      eval_multiplicator = scaling_factor_up
+                      ! Scale by a smaller amount if there are oscillations
+                      if (.not.scale_matrix(1)) then
+                          tt = scaling_factor_up
+                      else
+                          tt = 0.5_mp*(1.0_mp+scaling_factor_up)
+                      end if
+                      eval_multiplicator = tt
+                      scale_matrix(2) = .true.
+                      scale_matrix(1) = .false.
                   end if
               end if
           end if
