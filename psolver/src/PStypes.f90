@@ -380,6 +380,8 @@ contains
     k%minres=0.0_dp
     k%minres_PB=0.0_dp
     k%radii_set=0
+    k%IntVol=0.0_dp
+    k%IntSur=0.0_dp
     nullify(k%radii_dict)
     nullify(k%counts)
     nullify(k%displs)
