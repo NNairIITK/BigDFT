@@ -844,6 +844,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               call local_hamiltonian_ket(psi_it,Lzd%hgrids,ipotmethod,xc,&
                    pkernelSIC,wrk_lh,psir,vsicpsir,hpsi_ptr,pot,eSIC_DCi,SIC%alpha,epot,ekin)
               energs%ekin=energs%ekin+fi*ekin
+!!if(iproc==0)then
+!!write(*,'(a,3(x,es14.7))')'Ekin per orbital',fi,ekin,fi*ekin
+!!endif
               energs%epot=energs%epot+fi*epot
               energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
               !print *,'test',psi_it%iorb,sum(hpsi_ptr)

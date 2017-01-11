@@ -42,11 +42,13 @@ subroutine init_fingerprint(inputs,nat,geocode,nid,fp)
     integer, intent(in) :: nat
     character(len=*), intent(in) :: geocode
     integer, intent(out) :: nid   
-    real(gp), allocatable, intent(out) :: fp(:) !the fingerprint array
+    real(gp), allocatable, intent(out), optional :: fp(:) !the fingerprint array
     !internal
 
+    if(present(fp))then
     if(allocated(fp))then
         call f_err_throw('Array fp is already allocated.')
+    endif
     endif
 
     select case(trim(f_char(inputs%fp_method)))
@@ -56,25 +58,25 @@ subroutine init_fingerprint(inputs,nat,geocode,nid,fp)
 !!          call yaml_warning('geocode /= F but a fingerprint (OMF) for free BC is used')
         endif
         nid=inputs%fp_angmom*nat
-        fp = f_malloc((/ 1.to.nid/),id='fp')
+        if(present(fp))fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMP_FP_METHOD')
         if(geocode/='P' .and. geocode/='S')then
           call f_err_throw('geocode /= P or S but a fingerprint (OMP) for periodic BC is used')
         endif
         nid=inputs%fp_angmom*inputs%fp_natx_sphere*nat
-        fp = f_malloc((/ 1.to.nid/),id='fp')
+        if(present(fp))fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMPOLD_FP_METHOD')
         if(geocode/='P')then
           call f_err_throw('geocode /= P but a fingerprint (OMPOLD) for periodic BC is used')
         endif
         nid=inputs%fp_angmom*nat
-        fp = f_malloc((/ 1.to.nid/),id='fp')
+        if(present(fp))fp = f_malloc((/ 1.to.nid/),id='fp')
       case('OMSOLD_FP_METHOD')
         if(geocode/='S')then
           call f_err_throw('geocode /= S but a fingerprint (OMSOLD) for slab BC is used')
         endif
         nid=inputs%fp_angmom*nat
-        fp = f_malloc((/ 1.to.nid/),id='fp')
+        if(present(fp))fp = f_malloc((/ 1.to.nid/),id='fp')
       case DEFAULT
         call f_err_throw('Following FP method is unknown: '//trim(f_char(inputs%fp_method)))
     end select
