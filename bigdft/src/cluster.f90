@@ -1738,7 +1738,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   !temporary variables for PAPI computation
   ! real(kind=4) :: rtime, ptime,  mflops
   ! integer(kind=8) ::flpops
-
+  call f_routine(id=subname)
 !  !start PAPI counting
 !  if (iproc==0) call PAPIF_flops(rtime, ptime, flpops, mflops,ierr)
 
@@ -2126,6 +2126,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   ! Clean denspot parts only needed in the SCF loop.
   call denspot_free_history(denspot)
 
+  call f_release_routine()
 END SUBROUTINE kswfn_optimization_loop
 
 
