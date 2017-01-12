@@ -404,6 +404,24 @@ module foe
                       call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_work(is+1:),  &
                            ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
                            matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
+                      if (symmetrize_kernel) then
+                          call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
+                          call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
+                      end if
+                      sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                             ovrlp_%matrix_compr(isshift+1:), &
+                             kernel_%matrix_compr(ilshift+1:))
+                      sumn_allspins(ispin) = sumn
+                      !!ebsp = trace_sparse_matrix_product(iproc, nproc, comm, smatl, smatl, &
+                      !!       hamscal_compr(ilshift+1:), &
+                      !!       kernel_%matrix_compr(ilshift+1:))
+                      ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
+                      istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+                      ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+                      !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
+                      !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
+                      !ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+                      !ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
                       !!write(*,*) 'before second compress, iproc, sum(kernelpp_work(is+1:))',iproc,sum(kernelpp_work(is+1:))
                       !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
                       !!     kernelpp_work(is+1:), ONESIDED_GATHER, kernel_%matrix_compr(ilshift+1:), &
@@ -422,26 +440,28 @@ module foe
                       !!write(*,*) 'BEFORE SYM, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
                       ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
                       if (symmetrize_kernel) then
-                          call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
-                          call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
+                          !!call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
+                          !!call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
                           call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
                           call symmetrize_matrix(smatl, 'plus', kernel_tmp, fermi_check_compr, ispinx=ispin)
                       end if
                       !!write(*,*) 'AFTER SYM, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
 
-                      call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
+                      !!call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
 
                       !@NEW ##########################
-                      sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
-                             ovrlp_%matrix_compr(isshift+1:), &
-                             kernel_%matrix_compr(ilshift+1:))
-                      !!write(*,*) 'ispin, sumn, sum(K)', ispin, sumn, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
+                      !!sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                      !!       ovrlp_%matrix_compr(isshift+1:), &
+                      !!       kernel_%matrix_compr(ilshift+1:))
+                      !!!!write(*,*) 'ispin, sumn, sum(K)', ispin, sumn, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
                       sumn_check = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
                                    ovrlp_%matrix_compr(isshift+1:), &
                                    fermi_check_compr(ilshift+1:))
                       !write(*,*) 'sumn, sumn_check', sumn, sumn_check
                       !write(*,*) 'fermi_check_compr',fermi_check_compr
                       !@ENDNEW #######################
+                      ! Calculate trace(KS).
+                      !!sumn_allspins(ispin) = sumn
 
 
                       ! Calculate trace(KH). Since they have the same sparsity pattern and K is
@@ -452,7 +472,7 @@ module foe
                       !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
                       !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
                       !ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
-                      ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+                      !!ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
                       !!write(*,*) 'ispin, sum(kernel_%matrix_compr), sum(hamscal_compr)', &
                       !!    sum(kernel_%matrix_compr), sum(hamscal_compr)
                       !write(*,*) 'ebsp',ebsp
@@ -486,11 +506,11 @@ module foe
                       ebsp_allspins = ebsp_allspins + ebsp
                       ebs_check_allspins = ebs_check_allspins + ebs_check
 
-                      ! Calculate trace(KS).
-                      sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
-                             ovrlp_%matrix_compr(isshift+1:), &
-                             kernel_%matrix_compr(ilshift+1:))
-                      sumn_allspins(ispin) = sumn
+                      !!! Calculate trace(KS).
+                      !!sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                      !!       ovrlp_%matrix_compr(isshift+1:), &
+                      !!       kernel_%matrix_compr(ilshift+1:))
+                      !!sumn_allspins(ispin) = sumn
 
                   end do spin_loop
 

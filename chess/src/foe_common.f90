@@ -2083,9 +2083,9 @@ module foe_common
                           end if
 
                           ilshift=(jspin-1)*smatl%nvctrp_tg
-                          call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                               fermi_small_new(:,jspin), ONESIDED_POST, &
-                               kernel_%matrix_compr(ilshift+1:), windowsx=windowsx)
+                          !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                          !!     fermi_small_new(:,jspin), ONESIDED_POST, &
+                          !!     kernel_%matrix_compr(ilshift+1:), windowsx=windowsx)
 
                           !call timing(iproc, 'FOE_auxiliary ', 'ON')
                           call f_timing(TCAT_CME_AUXILIARY,'ON')
@@ -2192,8 +2192,11 @@ module foe_common
             
          do jspin=1,smatl%nspin
              ilshift=(jspin-1)*smatl%nvctrp_tg
+             !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+             !!     fermi_small_new(:,jspin), ONESIDED_GATHER, &
+             !!     kernel_%matrix_compr(ilshift+1:), windowsx=windowsx)
              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                  fermi_small_new(:,jspin), ONESIDED_GATHER, &
+                  fermi_small_new(:,jspin), ONESIDED_FULL, &
                   kernel_%matrix_compr(ilshift+1:), windowsx=windowsx)
              !!tt = 0.d0
              !!do i=1,smatl%nfvctr

@@ -960,7 +960,7 @@ module sparsematrix
                  call f_err_throw('size(windowsx)='//trim(yaml_toa(size(windowsx))) //&
                       &' /= smat%ntaskgroup='//trim(yaml_toa(smat%ntaskgroup)))
              end if
-             !!write(*,*) 'windwos is present, iproc', iproc
+             !!!!write(*,*) 'windwos is present, iproc', iproc
              windows => windowsx
          end if
      case (ONESIDED_FULL)
