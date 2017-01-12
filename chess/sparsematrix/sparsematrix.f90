@@ -694,15 +694,18 @@ module sparsematrix
 
 
 
-   subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, &
+              onesided_action, matrix_compr, matrix_localx, windowsx)
      use dynamic_memory
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
+     integer,intent(in) :: iproc, nproc, layout, onesided_action
      type(sparse_matrix),intent(in) :: smat
      real(kind=mp),dimension(:),target,intent(in) :: matrixp
      real(kind=mp),dimension(smat%nvctrp_tg),intent(out) :: matrix_compr
+     real(kind=mp),dimension(:),intent(inout),target,optional :: matrix_localx
+     integer,dimension(:),intent(inout),optional :: windowsx
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -739,7 +742,22 @@ module sparsematrix
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
          end if
-         matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
+         select case (onesided_action)
+         case (ONESIDED_POST,ONESIDED_GATHER)
+             if (.not.present(matrix_localx)) then
+                 call f_err_throw('matrix_localx not present')
+             end if
+             if (size(matrix_localx)/=max(smat%smmm%nvctrp_mm,1)) then
+                 call f_err_throw('Array matrix_localx has size '//trim(yaml_toa(size(matrix_localx),fmt='(i0)'))//&
+                      &' instead of '//trim(yaml_toa(max(1,smat%smmm%nvctrp_mm),fmt='(i0)')), &
+                      err_name='SPARSEMATRIX_MANIPULATION_ERROR')
+             end if
+             matrix_local => matrix_localx
+         case (ONESIDED_FULL)
+             matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
+         case default
+             call f_err_throw('wronf value for onesided_action')
+         end select
          call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
               smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
               smat%smmm%nvctrp, smat%smmm%isvctr, &
@@ -753,10 +771,18 @@ module sparsematrix
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
      end if
 
-     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
+     if (present(windowsx)) then
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+              matrix_local, onesided_action, matrix_compr, windowsx)
+     else
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+              matrix_local, onesided_action, matrix_compr)
+     end if
 
      if (layout==SPARSE_MATMUL_LARGE) then
-         call f_free_ptr(matrix_local)
+         if (onesided_action==ONESIDED_FULL) then
+             call f_free_ptr(matrix_local)
+         end if
      end if
 
      !!call timing(iproc,'compressd_comm_new','OF')
@@ -766,16 +792,19 @@ module sparsematrix
   end subroutine compress_matrix_distributed_wrapper_1
 
 
-   subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, &
+              onesided_action, matrix_compr, matrix_localx, windowsx)
      !!use yaml_output
      use dynamic_memory
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
+     integer,intent(in) :: iproc, nproc, layout, onesided_action
      type(sparse_matrix),intent(in) :: smat
      real(kind=mp),dimension(:,:),intent(in) :: matrixp
-     real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     real(kind=mp),dimension(smat%nvctrp_tg),intent(out) :: matrix_compr
+     real(kind=mp),dimension(:),intent(inout),target,optional :: matrix_localx
+     integer,dimension(:),intent(inout),optional :: windowsx
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -783,7 +812,6 @@ module sparsematrix
      integer :: jproc_send, iorb, jproc
      !integer :: window
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
-     integer,dimension(:),allocatable :: request, windows
      real(kind=mp),dimension(:),pointer :: matrix_local
      real(kind=mp),dimension(:),allocatable :: recvbuf
 
@@ -867,7 +895,18 @@ module sparsematrix
      !call timing(iproc,'compressd_mcpy','OF')
      call f_timing(TCAT_SMAT_COMPRESSION,'OF')
 
-     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, matrix_local, matrix_compr)
+     if (onesided_action/=ONESIDED_FULL) then
+         ! For the other cases I have to pass a proper workarray matrix_local
+         call f_err_throw('compress_matrix_distributed_wrapper_2 not yet functional for onesided_action/=ONESIDED_FULL')
+     end if
+
+     if (present(windowsx)) then
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, &
+              matrix_local, onesided_action, matrix_compr, windowsx)
+     else
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, &
+              matrix_local, onesided_action, matrix_compr)
+     end if
      call f_free_ptr(matrix_local)
      !@ END NEW #################
 
@@ -880,16 +919,18 @@ module sparsematrix
    !> Gathers together the matrix parts calculated by other tasks.
    !! Attention: Even if the output array has size smat%nvctrp_tg, only the
    !! relevant part (indicated by smat%istartend_local) is calculated
-  subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
+  subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, &
+             onesided_action, matrix_compr, windowsx)
     use dynamic_memory
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
+     integer,intent(in) :: iproc, nproc, layout, onesided_action
      type(sparse_matrix),intent(in) :: smat
      !real(kind=mp),dimension(smat%smmm%nvctrp_mm),intent(in) :: matrixp
      real(kind=mp),dimension(:),intent(in) :: matrixp
      real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     integer,dimension(:),intent(inout),target,optional :: windowsx
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -897,7 +938,7 @@ module sparsematrix
      integer :: window, sizeof, jproc_send, iorb, jproc, info, nccomm
      real(kind=mp) :: window_fake
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
-     integer,dimension(:),allocatable :: request, windows
+     integer,dimension(:),pointer :: windows
      real(kind=mp),dimension(:),pointer :: matrix_local
      real(kind=mp),dimension(:),allocatable :: recvbuf
      integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
@@ -909,6 +950,27 @@ module sparsematrix
 
      !call timing(iproc,'compressd_mcpy','ON')
      call f_timing(TCAT_SMAT_COMPRESSION,'ON')
+
+     ! Check the arguments
+     select case (onesided_action)
+     case (ONESIDED_POST,ONESIDED_GATHER)
+         if (.not.present(windowsx)) call f_err_throw('windowsx not present')
+         if (nproc>1) then
+             if (size(windowsx)/=smat%ntaskgroup) then
+                 call f_err_throw('size(windowsx)='//trim(yaml_toa(size(windowsx))) //&
+                      &' /= smat%ntaskgroup='//trim(yaml_toa(smat%ntaskgroup)))
+             end if
+             !!write(*,*) 'windwos is present, iproc', iproc
+             windows => windowsx
+         end if
+     case (ONESIDED_FULL)
+         if (nproc>1) then
+             ! Create a window for all taskgroups to which iproc belongs (max 2)
+             windows = f_malloc_ptr(smat%ntaskgroup,id='windows')
+         end if
+     case default
+         call f_err_throw('wrong value for onesided_action')
+     end select
 
 
      if (data_strategy==GLOBAL_MATRIX) then
@@ -941,50 +1003,59 @@ module sparsematrix
              !call timing(iproc,'compressd_comm','ON')
              call f_timing(TCAT_SMAT_COMPRESSION_COMMUNICATION,'ON')
 
-             if (nproc>1) then
-                call f_zero(matrix_compr)
+             if (onesided_action==ONESIDED_POST .or. onesided_action==ONESIDED_FULL) then
+                 if (nproc>1) then
+                    call f_zero(matrix_compr)
 
-                 ! Create a window for all taskgroups to which iproc belongs (max 2)
-                 windows = f_malloc(smat%ntaskgroup,id='windows')
-                 do itg=1,smat%ntaskgroupp
-                     iitg = smat%taskgroupid(itg)
-                     ! Use a fake window if nvctrp is zero
-                     if (nvctrp>0) then
-                         windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
-                     else
-                         windows(iitg) = mpiwindow(1, window_fake, smat%mpi_groups(iitg)%mpi_comm)
-                     end if
-                 end do
-                 do jproc=1,nccomm
-                     jproc_send = luccomm(1,jproc)
-                     ist_send = luccomm(2,jproc)
-                     ist_recv = luccomm(3,jproc)
-                     ncount = luccomm(4,jproc)
-                     !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
-                     iitg = get_taskgroup_id(iproc,jproc_send)
-                     ! Now get the task ID on the taskgroup (subtract the ID of the first task)
-                     !jproc_send = jproc_send - smat%isrank(iitg)
-                     ii = jproc_send
-                     jproc_send = get_rank_on_taskgroup(ii,iitg)
-                     !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
-                     !write(*,'(3(a,i0))') 'task ',iproc,' gets data from task ',jproc_send,' on window ',iitg
-                     call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), windows(iitg))
-                 end do
-             else
-                 ist_send = luccomm(2,1)
-                 ist_recv = luccomm(3,1)
-                 ncount = luccomm(4,1)
-                 call vcopy(ncount, matrixp(ist_send), 1, matrix_compr(ist_recv), 1)
+                     !!! Create a window for all taskgroups to which iproc belongs (max 2)
+                     !!windows = f_malloc(smat%ntaskgroup,id='windows')
+                     do itg=1,smat%ntaskgroupp
+                         iitg = smat%taskgroupid(itg)
+                         ! Use a fake window if nvctrp is zero
+                         if (nvctrp>0) then
+                             windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
+                         else
+                             windows(iitg) = mpiwindow(1, window_fake, smat%mpi_groups(iitg)%mpi_comm)
+                         end if
+                     end do
+                     do jproc=1,nccomm
+                         jproc_send = luccomm(1,jproc)
+                         ist_send = luccomm(2,jproc)
+                         ist_recv = luccomm(3,jproc)
+                         ncount = luccomm(4,jproc)
+                         !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
+                         iitg = get_taskgroup_id(iproc,jproc_send)
+                         ! Now get the task ID on the taskgroup (subtract the ID of the first task)
+                         !jproc_send = jproc_send - smat%isrank(iitg)
+                         ii = jproc_send
+                         jproc_send = get_rank_on_taskgroup(ii,iitg)
+                         !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
+                         !!write(*,'(6(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv, &
+                         !!                     ' from task ',jproc_send,' with offset ',ist_send-1,' on window ',iitg
+                         call mpiget(matrix_compr(ist_recv), ncount, jproc_send, &
+                              int(ist_send-1,kind=mpi_address_kind), windows(iitg))
+                     end do
+                 else
+                     ist_send = luccomm(2,1)
+                     ist_recv = luccomm(3,1)
+                     ncount = luccomm(4,1)
+                     call vcopy(ncount, matrixp(ist_send), 1, matrix_compr(ist_recv), 1)
+                 end if
              end if
 
-             if (nproc>1) then
-                 ! Synchronize the communication
-                 do itg=1,smat%ntaskgroupp
-                     iitg = smat%taskgroupid(itg)
-                     call mpi_fenceandfree(windows(iitg))
-                 end do
-                 call f_free(windows)
-                 !call mpi_fenceandfree(window)
+             if (onesided_action==ONESIDED_GATHER .or. onesided_action==ONESIDED_FULL) then
+                 if (nproc>1) then
+                     ! Synchronize the communication
+                     do itg=1,smat%ntaskgroupp
+                         iitg = smat%taskgroupid(itg)
+                         !!write(*,'(a,i0,a)') 'task ',iproc,' calls fence'
+                         call mpi_fenceandfree(windows(iitg))
+                     end do
+                     if (onesided_action==ONESIDED_FULL) then
+                         call f_free_ptr(windows)
+                     end if
+                     !call mpi_fenceandfree(window)
+                 end if
              end if
 
              !!call f_free_ptr(matrix_local)
@@ -1918,7 +1989,7 @@ module sparsematrix
       end if
       call sparsemm_new(iproc, smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
-           c_exp, c)
+           c_exp, ONESIDED_FULL, c)
 
       call f_free(b_exp)
       call f_free(c_exp)

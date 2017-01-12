@@ -573,7 +573,7 @@ module matrix_operations
                         call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, layout=DENSE_PARALLEL, &
                              matrixp=&
                                inv_ovrlp_local(1:,inv_ovrlp_smat%isfvctr+1:inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp,ispin), &
-                             matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(ishift2+1:))
+                             onesided_action=ONESIDED_FULL, matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(ishift2+1:))
                     end do
                 end do
                 call f_free_ptr(ovrlp_local)
@@ -650,7 +650,7 @@ module matrix_operations
                     !call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                     !     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                     call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
-                         Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
+                         Amat21p_new, ONESIDED_FULL, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                     !!write(*,*) 'after compr, sum(Amat21_compr)', sum(Amat21_compr)
                     !call timing(iproc,'lovrlp^-1     ','ON')
                     call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
@@ -706,7 +706,7 @@ module matrix_operations
                             !!     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                             !!write(*,*) 'sum(Amat21p_new)',sum(Amat21p_new)
                             call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
-                                 Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
+                                 Amat21p_new, ONESIDED_FULL, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
                         end if
@@ -719,7 +719,7 @@ module matrix_operations
                             !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                             !!     Amat12p, Amat12_compr)
                             call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
-                                 Amat12p_new, Amat12_compr)
+                                 Amat12p_new, ONESIDED_FULL, Amat12_compr)
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
                         end if
@@ -737,7 +737,7 @@ module matrix_operations
                         !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p, &
                         !!     inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
                         call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, Amat12p_new, &
-                             inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
+                             ONESIDED_FULL, inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
                         !call timing(iproc,'lovrlp^-1     ','ON')
                         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
                     !else if (power(1)==2) then
@@ -904,7 +904,7 @@ module matrix_operations
                             !!     inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                             call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                                  SPARSE_MATMUL_LARGE, invovrlpp_arr_new(1:,icalc), &
-                                 inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
+                                 ONESIDED_FULL, inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                             !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'inv_mat, inv_compr', invovrlpp_arr_new(1,icalc), inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1)
                         end do
                         !call timing(iproc,'lovrlp^-1     ','ON')

@@ -1011,7 +1011,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use constrained_dft
   use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc_ptr, DENSE_PARALLEL, SPARSE_FULL, &
                                assignment(=), deallocate_sparse_matrix, deallocate_matrices, DENSE_FULL, &
-                               SPARSE_TASKGROUP
+                               SPARSE_TASKGROUP, ONESIDED_FULL
   use sparsematrix, only: compress_matrix_distributed_wrapper, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix
@@ -1160,7 +1160,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          call uncompress_matrix_distributed2(iproc, tmb_old%linmat%l, DENSE_PARALLEL, &
               tmb_old%linmat%kernel_%matrix_compr(ishift+1:), kernelp)
          call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
-              kernelp, tmb%linmat%kernel_%matrix_compr(ishift+1:))
+              kernelp, ONESIDED_FULL, tmb%linmat%kernel_%matrix_compr(ishift+1:))
       end do
       call f_free(kernelp)
   end if
@@ -1410,7 +1410,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
           !                       iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
 
           call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
-               ovrlpp, ovrlp_old%matrix_compr(ishift+1:))
+               ovrlpp, ONESIDED_FULL, ovrlp_old%matrix_compr(ishift+1:))
 
        end do
 

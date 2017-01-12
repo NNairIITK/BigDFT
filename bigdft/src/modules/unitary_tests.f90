@@ -863,7 +863,7 @@ module unitary_tests
        use yaml_output
        use communications_base, only: comms_linear, TRANSPOSE_FULL
        use communications, only: transpose_localized, untranspose_localized
-       use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL
+       use sparsematrix_base, only : sparse_matrix, matrices, DENSE_PARALLEL, ONESIDED_FULL
        use sparsematrix, only : compress_matrix_distributed_wrapper, gather_matrix_from_taskgroups_inplace
        use transposed_operations, only: calculate_overlap_transposed
        use locregs, only: check_overlap_cubic_periodic
@@ -1124,7 +1124,7 @@ module unitary_tests
                    !ist=(ispin-1)*smat%nvctr+smat%isvctrp_tg+1
                    ist=(ispin-1)*smat%nvctrp_tg+smat%isvctrp_tg+1
                    call compress_matrix_distributed_wrapper(iproc, nproc, smat, DENSE_PARALLEL, &
-                        matp, mat_compr(ist:))
+                        matp, ONESIDED_FULL, mat_compr(ist:))
                end do
                maxdiff=0.d0
                call f_free(psiig)

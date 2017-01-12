@@ -2712,7 +2712,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   use module_types
   use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
                                SPARSE_FULL, DENSE_FULL, DENSE_MATMUL, SPARSEMM_SEQ, &
-                               matrices
+                               matrices, ONESIDED_FULL, ONESIDED_POST, ONESIDED_GATHER
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
   use matrix_operations, only: overlapPowerGeneral, check_taylor_order
@@ -2733,16 +2733,26 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
   integer,dimension(3) :: power
   integer :: ispin, ilshift
+  integer,dimension(:),allocatable :: windowsx1, windowsx2
+  real(kind=8),dimension(:),allocatable :: kernelpp_work1, kernelpp_work2
+  real(kind=8),dimension(:),pointer :: matrix_local1
 
   call f_routine(id='renormalize_kernel')
+
+  windowsx1 = f_malloc(tmb%linmat%l%ntaskgroup,id='windowsx1')
+  !windowsx2 = f_malloc(tmb%linmat%l%ntaskgroup,id='windowsx2')
+  kernelpp_work1 = f_malloc(tmb%linmat%l%smmm%nvctrp*tmb%linmat%l%nspin,id='kernelpp_work1')
+  !kernelpp_work2 = f_malloc(tmb%linmat%l%smmm%nvctrp*tmb%linmat%l%nspin,id='kernelpp_work2')
+  matrix_local1 = f_malloc_ptr(max(1,tmb%linmat%l%smmm%nvctrp_mm),id='matrix_local1')
 
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
   ! calculated in the last call to this routine or (it it is the first call)
   ! just before the call.
   do ispin=1,tmb%linmat%l%nspin
       ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
-      call retransform_ext(iproc, nproc, tmb%linmat%l, &
-           tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+      call retransform_ext(iproc, nproc, tmb%linmat%l, ONESIDED_POST, kernelpp_work1, &
+           tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:), &
+           matrix_localx=matrix_local1, windowsx=windowsx1)
   end do
 
   ! Calculate S^1/2 for the overlap matrix
@@ -2756,12 +2766,26 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
        ice_obj=tmb%ice_obj)
   call check_taylor_order(iproc, mean_error, max_inversion_error, order_taylor)
 
+  do ispin=1,tmb%linmat%l%nspin
+      ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
+      call retransform_ext(iproc, nproc, tmb%linmat%l, ONESIDED_GATHER, kernelpp_work1, &
+           tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:), &
+           matrix_localx=matrix_local1, windowsx=windowsx1)
+  end do
+
   ! Calculate S^-1/2 * K * S^-1/2
   do ispin=1,tmb%linmat%l%nspin
       ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
-      call retransform_ext(iproc, nproc, tmb%linmat%l, &
-           tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:))
+      call retransform_ext(iproc, nproc, tmb%linmat%l, ONESIDED_FULL, kernelpp_work1, &
+           tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:), &
+           windowsx=windowsx1)
   end do
+
+  call f_free(windowsx1)
+  !call f_free(windowsx2)
+  call f_free(kernelpp_work1)
+  !call f_free(kernelpp_work2)
+  call f_free_ptr(matrix_local1)
 
   call f_release_routine()
 

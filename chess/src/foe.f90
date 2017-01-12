@@ -115,7 +115,9 @@ module foe
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new
-      integer :: npl_min
+      real(kind=mp),dimension(:),allocatable :: kernelpp_work, kernelpp_check_work
+      real(kind=mp),dimension(:),allocatable :: matrix_local, matrix_local_check
+      integer :: npl_min, is
       !real(kind=mp),dimension(2) :: fscale_ispin
       real(kind=mp),dimension(1) :: fscale_arr
       real(mp) :: ebs_check_allspins
@@ -123,10 +125,19 @@ module foe
       !!integer,parameter :: NPL_MAX = 10000
       !!integer,parameter :: NPL_STRIDE = 10
       integer :: npl_max, npl_stride
+      integer,dimension(:,:),allocatable :: windowsx_kernel, windowsx_kernel_check
 
 
 
       call f_routine(id='fermi_operator_expansion_new')
+
+      windowsx_kernel = f_malloc((/smatl%ntaskgroup,smatl%nspin/),id='windowsx_kernel')
+      windowsx_kernel_check = f_malloc((/smatl%ntaskgroup,smatl%nspin/),id='windowsx_kernel_check')
+      kernelpp_work = f_malloc(smatl%smmm%nvctrp*smatl%nspin,id='kernelpp_work')
+      kernelpp_check_work = f_malloc(smatl%smmm%nvctrp*smatl%nspin,id='kernelpp_check_work')
+      matrix_local = f_malloc(max(1,smatl%smmm%nvctrp_mm),id='matrix_local')
+      matrix_local_check = f_malloc(max(1,smatl%smmm%nvctrp_mm),id='matrix_local_check')
+
 
       if (.not.smatl%smatmul_initialized) then
           call f_err_throw('sparse matrix multiplication not initialized', &
@@ -305,6 +316,22 @@ module foe
                   call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                        foe_verbosity, 'test', smatl, 1, foe_obj, kernel_, calculate_spin_channels)
 
+                  do ispin=1,smatl%nspin
+                      if (.not.(calculate_spin_channels(ispin))) cycle
+                      ilshift=(ispin-1)*smatl%nvctrp_tg
+                      is=(ispin-1)*smatl%smmm%nvctrp
+                      !!write(*,*) 'calling first retransform_ext, iproc', iproc
+                      !!write(*,*) 'BEFORE FIRST: iproc, windowsx_kernel(:,ispin)', iproc, windowsx_kernel(:,ispin)
+                      call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_work(is+1:),  &
+                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
+                           matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
+                      !!write(*,*) 'before first compress, iproc, sum(kernelpp_work(is+1:))',iproc,sum(kernelpp_work(is+1:))
+                      !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+                      !!     kernelpp_work(is+1:), ONESIDED_POST, kernel_%matrix_compr(ilshift+1:), &
+                      !!     matrix_localx=matrix_local, windowsx=windowsx_kernel_check(:,ispin))
+                      !!write(*,*) 'AFTER FIRST: iproc, windowsx_kernel(:,ispin)', iproc, windowsx_kernel(:,ispin)
+                  end do
+
                   !npl_check = nint(real(npl,kind=mp)/CHECK_RATIO)
                   npl_check = npl
                   cc_check = f_malloc0((/npl_check,1,3/),id='cc_check')
@@ -338,6 +365,7 @@ module foe
                       !fscale_new = fscale_newx
                       !call foe_data_set_real(foe_obj,"fscale",fscale_new)
 
+                      is=(ispin-1)*smatl%smmm%nvctrp
                       isshift=(ispin-1)*smats%nvctrp_tg
                       imshift=(ispin-1)*smatm%nvctrp_tg
                       ilshift=(ispin-1)*smatl%nvctrp_tg
@@ -352,7 +380,16 @@ module foe
                       !!call f_free(cc)
 
                       call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                           fermi_check_new, fermi_check_compr(ilshift+1:))
+                           fermi_check_new, ONESIDED_FULL, fermi_check_compr(ilshift+1:))
+                      !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                      !!     fermi_check_new, ONESIDED_POST, fermi_check_compr(ilshift+1:), windowsx_kernel_check(:,ispin))
+                      !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                      !!     fermi_check_new, ONESIDED_GATHER, fermi_check_compr(ilshift+1:), windowsx_kernel_check(:,ispin))
+
+                      call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_check_work(is+1:),  &
+                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
+                           matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
+
                       ! Calculate S^-1/2 * K * S^-1/2^T
                       ! Since S^-1/2 is symmetric, don't use the transpose
                       istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
@@ -360,13 +397,26 @@ module foe
                       !!write(*,*) 'BEFORE RET, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
                       !!write(*,*) 'BEFORE RET, ispin, sum(S-)', &
                       !!    ispin, sum(ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
-                      call retransform_ext(iproc, nproc, smatl, &
-                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:))
+                      !!call retransform_ext(iproc, nproc, smatl, &
+                      !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:))
+                      !!write(*,*) 'calling second retransform_ext, iproc', iproc
+                      !!write(*,*) 'BEFORE SECOND: iproc, windowsx_kernel(:,ispin)', iproc, windowsx_kernel(:,ispin)
+                      call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_work(is+1:),  &
+                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
+                           matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
+                      !!write(*,*) 'before second compress, iproc, sum(kernelpp_work(is+1:))',iproc,sum(kernelpp_work(is+1:))
+                      !!call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+                      !!     kernelpp_work(is+1:), ONESIDED_GATHER, kernel_%matrix_compr(ilshift+1:), &
+                      !!     matrix_localx=matrix_local, windowsx=windowsx_kernel_check(:,ispin))
+                      !!write(*,*) 'AFTER SECOND: iproc, windowsx_kernel(:,ispin)', iproc, windowsx_kernel(:,ispin)
                       !write(*,*) 'after kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
                       !!write(*,*) 'AFTER RET, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
 
-                      call retransform_ext(iproc, nproc, smatl, &
-                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
+                      !!call retransform_ext(iproc, nproc, smatl, &
+                      !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:))
+                      call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_check_work(is+1:), &
+                           ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
+                           matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
                       call max_asymmetry_of_matrix(iproc, nproc, comm, &
                            smatl, kernel_%matrix_compr(ilshift+1:), asymm_K)!, ispinx=ispin)
                       !!write(*,*) 'BEFORE SYM, ispin, sum(K)', ispin, sum(kernel_%matrix_compr(ilshift+1:ilshift+smatl%nvctr))
@@ -582,20 +632,35 @@ module foe
                       cc_check(ipl,1,3)=2.d0*cc_check(ipl,1,3)
                   end do
               end if
-              call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
-                   smatl%nfvctr, smatl%smmm%nfvctrp, &
-                   smatl, chebyshev_polynomials, 1, cc_check, fermi_check_new)
-              !!call f_free(cc)
-              call f_free(cc_check)
+              do ispin=1,smatl%nspin
 
-              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                   fermi_check_new, energy_kernel_%matrix_compr(ilshift+1:))
-              ! Calculate S^-1/2 * K * S^-1/2^T
-              ! Since S^-1/2 is symmetric, don't use the transpose
-              istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+                  if (.not.(calculate_spin_channels(ispin))) cycle
 
-              call retransform_ext(iproc, nproc, smatl, &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:))
+                  !fscale_new = fscale_newx
+                  !call foe_data_set_real(foe_obj,"fscale",fscale_new)
+
+                  is=(ispin-1)*smatl%smmm%nvctrp
+                  isshift=(ispin-1)*smats%nvctrp_tg
+                  imshift=(ispin-1)*smatm%nvctrp_tg
+                  ilshift=(ispin-1)*smatl%nvctrp_tg
+                  call chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
+                       smatl%nfvctr, smatl%smmm%nfvctrp, &
+                       smatl, chebyshev_polynomials(:,:,ispin), 1, cc_check, fermi_check_new)
+                  !!call f_free(cc)
+                  call f_free(cc_check)
+
+                  call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                       fermi_check_new, ONESIDED_FULL, energy_kernel_%matrix_compr(ilshift+1:))
+                  ! Calculate S^-1/2 * K * S^-1/2^T
+                  ! Since S^-1/2 is symmetric, don't use the transpose
+                  istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+
+                  !!call retransform_ext(iproc, nproc, smatl, &
+                  !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:))
+                  call retransform_ext(iproc, nproc, smatl, ONESIDED_FULL, kernelpp_work(is+1:),  &
+                       ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), energy_kernel_%matrix_compr(ilshift+1:), &
+                       windowsx=windowsx_kernel(:,ispin))
+              end do
 
               !ebsp=ebsp/scale_factor+shift_value*sumn
               !energy_kernel_%matrix_compr = energy_kernel_%matrix_compr/scale_factor + shift_value*ovrlp_%matrix_compr
@@ -620,6 +685,12 @@ module foe
 
 
 
+      call f_free(kernelpp_work)
+      call f_free(kernelpp_check_work)
+      call f_free(windowsx_kernel)
+      call f_free(windowsx_kernel_check)
+      call f_free(matrix_local)
+      call f_free(matrix_local_check)
       call f_free(sumn_allspins)
       call f_free(hamscal_compr)
       call f_free(fermi_check_compr)

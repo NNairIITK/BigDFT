@@ -852,7 +852,7 @@ module ice
           do icalc=1,ncalc
               call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                    SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
-                   inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+                   ONESIDED_FULL, inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
               !!write(*,*) 'BEFORE ispin, sum(inv_ovrlp_matrixp_small_new(:,icalc))', &
               !!    ispin, sum(inv_ovrlp_matrixp_small_new(:,icalc))
               !!write(*,*) 'BEFORE ispin, sum(inv_ovrlp(icalc)%matrix_compr(ilshift2+1:ilshift2+inv_ovrlp_smat%nvctr))', &

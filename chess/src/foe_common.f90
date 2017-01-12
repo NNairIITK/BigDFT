@@ -921,53 +921,102 @@ module foe_common
     end subroutine scale_and_shift_matrix
 
 
-    subroutine retransform_ext(iproc, nproc, smat, inv_ovrlp, kernel)
+    subroutine retransform_ext(iproc, nproc, smat, onesided_action, kernelpp_work, inv_ovrlp, kernel, &
+               matrix_localx, windowsx)
         use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                                 compress_matrix_distributed_wrapper, &
                                 sparsemm_new, transform_sparsity_pattern
         use dynamic_memory
         implicit none
         ! Calling arguments
-        integer,intent(in) :: iproc, nproc
+        integer,intent(in) :: iproc, nproc, onesided_action
         type(sparse_matrix),intent(in) :: smat
+        real(mp),dimension(smat%smmm%nvctrp),intent(inout) :: kernelpp_work
         real(kind=mp),dimension(smat%nvctrp_tg),intent(inout) :: inv_ovrlp
         real(kind=mp),dimension(smat%nvctrp_tg),intent(inout) :: kernel
-
+        real(kind=mp),dimension(:),intent(inout),target,optional :: matrix_localx
+        integer,dimension(:),target,intent(inout),optional :: windowsx
 
         ! Local variables
-        real(kind=mp),dimension(:),pointer :: inv_ovrlpp_new, tempp_new
+        real(kind=mp),dimension(:),pointer :: tempp_new, matrix_local
         real(kind=mp),dimension(:),allocatable :: mat_compr_seq
+        integer,dimension(:),pointer :: windows
 
         call f_routine(id='retransform_ext')
 
-        if (.not.smat%smatmul_initialized) then
-            call f_err_throw('sparse matrix multiplication not initialized', &
-                 err_name='SPARSEMATRIX_RUNTIME_ERROR')
-        end if
+        ! Check the arguments
+        select case (onesided_action)
+        case (ONESIDED_POST,ONESIDED_GATHER)
+            if (.not.present(windowsx)) call f_err_throw('windowsx not present')
+            if (nproc>1) then
+                if (size(windowsx)/=smat%ntaskgroup) then
+                    call f_err_throw('size(windowsx)='//trim(yaml_toa(size(windowsx))) //&
+                         &' /= smat%ntaskgroup='//trim(yaml_toa(smat%ntaskgroup)))
+                end if
+                windows => windowsx
+            end if
+            if (.not.present(matrix_localx)) then
+                call f_err_throw('matrix_localx not present')
+            end if
+            if (size(matrix_localx)/=max(smat%smmm%nvctrp_mm,1)) then
+                call f_err_throw('Array matrix_localx has size '//trim(yaml_toa(size(matrix_localx),fmt='(i0)'))//&
+                     &' instead of '//trim(yaml_toa(max(1,smat%smmm%nvctrp_mm),fmt='(i0)')), &
+                     err_name='SPARSEMATRIX_MANIPULATION_ERROR')
+            end if
+            matrix_local => matrix_localx
+        case (ONESIDED_FULL)
+            !if (nproc>1) then
+                ! Create a window for all taskgroups to which iproc belongs (max 2)
+                windows = f_malloc_ptr(smat%ntaskgroup,id='windows')
+            !end if
+            matrix_local = f_malloc_ptr(max(smat%smmm%nvctrp_mm,1),id='matrix_local')
+        case default
+            call f_err_throw('wrong value for onesided_action')
+        end select
+
+
     
-        inv_ovrlpp_new = f_malloc_ptr(smat%smmm%nvctrp, id='inv_ovrlpp_new')
-        tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
-        mat_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_compr_seq')
-        !!kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
-        if (smat%smmm%nvctrp_mm>0) then !to avoid an out of bounds error
-            call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-                 smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-                 smat%smmm%nvctrp, smat%smmm%isvctr, &
-                 smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-                 'small_to_large', &
-                 matrix_s_in=inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), matrix_l_out=inv_ovrlpp_new)
+        if (onesided_action==ONESIDED_POST .or. onesided_action==ONESIDED_FULL) then
+            if (.not.smat%smatmul_initialized) then
+                call f_err_throw('sparse matrix multiplication not initialized', &
+                     err_name='SPARSEMATRIX_RUNTIME_ERROR')
+            end if
+            tempp_new = f_malloc_ptr(smat%smmm%nvctrp, id='tempp_new')
+            mat_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='mat_compr_seq')
+            !!kernel_compr_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='kernel_compr_seq')
+            if (smat%smmm%nvctrp_mm>0) then !to avoid an out of bounds error
+                call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+                     smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
+                     smat%smmm%nvctrp, smat%smmm%isvctr, &
+                     smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+                     'small_to_large', &
+                     matrix_s_in=inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), matrix_l_out=kernelpp_work)
+            end if
+            call sequential_acces_matrix_fast2(smat, kernel, mat_compr_seq)
+            call sparsemm_new(iproc, smat, mat_compr_seq, kernelpp_work, tempp_new)
+            call sequential_acces_matrix_fast2(smat, inv_ovrlp, mat_compr_seq)
+            call sparsemm_new(iproc, smat, mat_compr_seq, tempp_new, kernelpp_work)
+            !kernelpp_work = 1.d0
+            !write(*,*) 'after calc, iproc, sum(kernelpp_work)', iproc, sum(kernelpp_work)
+            call f_free_ptr(tempp_new)
+            call f_free(mat_compr_seq)
+            call f_zero(kernel)
         end if
-        call sequential_acces_matrix_fast2(smat, kernel, mat_compr_seq)
-        call sparsemm_new(iproc, smat, mat_compr_seq, inv_ovrlpp_new, tempp_new)
-        call sequential_acces_matrix_fast2(smat, inv_ovrlp, mat_compr_seq)
-        call sparsemm_new(iproc, smat, mat_compr_seq, tempp_new, inv_ovrlpp_new)
-        call f_zero(kernel)
-        call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
-             inv_ovrlpp_new, kernel)
-        call f_free_ptr(inv_ovrlpp_new)
-        call f_free_ptr(tempp_new)
-        call f_free(mat_compr_seq)
-        !!call f_free(kernel_compr_seq)
+        !!if (onesided_action==ONESIDED_GATHER .or. onesided_action==ONESIDED_FULL) then
+        !!if (onesided_action==ONESIDED_FULL) then
+            !!write(*,*) 'before compress, iproc, sum(kernelpp_work)', iproc, sum(kernelpp_work)
+            !!write(*,*) 'before compress, iproc, sum(kernel)', iproc, sum(kernel)
+            call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
+                 kernelpp_work, onesided_action, kernel, &
+                 matrix_localx=matrix_local, windowsx=windows)
+            !!write(*,*) 'after compress, iproc, sum(kernelpp_work)', iproc, sum(kernelpp_work)
+            !!write(*,*) 'after compress, iproc, sum(kernel)', iproc, sum(kernel)
+        !!end if
+
+        if (onesided_action==ONESIDED_FULL) then
+            call f_free_ptr(windows)
+            call f_free_ptr(matrix_local)
+        end if
 
         call f_release_routine()
 
@@ -1325,7 +1374,7 @@ module foe_common
                ham_, workarr_compr, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
-                              transform_sparsity_pattern, compress_matrix_distributed_wrapper
+                              transform_sparsity_pattern
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1837,6 +1886,7 @@ module foe_common
       real(kind=mp),dimension(:,:),allocatable :: penalty_ev_new
       real(kind=mp),dimension(:,:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
       integer :: iline, icolumn, icalc, jspin
+      integer,dimension(:),pointer :: windowsx
 
 
 
@@ -1856,6 +1906,7 @@ module foe_common
 
       evbounds_shrinked=.false.
 
+      windowsx = f_malloc_ptr(smatl%ntaskgroup,id='windowsx')
 
       fermi_small_new = f_malloc((/max(smatl%smmm%nvctrp_mm,1),smatl%nspin/),id='fermi_small_new')
 
@@ -2031,6 +2082,10 @@ module foe_common
                               call f_zero(fermi_small_new(:,jspin))
                           end if
 
+                          ilshift=(jspin-1)*smatl%nvctrp_tg
+                          call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                               fermi_small_new(:,jspin), ONESIDED_POST, &
+                               kernel_%matrix_compr(ilshift+1:), windowsx=windowsx)
 
                           !call timing(iproc, 'FOE_auxiliary ', 'ON')
                           call f_timing(TCAT_CME_AUXILIARY,'ON')
@@ -2138,8 +2193,8 @@ module foe_common
          do jspin=1,smatl%nspin
              ilshift=(jspin-1)*smatl%nvctrp_tg
              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                  fermi_small_new(:,jspin), &
-                  kernel_%matrix_compr(ilshift+1:))
+                  fermi_small_new(:,jspin), ONESIDED_GATHER, &
+                  kernel_%matrix_compr(ilshift+1:), windowsx=windowsx)
              !!tt = 0.d0
              !!do i=1,smatl%nfvctr
              !!    tt = tt + kernel_%matrix_compr(ilshift+(i-1)*smatl%nfvctr+1)
@@ -2160,6 +2215,7 @@ module foe_common
 
       call f_free(occupations)
       call f_free(fermi_small_new)
+      call f_free_ptr(windowsx)
 
       !call timing(iproc, 'FOE_auxiliary ', 'OF')
       call f_timing(TCAT_CME_AUXILIARY,'OF')

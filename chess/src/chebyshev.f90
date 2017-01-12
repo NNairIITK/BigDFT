@@ -107,7 +107,7 @@ module chebyshev
               call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
           end if
           call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
-               matrix_new, workarr_compr)
+               matrix_new, ONESIDED_FULL, workarr_compr)
       else
           call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, workarr_compr(1), 1)
       end if
