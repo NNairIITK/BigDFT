@@ -88,7 +88,7 @@ module foe
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible
       logical,dimension(2) :: emergency_stop
       real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
-      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr, kernel_tmp
+      real(kind=mp),dimension(:),allocatable :: hamscal_compr, fermi_check_compr, kernel_tmp, ham_eff
       real(kind=mp),dimension(4,4) :: interpol_matrix
       real(kind=mp),dimension(4) :: interpol_vector
       real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
@@ -122,6 +122,7 @@ module foe
       matrix_local = f_malloc(max(1,smatl%smmm%nvctrp_mm),id='matrix_local')
       matrix_local_check = f_malloc(max(1,smatl%smmm%nvctrp_mm),id='matrix_local_check')
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
+      ham_eff = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ham_eff')
 
 
       if (.not.smatl%smatmul_initialized) then
@@ -242,7 +243,7 @@ module foe
           fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",1)
           call get_bounds_and_polynomials(iproc, nproc, comm, 2, 1, npl_max, npl_stride, &
                1, FUNCTION_ERRORFUNCTION, .false., 1.2_mp, 1.2_mp, foe_verbosity, &
-               smatm, smatl, ham_, foe_obj, npl_min, kernel_%matrix_compr(ilshift+1:), &
+               smatm, smatl, ham_, foe_obj, npl_min, ham_eff(ilshift+1), & !kernel_%matrix_compr(ilshift+1:), &
                chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
                smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
                efarr=efarr, fscale_arr=fscale_arr, max_errorx=max_error)
@@ -303,9 +304,9 @@ module foe
               call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
                    fermi_check_new, ONESIDED_FULL, fermi_check_compr(ilshift+1:))
 
-              call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_check_work(is+1:),  &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
-                   matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
+              !!call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_check_work(is+1:),  &
+              !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
+              !!     matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
 
               istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
               call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_work(is+1:),  &
@@ -324,9 +325,9 @@ module foe
               ! Calculate trace(KH). Since they have the same sparsity pattern and K is symmetric, this is a simple ddot.
               ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
 
-              call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_check_work(is+1:), &
-                   ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
-                   matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
+              !!call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_check_work(is+1:), &
+              !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
+              !!     matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
               call max_asymmetry_of_matrix(iproc, nproc, comm, &
                    smatl, kernel_%matrix_compr(ilshift+1:), asymm_K)!, ispinx=ispin)
               ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
@@ -337,12 +338,15 @@ module foe
               sumn_check = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
                            ovrlp_%matrix_compr(isshift+1:), &
                            fermi_check_compr(ilshift+1:))
+              call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
 
               ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
               istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
               ! Calculate trace(KH). Since they have the same sparsity pattern and K is symmetric, this is a simple ddot.
+              !!ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
+              !!            hamscal_compr(istl), 1)
               ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
-                          hamscal_compr(istl), 1)
+                          ham_eff(istl), 1)
 
               temparr(1) = ebsp
               temparr(2) = ebs_check
@@ -513,6 +517,7 @@ module foe
       call f_free(matrix_local_check)
       call f_free(sumn_allspins)
       call f_free(hamscal_compr)
+      call f_free(ham_eff)
       call f_free(fermi_check_compr)
       call f_free(kernel_tmp)
       call f_free(fermi_check_new)
