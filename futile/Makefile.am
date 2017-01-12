@@ -11,7 +11,7 @@
 #	config/m4/yaml.m4 \
 #	config/m4/flib.m4
 #
-EXTRA_DIST= config/m4 futile_environment.sh.in
+EXTRA_DIST= config/m4 futile_environment.sh.in futilevars.sh.in
 
 ACLOCAL_AMFLAGS = -I config/m4
 

@@ -327,6 +327,7 @@ AC_CONFIG_FILES([
 Makefile
 bigdft.pc
 bigdft_environment.sh
+bigdftvars.sh
 config/Doxyfile
 utils/Makefile
 utils/PSPfiles/Makefile

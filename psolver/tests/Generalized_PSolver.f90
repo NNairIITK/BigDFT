@@ -414,7 +414,7 @@ program GPS_3D
    end if
 
   end if
-
+  
   select case(SetEps)
   case(2,3,4)
       call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),&

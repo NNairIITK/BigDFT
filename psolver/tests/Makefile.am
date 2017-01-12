@@ -35,7 +35,7 @@ endif
 PS_Check_SOURCES = PS_Check.f90 functions.f90
 PS_Check_LDADD = $(psolver_library) @LINALG_LIBS@
 
-PS_Program_SOURCES = PS_Program.f90
+PS_Program_SOURCES = PS_Program.f90 functions.f90
 PS_Program_LDADD = $(psolver_library) @LINALG_LIBS@
 
 PS_StressCheck_SOURCES = PS_StressCheck.f90
@@ -72,12 +72,6 @@ PS_Check.out.yaml: PS_Check Generalized_PSolver
 	cp PS_Check.out.yaml tmp
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm tmp
-
-PS_Basics.out.yaml: PS_Program PS_Exercise 
-	-$(run_parallel) ./PS_Program -n [57,48,63] -g F > $@
-	-$(run_parallel) ./PS_Program -n [64,64,64] -g P >> $@
-	-$(run_parallel) ./PS_Program -n [32,64,48] -g S >> $@
-	-$(run_parallel) ./PS_Program -n [32,64,48] -g W >> $@
 
 check: regtest report #PS_Basics.out.yaml PS_Check.out.yaml PS_Check.ref.yaml tols.yaml report
 

@@ -3347,7 +3347,7 @@ contains
 
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
-    if (has_key(dict,POSINP)) then
+    if (POSINP .in. dict) then
        str = dict_value(dict // POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           !str contains a file name so add atomic positions from it.

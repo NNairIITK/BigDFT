@@ -169,7 +169,7 @@ Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o PStypes.o PSbox.o P
 PStypes.o: environment.o FDder.o
 PSbox.o: PStypes.o PSbase.o IObox.o
 FDder.o: PSbase.o
-IObox.o: PSbase.o $(etsf_dep)
+IObox.o: PSbase.o box.o $(etsf_dep)
 box.o: PSbase.o
 environment.o: PSbase.o box.o
 conv_check_fft.o: cufft.o

@@ -20,9 +20,35 @@ module IObox
   private
 
 
-  public :: read_field,read_field_dimensions,dump_field
+  public :: read_field,read_field_dimensions,dump_field,field_multipoles
 
   contains
+
+    !>Calculate a set of multipoles from a given box iterator.
+    !! Defined up to quadrupoles
+    subroutine field_multipoles(bit,field,nfield,mp)
+      use box
+      use f_harmonics
+      implicit none
+      integer, intent(in) :: nfield !<number of components of the field to reduce on (useful for spin)
+      type(box_iterator), intent(inout) :: bit
+      real(dp), dimension(bit%mesh%ndims(1)*bit%mesh%ndims(2)*(bit%i3e-bit%i3s+1),nfield), intent(in) :: field
+      type(f_multipoles), intent(inout) :: mp !<multipole structure
+
+      !local variables
+      integer :: ispin
+      real(dp) :: q
+
+      !the multipoles have to be created and initialized before.
+      do ispin=1,nfield
+         do while(box_next_point(bit))
+            q= field(bit%ind,ispin)*bit%mesh%volume_element
+            bit%tmp=closest_r(bit%mesh,bit%rxyz,mp%rxyz)
+            call f_multipoles_accumulate(mp%Q,mp%lmax,bit%tmp,q)
+         end do
+      end do
+
+    end subroutine field_multipoles
     
     pure subroutine cube_dimensions(geocode,ndims,nc1,nc2,nc3)
       implicit none
@@ -486,38 +512,6 @@ module IObox
       n1s=ns(1)
       n2s=ns(2)
       n3s=ns(3)
-!!$  !conditions for periodicity in the three directions
-!!$  !value of the buffer in the x and z direction
-!!$  if (at%astruct%geocode /= 'F') then
-!!$     nl1=1
-!!$     nl3=1
-!!$     nbx = 1
-!!$     nbz = 1
-!!$     nc1=n1i
-!!$     nc3=n3i
-!!$  else
-!!$     nl1=15
-!!$     nl3=15
-!!$     nbx = 0
-!!$     nbz = 0
-!!$     nc1=n1i-31
-!!$     nc3=n3i-31
-!!$  end if
-!!$  !value of the buffer in the y direction
-!!$  if (at%astruct%geocode == 'P') then
-!!$     nl2=1
-!!$     nby = 1
-!!$     nc2=n2i
-!!$  else
-!!$     nl2=15
-!!$     nby = 0
-!!$     nc2=n2i-31
-!!$  end if
-
-!!$  !cube dimensions
-!!$  nc1=2*(n1+nbx)
-!!$  nc2=2*(n2+nby)
-!!$  nc3=2*(n3+nbz)
       fileunit0=f_get_free_unit(22)
       call f_open_file(unit=fileunit0,file=trim(prefix)//'.cube',status='unknown')
 
@@ -701,7 +695,6 @@ module IObox
       integer, dimension(:), intent(in), optional, target  :: nelpsp !< of dimension ntypes
       integer, dimension(3), intent(in), optional ::  ixyz0 !< points that have to be plot as lines
       !local variables
-      character(len=*), parameter :: subname='plot_density'
       character(len=5) :: suffix
       character(len=65) :: message
       integer :: ia,ib,isuffix,fformat,nat!ierr,n1i,n2i,n3i
@@ -739,60 +732,7 @@ module IObox
       ixyz0_=-1
       if (present(ixyz0)) ixyz0_=ixyz0
 
-!!$      n1i=box%ndims(1)
-!!$      n2i=box%ndims(2)
-!!$      n3i=box%ndims(3)
-!!$
-!!$      hxh=box%hgrids(1)
-!!$      hyh=box%hgrids(2)
-!!$      hzh=box%hgrids(3)
       call f_zero(ns)
-
-!!!>      if (nproc > 1) then
-!!!>         !allocate full density in pot_ion array
-!!!>         pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
-!!!>
-!!!>         call mpiallgather(sendbuf=rho(1,1),sendcount=box%ndimpot,&
-!!!>              recvbuf=pot_ion(1,1),recvcounts=box%ngatherarr(:,1),&
-!!!>              displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
-!!!>!!$     call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
-!!!>!!$          mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-!!!>!!$          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
-!!!>
-!!!>         !case for npspin==2
-!!!>         if (nspin==2) then
-!!!>            call mpiallgather(sendbuf=rho(1,2),sendcount=box%ndimpot,&
-!!!>                 recvbuf=pot_ion(1,2),recvcounts=box%ngatherarr(:,1),&
-!!!>                 displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
-!!!>!!$        call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
-!!!>!!$             mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-!!!>!!$             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
-!!!>         end if
-!!!>
-!!!>      else
-!!!>         !pot_ion => rho
-!!!>         pot_ion = f_malloc_ptr(shape(rho),id='pot_ion')
-!!!>         call f_memcpy(dest=pot_ion,src=rho)
-!!!>      end if
-!!!>
-!!$      ! Format = 1 -> cube (default)
-!!$      ! Format = 2 -> ETSF
-!!$      ! ...
-!!$      fformat = 1
-!!$      isuffix = index(filename, ".cube", back = .true.)
-!!$      if (isuffix > 0) then
-!!$         isuffix = isuffix - 1
-!!$         fformat = 1
-!!$      else
-!!$         isuffix = index(filename, ".etsf", back = .true.)
-!!$         if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
-!!$         if (isuffix > 0) then
-!!$            isuffix = isuffix - 1
-!!$            fformat = 2
-!!$         else
-!!$            isuffix = len(trim(filename))
-!!$         end if
-!!$      end if
 
       fformat=get_file_format(filename,isuffix)
 

@@ -1,3 +1,4 @@
+
 !>  @file 
 !!  @brief 3-dimensional complex-complex FFT routines
 !!
@@ -787,6 +788,87 @@ subroutine zhalf_to_z(n_left_in,n_left_out,ldl_in,ldl_out,&
      end do
   end if
 END SUBROUTINE zhalf_to_z
+
+!!$subroutine fft_parallel_block(n,n2,n2p,n1d,n2d,n3d,&
+!!$     nfft,lot,ldo,i2s,i2ps,i3s,&
+!!$     ntrig,trig,after,now,before,ic,isign,&
+!!$     zin,zcache,zout,inzee,tocache)
+!!$  use f_precisions, only: dp => f_double
+!!$  use module_fft_sg, only: n_factors
+!!$  implicit none
+!!$  logical, intent(in) :: tocache
+!!$  integer, intent(in) :: n,n2,n2p,n1d,n2d,n3d,nfft,lot,ldo,i3s
+!!$  integer, intent(in) :: ntrig,ic,isign
+!!$  integer, intent(inout) :: inzee
+!!$  integer, dimension(n_factors), intent(in) :: after,now,before
+!!$  real(dp), dimension(2,ntrig), intent(in) :: trig
+!!$  real(dp), dimension(2,n1d,n2d,n3d,*), intent(in) :: zin
+!!$  integer, intent(inout) :: i2s,i2ps
+!!$  real(dp), dimension(2*lot*n,2), intent(inout) :: zcache
+!!$  real(dp), dimension(*), intent(inout) :: zout
+!!$
+!!$  if (inzee==FFT_SCRATCH) then
+!!$     !input: i1,j2,j3,jp2,(jp3)
+!!$     call transpose_and_pad_input([n,n2,n2p],[n1d,n2d,n3d],n1d,lot,nfft,i3s,&
+!!$          i2s,i2ps,zin,zcache)
+!!$     !output: j2,jp2,i1,j3,(jp3)
+!!$     inzee=1
+!!$  end if
+!!$
+!!$  !performing FFT
+!!$  !input: i2,i1,j3,(jp3)
+!!$  call fft_inorder(tocache,n,nfft,lot,ldo,inzee,&
+!!$       ntrig,trig,after,now,before,ic,isign,&
+!!$       zcache,zout)
+!!$  !output: i2,I1,j3,(jp3)  
+!!$
+!!$  !in case it should be retrieved extract the cache results in the zout array
+!!$  
+!!$  !input: i2,I1,j3,(jp3)  
+!!$  call transpose_output(ndims,lds,n1dim,lot,nfft,j3,&
+!!$     i2s,i2ps,zcache(1,inzee),zout)
+!!$  !output: I1,j2,j3,jp2,(jp3)
+!!$
+!!$end subroutine fft_parallel_block
+
+!!$subroutine fft_inorder(cacheonly,n,ndat,ldz,ldo,inzee,&
+!!$     ntrig,trig,after,now,before,ic,isign,&
+!!$     zcache,zout)
+!!$  use f_precisions, only: dp => f_double
+!!$  use module_fft_sg, only: n_factors
+!!$  implicit none
+!!$  logical, intent(in) :: cacheonly !<temporary, if .true. zout is ignored
+!!$  integer, intent(in) :: n,ndat,ldz,ldo
+!!$  integer, intent(in) :: ntrig,ic,isign
+!!$  integer, intent(inout) :: inzee
+!!$  integer, dimension(n_factors), intent(in) :: after,now,before
+!!$  real(dp), dimension(2,ntrig), intent(in) :: trig
+!!$  real(dp), dimension(2*ldz*n,2), intent(in) :: zcache
+!!$  real(dp), dimension(2,*), intent(out) :: zout
+!!$  !local variable
+!!$  integer :: i,iccache
+!!$  !output: J2,Jp2,I1,j3,(jp3)
+!!$  !performing FFT
+!!$  !input: I2,I1,j3,(jp3)
+!!$  if (cacheonly) then
+!!$     iccache=ic
+!!$  else
+!!$     iccache=ic-1
+!!$  end if
+!!$
+!!$  do i=1,iccache ! ic-1
+!!$     call fftstp_sg(ldz,ndat,n,ldz,n,zcache(1,inzee),zcache(1,3-inzee),&
+!!$          ntrig,trig,after(i),now(i),before(i),isign)
+!!$     inzee=3-inzee
+!!$  enddo
+!!$  !storing the last step into zt array
+!!$  if (iccache==ic) return
+!!$  i=ic
+!!$  call fftstp_sg(ldz,ndat,n,ldo,n,zcache(1,inzee),zout,&
+!!$       ntrig,trig,after(i),now(i),before(i),isign)
+!!$  !output: I2,i1,j3,(jp3)
+!!$end subroutine fft_inorder
+
 
 
 subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&

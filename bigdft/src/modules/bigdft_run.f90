@@ -1534,7 +1534,7 @@ contains
     posinp_name=.false.
     if ('name' .in. opts) then
        !check if the names are given as a list or as a scalar
-       if (dict_len(opts) > 0) then
+       if (dict_len(opts//'name') > 0) then
           call dict_copy(dict_run,opts//'name')
        else
           run_id = opts//'name'
@@ -1844,6 +1844,7 @@ contains
     use SWpotential
     use wrapper_linalg, only: vscal
     use module_f_objects
+    use module_atoms, only: astruct_constraints
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1895,6 +1896,9 @@ contains
           end if
        end if
     end if
+
+    !inform the user about specified constraints (experimental routine)
+    call astruct_constraints(runObj%atoms%astruct)
 
     ! Apply the constraints expressed in internal coordinates
     if (runObj%atoms%astruct%inputfile_format=='int') then

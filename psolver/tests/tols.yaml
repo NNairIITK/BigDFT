@@ -58,3 +58,11 @@ Generalized_PSolver:
   Value: 2.07e-06
 PS_Check:
   itermax: 150.0
+PS_StressCheck:
+  Ehartree: 9.1e-13
+  Max diff: 1.8e-15
+  offset: 1.3e-11
+  potential integral: 1.2e-12
+  Keys to ignore:
+    - Max diff at
+    - processes

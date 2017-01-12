@@ -104,7 +104,7 @@ program Fock_Operator_Program
   pot_ion = f_malloc(nxyz,id='pot_ion')
 
   mesh=cell_new(geocode,nxyz,hgrids)
-  call test_functions_box(mesh,1,a_gauss,&
+  call test_functions_new(mesh,1,a_gauss,& !_box
        density,potential,rhopot,pot_ion,offset)
 
   !then fill for all the functions the proposed density

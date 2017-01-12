@@ -2,6 +2,7 @@ module multipole
   use module_base
   use multipole_base, only: external_potential_descriptors, lmax
   use public_enums
+  use f_harmonics, only: solid_harmonic
   implicit none
 
   private
@@ -508,7 +509,7 @@ module multipole
                                               qq = -ep%mpl(impl)%qlm(l)%q(mm)
                                           end if
                                           ttt = qq*&
-                                                real(2*l+1,kind=8)*solid_harmonic(0, rmin, l, m, r(1), r(2), r(3))*&
+                                                real(2*l+1,kind=8)*solid_harmonic(0, l, m, r(1), r(2), r(3))*&
                                                 sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
                                           tt = tt + ttt
                                           ttl = ttl + ttt
@@ -520,20 +521,20 @@ module multipole
                               ll = 0
                               m = 0
                               monopole(impl) = monopole(impl) + tt*hhh*&
-                                               solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
+                                               solid_harmonic(0,ll,m,r(1),r(2),r(3))*&
                                                sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               ll = 1
                               do m=-ll,ll
                                   ii = m + 2
                                   dipole(ii,impl) = dipole(ii,impl) + tt*hhh*&
-                                                   solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
+                                                   solid_harmonic(0,ll,m,r(1),r(2),r(3))*&
                                                    sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               end do
                               ll = 2
                               do m=-ll,ll
                                   ii = m + 3
                                   quadrupole(ii,impl) = quadrupole(ii,impl) + tt*hhh*&
-                                                   solid_harmonic(0,0.d0,ll,m,r(1),r(2),r(3))*&
+                                                   solid_harmonic(0,ll,m,r(1),r(2),r(3))*&
                                                    sqrt(4.d0*pi/real(2*ll+1,kind=8))
                               end do
                           end do i1loop
@@ -1463,85 +1464,6 @@ module multipole
     end subroutine gaussian_density
 
 
-    !> Calculates the solid harmonic S_lm (possibly multplied by a power or r) for given values of l, m, x, y, z.
-    !! They are normalized such that the integral over the angle gives r^2, i.e.
-    !! \int d\Omega S_{lm}*S_{l'm'}/r^{2l} = r^2 \delta_{ll'}\delta_{mm'}
-    !! r_exponent indicates how the function is multiplied by r: The final result is given by S_lm*r^(r_exponent*l), with the
-    !! definition of the S_lm given above. r_exponent can also be negative, e.g. -1 to yield the "real" spherical harmonics.
-    !! rmin gives the minimal radius that is used for the multiplication by r^(r_exponent*l) (can be used to avoid the divergence
-    !! around r=0)
-    function solid_harmonic(r_exponent, rmin, l, m, x, y, z) result(sh)
-      use module_base, only: pi => pi_param
-      implicit none
-      ! Calling arguments
-      integer,intent(in) :: r_exponent
-      integer,intent(in) :: l, m
-      real(kind=8),intent(in) :: rmin, x, y, z
-      real(kind=8) :: sh
-
-      ! Local variables
-      integer,parameter :: l_max=2
-      real(kind=8) :: r, r2, r2min
-
-      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
-      if (l>l_max) call f_err_throw('solid harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
-          err_name='BIGDFT_RUNTIME_ERROR')
-      if (abs(m)>l) call f_err_throw('abs of m ('//trim(yaml_toa(m))//') must not be larger than l ('//trim(yaml_toa(l))//')', &
-                    err_name='BIGDFT_RUNTIME_ERROR')
-
-
-      select case (l)
-      case (0)
-          ! No need for r, as l=0
-          sh = sqrt(1.d0/(4.d0*pi))
-      case (1)
-          r2 = x**2+y**2+z**2
-          !r2min = rmin**2
-          !r2 = max(r2,r2min)
-          r = sqrt(r2)
-          select case (m)
-          case (-1)
-              sh = sqrt(3.d0/(4.d0*pi))*y
-          case (0)
-              sh = sqrt(3.d0/(4.d0*pi))*z
-          case (1)
-              sh = sqrt(3.d0/(4.d0*pi))*x
-          end select
-          ! Multiply by r^{r_exp*l}
-          sh = sh*r**r_exponent
-      case (2)
-          r2 = x**2+y**2+z**2
-          !r2min = rmin**2
-          !r2 = max(r2,r2min)
-          select case (m)
-          case (-2)
-              sh = sqrt(15.d0/(4.d0*pi))*x*y
-          case (-1)
-              sh = sqrt(15.d0/(4.d0*pi))*y*z
-          case (0)
-              sh = sqrt(5.d0/(16.d0*pi))*(-x**2-y**2+2.d0*z**2)
-          case (1)
-              sh = sqrt(15.d0/(4.d0*pi))*z*x
-          case (2)
-              sh = sqrt(15.d0/(16.d0*pi))*(x**2-y**2)
-          end select
-          ! Multiply by r^{r_exp*l}
-          sh = sh*r2**r_exponent
-      end select
-
-      !r2 = x**2+y**2+z**2
-      !r = sqrt(r2)
-      !if (r<1.d-1) then
-      !    sh = 0.d0
-      !end if
-
-      !if (sh>10.d0) then
-      !    r2 = x**2+y**2+z**2
-      !    write(*,*) 'LARGE, value, r', sh, sqrt(r2)
-      !end if
-
-    end function solid_harmonic
-
     !!!!!!> Calculates the prefactor of the solid harmonics S_lm  for given values of l, m, x, y, z.
     !!!!!function prefactor_solid_harmonic(l, m, x, y, z) result(psh)
     !!!!!  use module_base, only: pi => pi_param
@@ -1708,7 +1630,7 @@ module multipole
                      if (sphere) then
                         if (x**2+y**2+z**2>rmax**2) cycle
                      end if
-                     tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                     tt = solid_harmonic(0, l, m, x, y, z)
                      tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
                      sphi2r(ind) = tt*phi2r(ind)
                   end do
@@ -1811,7 +1733,7 @@ module multipole
                      end if
                      do l=0,lmax
                         do m=-l,l
-                           tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                           tt = solid_harmonic(0, l, m, x, y, z)
                            tt = tt*sqrt(4.d0*pi/real(2*l+1,gp))
                            Qlm_work(m,l)=Qlm_work(m,l)+tt*phi2r(ind)
                         end do
@@ -2487,8 +2409,6 @@ module multipole
               call f_memcpy(n=(ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), &
                    src=denspot%rhov(ioffset+1), dest=rho_exact(is1,is2,is3))
               call f_memcpy(src=rho_exact, dest=pot_exact)
-!!$              call H_potential('D',denspot%pkernel,pot_exact,denspot%V_ext,tt,0.0_dp,.true.,&
-!!$                   quiet='yes')
               call Electrostatic_Solver(denspot%pkernel,pot_exact,pot_ion=denspot%V_ext)
               !mesh=cell_new(smmd%geocode,denspot%pkernel%ndims,denspot%pkernel%hgrids)
               call compare_charge_and_potential(denspot%dpbox%bitp,&!iproc, is1, ie1, is2, ie2, is3, ie3, &
@@ -3219,7 +3139,7 @@ module multipole
                               factor = factor/(15.d0*sigma**4)
                            end if
                            phi2r(ist+ind) = phi2r(ist+ind) + &
-                                gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, r, l, m , x, y, z)/sqrt(twopi**3)
+                                gg1(i1)*gg2(i2)*gg3(i3)*factor*solid_harmonic(0, l, m , x, y, z)/sqrt(twopi**3)
                        end do
                    end do
                end do
