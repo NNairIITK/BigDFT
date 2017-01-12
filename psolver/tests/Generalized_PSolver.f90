@@ -2324,9 +2324,9 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   real(kind=8), parameter :: max_ratioex_PB = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp,i_PB
-  real(kind=8), parameter :: error = 1.0d-8 !1.0d-13
+  real(kind=8), parameter :: error = 1.0d-6 !1.0d-8 !1.0d-13
   real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
-  real(kind=8), parameter :: tauPB = 1.0d-10 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
+  real(kind=8), parameter :: tauPB = 1.0d-6 !1.0d-10 ! Exit of Poisson-Boltzmann loop, to be = error for GPE.
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB,errorvar
   real(kind=8) :: PB_charge

@@ -1857,7 +1857,7 @@ subroutine fssnord1DmatNabla(geocode,n01,hx,u,du,nord)
 !c..du(ngrid)   = first derivative values at the grid points
 
 !c..declare the pass
-      character(len=2), intent(in) :: geocode
+      character(len=1), intent(in) :: geocode
       integer, intent(in) :: n01,nord
       real(kind=8), intent(in) :: hx
       real(kind=8), dimension(n01) :: u
