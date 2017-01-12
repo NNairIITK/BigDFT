@@ -1417,23 +1417,9 @@ module foe_common
       logical :: restart, adjust_lower_bound, adjust_upper_bound, calculate_SHS, interpolation_possible, with_overlap
       logical,dimension(2) :: emergency_stop
       real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
-      real(kind=mp),dimension(:),allocatable :: fermi_check_compr
-      real(kind=mp),dimension(4,4) :: interpol_matrix
-      real(kind=mp),dimension(4) :: interpol_vector
-      real(kind=mp),parameter :: charge_tolerance=1.d-6 ! exit criterion
-      logical,dimension(2) :: bisection_bounds_ok
       real(kind=mp) :: ebs_check, ef, ebsp
       integer :: irow, icol, itemp, iflag,info, i, j, itg, ncount, istl, ists, isshift, imshift
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
-      !real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
-      !real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
-      !real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
-      !real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_FAST=2.d0
-      !real(kind=mp),parameter :: TEMP_MULTIPLICATOR_ACCURATE=1.d0
-      !real(kind=mp),parameter :: TEMP_MULTIPLICATOR_FAST=1.2d0 !2.d0 !1.2d0
-      !real(kind=mp),parameter :: CHECK_RATIO=1.25d0
-      !integer,parameter :: NPL_MIN=100
-      !!type(matrices) :: inv_ovrlp
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
       real(kind=mp) :: x_max_error, max_error, x_max_error_check, max_error_check
@@ -1443,14 +1429,18 @@ module foe_common
       integer,parameter :: imode=SPARSE
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
-      real(kind=mp),dimension(:),allocatable :: penalty_ev_new, ham_eff, mat_seq, matmul_tmp
+      real(kind=mp),dimension(:),allocatable :: penalty_ev_new, ham_eff, mat_seq, matmul_tmp, matrix_local
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
       integer :: iline, icolumn, icalc
+      integer,dimension(:),allocatable :: windows
 
 
       call f_routine(id='get_chebyshev_polynomials')
 
       !if (iproc==0) call yaml_comment('get Chebyshev polynomials',hfill='~')
+
+      matrix_local = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='matrix_local')
+      windows = f_malloc(smatl%ntaskgroup,id='windows')
 
 
       !call timing(iproc, 'FOE_auxiliary ', 'ON')
@@ -1484,356 +1474,157 @@ module foe_common
       penalty_ev_new = f_malloc((/smatl%smmm%nvctrp/),id='penalty_ev_new')
       fermi_new = f_malloc((/smatl%smmm%nvctrp/),id='fermi_new')
 
-
-      !hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
-
-
       ! Size of one Chebyshev polynomial matrix in compressed form (distributed)
       nsize_polynomial = smatl%smmm%nvctrp_mm
 
-
-      !!! Fake allocation, will be modified later
-      !!chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,1/),id='chebyshev_polynomials')
-
-
-      !!! try to decrease the eigenvalue spectrum a bit
-      !!if (foe_data_get_int(foe_obj,"evbounds_isatur")>foe_data_get_int(foe_obj,"evbounds_nsatur") .and. &
-      !!    foe_data_get_int(foe_obj,"evboundsshrink_isatur")<=foe_data_get_int(foe_obj,"evboundsshrink_nsatur")) then
-      !!    do ispin=1,smatl%nspin
-      !!        call foe_data_set_real(foe_obj,"evlow",0.9d0*foe_data_get_real(foe_obj,"evlow",ispin),ispin)
-      !!        call foe_data_set_real(foe_obj,"evhigh",0.9d0*foe_data_get_real(foe_obj,"evhigh",ispin),ispin)
-      !!    end do
-      !!    evbounds_shrinked=.true.
-      !!else
-      !!    evbounds_shrinked=.false.
-      !!end if
-
-      !ntemp = NTEMP_ACCURATE
-      !degree_multiplicator = DEGREE_MULTIPLICATOR_ACCURATE
-      !temp_multiplicator = TEMP_MULTIPLICATOR_ACCURATE
-
-      !!fscale_new=1.d100
-
-
-
-
-    !ispin = 1
-
-
-
-
-          !!fscale_new = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
-
-
-              !fscale = fscale_new
-              !fscale = max(fscale,FSCALE_LOWER_LIMIT)
-              !fscale = min(fscale,FSCALE_UPPER_LIMIT)
-
-              evlow_old=1.d100
-              evhigh_old=-1.d100
-
-              !if (iproc==0) then
-              !    call yaml_map('decay length of error function',fscale,fmt='(es10.3)')
-              !    call yaml_map('decay length multiplicator',temp_multiplicator,fmt='(es10.3)')
-              !    call yaml_map('polynomial degree multiplicator',degree_multiplicator,fmt='(es10.3)')
-              !end if
-
-
-                  ! Don't let this value become too small.
-                  call foe_data_set_real(foe_obj, &
-                       "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",1),1.d-4), &
-                       1)
-
-                  efarr(1)=foe_data_get_real(foe_obj,"ef")-foe_data_get_real(foe_obj,"bisection_shift",1)
-                  efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift",1)
-
-                  call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef"), f, &
-                       foe_data_get_real(foe_obj,"bisection_shift",1), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-                       foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
-                  !call foe_data_set_real(foe_obj,"ef",efarr(1),ispin)
-
-                  adjust_lower_bound=.true.
-                  adjust_upper_bound=.true.
-
-
-
-
-                  it=0
-                  eval_bounds_ok=.false.
-                  bisection_bounds_ok=.false.
-                  !main_loop: do
-
-                      it=it+1
-
-                      !if (iproc==0) then
-                      !    call yaml_newline()
-                      !    call yaml_sequence(advance='no')
-                      !    call yaml_mapping_open(flow=.true.)
-                      !    if (foe_verbosity>=1) call yaml_comment('it FOE:'//yaml_toa(it,fmt='(i6)'),hfill='-')
-                      !end if
-
-
-                      ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
-                      !if (foe_data_get_real(foe_obj,"evlow",ispin)/=evlow_old .or. &
-                      !    foe_data_get_real(foe_obj,"evhigh",ispin)/=evhigh_old) then
-                          !!call scale_and_shift_hamiltonian()
-                      if (with_overlap) then
-                          call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
-                               smatm, ham_, i1shift=imshift, &
-                               smat2=smats, mat2=ovrlp_, i2shift=isshift, &
-                               matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
-                      else
-                          call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
-                               smatm, ham_, i1shift=imshift, &
-                               matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
-                      end if
-                      !!write(*,*) 'IN SUB: ispin, sum(hamscal_compr), sum(ham_)', &
-                      !!    ispin, sum(hamscal_compr), sum(ham_%matrix_compr(imshift+1:imshift+smatm%nvctr))
-                      !!write(*,*) 'scale_factor, shift_value, sum(hamscal_compr), sum(ham_%matrix_compr)', &
-                      !!            scale_factor, shift_value, sum(hamscal_compr), sum(ham_%matrix_compr)
-                          calculate_SHS=.true.
-                      !else
-                      !    calculate_SHS=.false.
-                      !end if
-                      evlow_old=foe_data_get_real(foe_obj,"evlow",1)
-                      evhigh_old=foe_data_get_real(foe_obj,"evhigh",1)
-
-
-                      ! Determine the degree of the polynomial
-                      !!npl=nint(degree_multiplicator* &
-                      !!    (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))/fscale)
-                      !!npl=max(npl,NPL_MIN)
-                      !!npl_boundaries = nint(degree_multiplicator* &
-                      !!    (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin)) &
-                      !!        /foe_data_get_real(foe_obj,"fscale_lowerbound")) ! max polynomial degree for given eigenvalue boundaries
-                      !!if (npl>npl_boundaries) then
-                      !!    npl=npl_boundaries
-                      !!    if (iproc==0) call yaml_warning('very sharp decay of error function, polynomial degree reached limit')
-                      !!    if (iproc==0) write(*,*) 'STOP SINCE THIS WILL CREATE PROBLEMS WITH NPL_CHECK'
-                      !!    stop
-                      !!end if
-                      if (npl>nplx) then
-                          call f_err_throw('npl>nplx')
-                      end if
-
-                      ! Array the holds the Chebyshev polynomials. Needs to be recalculated
-                      ! every time the Hamiltonian has been modified.
-                      !!if (calculate_SHS) then
-                      !!    call f_free_ptr(chebyshev_polynomials)
-                      !!    chebyshev_polynomials = f_malloc_ptr((/nsize_polynomial,npl/),id='chebyshev_polynomials')
-                      !!end if
-
-                      !!if (iproc==0) then
-                      !!    if (foe_verbosity>=1) then
-                      !!        call yaml_map('eval bounds',&
-                      !!             (/foe_data_get_real(foe_obj,"evlow",ispin), &
-                      !!             foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
-                      !!    else
-                      !!        call yaml_map('eval bounds',&
-                      !!             (/foe_data_get_real(foe_obj,"evlow",ispin), &
-                      !!             foe_data_get_real(foe_obj,"evhigh",ispin)/),fmt='(f5.2)')
-                      !!    end if
-                      !!    call yaml_map('pol deg',npl,fmt='(i0)')
-                      !!    if (foe_verbosity>=1) call yaml_map('eF',foe_data_get_real(foe_obj,"ef",ispin),fmt='(es16.9)')
-                      !!end if
-
-
-                      cc = f_malloc((/npl,2,1/),id='cc')
-
-                      !!if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
-                      !!    call f_err_throw('Lowest eigenvalue must be negative')
-                      !!end if
-                      !!if (foe_data_get_real(foe_obj,"evhigh",ispin)<=0.d0) then
-                      !!    call f_err_throw('Highest eigenvalue must be positive')
-                      !!end if
-
-                      !call timing(iproc, 'FOE_auxiliary ', 'OF')
-                      call f_timing(TCAT_CME_AUXILIARY,'OF')
-                      !call timing(iproc, 'chebyshev_coef', 'ON')
-                      call f_timing(TCAT_CME_COEFFICIENTS,'ON')
-
-                      !!if (foe_data_get_real(foe_obj,"tmprtr")/=0.d0) call f_err_throw('tmprtr must be zero')
-                      !!call func_set(FUNCTION_ERRORFUNCTION, efx=foe_data_get_real(foe_obj,"ef",ispin), fscalex=fscale)
-                      !!call get_chebyshev_expansion_coefficients(iproc, nproc, foe_data_get_real(foe_obj,"evlow",ispin), &
-                      !!     foe_data_get_real(foe_obj,"evhigh",ispin), npl, func, cc(1,1,1), &
-                      !!     x_max_error, max_error, mean_error)
-                      cc = 0.d0
-                      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
-                           muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
-                      call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
-                           foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,2,1), &
-                           x_max_error_fake, max_error_fake, mean_error_fake)
-                      !!do ipl=1,npl
-                      !!   cc(ipl,3,1) = -cc(ipl,2,1)
-                      !!end do
-                      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",1), &
-                           foe_data_get_real(foe_obj,"evhigh",1), anoise)
-                      !write(*,*) 'ef', foe_data_get_real(foe_obj,"ef",ispin)
-
-
-                      !if (iproc==0 .and. foe_verbosity>=1) then
-                      !    call yaml_newline()
-                      !    call yaml_mapping_open('accuracy (x, max err, mean err)')
-                      !    call yaml_map('main',(/x_max_error,max_error,mean_error/),fmt='(es9.2)')
-                      !    call yaml_map('check',(/x_max_error_check,max_error_check,max_error/),fmt='(es9.2)')
-                      !    call yaml_mapping_close()
-                      !    call yaml_newline()
-                      !end if
-
-                      !call timing(iproc, 'chebyshev_coef', 'OF')
-                      call f_timing(TCAT_CME_COEFFICIENTS,'OF')
-                      !call timing(iproc, 'FOE_auxiliary ', 'ON')
-                      call f_timing(TCAT_CME_AUXILIARY,'ON')
-
-
-                      if (smatl%nspin==1) then
-                          do ipl=1,npl
-                              cc(ipl,1,1)=2.d0*cc(ipl,1,1)
-                              cc(ipl,2,1)=2.d0*cc(ipl,2,1)
-                              !!cc(ipl,3,1)=2.d0*cc(ipl,3,1)
-                          end do
-                      end if
-
-
-                      !call timing(iproc, 'FOE_auxiliary ', 'OF')
-                      call f_timing(TCAT_CME_AUXILIARY,'OF')
-
-                      emergency_stop=.false.
-                          ! sending it ovrlp just for sparsity pattern, still more cleaning could be done
-                          !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
-                          !write(*,*) 'BEFORE CHEBY, ispin, sum(hamscal_compr)',ispin,sum(hamscal_compr)
-                          if (with_overlap) then
-                              ham_eff = f_malloc0(smatl%smmm%nvctrp,id='ham_eff')
-                              !!call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                              !!     smatl, hamscal_compr, tt)
-                              !!if (iproc==0) call yaml_map('max assymetry of Hscal',tt)
-                              !!call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                              !!     smatl, ovrlp_minus_one_half, tt)
-                              !!if (iproc==0) call yaml_map('max assymetry of inv',tt)
-                              if (smatl%smmm%nvctrp>0) then
-                                  mat_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='mat_seq')
-                                  matmul_tmp = f_malloc0(smatl%smmm%nvctrp,id='matmul_tmp')
-                                  call prepare_matrix(smatl, ovrlp_minus_one_half, ham_eff)
-                                  call sequential_acces_matrix_fast2(smatl, hamscal_compr, mat_seq)
-                                  call sparsemm_new(iproc, smatl, mat_seq, ham_eff, matmul_tmp)
-                                  call f_zero(ham_eff)
-                                  call sequential_acces_matrix_fast2(smatl, ovrlp_minus_one_half, mat_seq)
-                                  call sparsemm_new(iproc, smatl, mat_seq, matmul_tmp, ham_eff)
-                                  call f_free(mat_seq)
-                                  call f_free(matmul_tmp)
-                              end if
-                              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
-                                   ham_eff, ONESIDED_FULL, workarr_compr)
-                              call f_free(ham_eff)
-
-                              !!call chebyshev_clean(iproc, nproc, npl, cc, &
-                              !!     smatl, hamscal_compr, &
-                              !!     .true., workarr_compr, &
-                              !!     nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-                              !!     emergency_stop, invovrlp_compr=ovrlp_minus_one_half)
-                              !!write(*,*) 'sum(chebyshev_polynomials), sum(hamscal_compr), sum(ovrlp_minus_one_half)', &
-                              !!    sum(chebyshev_polynomials), sum(hamscal_compr), sum(ovrlp_minus_one_half)
-                          else
-                              call f_memcpy(src=hamscal_compr, dest=workarr_compr)
-                              !!call chebyshev_clean(iproc, nproc, npl, cc, &
-                              !!     smatl, hamscal_compr, &
-                              !!     .false., workarr_compr, &
-                              !!     nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-                              !!     emergency_stop)
-                              !!write(*,*) 'sum(hamscal_compr), sum(fermi_new)', sum(hamscal_compr), sum(fermi_new)
-                          end if
-                          call chebyshev_clean(iproc, nproc, npl, cc, &
-                               smatl, workarr_compr, &
-                               .false., &
-                               nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-                               emergency_stop)
-                          !write(*,*) 'AFTER CHEBY, ispin, sum(hamscal_compr)',ispin,sum(hamscal_compr)
-                          !write(*,*) 'npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)', &
-                          !            npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)
-
-
-
-                          !!call transform_sparsity_pattern(smatl%nfvctr, &
-                          !!     smatl%smmm%nvctrp_mm, smatl%smmm%isvctr_mm, &
-                          !!     smatl%nseg, smatl%keyv, smatl%keyg, smatl%smmm%line_and_column_mm, &
-                          !!     smatl%smmm%nvctrp, smatl%smmm%isvctr, &
-                          !!     smatl%smmm%nseg, smatl%smmm%keyv, smatl%smmm%keyg, &
-                          !!     smatl%smmm%istsegline, 'large_to_small', fermi_small_new, fermi_new)
-
-                      !call timing(iproc, 'FOE_auxiliary ', 'ON')
-                      call f_timing(TCAT_CME_AUXILIARY,'ON')
-
-
-                      restart=.false.
-
-                      ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
-                      ! (otherwise this has already been checked in the previous iteration).
-                      call check_eigenvalue_spectrum_new(iproc, nproc, comm, smatl, ispin, &
-                            0, 1.0d0, 1.0d0, penalty_ev_new, anoise, .false., emergency_stop, &
-                            foe_obj, restart, eval_bounds_ok, foe_verbosity)
-
-                      call f_free(cc)
-
-                      if (restart) then
-                          if(evbounds_shrinked) then
-                              ! this shrink was not good, increase the saturation counter
-                              call foe_data_set_int(foe_obj,"evboundsshrink_isatur", &
-                                   foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
-                          end if
-                          call foe_data_set_int(foe_obj,"evbounds_isatur",0)
-                          !if (iproc==0) then
-                          !    if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-                          !         (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                          !    call yaml_mapping_close()
-                          !    !call bigdft_utils_flush(unit=6)
-                          !end if
-                          !cycle
-                      end if
-
-                      ! eigenvalue bounds ok
-                      if (calculate_SHS) then
-                          call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
-                      end if
-
-                      !!!call calculate_trace_distributed(kernel_%matrixp, sumn)
-                      !!call calculate_trace_distributed_new(fermi_small_new, sumn)
-
-
-                      !if (all(eval_bounds_ok) .and. all(bisection_bounds_ok)) then
-                      !    ! Print these informations already now if all entries are true.
-                      !    if (iproc==0) then
-                      !        if (foe_verbosity>=1) call yaml_map('eval/bisection bounds ok',&
-                      !             (/eval_bounds_ok(1),eval_bounds_ok(2),bisection_bounds_ok(1),bisection_bounds_ok(2)/))
-                      !    end if
-                      !end if
-
-                      ! If we are here exit the main loop
-                      !call yaml_mapping_close()
-                      !exit main_loop
-
-
-                  !end do main_loop
-
-
-
-      !if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
-
-
-      !!call f_free(chebyshev_polynomials)
-      !call f_free(hamscal_compr)
-      !write(*,*) 'END get_chebyshev_polynomials: ispin, sum(hamscal_compr)',ispin,sum(hamscal_compr)
-      !write(*,*) 'hamscal_compr',hamscal_compr
+      evlow_old=1.d100
+      evhigh_old=-1.d100
+
+
+      ! Don't let this value become too small.
+      call foe_data_set_real(foe_obj, &
+           "bisection_shift",max(foe_data_get_real(foe_obj,"bisection_shift",1),1.d-4), &
+           1)
+
+      efarr(1)=foe_data_get_real(foe_obj,"ef")-foe_data_get_real(foe_obj,"bisection_shift",1)
+      efarr(2)=foe_data_get_real(foe_obj,"ef")+foe_data_get_real(foe_obj,"bisection_shift",1)
+
+      call init_fermi_level(foe_data_get_real(foe_obj,"charge",1), foe_data_get_real(foe_obj,"ef"), f, &
+           foe_data_get_real(foe_obj,"bisection_shift",1), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
+           foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
+      !call foe_data_set_real(foe_obj,"ef",efarr(1),ispin)
+
+      adjust_lower_bound=.true.
+      adjust_upper_bound=.true.
+
+      it=0
+      eval_bounds_ok=.false.
+
+      it=it+1
+
+
+      ! Scale the Hamiltonian such that all eigenvalues are in the intervall [-1:1]
+      if (with_overlap) then
+          call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
+               smatm, ham_, i1shift=imshift, &
+               smat2=smats, mat2=ovrlp_, i2shift=isshift, &
+               matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
+      else
+          call scale_and_shift_matrix(iproc, nproc, ispin, foe_obj, smatl, &
+               smatm, ham_, i1shift=imshift, &
+               matscal_compr=hamscal_compr, scale_factor=scale_factor, shift_value=shift_value)
+      end if
+      calculate_SHS=.true.
+      evlow_old=foe_data_get_real(foe_obj,"evlow",1)
+      evhigh_old=foe_data_get_real(foe_obj,"evhigh",1)
+
+          if (with_overlap) then
+              ham_eff = f_malloc0(smatl%smmm%nvctrp,id='ham_eff')
+              if (smatl%smmm%nvctrp>0) then
+                  mat_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='mat_seq')
+                  matmul_tmp = f_malloc0(smatl%smmm%nvctrp,id='matmul_tmp')
+                  call prepare_matrix(smatl, ovrlp_minus_one_half, ham_eff)
+                  call sequential_acces_matrix_fast2(smatl, hamscal_compr, mat_seq)
+                  call sparsemm_new(iproc, smatl, mat_seq, ham_eff, matmul_tmp)
+                  call f_zero(ham_eff)
+                  call sequential_acces_matrix_fast2(smatl, ovrlp_minus_one_half, mat_seq)
+                  call sparsemm_new(iproc, smatl, mat_seq, matmul_tmp, ham_eff)
+                  call f_free(mat_seq)
+                  call f_free(matmul_tmp)
+              end if
+              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+                   ham_eff, ONESIDED_POST, workarr_compr, matrix_localx=matrix_local, windowsx=windows)
+              call f_free(ham_eff)
+          else
+              call f_memcpy(src=hamscal_compr, dest=workarr_compr)
+          end if
+
+      if (npl>nplx) then
+          call f_err_throw('npl>nplx')
+      end if
+
+
+      cc = f_malloc((/npl,2,1/),id='cc')
+
+      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
+      !call timing(iproc, 'chebyshev_coef', 'ON')
+      call f_timing(TCAT_CME_COEFFICIENTS,'ON')
+
+      cc = 0.d0
+      call func_set(FUNCTION_EXPONENTIAL, betax=foe_data_get_real(foe_obj,"betax"), &
+           muax=foe_data_get_real(foe_obj,"evlow",1), mubx=foe_data_get_real(foe_obj,"evhigh",1))
+      call get_chebyshev_expansion_coefficients(iproc, nproc, comm, foe_data_get_real(foe_obj,"evlow",1), &
+           foe_data_get_real(foe_obj,"evhigh",1), npl, func, cc(1,2,1), &
+           x_max_error_fake, max_error_fake, mean_error_fake)
+      call evnoise(npl, cc(1,2,1), foe_data_get_real(foe_obj,"evlow",1), &
+           foe_data_get_real(foe_obj,"evhigh",1), anoise)
+      !call timing(iproc, 'chebyshev_coef', 'OF')
+      call f_timing(TCAT_CME_COEFFICIENTS,'OF')
+      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
+
+
+      if (smatl%nspin==1) then
+          do ipl=1,npl
+              cc(ipl,1,1)=2.d0*cc(ipl,1,1)
+              cc(ipl,2,1)=2.d0*cc(ipl,2,1)
+              !!cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+          end do
+      end if
+
+
+      !call timing(iproc, 'FOE_auxiliary ', 'OF')
+      call f_timing(TCAT_CME_AUXILIARY,'OF')
+
+      emergency_stop=.false.
+          if (with_overlap) then
+              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+                   ham_eff, ONESIDED_GATHER, workarr_compr, matrix_localx=matrix_local, windowsx=windows)
+          end if
+          call chebyshev_clean(iproc, nproc, npl, cc, &
+               smatl, workarr_compr, &
+               .false., &
+               nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
+               emergency_stop)
+      !call timing(iproc, 'FOE_auxiliary ', 'ON')
+      call f_timing(TCAT_CME_AUXILIARY,'ON')
+
+
+      restart=.false.
+
+      ! Check the eigenvalue bounds. Only necessary if calculate_SHS is true
+      ! (otherwise this has already been checked in the previous iteration).
+      call check_eigenvalue_spectrum_new(iproc, nproc, comm, smatl, ispin, &
+            0, 1.0d0, 1.0d0, penalty_ev_new, anoise, .false., emergency_stop, &
+            foe_obj, restart, eval_bounds_ok, foe_verbosity)
+
+      call f_free(cc)
+
+      if (restart) then
+          if(evbounds_shrinked) then
+              ! this shrink was not good, increase the saturation counter
+              call foe_data_set_int(foe_obj,"evboundsshrink_isatur", &
+                   foe_data_get_int(foe_obj,"evboundsshrink_isatur")+1)
+          end if
+          call foe_data_set_int(foe_obj,"evbounds_isatur",0)
+      end if
+
+      ! eigenvalue bounds ok
+      if (calculate_SHS) then
+          call foe_data_set_int(foe_obj,"evbounds_isatur",foe_data_get_int(foe_obj,"evbounds_isatur")+1)
+      end if
 
       call f_free(penalty_ev_new)
       call f_free(fermi_new)
+      call f_free(matrix_local)
+      call f_free(windows)
 
-      !write(*,*) 'end get_chebyshev_polynomials: ef', foe_data_get_real(foe_obj,"ef",ispin)
 
       !call timing(iproc, 'FOE_auxiliary ', 'OF')
       call f_timing(TCAT_CME_AUXILIARY,'OF')
 
       call f_release_routine()
-
 
     end subroutine get_chebyshev_polynomials
 

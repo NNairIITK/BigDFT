@@ -756,13 +756,15 @@ module sparsematrix
          case (ONESIDED_FULL)
              matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
          case default
-             call f_err_throw('wronf value for onesided_action')
+             call f_err_throw('wrong value for onesided_action')
          end select
-         call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-              smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-              smat%smmm%nvctrp, smat%smmm%isvctr, &
-              smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-              'large_to_small', matrix_s_out=matrix_local, matrix_l_in=matrixp)
+         if (onesided_action==ONESIDED_POST .or. onesided_action==ONESIDED_FULL) then
+             call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
+                  smat%smmm%nvctrp, smat%smmm%isvctr, &
+                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+                  'large_to_small', matrix_s_out=matrix_local, matrix_l_in=matrixp)
+         end if
          !call f_free_ptr(matrix_local)
      else
              call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
