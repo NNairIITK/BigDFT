@@ -138,23 +138,25 @@ subroutine add_sadneighb(snghb,ileft,iright,ipair,fminL,fminR)
     
 end subroutine
 !=====================================================================
-subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
+subroutine init_mhgpstool_data(nat,spredinputs,nfolder,nsad,mdat)
     use module_base
-    use module_atoms, only: nullify_atomic_structure
+    use SPREDtypes
+    use module_fingerprints
     implicit none
     !parameters
     integer, intent(in) :: nat
     integer, intent(in) :: nfolder
     integer, intent(in) :: nsad(:)
     type(mhgpstool_data), intent(inout) :: mdat
+    type(SPRED_inputs), intent(in) :: spredinputs
     !local
     integer :: istat
    
-    call nullify_atomic_structure(mdat%astruct)
  
     mdat%nat = nat
-    mdat%nid = nat !s-overlap
+!    mdat%nid = nat !s-overlap
 !    nid = 4*nat !sp-overlap
+    call init_fingerprint(spredinputs,mdat%nat,mdat%astruct%geocode,mdat%nid)
 
     mdat%rcov = f_malloc((/nat/),id='rcov')
 
