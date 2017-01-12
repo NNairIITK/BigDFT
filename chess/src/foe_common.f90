@@ -1374,7 +1374,8 @@ module foe_common
                ham_, workarr_compr, foe_obj, chebyshev_polynomials, ispin, eval_bounds_ok, &
                hamscal_compr, scale_factor, shift_value, smats, ovrlp_, ovrlp_minus_one_half)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
-                              transform_sparsity_pattern
+                              transform_sparsity_pattern, sequential_acces_matrix_fast2, sparsemm_new, &
+                              compress_matrix_distributed_wrapper
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -1442,10 +1443,9 @@ module foe_common
       integer,parameter :: imode=SPARSE
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
-      real(kind=mp),dimension(:),allocatable :: penalty_ev_new
+      real(kind=mp),dimension(:),allocatable :: penalty_ev_new, ham_eff, mat_seq, matmul_tmp
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new, fermi_small_new
       integer :: iline, icolumn, icalc
-
 
 
       call f_routine(id='get_chebyshev_polynomials')
@@ -1703,27 +1703,50 @@ module foe_common
                           !if (foe_verbosity>=1 .and. iproc==0) call yaml_map('polynomials','recalculated')
                           !write(*,*) 'BEFORE CHEBY, ispin, sum(hamscal_compr)',ispin,sum(hamscal_compr)
                           if (with_overlap) then
+                              ham_eff = f_malloc0(smatl%smmm%nvctrp,id='ham_eff')
                               !!call max_asymmetry_of_matrix(iproc, nproc, comm, &
                               !!     smatl, hamscal_compr, tt)
                               !!if (iproc==0) call yaml_map('max assymetry of Hscal',tt)
                               !!call max_asymmetry_of_matrix(iproc, nproc, comm, &
                               !!     smatl, ovrlp_minus_one_half, tt)
                               !!if (iproc==0) call yaml_map('max assymetry of inv',tt)
-                              call chebyshev_clean(iproc, nproc, npl, cc, &
-                                   smatl, hamscal_compr, &
-                                   .true., workarr_compr, &
-                                   nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-                                   emergency_stop, invovrlp_compr=ovrlp_minus_one_half)
+                              if (smatl%smmm%nvctrp>0) then
+                                  mat_seq = sparsematrix_malloc(smatl, iaction=SPARSEMM_SEQ, id='mat_seq')
+                                  matmul_tmp = f_malloc0(smatl%smmm%nvctrp,id='matmul_tmp')
+                                  call prepare_matrix(smatl, ovrlp_minus_one_half, ham_eff)
+                                  call sequential_acces_matrix_fast2(smatl, hamscal_compr, mat_seq)
+                                  call sparsemm_new(iproc, smatl, mat_seq, ham_eff, matmul_tmp)
+                                  call f_zero(ham_eff)
+                                  call sequential_acces_matrix_fast2(smatl, ovrlp_minus_one_half, mat_seq)
+                                  call sparsemm_new(iproc, smatl, mat_seq, matmul_tmp, ham_eff)
+                                  call f_free(mat_seq)
+                                  call f_free(matmul_tmp)
+                              end if
+                              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_LARGE, &
+                                   ham_eff, ONESIDED_FULL, workarr_compr)
+                              call f_free(ham_eff)
+
+                              !!call chebyshev_clean(iproc, nproc, npl, cc, &
+                              !!     smatl, hamscal_compr, &
+                              !!     .true., workarr_compr, &
+                              !!     nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
+                              !!     emergency_stop, invovrlp_compr=ovrlp_minus_one_half)
                               !!write(*,*) 'sum(chebyshev_polynomials), sum(hamscal_compr), sum(ovrlp_minus_one_half)', &
                               !!    sum(chebyshev_polynomials), sum(hamscal_compr), sum(ovrlp_minus_one_half)
                           else
-                              call chebyshev_clean(iproc, nproc, npl, cc, &
-                                   smatl, hamscal_compr, &
-                                   .false., workarr_compr, &
-                                   nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
-                                   emergency_stop)
+                              call f_memcpy(src=hamscal_compr, dest=workarr_compr)
+                              !!call chebyshev_clean(iproc, nproc, npl, cc, &
+                              !!     smatl, hamscal_compr, &
+                              !!     .false., workarr_compr, &
+                              !!     nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
+                              !!     emergency_stop)
                               !!write(*,*) 'sum(hamscal_compr), sum(fermi_new)', sum(hamscal_compr), sum(fermi_new)
                           end if
+                          call chebyshev_clean(iproc, nproc, npl, cc, &
+                               smatl, workarr_compr, &
+                               .false., &
+                               nsize_polynomial, 1, fermi_new, penalty_ev_new, chebyshev_polynomials, &
+                               emergency_stop)
                           !write(*,*) 'AFTER CHEBY, ispin, sum(hamscal_compr)',ispin,sum(hamscal_compr)
                           !write(*,*) 'npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)', &
                           !            npl, sum(cc(:,1,1)), sum(chebyshev_polynomials)
@@ -2801,5 +2824,49 @@ module foe_common
       call f_release_routine()
 
     end subroutine get_bounds_and_polynomials
+
+
+    subroutine prepare_matrix(smat, invovrlp_compr, matrix)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use dynamic_memory
+      implicit none
+
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: invovrlp_compr
+      real(kind=mp),dimension(smat%smmm%nvctrp),intent(inout) :: matrix
+
+      ! Local variables
+      integer :: i, ii, iline, icolumn, jj
+
+      call f_routine(id='prepare_matrix')
+
+      if (.not.smat%smatmul_initialized) then
+          call f_err_throw('sparse matrix multiplication not initialized', &
+               err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+
+      !$omp parallel &
+      !$omp default(none) &
+      !$omp shared(smat, matrix, invovrlp_compr) &
+      !$omp private(i, ii, iline, icolumn, jj)
+      !$omp do schedule(guided)
+      do i=1,smat%smmm%nvctrp
+          ii = smat%smmm%isvctr + i
+          iline = smat%smmm%line_and_column(1,i)
+          icolumn = smat%smmm%line_and_column(2,i)
+          jj=matrixindex_in_compressed(smat, icolumn, iline)
+          if (jj>0) then
+              matrix(i) = invovrlp_compr(jj-smat%isvctrp_tg)
+          else
+              matrix(i) = 0.d0
+          end if
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      call f_release_routine()
+
+    end subroutine prepare_matrix
 
 end module foe_common
