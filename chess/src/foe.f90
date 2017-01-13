@@ -312,6 +312,8 @@ module foe
               call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_work(is+1:),  &
                    ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
                    matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
+              call max_asymmetry_of_matrix(iproc, nproc, comm, &
+                   smatl, kernel_%matrix_compr(ilshift+1:), asymm_K)!, ispinx=ispin)
               if (symmetrize_kernel) then
                   call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
                   call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
@@ -328,8 +330,6 @@ module foe
               !!call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_check_work(is+1:), &
               !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
               !!     matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
-              call max_asymmetry_of_matrix(iproc, nproc, comm, &
-                   smatl, kernel_%matrix_compr(ilshift+1:), asymm_K)!, ispinx=ispin)
               ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
               if (symmetrize_kernel) then
                   call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
