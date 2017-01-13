@@ -1,4 +1,4 @@
-!!
+
 !! Solver for the Generalized Poisson Equation. 
 !! @author Giuseppe Fisicaro
 
@@ -15,7 +15,10 @@ program GPS_3D
    use yaml_strings
    use box
    use PSbase
+   use PStypes, only: build_cavity_from_rho
    use numerics
+   use psolver_environment, only: rigid_cavity_arrays,rigid_cavity_forces,vacuum_eps
+   use FDder
    implicit none
    
    !now these parameters have to be specified from the command line
@@ -37,7 +40,7 @@ program GPS_3D
    logical :: mPB ! Set the solver for the modified Poisson-Boltzmann equation.
 
    real(kind=8), parameter :: acell = 10.d0 !10.d0
-   real(kind=8), parameter :: rad_cav = 1.7d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
+   real(kind=8), parameter :: rad_cav = 2.7d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
    real(kind=8), parameter :: eps0 = 78.36d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
    real(kind=8), parameter :: multp = 1.d0
    integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
@@ -56,13 +59,14 @@ program GPS_3D
    !!= Total number of points at left and right of the x0 where we want to calculate the derivative.
    integer, parameter :: nord = 16
    integer, dimension(3) :: ndims,ndimsc,ndimsf
-   real(8), dimension(3) :: hgrids,hgridsc,hgridsf,angdeg,angrad
+   real(8), dimension(3) :: hgrids,hgridsc,hgridsf,angdeg,angrad,v,dleps
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
+   real(kind=8), parameter :: thr = 1.0d-10
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03,iat,n_iter
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume,delta
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,einit
-   real(kind=8) :: ehartree,offset,epol
+   real(kind=8) :: ehartree,offset,epol,epr,depsr,cc,kk,IntVol,IntSur,y,d
    real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol,rhopotf,densityf
 
    logical :: logyes
@@ -77,11 +81,12 @@ program GPS_3D
    real(kind=8), pointer :: kernel(:)
    type(coulomb_operator) :: pkernel
 !   type(mpi_environment), intent(in), optional :: mpi_env
-   real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion,epsf,potentialf
+   real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion,epsf,potentialf,dsurfdrho
+   real(kind=8), dimension(:,:,:,:), allocatable :: nabla_eps
    integer :: i1,i2,i3,isp,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
 !   type(mpi_environment) :: bigdft_mpi
   type(dictionary), pointer :: options,dict_input
-  real(kind=8) :: alpha, beta,gamma,detg
+  real(kind=8) :: alpha, beta,gamma,detg,max_val
 
   real(kind=8), dimension(:,:,:,:), allocatable :: dlogeps
   !> inverse of epsilon. Needed for PI method.
@@ -182,6 +187,7 @@ program GPS_3D
     end if
    end if
 
+
    density=f_malloc([n01,n02,n03,nspden],id='density')
    rhopot =f_malloc([n01,n02,n03,nspden],id='rhopot')
    potsol =f_malloc([n01,n02,n03,nspden],id='potsol')
@@ -204,6 +210,8 @@ program GPS_3D
    corr=f_malloc([n01,n02,n03],id='corr')
    potential=f_malloc([n01,n02,n03],id='potential')
    pot_ion=f_malloc([n01,n02,n03],id='pot_ion')
+   nabla_eps=f_malloc([n01,n02,n03,3],id='nabla_eps')
+   dsurfdrho=f_malloc([n01,n02,n03],id='dsurfdrho')
    epsf=f_malloc([ndimsf(1),ndimsf(2),ndimsf(3)],id='epsf')
    potentialf=f_malloc([ndimsf(1),ndimsf(2),ndimsf(3)],id='potentialf')
 
@@ -519,6 +527,89 @@ program GPS_3D
 
  end if
 
+!----------------------------------------------------------------
+! Inportant check of subroutines for additional terms to the forces: check dsurfeps
+! For the rigid cavity the additional term to the force is provided by
+! rigid_cavity_arrays.
+! For sccs by build_cavity_from_rho. Here we do not use this last because
+! it multiply by depsdrho. So we compute it in a similar way as done within
+! build_cavity_from_rho with nabla_u_and_square and div_u_i.
+! is a way to test also these last finite difference filters from psolver.
+! It needs n=200 to get an accuracy=1e-8.
+
+  pkernel%cavity%delta = 0.5d0
+  do i3=1,n03
+     v(3)=cell_r(mesh,i3,dim=3)
+     do i2=1,n02
+        v(2)=cell_r(mesh,i2,dim=2)
+        do i1=1,n01
+           v(1)=cell_r(mesh,i1,dim=1)
+           !this is done to obtain the depsilon
+           call rigid_cavity_arrays(pkernel%cavity,mesh,v,nat,&
+                rxyz,radii,epr,depsr,dleps,cc,kk)
+           eps(i1,i2,i3)=epr
+           potential(i1,i2,i3)=kk/(pkernel%cavity%epsilon0-vacuum_eps)
+        end do
+     end do
+  end do
+  
+  call nabla_u_and_square(geocode,n01,n02,n03,eps,nabla_eps,oneoeps,&
+       nord,hgrids)
+  call div_u_i(geocode,n01,n02,n03,nabla_eps,oneosqrteps,nord,hgrids,corr)
+
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+          d=sqrt(oneoeps(i1,i2,i3))
+          if (oneoeps(i1,i2,i3).gt.thr) then
+          kk=(corr(i1,i2,i3)/oneoeps(i1,i2,i3)-oneosqrteps(i1,i2,i3))/d
+          dsurfdrho(i1,i2,i3)=kk/(pkernel%cavity%epsilon0-vacuum_eps)
+          else
+           ! to avoid comparison when the derivative is too small and at the boc
+           ! center where it is not well definide with finite difference
+           ! filters (thr = 1.0d-10).
+           dsurfdrho(i1,i2,i3)=0.d0
+           potential(i1,i2,i3)=0.d0
+          end if
+        end do
+     end do
+  end do
+
+  if (iproc==0) then
+   call yaml_mapping_open('Comparison between different dsurfdrho subroutines')
+   call writeroutinePot(n01,n02,n03,1,potential,0,dsurfdrho)
+   call yaml_mapping_close()
+  end if
+
+  if (.true.) then
+   open(unit=21,file='epsilon_check.dat',status='unknown')
+   open(unit=22,file='epsilon_line_check.dat',status='unknown')
+ 
+      !i1=n01/2+1
+      i1=(n01-1)/2+1
+      !i1=1
+      do i2=1,n02
+       do i3=1,n03
+        write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i2,i1,i3),eps(i1,i2,i3)
+       end do
+       write(21,*)
+      end do
+ 
+ 
+      i1=(n01-1)/2+1
+      i3=(n03-1)/2+1
+      do i2=1,n02
+       y=hy*real(i2-1,kind=8)
+       write(22,'(1x,I8,5(1x,e22.15))') i2,y,eps(i1,i2,i3),oneoeps(i1,i2,i3),&
+          oneosqrteps(i1,i2,i3),corr(i1,i2,i3)
+      end do
+ 
+   close(unit=21)
+   close(unit=22)
+  end if
+
+!----------------------------------------------------------------
+
   call pkernel_free(pkernel)
   call f_free(density)
   call f_free(densityf)
@@ -541,6 +632,8 @@ program GPS_3D
   call f_free(potential)
   call f_free(potentialf)
   call f_free(pot_ion)
+  call f_free(nabla_eps)
+  call f_free(dsurfdrho)
 
   call mpifinalize()
   call f_lib_finalize()
@@ -3397,7 +3490,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
   real(kind=8) :: max_val,fact
   character(len=20) :: str
-  logical :: wrtfiles=.false.
+  logical :: wrtfiles=.true. !.false.
   re=f_malloc([n01,n02,n03,nspden],id='re')
   
       max_val = 0.d0
