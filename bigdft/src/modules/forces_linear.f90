@@ -1196,7 +1196,7 @@ module forces_linear
       !local variables
       real(gp) :: ekin_sum,epot_sum
       character(len=*), parameter :: subname='local_hamiltonian_stress'
-      integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
+      integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim, ispin
       !real(wp) :: kinstr(6)
       real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
       type(workarr_locham) :: w
@@ -1284,10 +1284,12 @@ module forces_linear
               hpsi(1,idir), hpsit_c, hpsit_f, lzd)
          call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
               psit_c, hpsit_c, psit_f, hpsit_f, msmat, maux, mmat)
-         !tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
-         tt = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, msmat, lsmat, mmat, lmat, 1)
-         !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
-         tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
+         do ispin=1,lsmat%nspin
+            !tt = trace_sparse(iproc, nproc, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+            tt = trace_AB(iproc, nproc, bigdft_mpi%mpi_comm, msmat, lsmat, mmat, lmat, ispin)
+            !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
+            tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
+         end do
          tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow
       end do
     

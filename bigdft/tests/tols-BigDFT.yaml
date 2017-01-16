@@ -364,7 +364,7 @@ test.testforces.ref.yaml:
  D Tr(K): 1.1e-08
  Total charge: 3.4e-10
  Tr(K): 3.0e-07
- trace(KS): 3.4e-10
+ trace(Ktilde): 3.4e-10
 
 
 
@@ -492,7 +492,7 @@ base:
   energy: 1.4e-11
   Omega: 1.32e-11
   D Tr(K): 1.1e-10
-  trace(KS): 4.1e-11
+  trace(Ktilde): 4.1e-11
   D Tr: 4.1e-11
   Unitary check of the multipole calculations: 2.1e-2
   Maxdiff for overlap calculation: 5.5e-08
@@ -553,7 +553,7 @@ cleanup:
  Maxdiff for overlap calculation: 1.7e-9
  Maxdiff for transpose (checksum): 1.5e-11
  e: 6.3e-10
- trace(KS): 1.2e-11
+ trace(Ktilde): 1.2e-11
 
 directmin:
  Patterns to ignore:
@@ -842,7 +842,7 @@ fructose:
  ef: 1.1e-7
  difference: 1.4e-9
  relative difference: 6.3e-11
- trace(KS): 2.5e-10
+ trace(Ktilde): 2.5e-10
  eval: 1.1e-6
  trace: 1.9e-11
  Average noise forces: 1.01e-10
@@ -895,7 +895,7 @@ geopt_foe:
  Omega: 1.3e-8
  Total charge: 1.6e-8
  guess for new ef: 4.7e-07
- trace(KS): 1.6e-8
+ trace(Ktilde): 1.6e-8
  energy: 3.6e-9
  relative difference: 5.8e-9
  Maxdiff for overlap calculation: 4.5e-08
@@ -1141,7 +1141,7 @@ experimentalfoe_long:
  decay length of error function: 1.1e-5
  relative difference: 3.4e-11
  Energy (Hartree): 4.6e-10
- trace(KS): 2.72e-10
+ trace(Ktilde): 2.72e-10
  Maxdiff for transpose (checksum): 4.7e-10
 
 experimentalfoe_short:
@@ -1170,7 +1170,7 @@ experimentalfoe_short:
  Energy (Hartree): 6.1e-11
  EBS: 4.7e-10
  EBS higher temperature: 4.6e-10
- trace(KS): 2.1e-10
+ trace(Ktilde): 2.1e-10
  Maxdiff for transpose (checksum): 3.5e-10
  Total charge: 3.4e-07
  difference: 8.1e-11
@@ -1229,7 +1229,7 @@ paracetamol:
  Energy (Hartree): 2.8e-11
  mean conf prefac: 1.1e-5
  Maxdiff for overlap calculation: 2.6e-07
- trace(KS): 1.1e-9
+ trace(Ktilde): 1.1e-9
 
 reformatcomplete_read35:
  energy: 8.7e-10
@@ -1525,7 +1525,7 @@ geoptconstrained_BFGS:
  difference: 4.5-11
  relative difference: 9.0e-11
  Total charge: 9.1e-11
- trace(KS): 9.8e-11
+ trace(Ktilde): 9.8e-11
 
 geoptconstrained_SDCG:
  eF: 8.7e-8
@@ -1549,7 +1549,7 @@ geoptconstrained_SDCG:
  EBS: 7.8e-11
  Ion-Ion interaction energy: 2.3e-10
  Atomic structure: 3.1e-9
- trace(KS): 1.74e-11
+ trace(Ktilde): 1.74e-11
  Total charge: 2.1e-11
  Maxdiff for transpose (checksum): 1.2e-10
  difference: 2.7e-11
@@ -1617,7 +1617,7 @@ O2spin_foe:
  Energy (Hartree): 1.5e-7
  Force Norm (Hartree/Bohr): 4.3e-7
  Maxdiff for transpose (checksum): 2.4e-10
- trace(KS): 4.3e-7
+ trace(Ktilde): 4.3e-7
  fnrm2: 1.01e-7
  spin occupations: 2.7e-05
  exp accur: 1.0e-08
@@ -1707,7 +1707,7 @@ expfoegeopt:
  Omega: 3.3e-11
  energy: 3.3e-11
  epred: 2.2e-11
- trace(KS): 3.3e-11
+ trace(Ktilde): 3.3e-11
  Total charge: 3.1e-11
  Energy (Hartree): 1.5e-11
  Maxdiff for transpose (checksum): 2.4e-10
@@ -1919,7 +1919,7 @@ periodic_water:
  Ion-Ion interaction energy: 1.6e-11
  Force Norm (Hartree/Bohr): 2.0e-11
  fnrm2: 2.6e-11
- trace(KS): 1.1e-10
+ trace(Ktilde): 1.1e-10
  relative difference: 9.9e-11
  Maxdiff for transpose (checksum): 4.7e-10
  decay length of error function: 1.1e-05
@@ -1966,7 +1966,7 @@ surface_graphene:
  trace: 2.3e-9
  D Tr: 2.1e-11
  Maxdiff for transpose (checksum): 4.7e-10
- trace(KS): 1.2e-11
+ trace(Ktilde): 1.2e-11
 
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1993,7 +1993,7 @@ multipoles_OH-:
  Omega: 4.6e-10
  D eF: 2.7e-7
  Total charge: 6.5e-10
- trace(KS): 6.5e-10
+ trace(Ktilde): 6.5e-10
  difference from reference kernel: 1.1e-8
  Atomic Forces (Ha/Bohr): 6.6e-11
  Clean forces norm (Ha/Bohr): 7.8e-10
@@ -2051,7 +2051,7 @@ multipoles_waterQMQM:
 # D Tr(K): 5.9e-10
 # number of corrected points: 17.0
 # total charge correction: 8.6e-11
-# trace(KS): 2.1e-11
+# trace(Ktilde): 2.1e-11
 # Unitary check of the multipole calculations: 2.1e-2
 # number of corrected points: 20
 # Tr(K): 1.1e-09
@@ -2075,7 +2075,7 @@ multipoles_CH4:
  EBS: 8.2e-10
  EBS higher temperature: 1.2e-9
  relative_difference: 2.6e-10
- trace(KS): 1.5e-10
+ trace(Ktilde): 1.5e-10
  Tr(K): 2.1e-9
  energy: 2.2e-11
  Omega: 2.1e-11
@@ -2124,7 +2124,7 @@ multipoles_periodic:
   Total charge: 4.7e-11
   difference: 1.7e-9
   trace: 3.7e-11
-  trace(KS): 4.8e-11
+  trace(Ktilde): 4.8e-11
   e: 4.11-11
   Average noise forces: 1.1e-10
   Maxdiff for transpose (checksum): 1.5e-11
@@ -2166,7 +2166,7 @@ igortho_19:
  D Tr: 2.6e-8
  number of corrected points: 16
  difference: 5.9e-9
- trace(KS): 5.6e-9
+ trace(Ktilde): 5.6e-9
  Total charge: 5.9e-9
  relative difference: 1.6e-9
  difference from reference kernel: 3.0e-8
@@ -2205,7 +2205,7 @@ igortho_44:
  EBS: 7.2e-04
  EBS higher temperature: 7.2e-04
  relative difference: 9.5e-10
- trace(KS): 1.5e-08
+ trace(Ktilde): 1.5e-08
  energy: 1.1e-06
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.6e-6
@@ -2264,7 +2264,7 @@ igortho_94:
  EBS: 3.2e-4
  EBS higher temperature: 3.2e-4
  relative difference: 3.9e-8
- trace(KS): 4.8e-8
+ trace(Ktilde): 4.8e-8
  D: 1.1e-4
  energy: 4.3e-8
  Omega: 1.9e-8
@@ -2307,7 +2307,7 @@ extendedfrags_nofrags:
  difference: 5.7e-09
  energy: 2.9e-09
  relative difference: 6.1e-10
- trace(KS): 4.3e-09
+ trace(Ktilde): 4.3e-09
 
 extendedfrags_read:
  Omega: 2.3e-6
@@ -2335,7 +2335,7 @@ extendedfrags_read:
  relative difference: 1.3e-10
  energy: 5.1e-10
  PV (Ha): 2.6e-10
- trace(KS): 2.6e-11
+ trace(Ktilde): 2.6e-11
  Clean forces norm (Ha/Bohr): 3.1e-11
  Keys to ignore: [WARNINGS]
 
@@ -2366,7 +2366,7 @@ extendedfrags_readrotated:
  Clean forces norm (Ha/Bohr): 4.0e-11
  difference: 7.6e-10
  relative difference: 1.3e-10
- trace(KS): 1.1e-10
+ trace(Ktilde): 1.1e-10
  PV (Ha): 1.4e-10
  Keys to ignore: [WARNINGS]
 
@@ -2385,7 +2385,7 @@ extendedfrags_write:
  Tr(K): 6.1e-8
  Total charge: 6.01e-11
  D Tr(K): 5.8e-8
- trace(KS): 6.18e-11
+ trace(Ktilde): 6.18e-11
  eF: 1.1e-8
  Pressure: 6.9e-11
  decay length of error function: 1.1e-6
@@ -2640,7 +2640,7 @@ largesystems_dnawater:
   multiplicator for the confinement: 4.9e-10
   occ: 1.1e-07
   trace of quadropole matrix: 1.2e-08
-  trace(KS): 1.2e-11
+  trace(Ktilde): 1.2e-11
   Keys to ignore:
     - atom
 
@@ -2662,7 +2662,7 @@ H2Omultipoles_1:
   eF: 6.0e-07
   energy: 5.9e-11
   multiplicator for the confinement: 4.7e-11
-  trace(KS): 3.1e-10
+  trace(Ktilde): 3.1e-10
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 3.1e-7
   relative difference: 1.4e-7
@@ -2684,7 +2684,7 @@ H2Omultipoles_11:
   Total charge: 3.2e-10
   Tr(K): 1.3e-05
   D Tr(K): 1.0e-08
-  trace(KS): 3.1e-10
+  trace(Ktilde): 3.1e-10
   eF: 6.0e-07
   energy: 6.1e-11
   multiplicator for the confinement: 4.4e-11
@@ -2712,7 +2712,7 @@ H2Omultipoles_12:
   eF: 1.1e-07
   energy: 2.9e-11
   multiplicator for the confinement: 5.3e-11
-  trace(KS): 2.6e-11
+  trace(Ktilde): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 1.3e-11
 
@@ -2733,7 +2733,7 @@ H2Omultipoles_12:
 #  eF: 1.1e-07
 #  energy: 1.8e-11
 #  multiplicator for the confinement: 3.4e-11
-#  trace(KS): 1.9e-11
+#  trace(Ktilde): 1.9e-11
 #  Maxdiff for transpose (checksum): 1.5e-11
 
 H2Omultipoles_2:
@@ -2752,7 +2752,7 @@ H2Omultipoles_2:
   eF: 1.1e-07
   energy: 2.7e-11
   multiplicator for the confinement: 5.1e-11
-  trace(KS): 2.6e-11
+  trace(Ktilde): 2.6e-11
   Maxdiff for transpose (checksum): 1.5e-11
   difference: 1.3e-11
   Pseudo Fermi level for occupations: 2.8e-11
@@ -2774,7 +2774,7 @@ H2Omultipoles_2:
 #  eF: 1.1e-07
 #  energy: 2.4e-11
 #  multiplicator for the confinement: 4.5e-11
-#  trace(KS): 1.9e-11
+#  trace(Ktilde): 1.9e-11
 #  Maxdiff for transpose (checksum): 1.5e-11
 
 matrixtaskgroups_no:
@@ -2794,7 +2794,7 @@ matrixtaskgroups_no:
   difference: 8.0e-11
   energy: 3.9e-09
   trace: 1.50e-06
-  trace(KS): 5.1e-11
+  trace(Ktilde): 5.1e-11
   HOMO-LUMO gap (eV): 6.3e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
@@ -2825,7 +2825,7 @@ matrixtaskgroups_yes:
   difference: 7.1e-11
   energy: 3.9e-09
   trace: 1.51e-06
-  trace(KS): 4.8e-11
+  trace(Ktilde): 4.8e-11
   HOMO-LUMO gap (eV): 6.3e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
@@ -2844,7 +2844,7 @@ test-foeccs:
   EBS: 1.1e-10
   EBS higher temperature: 1.1e-10
   difference: 9.6e-11
-  trace(KS): 7.6e-11
+  trace(Ktilde): 7.6e-11
   D Tr(K): 1.0e-07
   value: 2.8e-11
 
