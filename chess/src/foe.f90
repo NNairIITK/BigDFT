@@ -392,9 +392,9 @@ module foe
               call yaml_map('difference',ebs_check_allspins-ebsp_allspins,fmt='(es19.12)')
               call yaml_map('relative difference',diff,fmt='(es19.12)')
               if (smatl%nspin==1) then
-                  call yaml_map('trace(KS)',sumn_allspins(1))
+                  call yaml_map('trace(Ktilde)',sumn_allspins(1))
               else
-                  call yaml_map('trace(KS)',sumn_allspins)
+                  call yaml_map('trace(Ktilde)',sumn_allspins)
               end if
           end if
 
@@ -472,6 +472,7 @@ module foe
           sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
                  ovrlp_%matrix_compr(isshift+1:), &
                  kernel_%matrix_compr(ilshift+1:))
+          sumn_allspins(ispin) = sumn
           ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
           istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
           ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
@@ -479,7 +480,10 @@ module foe
           ebsp = ebsp/scale_factor+shift_value*sumn
           ebs = ebs + ebsp
       end do
-      !!write(*,*) 'ebs, sumn', ebs, sumn
+      if (iproc==0) then
+          call yaml_map('trace(KS)',sum(sumn_allspins),fmt='(es19.12)')
+          call yaml_map('trace(KH)',ebs,fmt='(es19.12)')
+      end if
 
 
       !!! Sum up the band structure energy
