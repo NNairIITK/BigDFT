@@ -1401,20 +1401,20 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
-   exp accur:  [  3.75E-14 ], up: {penalty:  7.4E-16, ok:  [  Yes,  Yes ]}, down: {
- penalty:  7.4E-16, ok:  [  Yes,  Yes ]}}
-     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  3.75E-14 ]}
+   exp accur:  [  5.35E-14 ], up: {penalty:  2.1E-15, ok:  [  Yes,  Yes ]}, down: {
+ penalty:  2.1E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  5.35E-14 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
- penalty:  1.2E+06, ok:  [  No,  Yes ]}, down: {penalty:  1.9E+06, ok:  [  No,  Yes ]}}
+ penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
      -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
- penalty:  3.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+ penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
      -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
- penalty: -1.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty:  4.3E-16, ok:  [  Yes,  Yes ]}}
+ penalty: -5.5E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  680, bounds:  [  0.50,  1.50 ], exp accur:  [  9.74E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1460,8 +1460,8 @@
  eF: -2.600599E-01, spin occupations:  [  6.9754551E+00,  0.0000000E+00 ], 
  Tr(K):  6.9754551E+00, D Tr(K):  4.75E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 15
- eF: -2.797909E-01, spin occupations:  [  5.5878787E+00,  0.0000000E+00 ], 
- Tr(K):  5.5878787E+00, D Tr(K): -9.12E-01, new eF: cubic interpol}
+ eF: -2.797909E-01, spin occupations:  [  5.5878785E+00,  0.0000000E+00 ], 
+ Tr(K):  5.5878785E+00, D Tr(K): -9.12E-01, new eF: cubic interpol}
      -  { #--------------------------------------------------------------------- it FOE: 16
  eF: -2.683072E-01, spin occupations:  [  6.7208134E+00,  0.0000000E+00 ], 
  Tr(K):  6.7208134E+00, D Tr(K):  2.21E-01, new eF: cubic interpol}
@@ -1478,13 +1478,13 @@
  eF: -2.711893E-01, spin occupations:  [  6.4999992E+00,  0.0000000E+00 ], 
  Tr(K):  6.4999992E+00, D Tr(K): -7.63E-07, new eF: linear interpol}
      summary: {nit:  20, eF: -2.711893E-01, Tr(K):  6.4999992E+00, D Tr(K): -7.63E-07}
-     Asymmetry of kernel               :  2.78E-15
+     Asymmetry of kernel               :  4.60E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.985177030787E+00
-     EBS higher temperature            : -3.960485364867E+00
-     difference                        :  2.469166591991E-02
-     relative difference               :  6.195876802752E-03
-     trace(KS)                         :  [  6.499999237392942,  0.0 ]
+     EBS                               : -3.985177029704E+00
+     EBS higher temperature            : -3.960485363798E+00
+     difference                        :  2.469166590643E-02
+     relative difference               :  6.195876801052E-03
+     trace(Ktilde)                     :  [  6.499999237393105,  0.0 ]
      modify error function decay length: decrease
      need to repeat with sharper decay (new):  Yes
    -  #----------------------------------------------------------------- ispin: 1, itemp: 2
@@ -1492,7 +1492,7 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  1350, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.77E-06 ], up: {
- penalty: -1.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty:  5.8E-15, ok:  [  Yes,  Yes ]}}
+ penalty: -3.0E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -4.4E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  1350, bounds:  [  0.50,  1.50 ], exp accur:  [  9.77E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1532,17 +1532,19 @@
  eF: -2.735741E-01, spin occupations:  [  6.4999995E+00,  0.0000000E+00 ], 
  Tr(K):  6.4999995E+00, D Tr(K): -4.88E-07, new eF: linear interpol}
      summary: {nit:  12, eF: -2.735741E-01, Tr(K):  6.4999995E+00, D Tr(K): -4.88E-07}
-     Asymmetry of kernel               :  3.11E-15
+     Asymmetry of kernel               :  8.98E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.985177531878E+00
-     EBS higher temperature            : -3.960481837710E+00
-     difference                        :  2.469569416878E-02
-     relative difference               :  6.196886831572E-03
-     trace(KS)                         :  [  6.499999511710607,  0.0 ]
+     EBS                               : -3.985177530795E+00
+     EBS higher temperature            : -3.960481836640E+00
+     difference                        :  2.469569415517E-02
+     relative difference               :  6.196886829842E-03
+     trace(Ktilde)                     :  [  6.499999511710547,  0.0 ]
      modify error function decay length: decrease
      fscale reached lower limit; reset to:  5.0000000000000001E-003
      need to repeat with sharper decay (new):  Yes
      limit reached, exit loop          :  Yes
+     trace(KS)                         :  6.499999511711E+00
+     trace(KH)                         : -3.985177530795E+00
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
    target charge                       :  7.5
@@ -1552,20 +1554,20 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
-   exp accur:  [  3.75E-14 ], up: {penalty:  7.4E-16, ok:  [  Yes,  Yes ]}, down: {
- penalty:  7.4E-16, ok:  [  Yes,  Yes ]}}
-     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  3.75E-14 ]}
+   exp accur:  [  5.35E-14 ], up: {penalty:  2.1E-15, ok:  [  Yes,  Yes ]}, down: {
+ penalty:  2.1E-15, ok:  [  Yes,  Yes ]}}
+     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  5.35E-14 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
- penalty:  1.2E+06, ok:  [  No,  Yes ]}, down: {penalty:  1.9E+06, ok:  [  No,  Yes ]}}
+ penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
      -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
- penalty:  3.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+ penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
      -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
- penalty: -1.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty:  4.3E-16, ok:  [  Yes,  Yes ]}}
+ penalty: -5.5E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  680, bounds:  [  0.50,  1.50 ], exp accur:  [  9.74E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1608,15 +1610,17 @@
  eF:  2.226953E-01, spin occupations:  [  7.5E+00,  0.0000000E+00 ], Tr(K):  7.5000000E+00, 
                              D Tr(K):  5.36E-11, new eF: linear interpol}
      summary: {nit:  13, eF:  2.226953E-01, Tr(K):  7.5000000E+00, D Tr(K):  5.36E-11}
-     Asymmetry of kernel               :  1.39E-15
+     Asymmetry of kernel               :  8.05E-16
      symmetrize_kernel                 :  Yes
-     EBS                               : -4.011808852769E+00
-     EBS higher temperature            : -4.011808671950E+00
-     difference                        :  1.808183469620E-07
-     relative difference               :  4.507152598690E-08
-     trace(KS)                         :  [  7.500000000053632,  0.0 ]
+     EBS                               : -4.011808851470E+00
+     EBS higher temperature            : -4.011808670651E+00
+     difference                        :  1.808183194285E-07
+     relative difference               :  4.507151913837E-08
+     trace(Ktilde)                     :  [  7.500000000053561,  0.0 ]
      modify error function decay length: increase
      need to repeat with sharper decay (new):  No
+     trace(KS)                         :  7.500000000054E+00
+     trace(KH)                         : -4.011808851470E+00
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  Check possibility to calculate the gap:
    spin channel                        :  2
@@ -1631,20 +1635,20 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  100, scale:  1.00E+00, bounds:  [  0.556,  1.350 ], 
-   exp accur:  [  1.73E-14 ], up: {penalty:  6.6E-09, ok:  [  Yes,  Yes ]}, down: {
+   exp accur:  [  2.49E-14 ], up: {penalty:  6.6E-09, ok:  [  Yes,  Yes ]}, down: {
  penalty:  6.6E-09, ok:  [  Yes,  Yes ]}}
-     summary: {npl:  100, bounds:  [  0.556,  1.350 ], exp accur:  [  1.73E-14 ]}
+     summary: {npl:  100, bounds:  [  0.556,  1.350 ], exp accur:  [  2.49E-14 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
- penalty:  1.2E+06, ok:  [  No,  Yes ]}, down: {penalty:  1.9E+06, ok:  [  No,  Yes ]}}
+ penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
      -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
- penalty:  3.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+ penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
      -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
- penalty: -1.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty:  4.3E-16, ok:  [  Yes,  Yes ]}}
+ penalty: -5.6E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  680, bounds:  [  0.56,  1.35 ], exp accur:  [  9.74E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1699,13 +1703,13 @@
  eF: -4.349467E-01, spin occupations:  [  0.0E+00,  4.5000004E+00 ], Tr(K):  4.5000004E+00, 
                              D Tr(K):  4.50E-07, new eF: linear interpol}
      summary: {nit:  17, eF: -4.349467E-01, Tr(K):  4.5000004E+00, D Tr(K):  4.50E-07}
-     Asymmetry of kernel               :  5.06E-15
+     Asymmetry of kernel               :  2.33E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.044190215523E+00
-     EBS higher temperature            : -3.265148482682E+00
-     difference                        : -2.209582671588E-01
-     relative difference               :  7.258359416309E-02
-     trace(KS)                         :  [  0.0,  4.500000449968589 ]
+     EBS                               : -3.044190214755E+00
+     EBS higher temperature            : -3.004850055122E+00
+     difference                        :  3.934015963291E-02
+     relative difference               :  1.292302939620E-02
+     trace(Ktilde)                     :  [  0.0,  4.500000449968651 ]
      modify error function decay length: decrease
      need to repeat with sharper decay (new):  Yes
    -  #----------------------------------------------------------------- ispin: 1, itemp: 2
@@ -1713,7 +1717,7 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  1330, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.49E-06 ], up: {
- penalty: -4.1E-15, ok:  [  Yes,  Yes ]}, down: {penalty:  2.4E-15, ok:  [  Yes,  Yes ]}}
+ penalty:  2.3E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -3.2E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  1330, bounds:  [  0.56,  1.35 ], exp accur:  [  9.49E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1753,17 +1757,19 @@
  eF: -4.373316E-01, spin occupations:  [  0.0E+00,  4.5000000E+00 ], Tr(K):  4.5000000E+00, 
                              D Tr(K):  5.77E-10, new eF: linear interpol}
      summary: {nit:  12, eF: -4.373316E-01, Tr(K):  4.5000000E+00, D Tr(K):  5.77E-10}
-     Asymmetry of kernel               :  1.00E-14
+     Asymmetry of kernel               :  4.47E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.044189910721E+00
-     EBS higher temperature            : -3.265136186785E+00
-     difference                        : -2.209462760648E-01
-     relative difference               :  7.257966242077E-02
-     trace(KS)                         :  [  0.0,  4.500000000577058 ]
+     EBS                               : -3.044189909953E+00
+     EBS higher temperature            : -3.004839630015E+00
+     difference                        :  3.935027993749E-02
+     relative difference               :  1.292635515571E-02
+     trace(Ktilde)                     :  [  0.0,  4.500000000577017 ]
      modify error function decay length: decrease
      fscale reached lower limit; reset to:  5.0000000000000001E-003
      need to repeat with sharper decay (new):  Yes
      limit reached, exit loop          :  Yes
+     trace(KS)                         :  4.500000000577E+00
+     trace(KH)                         : -3.044189909953E+00
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  calculate LUMO kernel:
    target charge                       :  5.5
@@ -1773,20 +1779,20 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  80, scale:  1.00E+00, bounds:  [  0.617,  1.215 ], 
-   exp accur:  [  1.58E-14 ], up: {penalty: -1.2E-07, ok:  [  Yes,  Yes ]}, down: {
+   exp accur:  [  1.69E-14 ], up: {penalty: -1.2E-07, ok:  [  Yes,  Yes ]}, down: {
  penalty: -1.2E-07, ok:  [  Yes,  Yes ]}}
-     summary: {npl:  80, bounds:  [  0.617,  1.215 ], exp accur:  [  1.58E-14 ]}
+     summary: {npl:  80, bounds:  [  0.617,  1.215 ], exp accur:  [  1.69E-14 ]}
    Kernel calculation:
    -  #----------------------------------------------------------------- ispin: 1, itemp: 1
      decay length of error function    :  1.000E-02
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  550, bounds:  [ -1.000,  1.000 ], exp accur:  [  9.88E-06 ], up: {
- penalty:  1.2E+06, ok:  [  No,  Yes ]}, down: {penalty:  1.9E+06, ok:  [  No,  Yes ]}}
+ penalty:  9.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  1.4E+06, ok:  [  No,  Yes ]}}
      -  {npl:  620, bounds:  [ -1.200,  1.000 ], exp accur:  [  6.82E-06 ], up: {
- penalty:  3.1E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
+ penalty:  2.7E+05, ok:  [  No,  Yes ]}, down: {penalty:  2.0E-05, ok:  [  No,  Yes ]}}
      -  {npl:  680, bounds:  [ -1.440,  1.000 ], exp accur:  [  9.74E-06 ], up: {
- penalty: -1.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty:  4.3E-16, ok:  [  Yes,  Yes ]}}
+ penalty: -5.6E-16, ok:  [  Yes,  Yes ]}, down: {penalty: -1.6E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  680, bounds:  [  0.62,  1.22 ], exp accur:  [  9.74E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1826,13 +1832,13 @@
  eF: -1.453205E-01, spin occupations:  [  0.0E+00,  5.5000000E+00 ], Tr(K):  5.5000000E+00, 
                              D Tr(K): -5.27E-09, new eF: linear interpol}
      summary: {nit:  12, eF: -1.453205E-01, Tr(K):  5.5000000E+00, D Tr(K): -5.27E-09}
-     Asymmetry of kernel               :  8.06E-15
+     Asymmetry of kernel               :  3.44E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.334323381749E+00
-     EBS higher temperature            : -3.733464878187E+00
-     difference                        : -3.991414964387E-01
-     relative difference               :  1.197068942453E-01
-     trace(KS)                         :  [  0.0,  5.49999999473323 ]
+     EBS                               : -3.334323380791E+00
+     EBS higher temperature            : -3.346898584880E+00
+     difference                        : -1.257520408889E-02
+     relative difference               :  3.771441054979E-03
+     trace(Ktilde)                     :  [  0.0,  5.499999994733232 ]
      modify error function decay length: decrease
      need to repeat with sharper decay (new):  Yes
    -  #----------------------------------------------------------------- ispin: 1, itemp: 2
@@ -1840,7 +1846,7 @@
      beta for penaltyfunction          : -1000.0
      determine eigenvalue bounds:
      -  {npl:  1380, bounds:  [ -1.440,  1.000 ], exp accur:  [  7.65E-06 ], up: {
- penalty: -1.4E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -1.3E-15, ok:  [  Yes,  Yes ]}}
+ penalty:  3.7E-15, ok:  [  Yes,  Yes ]}, down: {penalty: -2.0E-15, ok:  [  Yes,  Yes ]}}
      summary: {npl:  1380, bounds:  [  0.62,  1.22 ], exp accur:  [  7.65E-06 ]}
      determine Fermi energy:
      -  { #---------------------------------------------------------------------- it FOE: 1
@@ -1871,17 +1877,19 @@
  eF: -1.429356E-01, spin occupations:  [  0.0E+00,  5.5000001E+00 ], Tr(K):  5.5000001E+00, 
                              D Tr(K):  8.75E-08, new eF: linear interpol}
      summary: {nit:  9, eF: -1.429356E-01, Tr(K):  5.5000001E+00, D Tr(K):  8.75E-08}
-     Asymmetry of kernel               :  1.60E-14
+     Asymmetry of kernel               :  6.78E-15
      symmetrize_kernel                 :  Yes
-     EBS                               : -3.334324076742E+00
-     EBS higher temperature            : -3.733469893691E+00
-     difference                        : -3.991458169488E-01
-     relative difference               :  1.197081650620E-01
-     trace(KS)                         :  [  0.0,  5.500000087472944 ]
+     EBS                               : -3.334324075785E+00
+     EBS higher temperature            : -3.346901149429E+00
+     difference                        : -1.257707364442E-02
+     relative difference               :  3.772000968881E-03
+     trace(Ktilde)                     :  [  0.0,  5.500000087472955 ]
      modify error function decay length: decrease
      fscale reached lower limit; reset to:  5.0000000000000001E-003
      need to repeat with sharper decay (new):  Yes
      limit reached, exit loop          :  Yes
+     trace(KS)                         :  5.500000087473E+00
+     trace(KH)                         : -3.334324075785E+00
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
    spin channel up:

@@ -2393,7 +2393,7 @@ module foe_common
       real(mp),intent(in),optional :: bounds_factor_low, bounds_factor_up
       type(foe_data),intent(inout) :: foe_obj
       integer,intent(inout) :: npl_min
-      real(kind=mp),dimension(smatl%nvctrp_tg),intent(inout) :: workarr_compr
+      real(kind=mp),dimension(smatl%nspin*smatl%nvctrp_tg),intent(inout) :: workarr_compr
       real(mp),dimension(:,:,:),pointer,intent(inout) :: chebyshev_polynomials
       integer,intent(out) :: npl
       real(mp),intent(out) :: scale_factor, shift_value
@@ -2518,7 +2518,7 @@ module foe_common
               if (itype==2) then
                   call get_chebyshev_polynomials(iproc, nproc, comm, &
                        itype, foe_verbosity, npl, smatm, smatl, &
-                       ham_scaled, workarr_compr, foe_obj, &
+                       ham_scaled, workarr_compr(ilshift+1:), foe_obj, &
                        chebyshev_polynomials(:,:,jspin), jspin, eval_bounds_ok, hamscal_compr(ilshift+1:), &
                        scale_factor, shift_value, &
                        smats=smats, ovrlp_=ovrlp_, &
@@ -2526,7 +2526,7 @@ module foe_common
               else if (itype==1) then
                   call get_chebyshev_polynomials(iproc, nproc, comm, &
                        itype, foe_verbosity, npl, smatm, smatl, &
-                       ham_scaled, workarr_compr, foe_obj, &
+                       ham_scaled, workarr_compr(ilshift+1:), foe_obj, &
                        chebyshev_polynomials(:,:,jspin), jspin, eval_bounds_ok, hamscal_compr(ilshift+1:), &
                        scale_factor, shift_value)
               end if

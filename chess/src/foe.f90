@@ -105,7 +105,7 @@ module foe
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new
       real(kind=mp),dimension(:),allocatable :: kernelpp_work, kernelpp_check_work
       real(kind=mp),dimension(:),allocatable :: matrix_local, matrix_local_check
-      integer :: npl_min, is
+      integer :: npl_min, is, isl
       real(kind=mp),dimension(1) :: fscale_arr
       real(mp) :: ebs_check_allspins
       real(mp),dimension(:),allocatable :: sumn_allspins, ebs_spins
@@ -120,8 +120,8 @@ module foe
       windowsx_kernel_check = f_malloc((/smatl%ntaskgroup,smatl%nspin/),id='windowsx_kernel_check')
       kernelpp_work = f_malloc(smatl%smmm%nvctrp*smatl%nspin,id='kernelpp_work')
       kernelpp_check_work = f_malloc(smatl%smmm%nvctrp*smatl%nspin,id='kernelpp_check_work')
-      matrix_local = f_malloc(max(1,smatl%smmm%nvctrp_mm),id='matrix_local')
-      matrix_local_check = f_malloc(max(1,smatl%smmm%nvctrp_mm),id='matrix_local_check')
+      matrix_local = f_malloc(max(1,smatl%smmm%nvctrp_mm)*smatl%nspin,id='matrix_local')
+      !matrix_local_check = f_malloc((/max(1,smatl%smmm%nvctrp_mm),smatl%nspin/),id='matrix_local_check')
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
       ham_eff = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ham_eff')
 
@@ -248,7 +248,7 @@ module foe
           fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",1)
           call get_bounds_and_polynomials(iproc, nproc, comm, 2, 1, npl_max, npl_stride, &
                1, FUNCTION_ERRORFUNCTION, .false., 1.2_mp, 1.2_mp, foe_verbosity, &
-               smatm, smatl, ham_, foe_obj, npl_min, ham_eff(ilshift+1), & !kernel_%matrix_compr(ilshift+1:), &
+               smatm, smatl, ham_, foe_obj, npl_min, ham_eff, & !kernel_%matrix_compr(ilshift+1:), &
                chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
                smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
                efarr=efarr, fscale_arr=fscale_arr, max_errorx=max_error)
@@ -271,15 +271,16 @@ module foe
               is=(ispin-1)*smatl%smmm%nvctrp
               ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
               istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
-              ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, ham_eff(istl), 1)
-              !write(*,*) 'iproc, ebsp', iproc, ebsp
+              isl = (ispin-1)*smatl%smmm%nvctrp_mm
+              ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, ham_eff(ilshift+istl), 1)
+              !!write(*,*) 'iproc, ebsp', iproc, ebsp
               ebs_spins(ispin) = ebsp
               !!call calculate_trace_distributed_new(iproc, nproc, comm, smatl, kernel_%matrix_compr, sumn)
               sumn = trace_sparse_matrix(iproc, nproc, comm, smatl, kernel_%matrix_compr(ilshift+1:))
               sumn_allspins(ispin) = sumn
               call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_work(is+1:),  &
                    ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
-                   matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
+                   matrix_localx=matrix_local(isl+1:isl+smatl%smmm%nvctrp_mm), windowsx=windowsx_kernel(:,ispin))
           end do
 
           npl_check = npl
@@ -304,6 +305,7 @@ module foe
               if (.not.(calculate_spin_channels(ispin))) cycle
 
               is=(ispin-1)*smatl%smmm%nvctrp
+              isl = (ispin-1)*smatl%smmm%nvctrp_mm
               isshift=(ispin-1)*smats%nvctrp_tg
               imshift=(ispin-1)*smatm%nvctrp_tg
               ilshift=(ispin-1)*smatl%nvctrp_tg
@@ -321,7 +323,7 @@ module foe
 
               call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_work(is+1:),  &
                    ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
-                   matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
+                   matrix_localx=matrix_local(isl+1:isl+smatl%smmm%nvctrp_mm), windowsx=windowsx_kernel(:,ispin))
               call max_asymmetry_of_matrix(iproc, nproc, comm, &
                    smatl, kernel_%matrix_compr(ilshift+1:), asymm_K)!, ispinx=ispin)
               if (symmetrize_kernel) then
@@ -360,7 +362,8 @@ module foe
               !!ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
               !!            hamscal_compr(istl), 1)
               ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
-                          ham_eff(istl), 1)
+                          ham_eff(ilshift+istl), 1)
+              !!write(*,*) 'iproc, ebs_check', iproc, ebs_check
 
               temparr(1) = ebs_spins(ispin) !ebsp
               temparr(2) = ebs_check
@@ -370,16 +373,18 @@ module foe
               ebsp = temparr(1)
               ebs_check = temparr(2)
 
-              !!write(*,*) 'sumn, sumn_check', sumn, sumn_check
-              ebsp=ebsp/scale_factor+shift_value*sumn
+              !!write(*,*) 'ebsp, ebs_check, sumn_allspins(ispin), sumn_check', ebsp, ebs_check, sumn_allspins(ispin), sumn_check
+              ebsp=ebsp/scale_factor+shift_value*sumn_allspins(ispin)
               ebs_check=ebs_check/scale_factor+shift_value*sumn_check
-              diff=abs(ebs_check-ebsp)
-              diff=diff/abs(ebsp)
+              !diff=abs(ebs_check-ebsp)
+              !diff=diff/abs(ebsp)
 
               ebsp_allspins = ebsp_allspins + ebsp
               ebs_check_allspins = ebs_check_allspins + ebs_check
 
           end do spin_loop
+
+          diff = abs((ebs_check_allspins-ebsp_allspins)/ebsp_allspins)
 
           call f_free(cc_check)
 
@@ -548,7 +553,7 @@ module foe
       call f_free(windowsx_kernel)
       call f_free(windowsx_kernel_check)
       call f_free(matrix_local)
-      call f_free(matrix_local_check)
+      !call f_free(matrix_local_check)
       call f_free(sumn_allspins)
       call f_free(ebs_spins)
       call f_free(hamscal_compr)
@@ -714,7 +719,7 @@ module foe
       ispin = 1 !hack
       call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, npl_max, npl_stride, &
            1, FUNCTION_ERRORFUNCTION, .false., 2.2_mp, 2.2_mp, 0, &
-           smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr(ilshift+1:), &
+           smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr, &
            chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
            smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
            efarr=EF, fscale_arr=(/fscale/))
