@@ -859,7 +859,7 @@ module sparsematrix
 
 
      !@ NEW #####################
-     matrix_local = f_malloc_ptr(max(1,nvctrp),id='matrix_local')
+     matrix_local = f_malloc_ptr(nvctrp,id='matrix_local')
      if (layout==DENSE_PARALLEL) then
          ii = 0
          if (nfvctrp>0) then
