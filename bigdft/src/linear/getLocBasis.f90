@@ -2733,13 +2733,13 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   real(kind=8),dimension(:),allocatable :: inv_ovrlp_compr_seq, kernel_compr_seq
   integer,dimension(3) :: power
   integer :: ispin, ilshift
-  integer,dimension(:),allocatable :: windowsx1, windowsx2
+  integer,dimension(:,:),allocatable :: windowsx1
   real(kind=8),dimension(:),allocatable :: kernelpp_work1, kernelpp_work2
   real(kind=8),dimension(:),pointer :: matrix_local1
 
   call f_routine(id='renormalize_kernel')
 
-  windowsx1 = f_malloc(tmb%linmat%l%ntaskgroup,id='windowsx1')
+  windowsx1 = f_malloc((/tmb%linmat%l%ntaskgroup,tmb%linmat%l%nspin/),id='windowsx1')
   !windowsx2 = f_malloc(tmb%linmat%l%ntaskgroup,id='windowsx2')
   kernelpp_work1 = f_malloc(tmb%linmat%l%smmm%nvctrp*tmb%linmat%l%nspin,id='kernelpp_work1')
   !kernelpp_work2 = f_malloc(tmb%linmat%l%smmm%nvctrp*tmb%linmat%l%nspin,id='kernelpp_work2')
@@ -2752,7 +2752,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
       ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
       call retransform_ext(iproc, nproc, tmb%linmat%l, ONESIDED_POST, kernelpp_work1, &
            tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:), &
-           matrix_localx=matrix_local1, windowsx=windowsx1)
+           matrix_localx=matrix_local1, windowsx=windowsx1(:,ispin))
   end do
 
   ! Calculate S^1/2 for the overlap matrix
@@ -2770,7 +2770,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
       ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
       call retransform_ext(iproc, nproc, tmb%linmat%l, ONESIDED_GATHER, kernelpp_work1, &
            tmb%linmat%ovrlppowers_(1)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:), &
-           matrix_localx=matrix_local1, windowsx=windowsx1)
+           matrix_localx=matrix_local1, windowsx=windowsx1(:,ispin))
   end do
 
   ! Calculate S^-1/2 * K * S^-1/2
@@ -2778,7 +2778,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
       ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
       call retransform_ext(iproc, nproc, tmb%linmat%l, ONESIDED_FULL, kernelpp_work1, &
            tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift+1:), tmb%linmat%kernel_%matrix_compr(ilshift+1:), &
-           windowsx=windowsx1)
+           windowsx=windowsx1(:,ispin))
   end do
 
   call f_free(windowsx1)
