@@ -2913,7 +2913,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   !if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
   calculation_possible = .true.
   calculation_possible_all = .true.
-  do ispin=1,input%nspin
+  !do ispin=1,input%nspin
 
       if (iproc==0) call yaml_mapping_open('Check possibility to calculate the gap')
 
@@ -2927,21 +2927,23 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       !!do ispin=1,input%nspin
           !!qq_spin(ispin) = 0.d0
           qq = 0.d0
-          if (ispin==1) then
+          !if (ispin==1) then
               !!ntmb_spin(ispin) = tmb%orbs%norbu
-              ntmb = tmb%orbs%norbu
-              do iorb=1,orbs_KS%norbu
+              !ntmb = tmb%orbs%norbu
+              ntmb = tmb%orbs%norb
+              !do iorb=1,orbs_KS%norbu
+              do iorb=1,orbs_KS%norb
                   !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
                   qq = qq + orbs_KS%occup(iorb)
               end do
-          else if (ispin==2) then
-              !ntmb_spin(ispin) = tmb%orbs%norbd
-              ntmb = tmb%orbs%norbd
-              do iorb=orbs_KS%norbu+1,orbs_KS%norbu+orbs_KS%norbd
-                  !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
-                  qq = qq + orbs_KS%occup(iorb)
-              end do
-          end if
+          !else if (ispin==2) then
+          !    !ntmb_spin(ispin) = tmb%orbs%norbd
+          !    ntmb = tmb%orbs%norbd
+          !    do iorb=orbs_KS%norbu+1,orbs_KS%norbu+orbs_KS%norbd
+          !        !qq_spin(ispin) = qq_spin(ispin) + orbs_KS%occup(iorb)
+          !        qq = qq + orbs_KS%occup(iorb)
+          !    end do
+          !end if
       !!end do
       !!iispin = maxloc(qq_spin,1)
       !!ntmb = ntmb_spin(iispin)
@@ -2959,7 +2961,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
           !!call yaml_mapping_open('Checking individual spin component')
           !!call yaml_map('ispin',ispin)
           !call yaml_map('spin charges',qq_spin)
-          call yaml_map('spin channel',ispin)
+          !call yaml_map('spin channel',ispin)
           call yaml_map('charge for calculation',qq)
           call yaml_map('ntmb',ntmb)
           call yaml_map('Calculation possible',calculation_possible)
@@ -2973,17 +2975,17 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
                           
       if (calculation_possible) then
 
-          do jspin=1,input%nspin
-              calculate_spin_channels(jspin) = (jspin==ispin)
-          end do
+          !do jspin=1,input%nspin
+          !    calculate_spin_channels(jspin) = (jspin==ispin)
+          !end do
 
           ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
           ! systems of one half electron for open shell systems.
-          if (input%nspin==1) then
+          !if (input%nspin==1) then
               dq = 1.d0
-          else if (input%nspin==2) then
-              dq = 0.5d0
-          end if
+          !else if (input%nspin==2) then
+          !    dq = 0.5d0
+          !end if
 
           ! determine the HOMO
           kernel(1) = matrices_null()
@@ -3017,8 +3019,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
-               calculate_spin_channels=calculate_spin_channels)
+               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)!, &
+               !calculate_spin_channels=calculate_spin_channels)
           !call fermi_operator_expansion(iproc, nproc, &
           !     ebs, norder_taylor, input%lin%max_inversion_error, &
           !     .true., 2, &
@@ -3063,8 +3065,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
           call matrix_fermi_operator_expansion(iproc, nproc, bigdft_mpi%mpi_comm, &
                foe_obj, tmb%ice_obj, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
                tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%ovrlppowers_(2), kernel(1), &
-               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
-               calculate_spin_channels=calculate_spin_channels)
+               ebs, calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true.)!, &
+               !calculate_spin_channels=calculate_spin_channels)
           !call fermi_operator_expansion(iproc, nproc, &
           !     ebs, norder_taylor, input%lin%max_inversion_error, &
           !     .true., 2, &
@@ -3077,8 +3079,8 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
           call foe_data_deallocate(foe_obj)
           if (iproc==0) call yaml_mapping_close()
 
-          e_homo_spin(ispin) = e_homo
-          e_lumo_spin(ispin) = e_lumo
+          !!e_homo_spin(ispin) = e_homo
+          !!e_lumo_spin(ispin) = e_lumo
 
 
 
@@ -3095,24 +3097,28 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       else
           calculation_possible_all = .false.
       end if
-  end do
+  !!end do
 
   if (calculation_possible_all) then
       if (iproc==0) then
           call yaml_mapping_open('HOMO-LUMO analysis')
-          do ispin=1,input%nspin
-              if (ispin==1) then
-                  call yaml_mapping_open('spin channel up')
-              else
-                  call yaml_mapping_open('spin channel down')
-              end if
-              call yaml_map('spin_channel',ispin)
-              call yaml_map('HOMO energy',e_homo_spin(ispin))
-              call yaml_map('LUMO energy',e_lumo_spin(ispin))
-              call yaml_map('HOMO-LUMO gap (Ha)',e_lumo_spin(ispin)-e_homo_spin(ispin))
-              call yaml_map('HOMO-LUMO gap (eV)',(e_lumo_spin(ispin)-e_homo_spin(ispin))*Ha_eV)
-              call yaml_mapping_close()
-          end do
+          !do ispin=1,input%nspin
+              !if (ispin==1) then
+              !    call yaml_mapping_open('spin channel up')
+              !else
+              !    call yaml_mapping_open('spin channel down')
+              !end if
+              !call yaml_map('spin_channel',ispin)
+              !!call yaml_map('HOMO energy',e_homo_spin(ispin))
+              !!call yaml_map('LUMO energy',e_lumo_spin(ispin))
+              !!call yaml_map('HOMO-LUMO gap (Ha)',e_lumo_spin(ispin)-e_homo_spin(ispin))
+              !!call yaml_map('HOMO-LUMO gap (eV)',(e_lumo_spin(ispin)-e_homo_spin(ispin))*Ha_eV)
+              call yaml_map('HOMO energy',e_homo)
+              call yaml_map('LUMO energy',e_lumo)
+              call yaml_map('HOMO-LUMO gap (Ha)',e_lumo-e_homo)
+              call yaml_map('HOMO-LUMO gap (eV)',(e_lumo-e_homo)*Ha_eV)
+              !call yaml_mapping_close()
+          !end do
           call yaml_mapping_close()
       end if
   end if
