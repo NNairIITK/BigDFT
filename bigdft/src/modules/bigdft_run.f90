@@ -1534,7 +1534,7 @@ contains
     posinp_name=.false.
     if ('name' .in. opts) then
        !check if the names are given as a list or as a scalar
-       if (dict_len(opts) > 0) then
+       if (dict_len(opts//'name') > 0) then
           call dict_copy(dict_run,opts//'name')
        else
           run_id = opts//'name'

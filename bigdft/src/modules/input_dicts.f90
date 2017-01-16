@@ -1298,7 +1298,7 @@ contains
          'Allowed values' .is. &
          'String value, indicating the path of the directory. If the last subdirectory is not existing, it will be created'))
 
-    call yaml_cl_parse_option(parser,LOGFILE,'No',&
+    call yaml_cl_parse_option(parser,LOGFILE,'Yes',&
          'create logfile','l',&
          dict_new('Usage' .is. &
          'When "Yes", write the result of the run in file "log.yaml" or "log-<name>.yaml" if the run has a specified name.',&

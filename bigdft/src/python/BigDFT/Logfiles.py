@@ -17,7 +17,7 @@ BUILTIN={
                  PRINT: "Number of Atoms", GLOBAL: True},
     "energy": {PATH: [["Last Iteration", "FKS"],["Last Iteration", "EKS"], ["Energy (Hartree)"]], 
                     PRINT: "Energy", GLOBAL: False},
-    "fermi_level": {PATH:[["Ground State Optimization", -1, "Fermi Energy"]], 
+    "fermi_level": {PATH:[["Ground State Optimization", -1, "Fermi Energy"], ["Ground State Optimization", -1, "Hamiltonian Optimization", -1, "Subspace Optimization", "Fermi Energy"]],
                          PRINT: True, GLOBAL: False},
     'astruct': {PATH: [ ['Atomic structure']]},
     'evals': {PATH: [ ["Complete list of energy eigenvalues"], [ "Ground State Optimization", -1, "Orbitals"],
