@@ -1472,7 +1472,7 @@
        EBS higher temperature          :  5.398160008266E+02
        difference                      : -1.740428178198E-01
        relative difference             :  3.223074570879E-04
-       trace(KS)                       :  722.0000000085456
+       trace(Ktilde)                       :  722.0000000085456
        modify error function decay length: decrease
        need to repeat with sharper decay (new):  Yes
      -  #--------------------------------------------------------------- ispin: 1, itemp: 2
@@ -1508,7 +1508,7 @@
        EBS higher temperature          :  5.398198858514E+02
        difference                      : -1.586990537996E-01
        relative difference             :  2.938987919817E-04
-       trace(KS)                       :  722.0000000200712
+       trace(Ktilde)                       :  722.0000000200712
        modify error function decay length: decrease
        need to repeat with sharper decay (new):  Yes
      -  #--------------------------------------------------------------- ispin: 1, itemp: 3
@@ -1542,7 +1542,7 @@
        EBS higher temperature          :  5.398710065135E+02
        difference                      : -9.854626523259E-02
        relative difference             :  1.825033739874E-04
-       trace(KS)                       :  721.9999999728409
+       trace(Ktilde)                       :  721.9999999728409
        modify error function decay length: decrease
        need to repeat with sharper decay (new):  Yes
      -  #--------------------------------------------------------------- ispin: 1, itemp: 4
@@ -1578,7 +1578,7 @@
        EBS higher temperature          :  5.399313744848E+02
        difference                      : -3.513312537029E-02
        relative difference             :  6.506537882467E-05
-       trace(KS)                       :  722.0000000462563
+       trace(Ktilde)                       :  722.0000000462563
        modify error function decay length: No
        need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1670,7 +1670,7 @@
          EBS higher temperature        :  5.142242175600E+02
          difference                    : -1.499711940494E-02
          relative difference           :  2.916370237204E-05
-         trace(KS)                     :  722.0000000089905
+         trace(Ktilde)                     :  722.0000000089905
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2574,7 +2574,7 @@
      EBS higher temperature            :  5.128947758843E+02
      difference                        : -1.833294457720E-02
      relative difference               :  3.574278812849E-05
-     trace(KS)                         :  721.0000000259623
+     trace(Ktilde)                         :  721.0000000259623
      modify error function decay length: increase
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2652,7 +2652,7 @@
      EBS higher temperature            :  5.155111153286E+02
      difference                        : -6.463275423437E-02
      relative difference               :  1.253603461270E-04
-     trace(KS)                         :  722.9999999550644
+     trace(Ktilde)                         :  722.9999999550644
      modify error function decay length: decrease
      need to repeat with sharper decay (new):  Yes
    -  #----------------------------------------------------------------- ispin: 1, itemp: 2
@@ -2688,7 +2688,7 @@
      EBS higher temperature            :  5.155645833321E+02
      difference                        : -9.772003553962E-03
      relative difference               :  1.895362609259E-05
-     trace(KS)                         :  722.9999999942784
+     trace(Ktilde)                         :  722.9999999942784
      modify error function decay length: increase
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished

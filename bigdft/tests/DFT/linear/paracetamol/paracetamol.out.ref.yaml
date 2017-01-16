@@ -853,7 +853,7 @@
        EBS higher temperature          : -8.737494666743E+00
        difference                      :  5.208149611597E-04
        relative difference             :  5.960334612021E-05
-       trace(KS)                       :  58.00000041620105
+       trace(Ktilde)                       :  58.00000041620105
        modify error function decay length: No
        need to repeat with sharper decay (new):  No
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -958,7 +958,7 @@
          EBS higher temperature        : -1.407302199500E+01
          difference                    :  4.658298598852E-02
          relative difference           :  3.299170624904E-03
-         trace(KS)                     :  57.99970095537223
+         trace(Ktilde)                     :  57.99970095537223
          modify error function decay length: decrease
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
@@ -990,7 +990,7 @@
          EBS higher temperature        : -1.410499948867E+01
          difference                    :  2.448173962258E-02
          relative difference           :  1.732670805603E-03
-         trace(KS)                     :  57.99970319864174
+         trace(Ktilde)                     :  57.99970319864174
          modify error function decay length: decrease
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 3
@@ -1024,7 +1024,7 @@
          EBS higher temperature        : -1.413396557834E+01
          difference                    :  2.334751336520E-03
          relative difference           :  1.651599981657E-04
-         trace(KS)                     :  57.99970380534575
+         trace(Ktilde)                     :  57.99970380534575
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -1088,7 +1088,7 @@
          EBS higher temperature        : -1.281338430237E+01
          difference                    :  5.720207273541E-05
          relative difference           :  4.464223972582E-06
-         trace(KS)                     :  57.99967917892353
+         trace(Ktilde)                     :  57.99967917892353
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1145,7 +1145,7 @@
          EBS higher temperature        : -1.241969512338E+01
          difference                    :  6.196274896908E-05
          relative difference           :  4.989046769543E-06
-         trace(KS)                     :  57.99967787579818
+         trace(Ktilde)                     :  57.99967787579818
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1255,7 +1255,7 @@
          EBS higher temperature        : -1.328048005218E+01
          difference                    :  1.189719469430E-04
          relative difference           :  8.958326859119E-06
-         trace(KS)                     :  57.99940605566329
+         trace(Ktilde)                     :  57.99940605566329
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1311,7 +1311,7 @@
          EBS higher temperature        : -1.367778886732E+01
          difference                    :  1.181676243096E-04
          relative difference           :  8.639305999646E-06
-         trace(KS)                     :  57.99940669040467
+         trace(Ktilde)                     :  57.99940669040467
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1366,7 +1366,7 @@
          EBS higher temperature        : -1.398758992292E+01
          difference                    :  1.204645937545E-04
          relative difference           :  8.612173859564E-06
-         trace(KS)                     :  57.99940593751776
+         trace(Ktilde)                     :  57.99940593751776
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1479,7 +1479,7 @@
          EBS higher temperature        : -1.521933953422E+01
          difference                    :  2.857102354206E-04
          relative difference           :  1.877248820727E-05
-         trace(KS)                     :  57.99855657209407
+         trace(Ktilde)                     :  57.99855657209407
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1533,7 +1533,7 @@
          EBS higher temperature        : -1.608692298010E+01
          difference                    :  2.972522351428E-04
          relative difference           :  1.847753874502E-05
-         trace(KS)                     :  57.99855733130168
+         trace(Ktilde)                     :  57.99855733130168
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1588,7 +1588,7 @@
          EBS higher temperature        : -1.673389156356E+01
          difference                    :  4.786748488534E-04
          relative difference           :  2.860429415830E-05
-         trace(KS)                     :  57.99855772356699
+         trace(Ktilde)                     :  57.99855772356699
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1697,7 +1697,7 @@
          EBS higher temperature        : -1.780427263097E+01
          difference                    :  5.886700997522E-04
          relative difference           :  3.306232437300E-05
-         trace(KS)                     :  57.99724174100258
+         trace(Ktilde)                     :  57.99724174100258
          modify error function decay length: increase
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1751,7 +1751,7 @@
          EBS higher temperature        : -1.880685173622E+01
          difference                    :  9.702283026769E-04
          relative difference           :  5.158642529195E-05
-         trace(KS)                     :  57.99724338206411
+         trace(Ktilde)                     :  57.99724338206411
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1808,7 +1808,7 @@
          EBS higher temperature        : -1.955534052598E+01
          difference                    :  9.936284035170E-04
          relative difference           :  5.080852043502E-05
-         trace(KS)                     :  57.997245119228
+         trace(Ktilde)                     :  57.997245119228
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1913,7 +1913,7 @@
          EBS higher temperature        : -2.039056425931E+01
          difference                    :  1.384398266538E-03
          relative difference           :  6.788945430301E-05
-         trace(KS)                     :  57.99553609950084
+         trace(Ktilde)                     :  57.99553609950084
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -1967,7 +1967,7 @@
          EBS higher temperature        : -2.128161559976E+01
          difference                    :  1.395390728263E-03
          relative difference           :  6.556359571897E-05
-         trace(KS)                     :  57.99553858455961
+         trace(Ktilde)                     :  57.99553858455961
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2022,7 +2022,7 @@
          EBS higher temperature        : -2.194906349226E+01
          difference                    :  1.409448214694E-03
          relative difference           :  6.421038027365E-05
-         trace(KS)                     :  57.99554022161425
+         trace(Ktilde)                     :  57.99554022161425
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2128,7 +2128,7 @@
          EBS higher temperature        : -2.255681725046E+01
          difference                    :  1.814925861026E-03
          relative difference           :  8.045371930535E-05
-         trace(KS)                     :  57.99387025274376
+         trace(Ktilde)                     :  57.99387025274376
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2182,7 +2182,7 @@
          EBS higher temperature        : -2.320814943165E+01
          difference                    :  1.839974119363E-03
          relative difference           :  7.927509518407E-05
-         trace(KS)                     :  57.99387202775249
+         trace(Ktilde)                     :  57.99387202775249
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2237,7 +2237,7 @@
          EBS higher temperature        : -2.369880612402E+01
          difference                    :  1.856528554939E-03
          relative difference           :  7.833234800871E-05
-         trace(KS)                     :  57.99387332237215
+         trace(Ktilde)                     :  57.99387332237215
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2343,7 +2343,7 @@
          EBS higher temperature        : -2.410779733822E+01
          difference                    :  2.262018199009E-03
          relative difference           :  9.382051556030E-05
-         trace(KS)                     :  57.99231931754312
+         trace(Ktilde)                     :  57.99231931754312
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2397,7 +2397,7 @@
          EBS higher temperature        : -2.452286248287E+01
          difference                    :  2.279271123577E-03
          relative difference           :  9.293610395568E-05
-         trace(KS)                     :  57.99232042440033
+         trace(Ktilde)                     :  57.99232042440033
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2452,7 +2452,7 @@
          EBS higher temperature        : -2.483775677444E+01
          difference                    :  2.285821684289E-03
          relative difference           :  9.202164913543E-05
-         trace(KS)                     :  57.99232116588102
+         trace(Ktilde)                     :  57.99232116588102
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2558,7 +2558,7 @@
          EBS higher temperature        : -2.509230345573E+01
          difference                    :  2.640603548635E-03
          relative difference           :  1.052245242068E-04
-         trace(KS)                     :  57.9909301718496
+         trace(Ktilde)                     :  57.9909301718496
          modify error function decay length: decrease
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
@@ -2586,7 +2586,7 @@
          EBS higher temperature        : -2.509320083142E+01
          difference                    :  1.812436612866E-03
          relative difference           :  7.222297886468E-05
-         trace(KS)                     :  57.99093076070525
+         trace(Ktilde)                     :  57.99093076070525
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2648,7 +2648,7 @@
          EBS higher temperature        : -2.533407471371E+01
          difference                    :  1.819363788158E-03
          relative difference           :  7.180973296592E-05
-         trace(KS)                     :  57.99093066874982
+         trace(Ktilde)                     :  57.99093066874982
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2701,7 +2701,7 @@
          EBS higher temperature        : -2.551831504583E+01
          difference                    :  1.810758373228E-03
          relative difference           :  7.095413193181E-05
-         trace(KS)                     :  57.99093099258268
+         trace(Ktilde)                     :  57.99093099258268
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2809,7 +2809,7 @@
          EBS higher temperature        : -2.566773166543E+01
          difference                    :  2.091441766488E-03
          relative difference           :  8.147472453374E-05
-         trace(KS)                     :  57.98961795010588
+         trace(Ktilde)                     :  57.98961795010588
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2861,7 +2861,7 @@
          EBS higher temperature        : -2.580142582237E+01
          difference                    :  2.096414292971E-03
          relative difference           :  8.124527627443E-05
-         trace(KS)                     :  57.98961815555633
+         trace(Ktilde)                     :  57.98961815555633
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2912,7 +2912,7 @@
          EBS higher temperature        : -2.590450190948E+01
          difference                    :  2.105288073430E-03
          relative difference           :  8.126452288315E-05
-         trace(KS)                     :  57.98961815374232
+         trace(Ktilde)                     :  57.98961815374232
          modify error function decay length: No
          need to repeat with sharper decay (new):  No
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -3090,7 +3090,7 @@
          EBS higher temperature        : -2.599452072046E+01
          difference                    :  3.782442904583E-03
          relative difference           :  1.454880682334E-04
-         trace(KS)                     :  57.98121348500912
+         trace(Ktilde)                     :  57.98121348500912
          modify error function decay length: decrease
          need to repeat with sharper decay (new):  Yes
        -  #------------------------------------------------------------- ispin: 1, itemp: 2
@@ -3116,7 +3116,7 @@
          EBS higher temperature        : -2.599456175363E+01
          difference                    :  3.761360463940E-03
          relative difference           :  1.446770411858E-04
-         trace(KS)                     :  57.98121406364689
+         trace(Ktilde)                     :  57.98121406364689
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3162,7 +3162,7 @@
          EBS higher temperature        : -2.608786757294E+01
          difference                    :  3.757157129307E-03
          relative difference           :  1.439985883661E-04
-         trace(KS)                     :  57.98121442724251
+         trace(Ktilde)                     :  57.98121442724251
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3207,7 +3207,7 @@
          EBS higher temperature        : -2.616043464605E+01
          difference                    :  3.758166428696E-03
          relative difference           :  1.436377745582E-04
-         trace(KS)                     :  57.98121373323669
+         trace(Ktilde)                     :  57.98121373323669
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3381,7 +3381,7 @@
          EBS higher temperature        : -2.621623251076E+01
          difference                    :  3.730069619650E-03
          relative difference           :  1.422606766968E-04
-         trace(KS)                     :  57.98134940830062
+         trace(Ktilde)                     :  57.98134940830062
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3433,7 +3433,7 @@
          EBS higher temperature        : -2.626010437012E+01
          difference                    :  3.727489778591E-03
          relative difference           :  1.419248264486E-04
-         trace(KS)                     :  57.98134881580383
+         trace(Ktilde)                     :  57.98134881580383
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3478,7 +3478,7 @@
          EBS higher temperature        : -2.629458334912E+01
          difference                    :  3.731564450455E-03
          relative difference           :  1.418936712378E-04
-         trace(KS)                     :  57.9813490190585
+         trace(Ktilde)                     :  57.9813490190585
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3672,7 +3672,7 @@
          EBS higher temperature        : -2.632237384783E+01
          difference                    :  3.730901357404E-03
          relative difference           :  1.417187006186E-04
-         trace(KS)                     :  57.98134489613895
+         trace(Ktilde)                     :  57.98134489613895
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3726,7 +3726,7 @@
          EBS higher temperature        : -2.634396777746E+01
          difference                    :  3.728286918005E-03
          relative difference           :  1.415033371000E-04
-         trace(KS)                     :  57.98134571501272
+         trace(Ktilde)                     :  57.98134571501272
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3771,7 +3771,7 @@
          EBS higher temperature        : -2.636105495589E+01
          difference                    :  3.730873910978E-03
          relative difference           :  1.415097370812E-04
-         trace(KS)                     :  57.98134447558983
+         trace(Ktilde)                     :  57.98134447558983
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -3962,7 +3962,7 @@
          EBS higher temperature        : -2.637478599072E+01
          difference                    :  3.736749925430E-03
          relative difference           :  1.416588018279E-04
-         trace(KS)                     :  57.98130280740031
+         trace(Ktilde)                     :  57.98130280740031
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4010,7 +4010,7 @@
          EBS higher temperature        : -2.638569236626E+01
          difference                    :  3.736412523416E-03
          relative difference           :  1.415874725724E-04
-         trace(KS)                     :  57.98130329350667
+         trace(Ktilde)                     :  57.98130329350667
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4059,7 +4059,7 @@
          EBS higher temperature        : -2.639436114182E+01
          difference                    :  3.736299085098E-03
          relative difference           :  1.415366805680E-04
-         trace(KS)                     :  57.98130346326369
+         trace(Ktilde)                     :  57.98130346326369
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4108,7 +4108,7 @@
          EBS higher temperature        : -2.640125934128E+01
          difference                    :  3.736334835917E-03
          relative difference           :  1.415010584265E-04
-         trace(KS)                     :  57.98130342820578
+         trace(Ktilde)                     :  57.98130342820578
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4286,7 +4286,7 @@
          EBS higher temperature        : -2.640679807538E+01
          difference                    :  3.745767025112E-03
          relative difference           :  1.418284700029E-04
-         trace(KS)                     :  57.98125710753889
+         trace(Ktilde)                     :  57.98125710753889
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4336,7 +4336,7 @@
          EBS higher temperature        : -2.641130660206E+01
          difference                    :  3.748854768052E-03
          relative difference           :  1.419211394115E-04
-         trace(KS)                     :  57.98125657493336
+         trace(Ktilde)                     :  57.98125657493336
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4381,7 +4381,7 @@
          EBS higher temperature        : -2.641490259124E+01
          difference                    :  3.746081063479E-03
          relative difference           :  1.417968462333E-04
-         trace(KS)                     :  57.98125696715004
+         trace(Ktilde)                     :  57.98125696715004
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4428,7 +4428,7 @@
          EBS higher temperature        : -2.641777065056E+01
          difference                    :  3.748909900828E-03
          relative difference           :  1.418885046430E-04
-         trace(KS)                     :  57.98125554593531
+         trace(Ktilde)                     :  57.98125554593531
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4602,7 +4602,7 @@
          EBS higher temperature        : -2.642007336276E+01
          difference                    :  3.751374930982E-03
          relative difference           :  1.419694146560E-04
-         trace(KS)                     :  57.98123169908432
+         trace(Ktilde)                     :  57.98123169908432
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4654,7 +4654,7 @@
          EBS higher temperature        : -2.642196796326E+01
          difference                    :  3.754002000747E-03
          relative difference           :  1.420586353585E-04
-         trace(KS)                     :  57.98123082984789
+         trace(Ktilde)                     :  57.98123082984789
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4709,7 +4709,7 @@
          EBS higher temperature        : -2.642348274942E+01
          difference                    :  3.752878878931E-03
          relative difference           :  1.420080000691E-04
-         trace(KS)                     :  57.98123080640679
+         trace(Ktilde)                     :  57.98123080640679
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4770,7 +4770,7 @@
          EBS higher temperature        : -2.642469291628E+01
          difference                    :  3.753699466920E-03
          relative difference           :  1.420325424909E-04
-         trace(KS)                     :  57.98123082563431
+         trace(Ktilde)                     :  57.98123082563431
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -4952,7 +4952,7 @@
          EBS higher temperature        : -2.642566077237E+01
          difference                    :  3.755257067187E-03
          relative difference           :  1.420862671731E-04
-         trace(KS)                     :  57.98122477548979
+         trace(Ktilde)                     :  57.98122477548979
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5006,7 +5006,7 @@
          EBS higher temperature        : -2.642644947829E+01
          difference                    :  3.754164464283E-03
          relative difference           :  1.420406938602E-04
-         trace(KS)                     :  57.98122461037437
+         trace(Ktilde)                     :  57.98122461037437
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5067,7 +5067,7 @@
          EBS higher temperature        : -2.642708037645E+01
          difference                    :  3.754964685385E-03
          relative difference           :  1.420675751228E-04
-         trace(KS)                     :  57.98122449448432
+         trace(Ktilde)                     :  57.98122449448432
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5120,7 +5120,7 @@
          EBS higher temperature        : -2.642758415655E+01
          difference                    :  3.755269749533E-03
          relative difference           :  1.420764074406E-04
-         trace(KS)                     :  57.98122453977074
+         trace(Ktilde)                     :  57.98122453977074
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5304,7 +5304,7 @@
          EBS higher temperature        : -2.642798743719E+01
          difference                    :  3.754099265045E-03
          relative difference           :  1.420299627199E-04
-         trace(KS)                     :  57.98122432056299
+         trace(Ktilde)                     :  57.98122432056299
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5364,7 +5364,7 @@
          EBS higher temperature        : -2.642831068116E+01
          difference                    :  3.754955303208E-03
          relative difference           :  1.420606075534E-04
-         trace(KS)                     :  57.98122454048257
+         trace(Ktilde)                     :  57.98122454048257
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5417,7 +5417,7 @@
          EBS higher temperature        : -2.642856773417E+01
          difference                    :  3.755270380935E-03
          relative difference           :  1.420711444957E-04
-         trace(KS)                     :  57.98122439738353
+         trace(Ktilde)                     :  57.98122439738353
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5472,7 +5472,7 @@
          EBS higher temperature        : -2.642877430639E+01
          difference                    :  3.754045042584E-03
          relative difference           :  1.420236835717E-04
-         trace(KS)                     :  57.98122399778163
+         trace(Ktilde)                     :  57.98122399778163
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5660,7 +5660,7 @@
          EBS higher temperature        : -2.642894081646E+01
          difference                    :  3.754978235257E-03
          relative difference           :  1.420580883774E-04
-         trace(KS)                     :  57.98122401352967
+         trace(Ktilde)                     :  57.98122401352967
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5712,7 +5712,7 @@
          EBS higher temperature        : -2.642907305662E+01
          difference                    :  3.755283158732E-03
          relative difference           :  1.420689118266E-04
-         trace(KS)                     :  57.98122416677175
+         trace(Ktilde)                     :  57.98122416677175
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5767,7 +5767,7 @@
          EBS higher temperature        : -2.642917903927E+01
          difference                    :  3.753991775049E-03
          relative difference           :  1.420194940395E-04
-         trace(KS)                     :  57.9812236621927
+         trace(Ktilde)                     :  57.9812236621927
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -5826,7 +5826,7 @@
          EBS higher temperature        : -2.642926541183E+01
          difference                    :  3.754948308668E-03
          relative difference           :  1.420552119095E-04
-         trace(KS)                     :  57.98122473178973
+         trace(Ktilde)                     :  57.98122473178973
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -6008,7 +6008,7 @@
          EBS higher temperature        : -2.642933074638E+01
          difference                    :  3.755288451945E-03
          relative difference           :  1.420677270523E-04
-         trace(KS)                     :  57.98122410587695
+         trace(Ktilde)                     :  57.98122410587695
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -6064,7 +6064,7 @@
          EBS higher temperature        : -2.642938533574E+01
          difference                    :  3.754146926266E-03
          relative difference           :  1.420242543920E-04
-         trace(KS)                     :  57.98122455510155
+         trace(Ktilde)                     :  57.98122455510155
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -6127,7 +6127,7 @@
          EBS higher temperature        : -2.642942799964E+01
          difference                    :  3.754959501535E-03
          relative difference           :  1.420547615223E-04
-         trace(KS)                     :  57.98122451447861
+         trace(Ktilde)                     :  57.98122451447861
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -6180,7 +6180,7 @@
          EBS higher temperature        : -2.642946145386E+01
          difference                    :  3.755286593428E-03
          relative difference           :  1.420669542531E-04
-         trace(KS)                     :  57.98122414440677
+         trace(Ktilde)                     :  57.98122414440677
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
@@ -6364,7 +6364,7 @@
          EBS higher temperature        : -2.642948981564E+01
          difference                    :  3.753983880834E-03
          relative difference           :  1.420175257076E-04
-         trace(KS)                     :  57.98122356071394
+         trace(Ktilde)                     :  57.98122356071394
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
