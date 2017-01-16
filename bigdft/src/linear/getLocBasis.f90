@@ -2743,7 +2743,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
   !windowsx2 = f_malloc(tmb%linmat%l%ntaskgroup,id='windowsx2')
   kernelpp_work1 = f_malloc(tmb%linmat%l%smmm%nvctrp*tmb%linmat%l%nspin,id='kernelpp_work1')
   !kernelpp_work2 = f_malloc(tmb%linmat%l%smmm%nvctrp*tmb%linmat%l%nspin,id='kernelpp_work2')
-  matrix_local1 = f_malloc_ptr(max(1,tmb%linmat%l%smmm%nvctrp_mm*tmb%linmat%l%nspin),id='matrix_local1')
+  matrix_local1 = f_malloc_ptr(tmb%linmat%l%smmm%nvctrp_mm*tmb%linmat%l%nspin,id='matrix_local1')
 
   ! Calculate S^1/2 * K * S^1/2. Take the value of S^1/2 from memory (was
   ! calculated in the last call to this routine or (it it is the first call)

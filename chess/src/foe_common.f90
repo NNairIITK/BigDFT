@@ -944,6 +944,7 @@ module foe_common
 
         call f_routine(id='retransform_ext')
 
+
         ! Check the arguments
         select case (onesided_action)
         case (ONESIDED_POST,ONESIDED_GATHER)
@@ -958,9 +959,9 @@ module foe_common
             if (.not.present(matrix_localx)) then
                 call f_err_throw('matrix_localx not present')
             end if
-            if (size(matrix_localx)/=max(smat%smmm%nvctrp_mm,1)) then
+            if (size(matrix_localx)/=smat%smmm%nvctrp_mm) then
                 call f_err_throw('Array matrix_localx has size '//trim(yaml_toa(size(matrix_localx),fmt='(i0)'))//&
-                     &' instead of '//trim(yaml_toa(max(1,smat%smmm%nvctrp_mm),fmt='(i0)')), &
+                     &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                      err_name='SPARSEMATRIX_MANIPULATION_ERROR')
             end if
             matrix_local => matrix_localx
@@ -969,7 +970,7 @@ module foe_common
                 ! Create a window for all taskgroups to which iproc belongs (max 2)
                 windows = f_malloc_ptr(smat%ntaskgroup,id='windows')
             !end if
-            matrix_local = f_malloc_ptr(max(smat%smmm%nvctrp_mm,1),id='matrix_local')
+            matrix_local = f_malloc_ptr(smat%smmm%nvctrp_mm,id='matrix_local')
         case default
             call f_err_throw('wrong value for onesided_action')
         end select
@@ -1005,11 +1006,9 @@ module foe_common
         !!if (onesided_action==ONESIDED_GATHER .or. onesided_action==ONESIDED_FULL) then
         !!if (onesided_action==ONESIDED_FULL) then
             !!write(*,*) 'before compress, iproc, sum(kernelpp_work)', iproc, sum(kernelpp_work)
-            !!write(*,*) 'before compress, iproc, sum(kernel)', iproc, sum(kernel)
             call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
                  kernelpp_work, onesided_action, kernel, &
                  matrix_localx=matrix_local, windowsx=windows)
-            !!write(*,*) 'after compress, iproc, sum(kernelpp_work)', iproc, sum(kernelpp_work)
             !!write(*,*) 'after compress, iproc, sum(kernel)', iproc, sum(kernel)
         !!end if
 
@@ -1439,7 +1438,7 @@ module foe_common
 
       !if (iproc==0) call yaml_comment('get Chebyshev polynomials',hfill='~')
 
-      matrix_local = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='matrix_local')
+      matrix_local = f_malloc(smatl%smmm%nvctrp_mm,id='matrix_local')
       windows = f_malloc(smatl%ntaskgroup,id='windows')
 
 
@@ -1722,7 +1721,7 @@ module foe_common
 
       windowsx = f_malloc_ptr(smatl%ntaskgroup,id='windowsx')
 
-      fermi_small_new = f_malloc((/max(smatl%smmm%nvctrp_mm,1),smatl%nspin/),id='fermi_small_new')
+      fermi_small_new = f_malloc((/smatl%smmm%nvctrp_mm,smatl%nspin/),id='fermi_small_new')
 
 
       occupations = f_malloc0(smatl%nspin,id='occupations')

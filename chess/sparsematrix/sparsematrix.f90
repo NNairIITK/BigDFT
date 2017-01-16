@@ -726,7 +726,7 @@ module sparsematrix
              call f_err_throw('sparse matrix multiplication not initialized', &
                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
          end if
-         if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
+         if (size(matrixp)/=smat%smmm%nvctrp_mm) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
@@ -747,14 +747,14 @@ module sparsematrix
              if (.not.present(matrix_localx)) then
                  call f_err_throw('matrix_localx not present')
              end if
-             if (size(matrix_localx)/=max(smat%smmm%nvctrp_mm,1)) then
+             if (size(matrix_localx)/=smat%smmm%nvctrp_mm) then
                  call f_err_throw('Array matrix_localx has size '//trim(yaml_toa(size(matrix_localx),fmt='(i0)'))//&
-                      &' instead of '//trim(yaml_toa(max(1,smat%smmm%nvctrp_mm),fmt='(i0)')), &
+                      &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                       err_name='SPARSEMATRIX_MANIPULATION_ERROR')
              end if
              matrix_local => matrix_localx
          case (ONESIDED_FULL)
-             matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
+             matrix_local = f_malloc_ptr(smat%smmm%nvctrp_mm,id='matrix_local')
          case default
              call f_err_throw('wrong value for onesided_action')
          end select
@@ -994,7 +994,7 @@ module sparsematrix
              nvctrp = smat%smmm%nvctrp_mm
              nccomm = smat%smmm%nccomm_smmm
          end if
-         if (size(matrixp)/=max(1,nvctrp)) then
+         if (size(matrixp)/=nvctrp) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(nvctrp,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')

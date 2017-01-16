@@ -120,7 +120,7 @@ module foe
       windowsx_kernel_check = f_malloc((/smatl%ntaskgroup,smatl%nspin/),id='windowsx_kernel_check')
       kernelpp_work = f_malloc(smatl%smmm%nvctrp*smatl%nspin,id='kernelpp_work')
       kernelpp_check_work = f_malloc(smatl%smmm%nvctrp*smatl%nspin,id='kernelpp_check_work')
-      matrix_local = f_malloc(max(1,smatl%smmm%nvctrp_mm)*smatl%nspin,id='matrix_local')
+      matrix_local = f_malloc(smatl%smmm%nvctrp_mm*smatl%nspin,id='matrix_local')
       !matrix_local_check = f_malloc((/max(1,smatl%smmm%nvctrp_mm),smatl%nspin/),id='matrix_local_check')
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
       ham_eff = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='ham_eff')
@@ -149,7 +149,7 @@ module foe
       sumn_allspins = f_malloc0(smatl%nspin,id='sumn_allspins')
       ebs_spins = f_malloc0(smatl%nspin,id='ebs_spins')
 
-      fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
+      fermi_check_new = f_malloc(smatl%smmm%nvctrp_mm,id='fermip_check_new')
 
 
       !call timing(iproc, 'FOE_auxiliary ', 'OF')
