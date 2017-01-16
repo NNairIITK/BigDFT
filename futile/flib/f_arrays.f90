@@ -46,7 +46,7 @@ module f_arrays
   end interface f_array_ptr_free
   
 
-  public :: f_matrix_allocate,assignment(=)
+  public :: assignment(=)
   public :: dump_f_matrix_ptr,f_array_ptr_free
 
   contains

@@ -713,20 +713,22 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   
   ! Add contribution from constant electric field to the forces
-  call center_of_charge(at,rxyz,cc)
-  do iat=1,at%astruct%nat
-     ityp=at%astruct%iatype(iat)
-     charge=real(at%nelpsp(ityp),gp)
-     fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
-     !ry=rxyz(2,iat) 
-     !eion=eion-(charge*elecfield)*ry
-     de=0.0_gp
-     do i=1,3
-        de=de+elecfield(i)*(rxyz(i,iat)-cc(i))
-     end do
-     !eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
-     eion=eion-charge*de
-  enddo
+  if(any(elecfield(1:3)/=0._gp)) then 
+     call center_of_charge(at,rxyz,cc)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
+        charge=real(at%nelpsp(ityp),gp)
+        fion(1:3,iat)=fion(1:3,iat)+(charge*elecfield(1:3))
+        !ry=rxyz(2,iat) 
+        !eion=eion-(charge*elecfield)*ry
+        de=0.0_gp
+        do i=1,3
+           de=de+elecfield(i)*(rxyz(i,iat)-cc(i))
+        end do
+        !eion=eion-charge*sum(elecfield(1:3)*rxyz(1:3,iat))
+        eion=eion-charge*de
+     enddo
+  end if
 
   if (iproc == 0) then
      if(all(elecfield(1:3)==0._gp)) then 
@@ -1846,7 +1848,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   type(atoms_data), intent(in) :: atoms
 !!-  type(locreg_descriptors), intent(in) :: Glr
   type(input_variables), intent(in) :: input
-  type(denspot_distribution), intent(in) :: dpbox
+  type(denspot_distribution), intent(inout) :: dpbox
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3), intent(in) :: shift
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
@@ -1923,7 +1925,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  type(denspot_distribution), intent(in) :: dpbox
+  type(denspot_distribution), intent(inout) :: dpbox
   type(coulomb_operator), intent(inout) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   real(dp), dimension(*), intent(out) :: rho_ion
@@ -1958,6 +1960,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   type(dpbox_iterator) :: boxit
   type(box_iterator) :: bitp
   integer, dimension(2,3) :: nbox
+  real(gp), dimension(3) :: center_of_charge_ions
 
   call f_routine(id='createIonicPotential')
   call timing(iproc,'CrtLocPot     ','ON')
@@ -2694,22 +2697,29 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
            !           pot_ion(boxit%ind)=pot_ion(boxit%ind)+0.5_gp/(elecfield**4)*r2
         end do
      else
-        if (dpbox%n3pi > 0) then
-           do i3=1,n3pi
-              z=real(i3+i3s-1-nbl3-1,gp)*hzh
-              do i2=1,n2i
-                 y=real(i2-nbl2-1,gp)*hyh
-                 do i1=1,n1i
-                    x=real(i1-nbl1-1,gp)*hxh
-                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                    pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
-!                    parabola: these two lines replace the above line comment out the if case and calculate x, z
-!                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
-!                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
-                 end do
-              end do
-           end do
-        end if
+        call center_of_charge(at,rxyz,center_of_charge_ions)
+        do while(box_next_point(dpbox%bitp))
+           dpbox%bitp%tmp=dpbox%bitp%rxyz-center_of_charge_ions
+           pot_ion(dpbox%bitp%ind)=pot_ion(dpbox%bitp%ind)+&
+                elecfield(1)*dpbox%bitp%tmp(1)+elecfield(2)*dpbox%bitp%tmp(2)+elecfield(3)*dpbox%bitp%tmp(3)
+        end do
+
+!!$        if (dpbox%n3pi > 0) then
+!!$           do i3=1,n3pi
+!!$              z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!$              do i2=1,n2i
+!!$                 y=real(i2-nbl2-1,gp)*hyh
+!!$                 do i1=1,n1i
+!!$                    x=real(i1-nbl1-1,gp)*hxh
+!!$                    ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!$                    pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
+!!$!                    parabola: these two lines replace the above line comment out the if case and calculate x, z
+!!$!                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
+!!$!                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
+!!$                 end do
+!!$              end do
+!!$           end do
+!!$        end if
      end if
 
 !        if (efwrite .and. iproc == 0) then
@@ -2844,7 +2854,7 @@ subroutine external_potential(iproc,verb,at,rxyz,&
   use abi_interfaces_numeric, only: abi_derf_ab
   use public_enums, only: PSPCODE_PAW
   use bounds, only: ext_buffers
-  use box, only: cell_periodic_dims,cell_geocode
+  use box
   implicit none
 
   !Arguments
@@ -2856,7 +2866,7 @@ subroutine external_potential(iproc,verb,at,rxyz,&
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  type(denspot_distribution), intent(in) :: dpbox
+  type(denspot_distribution), intent(inout) :: dpbox
   type(coulomb_operator), intent(inout) :: pkernel
   real(wp), dimension(*), intent(inout) :: pot_ion
   real(dp), dimension(*), intent(out) :: rho_ion
@@ -2888,6 +2898,7 @@ subroutine external_potential(iproc,verb,at,rxyz,&
   type(atoms_iterator) :: atit
   type(dpbox_iterator) :: boxit
   integer, dimension(2,3) :: nbox
+  real(gp), dimension(3) :: center_of_charge_ions
 
   call f_routine(id='createIonicPotential')
   call timing(iproc,'CrtLocPot     ','ON')
@@ -3354,24 +3365,31 @@ subroutine external_potential(iproc,verb,at,rxyz,&
 !or         'Parabolic confining potential: rprb=',elecfield,&
 !           ';  v_conf(r)= 1/(2*rprb**4) * r**2'
 
-     !write or not electric field in a separate file
+     !the iterator here is on the potential distribution
+     call center_of_charge(at,rxyz,center_of_charge_ions)
+     do while(box_next_point(dpbox%bitp))
+        dpbox%bitp%tmp=dpbox%bitp%rxyz-center_of_charge_ions
+        pot_ion(dpbox%bitp%ind)=pot_ion(dpbox%bitp%ind)+&
+             elecfield(1)*dpbox%bitp%tmp(1)+elecfield(2)*dpbox%bitp%tmp(2)+elecfield(3)*dpbox%bitp%tmp(3)
 
-     if (dpbox%n3pi > 0) then
-        do i3=1,n3pi
-           z=real(i3+i3s-1-nbl3-1,gp)*hzh
-           do i2=1,n2i
-              y=real(i2-nbl2-1,gp)*hyh
-              do i1=1,n1i
-                 x=real(i1-nbl1-1,gp)*hxh
-                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-                 pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
-                 !                    parabola: these two lines replace the above line comment out the if case and calculate x, z
-                 !                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
-                 !                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
-              end do
-           end do
-        end do
-     end if
+     end do
+!!$     !write or not electric field in a separate file
+!!$     if (dpbox%n3pi > 0) then
+!!$        do i3=1,n3pi
+!!$           z=real(i3+i3s-1-nbl3-1,gp)*hzh
+!!$           do i2=1,n2i
+!!$              y=real(i2-nbl2-1,gp)*hyh
+!!$              do i1=1,n1i
+!!$                 x=real(i1-nbl1-1,gp)*hxh
+!!$                 ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+!!$                 pot_ion(ind)=pot_ion(ind)+elecfield(1)*x+elecfield(2)*y+elecfield(3)*z
+!!$                 !                    parabola: these two lines replace the above line comment out the if case and calculate x, z
+!!$                 !                    r2=(x-rx)**2+(y-ry)**2+(z-rz)**2
+!!$                 !                    pot_ion(ind)=pot_ion(ind)+0.5_gp/(elecfield**4)*r2
+!!$              end do
+!!$           end do
+!!$        end do
+!!$     end if
   end if
   
   if (at%multipole_preserving) call finalize_real_space_conversion()
