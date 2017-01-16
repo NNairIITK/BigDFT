@@ -44,7 +44,8 @@ module foe
                symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels,  energy_kernel_)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
-                              trace_sparse_matrix_product, symmetrize_matrix, max_asymmetry_of_matrix
+                              trace_sparse_matrix_product, symmetrize_matrix, max_asymmetry_of_matrix, &
+                              trace_sparse_matrix
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &
                           foe_data_get_logical
       use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level, &
@@ -98,7 +99,7 @@ module foe
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
       real(kind=mp),parameter :: CHECK_RATIO=1.25d0
       real(kind=mp) :: degree_multiplicator, ebsp_allspins
-      real(kind=mp),dimension(1) :: x_max_error, max_error, x_max_error_check, max_error_check, mean_error, mean_error_check
+      real(kind=mp),dimension(1) :: max_error, x_max_error_check, max_error_check, mean_error_check
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
       real(kind=mp),dimension(:),allocatable :: fermi_new, fermi_check_new
@@ -107,7 +108,7 @@ module foe
       integer :: npl_min, is
       real(kind=mp),dimension(1) :: fscale_arr
       real(mp) :: ebs_check_allspins
-      real(mp),dimension(:),allocatable :: sumn_allspins
+      real(mp),dimension(:),allocatable :: sumn_allspins, ebs_spins
       integer :: npl_max, npl_stride
       integer,dimension(:,:),allocatable :: windowsx_kernel, windowsx_kernel_check
 
@@ -146,6 +147,7 @@ module foe
       fermi_check_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
       kernel_tmp = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='kernel_tmp')
       sumn_allspins = f_malloc0(smatl%nspin,id='sumn_allspins')
+      ebs_spins = f_malloc0(smatl%nspin,id='ebs_spins')
 
       fermi_check_new = f_malloc(max(smatl%smmm%nvctrp_mm,1),id='fermip_check_new')
 
@@ -209,6 +211,9 @@ module foe
 
       temp_loop: do itemp=1,ntemp
 
+          ebsp_allspins = 0.0_mp
+          ebs_check_allspins = 0.0_mp
+
           if (iproc==0) then
               call yaml_sequence(advance='no')
               call yaml_comment('ispin:'//trim(yaml_toa(1))//', itemp:'//trim(yaml_toa(itemp)),hfill='-')
@@ -264,6 +269,13 @@ module foe
               if (.not.(calculate_spin_channels(ispin))) cycle
               ilshift=(ispin-1)*smatl%nvctrp_tg
               is=(ispin-1)*smatl%smmm%nvctrp
+              ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
+              istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
+              ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, ham_eff(istl), 1)
+              ebs_spins(ispin) = ebsp
+              !!call calculate_trace_distributed_new(iproc, nproc, comm, smatl, kernel_%matrix_compr, sumn)
+              sumn = trace_sparse_matrix(iproc, nproc, comm, smatl, kernel_%matrix_compr(ilshift+1:))
+              sumn_allspins(ispin) = sumn
               call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_work(is+1:),  &
                    ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
                    matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
@@ -284,8 +296,6 @@ module foe
               end do
           end if
 
-          ebsp_allspins = 0.0_mp
-          ebs_check_allspins = 0.0_mp
 
 
           spin_loop: do ispin=1,smatl%nspin
@@ -302,13 +312,12 @@ module foe
                    smatl, chebyshev_polynomials(:,:,ispin), 1, cc_check, fermi_check_new)
 
               call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
-                   fermi_check_new, ONESIDED_FULL, fermi_check_compr(ilshift+1:))
+                   fermi_check_new, ONESIDED_POST, fermi_check_compr(ilshift+1:), windowsx=windowsx_kernel_check(:,ispin))
 
               !!call retransform_ext(iproc, nproc, smatl, ONESIDED_POST, kernelpp_check_work(is+1:),  &
               !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
               !!     matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
 
-              istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
               call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_work(is+1:),  &
                    ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel_%matrix_compr(ilshift+1:), &
                    matrix_localx=matrix_local, windowsx=windowsx_kernel(:,ispin))
@@ -318,26 +327,30 @@ module foe
                   call f_memcpy(src=kernel_%matrix_compr, dest=kernel_tmp)
                   call symmetrize_matrix(smatl, 'plus', kernel_tmp, kernel_%matrix_compr, ispinx=ispin)
               end if
-              sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
-                     ovrlp_%matrix_compr(isshift+1:), &
-                     kernel_%matrix_compr(ilshift+1:))
-              sumn_allspins(ispin) = sumn
+              !!sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+              !!       ovrlp_%matrix_compr(isshift+1:), &
+              !!       kernel_%matrix_compr(ilshift+1:))
+              !!call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
+              !!sumn_allspins(ispin) = sumn
               ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
               istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
               ! Calculate trace(KH). Since they have the same sparsity pattern and K is symmetric, this is a simple ddot.
-              ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+              !ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
 
               !!call retransform_ext(iproc, nproc, smatl, ONESIDED_GATHER, kernelpp_check_work(is+1:), &
               !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), fermi_check_compr(ilshift+1:), &
               !!     matrix_localx=matrix_local_check, windowsx=windowsx_kernel_check(:,ispin))
+
+              call compress_matrix_distributed_wrapper(iproc, nproc, smatl, SPARSE_MATMUL_SMALL, &
+                   fermi_check_new, ONESIDED_GATHER, fermi_check_compr(ilshift+1:), windowsx=windowsx_kernel_check(:,ispin))
               ! Explicitly symmetrize the kernel, use fermi_check_compr as temporary array
               if (symmetrize_kernel) then
                   call f_memcpy(src=fermi_check_compr, dest=kernel_tmp)
                   call symmetrize_matrix(smatl, 'plus', kernel_tmp, fermi_check_compr, ispinx=ispin)
               end if
-              sumn_check = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
-                           ovrlp_%matrix_compr(isshift+1:), &
-                           fermi_check_compr(ilshift+1:))
+              !!sumn_check = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+              !!             ovrlp_%matrix_compr(isshift+1:), &
+              !!             fermi_check_compr(ilshift+1:))
               call calculate_trace_distributed_new(iproc, nproc, comm, smatl, fermi_check_new, sumn_check)
 
               ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
@@ -348,7 +361,7 @@ module foe
               ebs_check = ddot(ncount, fermi_check_compr(ilshift+istl), 1, &
                           ham_eff(istl), 1)
 
-              temparr(1) = ebsp
+              temparr(1) = ebs_spins(ispin) !ebsp
               temparr(2) = ebs_check
               if (nproc>1) then
                   call mpiallred(temparr, mpi_sum, comm=comm)
@@ -356,6 +369,7 @@ module foe
               ebsp = temparr(1)
               ebs_check = temparr(2)
 
+              !!write(*,*) 'sumn, sumn_check', sumn, sumn_check
               ebsp=ebsp/scale_factor+shift_value*sumn
               ebs_check=ebs_check/scale_factor+shift_value*sumn_check
               diff=abs(ebs_check-ebsp)
@@ -451,9 +465,24 @@ module foe
 
       end do temp_loop
 
+      do ispin=1,smatl%nspin
+          isshift=(ispin-1)*smats%nvctrp_tg
+          ilshift=(ispin-1)*smatl%nvctrp_tg
+          sumn = trace_sparse_matrix_product(iproc, nproc, comm, smats, smatl, &
+                 ovrlp_%matrix_compr(isshift+1:), &
+                 kernel_%matrix_compr(ilshift+1:))
+          ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
+          istl = smatl%smmm%istartend_mm_dj(1)-smatl%isvctrp_tg
+          ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(ilshift+istl), 1)
+          call mpiallred(ebsp, 1, mpi_sum, comm=comm)
+          ebsp = ebsp/scale_factor+shift_value*sumn
+          ebs = ebs + ebsp
+      end do
+      !!write(*,*) 'ebs, sumn', ebs, sumn
 
-      ! Sum up the band structure energy
-      ebs = ebs + ebsp_allspins
+
+      !!! Sum up the band structure energy
+      !!ebs = ebs + ebsp_allspins
 
 
       if (calculate_energy_density_kernel) then
@@ -516,6 +545,7 @@ module foe
       call f_free(matrix_local)
       call f_free(matrix_local_check)
       call f_free(sumn_allspins)
+      call f_free(ebs_spins)
       call f_free(hamscal_compr)
       call f_free(ham_eff)
       call f_free(fermi_check_compr)
@@ -671,7 +701,6 @@ module foe
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
       !if (iproc==0) call yaml_map('S^-1/2','recalculate')
-      !!call overlap_minus_onehalf() ! has internal timer
       call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
           verbosity=0) !has internal timer
 
@@ -685,7 +714,7 @@ module foe
            smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
            efarr=EF, fscale_arr=(/fscale/))
 
-     ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
+      ! To determine the HOMO/LUMO, subtract/add one electrom for closed shell
       ! systems of one half electron for open shell systems.
       if (smatl%nspin==1) then
           dq = 1.d0
@@ -707,48 +736,9 @@ module foe
               call foe_data_set_real(foe_obj,"charge",q,ispin)
           end do
           ispin = 1 !hack
-          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
-          !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), 0) !foe_verbosity)
           call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                0, 'test', smatl, 1, foe_obj, kernel, calculate_spin_channels)
           eval(iev) = foe_data_get_real(foe_obj,"ef")
-          !call retransform_ext(iproc, nproc, smatl, &
-          !     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(1)%matrix_compr(ilshift+1:))
-      
-          !!! Calculate the 'lower' kernel
-          !!do ispin=1,smatl%nspin
-          !!    q = real(iev*2,kind=mp)/real(smatl%nspin,kind=mp)-2.0_mp*dq
-          !!    call foe_data_set_real(foe_obj,"charge",q,ispin)
-          !!end do
-          !!ispin = 1 !hack
-          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
-          !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
-          !!call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-          !!     2, 'test', smatl, ispin, foe_obj, kernel(1))
-          !!call retransform_ext(iproc, nproc, smatl, &
-          !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(1)%matrix_compr(ilshift+1:))
-
-          !!! Calculate the 'upper' kernel
-          !!do ispin=1,smatl%nspin
-          !!    q = real(iev*2,kind=mp)/real(smatl%nspin,kind=mp)+0.0_mp*dq
-          !!    call foe_data_set_real(foe_obj,"charge",q,ispin)
-          !!end do
-          !!ispin = 1 !hack
-          !!call init_fermi_level(foe_data_get_real(foe_obj,"charge",ispin), foe_data_get_real(foe_obj,"ef",ispin), f, &
-          !!     foe_data_get_real(foe_obj,"bisection_shift",ispin), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
-          !!     foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
-          !!call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
-          !!     2, 'test', smatl, ispin, foe_obj, kernel(2))
-          !!call retransform_ext(iproc, nproc, smatl, &
-          !!     ovrlp_minus_one_half_(1)%matrix_compr(ilshift+1:), kernel(2)%matrix_compr(ilshift+1:))
-
-          !!! Calculate the square root of the difference, which is the eigenvector
-          !!do i=1,smatl%nfvctr
-          !!     ind = matrixindex_in_compressed(smatl, i, i)
-          !!     write(*,*) 'i, evec', i, factor*sqrt(kernel(2)%matrix_compr(ind) - kernel(1)%matrix_compr(ind))
-          !!end do
 
           if (iproc==0) call dump_progress_bar(bar,step=iev-iev_min+1)
 
@@ -761,27 +751,6 @@ module foe
        
       call f_release_routine()
 
-     !!  contains
-     !!       subroutine overlap_minus_onehalf()
-     !!         use ice, only: inverse_chebyshev_expansion_new
-     !!         implicit none
-     !!         integer :: i, j, ii
-     !!         real(kind=mp) :: max_error, mean_error
-     !!         real(kind=mp), dimension(1) :: ex
-     !!         real(kind=mp),dimension(:),allocatable :: tmparr
-    
-     !!         call f_routine(id='overlap_minus_onehalf')
-    
-     !!         ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
-     !!         ex=-0.5d0
-     !!         call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-     !!              ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
-     !!              ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-     !!              verbosity=0)
-
-    
-     !!         call f_release_routine()
-     !!     end subroutine overlap_minus_onehalf
 
     end subroutine get_selected_eigenvalues
 
