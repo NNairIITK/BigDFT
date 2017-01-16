@@ -272,6 +272,7 @@ module foe
               ncount = smatl%smmm%istartend_mm_dj(2) - smatl%smmm%istartend_mm_dj(1) + 1
               istl = smatl%smmm%istartend_mm_dj(1) - smatl%isvctrp_tg
               ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, ham_eff(istl), 1)
+              !write(*,*) 'iproc, ebsp', iproc, ebsp
               ebs_spins(ispin) = ebsp
               !!call calculate_trace_distributed_new(iproc, nproc, comm, smatl, kernel_%matrix_compr, sumn)
               sumn = trace_sparse_matrix(iproc, nproc, comm, smatl, kernel_%matrix_compr(ilshift+1:))

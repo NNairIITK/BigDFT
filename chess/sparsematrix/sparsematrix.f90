@@ -2028,7 +2028,7 @@ module sparsematrix
           if (ind>smat%isvctr+smat%nvctrp) then
               exit
           end if
-          tr = tr + mat(ind)
+          tr = tr + mat(ind-smat%isvctrp_tg)
       end do
       if (nproc > 1) then
           call mpiallred(tr, 1, mpi_sum, comm=comm)
