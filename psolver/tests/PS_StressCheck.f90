@@ -72,7 +72,6 @@ program PS_StressCheck
        "  help_dict: {Allowed values: dictionary in yaml format (mapping)}}"
 
 
-  character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=1) :: datacode
   character(len=30) :: mode
@@ -87,9 +86,9 @@ program PS_StressCheck
   type(dictionary), pointer :: dict
   real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,x,y
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1,acell_var,da,tr
-  integer :: n01,n02,n03,itype_scf,unit3,unit14,unit15
+  integer :: n01,n02,n03,unit3,unit14,unit15
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,ierr,i3sd,ncomp
-  integer :: n_cell,ixc,n3d,n3p,n3pi,i3xcsh,i3s,is,i,ii,ii_fin
+  integer :: n_cell,ixc,i3xcsh,i3s,is,i,ii,ii_fin
   ! nstress-1 SHOULD BE a divisor of n01, n02 and n03 concurrently;
   ! It divided the intervall [acell,2*acell] in nstress points in each
   ! direction.
@@ -326,7 +325,7 @@ program PS_StressCheck
      if (iproc==0) call yaml_map('ixc',ixc)
 
      call test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,hz,&
-          density,potential,rhopot,pot_ion,0.0_dp,alpha,beta,gamma,ii,volstress) !onehalf*pi,onehalf*pi,onehalf*pi)!
+          density,potential,rhopot,pot_ion,0.0_dp,alpha,gamma,ii,volstress) !onehalf*pi,onehalf*pi,onehalf*pi)!
 
      !calculate expected hartree enegy
      if (wrtfiles) then
@@ -711,7 +710,7 @@ end subroutine compare
 !! function in the isolated direction and an explicitly periodic function in the periodic ones.
 !! Beware of the high-frequency components that may falsify the results when hgrid is too high.
 subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,hz,&
-     density,potential,rhopot,pot_ion,mu0,alpha,beta,gamma,ii,volstress)
+     density,potential,rhopot,pot_ion,mu0,alpha,gamma,ii,volstress)
   use yaml_output
   use f_utils
   implicit none
@@ -719,7 +718,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,acell_var,a_gauss,hx,hy,
   integer, intent(in) :: n01,n02,n03,ixc
   real(kind=8), intent(in) :: acell,acell_var,a_gauss,hx,hy,hz,mu0
   !triclinic lattice
-  real(kind=8), intent(in) :: alpha, beta, gamma
+  real(kind=8), intent(in) :: alpha,gamma
   integer, intent(in) :: ii
   real(kind=8), dimension(n01,n02,n03), intent(out) :: density,potential,rhopot,pot_ion
   logical, intent(in) :: volstress

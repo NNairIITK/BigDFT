@@ -1,6 +1,8 @@
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  Yes
+ Check internal subroutines for cavity vectors:  No
  cavity =/ vacuum            :  Yes
  mPB                         :  No
  detgd                       :  1.0
@@ -85,60 +87,216 @@
    BC                        : Free
    Box                       :  [  57,  49,  63 ]
    MPI tasks                 :  1
-   Integral of the density in the nonvacuum region:  17.84754547547293
+   Integral of the density in the nonvacuum region:  17.84754547547294
    Embedded PSolver, Preconditioned Conjugate Gradient Method:
    - Iteration quality: {iter:  1, res:  9.07156538984329019E-01}
       #WARNING: Input guess not used due to residual norm >1.0E-002
-   - Iteration quality: {iter:  1, res:  2.96236301187453865E-01}
-   - Iteration quality: {iter:  2, res:  8.36324519344804618E-02}
-   - Iteration quality: {iter:  3, res:  1.01649909405149876E-02}
-   - Iteration quality: {iter:  4, res:  4.67580720027458048E-03}
-   - Iteration quality: {iter:  5, res:  4.17970864552698351E-04}
-   - Iteration quality: {iter:  6, res:  3.47828968398353604E-05}
-   - Iteration quality: {iter:  7, res:  2.97506246885872996E-06}
-   - Iteration quality: {iter:  8, res:  1.63529097485324934E-07}
-   - Iteration quality: {iter:  9, res:  1.18644684385405037E-08}
-   - Iteration quality: {iter:  10, res:  6.83438709393221260E-10}
+   - Iteration quality: {iter:  1, res:  2.96236301187453754E-01}
+   - Iteration quality: {iter:  2, res:  8.36324519344803091E-02}
+   - Iteration quality: {iter:  3, res:  1.01649909405152946E-02}
+   - Iteration quality: {iter:  4, res:  4.67580720027228284E-03}
+   - Iteration quality: {iter:  5, res:  4.17970864550549408E-04}
+   - Iteration quality: {iter:  6, res:  3.47828968376956400E-05}
+   - Iteration quality: {iter:  7, res:  2.97506241432961179E-06}
+   - Iteration quality: {iter:  8, res:  1.63529132491907354E-07}
+   - Iteration quality: {iter:  9, res:  1.18650706534178086E-08}
+   - Iteration quality: {iter:  10, res:  6.74166256599387758E-10}
  Inf. Norm difference with reference:
-   Value                     :  1.699775153429783E-04
+   Value                     :  1.699779035373439E-04
    Point                     :  [  29,  27,  32 ]
-   Some values: [ 1.333098754727757E-04, -1.206315424298992E-09, -2.818424505033908E-09]
+   Some values: [ 1.333094754016884E-04, -1.217472802453038E-09, -2.834359461414435E-09]
  Expected hartree energy     :  0.0
- Computed Hartree energy     :  45.43215530513094
- Diff of expected-computed Hartree energy: -45.43215530513094
+ Computed Hartree energy     :  45.43215530735365
+ Diff of expected-computed Hartree energy: -45.43215530735365
  Comparison between numerical and starting analytical density with old GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  1.916600718968749E-02
+     Value                   :  1.916600708850987E-02
      Point                   :  [  29,  49,  32 ]
-     Some values: [-6.880428794957538E-04, -2.705303164710933E-05,  1.025716052818865E-07]
+     Some values: [-6.880429185223136E-04, -2.705300332698051E-05,  1.025716292171242E-07]
  Comparison between numerical and starting analytical density witn new 2 GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  1.812049469321174E-02
+     Value                   :  1.812049447184021E-02
      Point                   :  [  29,  49,  32 ]
-     Some values: [-8.879098850833600E-04, -1.000863504433920E-05,  7.001776482327391E-08]
+     Some values: [-8.879099252450118E-04, -1.000860829674955E-05,  7.001777590259192E-08]
  Comparison between Generalized Poisson operator PCG-style and analytical density:
    Inf. Norm difference with reference:
-     Value                   :  1.800997674894900E-02
+     Value                   :  1.800997682952898E-02
      Point                   :  [  29,  30,  32 ]
-     Some values: [-1.069850821073182E-02, -1.285174477405466E-05,  1.714138510588482E-07]
+     Some values: [-1.069850825233765E-02, -1.285174113729186E-05,  1.714139359750544E-07]
+ Comparison between different dsurfdrho subroutines:
+   Inf. Norm difference with reference:
+     Value                   :  5.403555570701601E-08
+     Point                   :  [  143,  42,  160 ]
+     Some values: [ 0.000000000000000E+00,  0.000000000000000E+00, -7.930394188560008E-11]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  467
-   Tot. No. of Deallocations :  467
+   Tot. No. of Allocations   :  478
+   Tot. No. of Deallocations :  478
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  149.389
+     Peak Value (MB)         :  822.024
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 75.988 MB
- Walltime since initialization:  00:00:01.135072477
- Max No. of dictionaries used:  577 #( 173 still in use)
+     Memory Peak of process  : 672.704 MB
+ Walltime since initialization:  00:00:04.518123121
+ Max No. of dictionaries used:  579 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Input guess not used due to residual norm >1.0E-002
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  Yes
+ cavity =/ vacuum            :  Yes
+ mPB                         :  No
+ detgd                       :  1.0
+ Angles                      :  [  90.0,  90.0,  90.0 ]
+ Contravariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Covariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Product of the two:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ monopole                    : -1.7372906542613294E-013
+ dipole: [-3.4443806494783195E-012, -3.415864508060233E-012, -4.8779633324176822E-012]
+ offset                      : -24.73942945119144
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.256922819210800E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.144592076866599E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-9.799494211648607E-07, -9.424748871387997E-06, -5.105668530224393E-08]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.591428761832381E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.709354678784976E-03, -1.245326418629513E-05,  4.970466372320245E-08]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  2.256922819210800E-02
+   Point                     :  [  29,  49,  32 ]
+   Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
+     cavity                  : rigid #            Type of the cavity
+     gps_algorithm           : PCG #              Algorithm for the Generalised Poisson Equation
+     epsilon                 : 78.36 #            Dielectric constant of the exterior region
+     radii_set               : UFF #              Set of vdW radii used by default in the setter function
+     atomic_radii            : 0 #                Mapping of the radii that have to be used for each atomic species
+     cavitation              : Yes #              Triggers the evaluation of the extra cavitation terms
+     fact_rigid              : 1.12 #             Multiplying factor for the whole rigid cavity
+     gammaS                  : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
+     alphaS                  : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
+      #                                            [dyn/cm]
+     betaV                   : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
+     input_guess             : Yes #              Triggers the input guess procedure of gps_algorithm
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 200 #              Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-8 #            Convergence threshold of the loop
+     pb_method               : none #             Defines the method for the Poisson Boltzmann Equation
+   kernel:
+     screening               : 0 #                Mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              Triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  12
+   Iterative method for Generalised Equation: PCG
+   Cavity determination      : rigid
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  1.44
+     Kernel (MB)             :  1.52
+     Full Grid Arrays (MB)   :  1.34
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  1
+   Integral of the density in the nonvacuum region:  17.84754547547294
+   Embedded PSolver, Preconditioned Conjugate Gradient Method:
+   - Iteration quality: {iter:  1, res:  3.22808364565224437E+00}
+      #WARNING: Input guess not used due to residual norm >1.0E-002
+   - Iteration quality: {iter:  1, res:  8.15732485681003316E-01}
+   - Iteration quality: {iter:  2, res:  9.06871291524101508E-01}
+   - Iteration quality: {iter:  3, res:  1.05367413515480637E-01}
+   - Iteration quality: {iter:  4, res:  6.34292706955198321E-02}
+   - Iteration quality: {iter:  5, res:  1.27748437496647358E-02}
+   - Iteration quality: {iter:  6, res:  8.67267779466189548E-03}
+   - Iteration quality: {iter:  7, res:  1.44205162424430842E-02}
+   - Iteration quality: {iter:  8, res:  5.62358450616330923E-03}
+   - Iteration quality: {iter:  9, res:  1.44785446783579912E-03}
+   - Iteration quality: {iter:  10, res:  3.41825962057353894E-04}
+   - Iteration quality: {iter:  11, res:  1.06375819631811028E-04}
+   - Iteration quality: {iter:  12, res:  2.26140637661278665E-05}
+   - Iteration quality: {iter:  13, res:  8.04997910010818136E-06}
+   - Iteration quality: {iter:  14, res:  2.07130542612732765E-06}
+   - Iteration quality: {iter:  15, res:  9.23816764024146564E-07}
+   - Iteration quality: {iter:  16, res:  3.74978368427515683E-07}
+   - Iteration quality: {iter:  17, res:  1.69816230987356770E-07}
+   - Iteration quality: {iter:  18, res:  2.04628529637006136E-08}
+   - Iteration quality: {iter:  19, res:  4.80673197782526083E-09}
+ Inf. Norm difference with reference:
+   Value                     :  1.694450185532048E-04
+   Point                     :  [  29,  27,  32 ]
+   Some values: [ 1.334987307792801E-04, -9.906855614898076E-09, -7.619034666837967E-09]
+ Expected hartree energy     :  0.0
+ Computed Hartree energy     :  45.43215328013655
+ Diff of expected-computed Hartree energy: -45.43215328013655
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.824288818900597E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-6.873083719423079E-04, -2.759651192501411E-05,  1.076929711572841E-07]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.727440414989155E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-8.870922949917315E-04, -1.050576344293580E-05,  7.570410865046841E-08]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.801425501020892E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-1.069770769656664E-02, -1.351140560125595E-05,  1.753189862326303E-07]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  562
+   Tot. No. of Deallocations :  562
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  154.759
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 79.120 MB
+ Walltime since initialization:  00:00:01.377500431
+ Max No. of dictionaries used:  579 #( 173 still in use)
+ Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Input guess not used due to residual norm >1.0E-002
+---
+ rad_cav                     :  2.7
+ multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
  cavity =/ vacuum            :  Yes
  mPB                         :  No
  detgd                       :  0.4304134495199673
@@ -228,61 +386,63 @@
    - Iteration quality: {iter:  1, res:  5.11611680126580382E+01}
       #WARNING: Input guess not used due to residual norm >1.0E-002
    - Iteration quality: {iter:  1, res:  5.60177875638522735E+01}
-   - Iteration quality: {iter:  2, res:  2.65327438185730671E+01}
-   - Iteration quality: {iter:  3, res:  1.15335613516879363E+01}
-   - Iteration quality: {iter:  4, res:  3.96746543801734486E+00}
-   - Iteration quality: {iter:  5, res:  2.33926062345445152E+00}
-   - Iteration quality: {iter:  6, res:  3.28612243700985518E-01}
-   - Iteration quality: {iter:  7, res:  9.03410087503907222E-02}
-   - Iteration quality: {iter:  8, res:  1.87299325507535759E-02}
-   - Iteration quality: {iter:  9, res:  3.30887789521458475E-03}
-   - Iteration quality: {iter:  10, res:  7.86689262489200436E-04}
-   - Iteration quality: {iter:  11, res:  1.43361069291694641E-04}
-   - Iteration quality: {iter:  12, res:  2.05026104742898408E-05}
-   - Iteration quality: {iter:  13, res:  3.00559182922905632E-06}
-   - Iteration quality: {iter:  14, res:  3.62123854352149256E-07}
-   - Iteration quality: {iter:  15, res:  4.64957185820889800E-08}
-   - Iteration quality: {iter:  16, res:  7.63624589807106145E-09}
+   - Iteration quality: {iter:  2, res:  2.65327438185730564E+01}
+   - Iteration quality: {iter:  3, res:  1.15335613516879114E+01}
+   - Iteration quality: {iter:  4, res:  3.96746543801734575E+00}
+   - Iteration quality: {iter:  5, res:  2.33926062345445196E+00}
+   - Iteration quality: {iter:  6, res:  3.28612243700983353E-01}
+   - Iteration quality: {iter:  7, res:  9.03410087503925679E-02}
+   - Iteration quality: {iter:  8, res:  1.87299325507619928E-02}
+   - Iteration quality: {iter:  9, res:  3.30887789520720741E-03}
+   - Iteration quality: {iter:  10, res:  7.86689262537464888E-04}
+   - Iteration quality: {iter:  11, res:  1.43361069234661080E-04}
+   - Iteration quality: {iter:  12, res:  2.05026105994152046E-05}
+   - Iteration quality: {iter:  13, res:  3.00559190375125600E-06}
+   - Iteration quality: {iter:  14, res:  3.62124077489490952E-07}
+   - Iteration quality: {iter:  15, res:  4.64958303868084748E-08}
+   - Iteration quality: {iter:  16, res:  7.63880379943758346E-09}
  Inf. Norm difference with reference:
-   Value                     :  3.710972082160424E-05
+   Value                     :  3.710976386628317E-05
    Point                     :  [  34,  41,  40 ]
-   Some values: [-2.179155104897745E-05,  3.292907724272709E-07, -3.889071109597353E-08]
+   Some values: [-2.179160797766144E-05,  3.292928543174867E-07, -3.888899868798035E-08]
  Expected hartree energy     :  0.0
- Computed Hartree energy     :  201773.6425702802
- Diff of expected-computed Hartree energy: -201773.6425702802
+ Computed Hartree energy     :  201773.6425702976
+ Diff of expected-computed Hartree energy: -201773.6425702976
  Comparison between numerical and starting analytical density with old GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  8.527347850545505E-01
+     Value                   :  8.527347276083440E-01
      Point                   :  [  31,  78,  41 ]
-     Some values: [ 2.781248219534405E-04,  2.638218234096712E-05, -7.748841349211943E-03]
+     Some values: [ 2.781248309702278E-04,  2.638220888684373E-05, -7.748841294585418E-03]
  Comparison between numerical and starting analytical density witn new 2 GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  8.527332877710824E-01
+     Value                   :  8.527332303248609E-01
      Point                   :  [  31,  78,  41 ]
-     Some values: [ 2.607768399087718E-04,  2.638256972886666E-05, -2.320707387184484E-04]
+     Some values: [ 2.607768487834505E-04,  2.638259610421301E-05, -2.320706838077058E-04]
  Comparison between Generalized Poisson operator PCG-style and analytical density:
    Inf. Norm difference with reference:
-     Value                   :  8.527198847649798E-01
+     Value                   :  8.527199416228621E-01
      Point                   :  [  45,  78,  41 ]
-     Some values: [ 2.814920002954580E-02,  5.448816580155835E-06,  3.429697207707250E-03]
+     Some values: [ 2.814920003818600E-02,  5.448849378808518E-06,  3.429697268188647E-03]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  4605
-   Tot. No. of Deallocations :  4605
+   Tot. No. of Allocations   :  4607
+   Tot. No. of Deallocations :  4607
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  276.402
+     Peak Value (MB)         :  286.400
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 120.608 MB
- Walltime since initialization:  00:00:02.333941970
- Max No. of dictionaries used:  577 #( 173 still in use)
+     Memory Peak of process  : 124.760 MB
+ Walltime since initialization:  00:00:02.528417864
+ Max No. of dictionaries used:  579 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Input guess not used due to residual norm >1.0E-002
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
  cavity =/ vacuum            :  Yes
  mPB                         :  No
  detgd                       :  1.0
@@ -377,20 +537,20 @@
    - Iteration quality: {iter:  4, res:  2.49359594937537711E-02}
    - Iteration quality: {iter:  5, res:  8.66881353894407083E-03}
    - Iteration quality: {iter:  6, res:  2.89230054614251142E-03}
-   - Iteration quality: {iter:  7, res:  1.26964978533537212E-03}
-   - Iteration quality: {iter:  8, res:  4.26691597744254956E-04}
+   - Iteration quality: {iter:  7, res:  1.26964978533537190E-03}
+   - Iteration quality: {iter:  8, res:  4.26691597744255011E-04}
    - Iteration quality: {iter:  9, res:  1.60733634776592192E-04}
    - Iteration quality: {iter:  10, res:  6.84035495658365391E-05}
    - Iteration quality: {iter:  11, res:  2.59739341861738660E-05}
    - Iteration quality: {iter:  12, res:  9.50467465477535489E-06}
    - Iteration quality: {iter:  13, res:  3.82666386948776503E-06}
-   - Iteration quality: {iter:  14, res:  1.59163132418500963E-06}
+   - Iteration quality: {iter:  14, res:  1.59163132418500984E-06}
    - Iteration quality: {iter:  15, res:  6.30186730331370145E-07}
    - Iteration quality: {iter:  16, res:  2.42914982796785433E-07}
    - Iteration quality: {iter:  17, res:  9.67305386075819867E-08}
    - Iteration quality: {iter:  18, res:  4.00609348976099820E-08}
    - Iteration quality: {iter:  19, res:  1.65914538015433058E-08}
-   - Iteration quality: {iter:  20, res:  6.73892115466960132E-09}
+   - Iteration quality: {iter:  20, res:  6.73892115466960298E-09}
  Inf. Norm difference with reference:
    Value                     :  6.188619099845027E-06
    Point                     :  [  29,  25,  32 ]
@@ -414,23 +574,175 @@
      Point                   :  [  29,  30,  32 ]
      Some values: [-9.708720064949716E-03, -1.314854604739868E-05,  2.386726177386987E-07]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  554
-   Tot. No. of Deallocations :  554
+   Tot. No. of Allocations   :  556
+   Tot. No. of Deallocations :  556
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  152.074
+     Peak Value (MB)         :  157.444
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 78.876 MB
- Walltime since initialization:  00:00:01.376592727
- Max No. of dictionaries used:  580 #( 173 still in use)
+     Memory Peak of process  : 81.760 MB
+ Walltime since initialization:  00:00:01.519151554
+ Max No. of dictionaries used:  582 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Input guess not used due to residual norm >1.0E-002
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  Yes
+ cavity =/ vacuum            :  Yes
+ mPB                         :  No
+ detgd                       :  1.0
+ Angles                      :  [  90.0,  90.0,  90.0 ]
+ Contravariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Covariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Product of the two:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ monopole                    : -1.7372906542613294E-013
+ dipole: [-3.4443806494783195E-012, -3.415864508060233E-012, -4.8779633324176822E-012]
+ offset                      : -24.73942945119144
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.256922819210800E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.144592076866599E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-9.799494211648607E-07, -9.424748871387997E-06, -5.105668530224393E-08]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.591428761832381E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.709354678784976E-03, -1.245326418629513E-05,  4.970466372320245E-08]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  2.256922819210800E-02
+   Point                     :  [  29,  49,  32 ]
+   Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
+     cavity                  : rigid #            Type of the cavity
+     gps_algorithm           : PI #               Algorithm for the Generalised Poisson Equation
+     epsilon                 : 78.36 #            Dielectric constant of the exterior region
+     radii_set               : UFF #              Set of vdW radii used by default in the setter function
+     atomic_radii            : 0 #                Mapping of the radii that have to be used for each atomic species
+     cavitation              : Yes #              Triggers the evaluation of the extra cavitation terms
+     fact_rigid              : 1.12 #             Multiplying factor for the whole rigid cavity
+     gammaS                  : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
+     alphaS                  : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
+      #                                            [dyn/cm]
+     betaV                   : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
+     pi_eta                  : 0.6 #              Mixing parameter of the PI algorithm
+     input_guess             : Yes #              Triggers the input guess procedure of gps_algorithm
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 200 #              Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-8 #            Convergence threshold of the loop
+     pb_method               : none #             Defines the method for the Poisson Boltzmann Equation
+   kernel:
+     screening               : 0 #                Mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              Triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  12
+   Iterative method for Generalised Equation: PI
+   Cavity determination      : rigid
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  1.44
+     Kernel (MB)             :  1.52
+     Full Grid Arrays (MB)   :  1.34
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  1
+   Integral of the density in the nonvacuum region:  14.07293043364178
+   Embedded PSolver Polarization Iteration Method:
+   - Iteration quality: {iter:  1, res:  1.31410965312744488E-01}
+      #WARNING: Input guess not used due to residual norm >1.0E-002
+   - Iteration quality: {iter:  2, res:  1.31410965312744488E-01}
+   - Iteration quality: {iter:  3, res:  8.32784344096846874E-02}
+   - Iteration quality: {iter:  4, res:  2.53015258373578168E-02}
+   - Iteration quality: {iter:  5, res:  8.68188026470396654E-03}
+   - Iteration quality: {iter:  6, res:  2.93084212586617156E-03}
+   - Iteration quality: {iter:  7, res:  1.27032301853733038E-03}
+   - Iteration quality: {iter:  8, res:  4.29445415080774797E-04}
+   - Iteration quality: {iter:  9, res:  1.62042422017024806E-04}
+   - Iteration quality: {iter:  10, res:  6.84498407047421043E-05}
+   - Iteration quality: {iter:  11, res:  2.60338788897656761E-05}
+   - Iteration quality: {iter:  12, res:  9.56602986740124078E-06}
+   - Iteration quality: {iter:  13, res:  3.84009601569426582E-06}
+   - Iteration quality: {iter:  14, res:  1.59228455543180000E-06}
+   - Iteration quality: {iter:  15, res:  6.31214919619154193E-07}
+   - Iteration quality: {iter:  16, res:  2.43873835216729540E-07}
+   - Iteration quality: {iter:  17, res:  9.71015197899436616E-08}
+   - Iteration quality: {iter:  18, res:  4.01731328988625368E-08}
+   - Iteration quality: {iter:  19, res:  1.66524371782613490E-08}
+   - Iteration quality: {iter:  20, res:  6.78201226924448323E-09}
+ Inf. Norm difference with reference:
+   Value                     :  8.798232057835729E-06
+   Point                     :  [  29,  49,  32 ]
+   Some values: [ 2.840662650882564E-06,  8.705238557228974E-07,  9.631741232246437E-07]
+ Expected hartree energy     :  0.0
+ Computed Hartree energy     :  45.4321627891409
+ Diff of expected-computed Hartree energy: -45.4321627891409
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.451933352989441E-02
+     Point                   :  [  29,  1,  32 ]
+     Some values: [ 2.841358946774619E-04, -2.857068334787403E-05,  1.658084644850970E-07]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.324696112662191E-02
+     Point                   :  [  29,  1,  32 ]
+     Some values: [ 4.243838755968454E-07, -1.149955476899932E-05,  1.330316558223919E-07]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.594340429379626E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.708684570295389E-03, -1.297949557443110E-05,  2.313853988936759E-07]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  557
+   Tot. No. of Deallocations :  557
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  157.444
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 82.564 MB
+ Walltime since initialization:  00:00:01.487702643
+ Max No. of dictionaries used:  582 #( 173 still in use)
+ Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Input guess not used due to residual norm >1.0E-002
+---
+ rad_cav                     :  2.7
+ multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
  Running a Generalized Poisson calculation: ---
  cavity =/ vacuum            :  Yes
  mPB                         :  No
@@ -662,20 +974,22 @@
      Point                   :  [  31,  78,  41 ]
      Some values: [ 2.814920065109305E-02,  5.444923374398059E-06,  3.429691666383405E-03]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  4692
-   Tot. No. of Deallocations :  4692
+   Tot. No. of Allocations   :  4694
+   Tot. No. of Deallocations :  4694
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  263.905
+     Peak Value (MB)         :  273.903
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 116.652 MB
- Walltime since initialization:  00:00:04.141775070
- Max No. of dictionaries used:  542 #( 173 still in use)
+     Memory Peak of process  : 120.796 MB
+ Walltime since initialization:  00:00:04.825078712
+ Max No. of dictionaries used:  544 #( 173 still in use)
  Number of dictionary folders allocated:  1
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
  Running a Poisson-Boltzmann calculation: ---
  cavity =/ vacuum            :  Yes
  mPB                         :  No
@@ -955,20 +1269,22 @@
      Point                   :  [  50,  40,  36 ]
      Some values: [ 2.787187318575235E-02, -3.032392055501987E-05,  3.645709978570721E-03]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  4765
-   Tot. No. of Deallocations :  4765
+   Tot. No. of Allocations   :  4767
+   Tot. No. of Deallocations :  4767
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  263.905
+     Peak Value (MB)         :  273.903
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 105.064 MB
- Walltime since initialization:  00:00:04.971524981
- Max No. of dictionaries used:  542 #( 173 still in use)
+     Memory Peak of process  : 111.256 MB
+ Walltime since initialization:  00:00:05.746109381
+ Max No. of dictionaries used:  544 #( 173 still in use)
  Number of dictionary folders allocated:  1
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
  cavity =/ vacuum            :  Yes
  mPB                         :  Yes
  detgd                       :  1.0
@@ -1067,121 +1383,123 @@
    BC                        : Surface
    Box                       :  [  60,  78,  70 ]
    MPI tasks                 :  1
-   Integral of the density in the nonvacuum region:  226.1329803278312
+   Integral of the density in the nonvacuum region:  226.1329803278313
    Poisson Boltzmann solver:
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
        - Iteration quality: {iter:  1, res:  2.19191875686534559E+01}
           #WARNING: Input guess not used due to residual norm >1.0E-002
        - Iteration quality: {iter:  1, res:  3.88944738629169109E+01}
-       - Iteration quality: {iter:  2, res:  8.61463364513550367E+00}
-       - Iteration quality: {iter:  3, res:  2.29390854177527936E+00}
-       - Iteration quality: {iter:  4, res:  7.88164211445123897E+00}
-       - Iteration quality: {iter:  5, res:  9.86164526547162190E-02}
-       - Iteration quality: {iter:  6, res:  2.26640548930433609E-02}
-       - Iteration quality: {iter:  7, res:  2.95281875853291688E-03}
-       - Iteration quality: {iter:  8, res:  3.04011589612013700E-04}
-       - Iteration quality: {iter:  9, res:  3.72218183366241129E-05}
-       - Iteration quality: {iter:  10, res:  3.20285937798637388E-06}
-       - Iteration quality: {iter:  11, res:  2.15282167151828093E-07}
-       - Iteration quality: {iter:  12, res:  1.77501791478102314E-08}
-       - Iteration quality: {iter:  13, res:  1.23328286665866830E-09}
-       Iteration quality: {iter:  1, res:  5.40478836528214372E-04}
+       - Iteration quality: {iter:  2, res:  8.61463364513550545E+00}
+       - Iteration quality: {iter:  3, res:  2.29390854177527892E+00}
+       - Iteration quality: {iter:  4, res:  7.88164211445114660E+00}
+       - Iteration quality: {iter:  5, res:  9.86164526547266412E-02}
+       - Iteration quality: {iter:  6, res:  2.26640548930422091E-02}
+       - Iteration quality: {iter:  7, res:  2.95281875853380810E-03}
+       - Iteration quality: {iter:  8, res:  3.04011589614786384E-04}
+       - Iteration quality: {iter:  9, res:  3.72218183412659144E-05}
+       - Iteration quality: {iter:  10, res:  3.20285938230272461E-06}
+       - Iteration quality: {iter:  11, res:  2.15282172681219204E-07}
+       - Iteration quality: {iter:  12, res:  1.77501842848826698E-08}
+       - Iteration quality: {iter:  13, res:  1.23322032396385444E-09}
+       Iteration quality: {iter:  1, res:  5.40478836527794894E-04}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  6.55844540324067760E-04}
-       - Iteration quality: {iter:  2, res:  3.82369782670869437E-04}
-       - Iteration quality: {iter:  3, res:  1.96257766162916342E-03}
-       - Iteration quality: {iter:  4, res:  2.19741856101895005E-05}
-       - Iteration quality: {iter:  5, res:  2.59558259399970348E-06}
-       - Iteration quality: {iter:  6, res:  2.73693209457342792E-07}
-       - Iteration quality: {iter:  7, res:  1.07452768786708010E-07}
-       - Iteration quality: {iter:  8, res:  1.18017045854258937E-08}
-       - Iteration quality: {iter:  9, res:  1.04895534762951257E-09}
-       Iteration quality: {iter:  2, res:  2.04511408949291207E-05}
+       - Iteration quality: {iter:  1, res:  6.55844540081653815E-04}
+       - Iteration quality: {iter:  2, res:  3.82369782650710541E-04}
+       - Iteration quality: {iter:  3, res:  1.96257766234020142E-03}
+       - Iteration quality: {iter:  4, res:  2.19741856113115616E-05}
+       - Iteration quality: {iter:  5, res:  2.59558257190440097E-06}
+       - Iteration quality: {iter:  6, res:  2.73693210419496728E-07}
+       - Iteration quality: {iter:  7, res:  1.07452772754722988E-07}
+       - Iteration quality: {iter:  8, res:  1.18016958297422726E-08}
+       - Iteration quality: {iter:  9, res:  1.04894687400681667E-09}
+       Iteration quality: {iter:  2, res:  2.04511409004764682E-05}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  5.80608302646882959E-05}
-       - Iteration quality: {iter:  2, res:  3.21432155558162592E-05}
-       - Iteration quality: {iter:  3, res:  3.64150615780803994E-05}
-       - Iteration quality: {iter:  4, res:  8.90931101415970649E-07}
-       - Iteration quality: {iter:  5, res:  1.70706874217834045E-07}
-       - Iteration quality: {iter:  6, res:  5.81527731019103936E-08}
-       - Iteration quality: {iter:  7, res:  1.30530190677327057E-08}
-       - Iteration quality: {iter:  8, res:  1.59097491387688230E-09}
-       Iteration quality: {iter:  3, res:  1.30621657208080574E-06}
+       - Iteration quality: {iter:  1, res:  5.80608301707886900E-05}
+       - Iteration quality: {iter:  2, res:  3.21432155616227581E-05}
+       - Iteration quality: {iter:  3, res:  3.64150616451166807E-05}
+       - Iteration quality: {iter:  4, res:  8.90931101696854609E-07}
+       - Iteration quality: {iter:  5, res:  1.70706874426737675E-07}
+       - Iteration quality: {iter:  6, res:  5.81527734097045444E-08}
+       - Iteration quality: {iter:  7, res:  1.30530190797694657E-08}
+       - Iteration quality: {iter:  8, res:  1.59097488850372913E-09}
+       Iteration quality: {iter:  3, res:  1.30621657484638504E-06}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  2.69377850334336470E-06}
-       - Iteration quality: {iter:  2, res:  1.49266694292639280E-06}
-       - Iteration quality: {iter:  3, res:  1.77559112111341398E-06}
-       - Iteration quality: {iter:  4, res:  3.84029539926479873E-08}
-       - Iteration quality: {iter:  5, res:  7.05743596670243251E-09}
-       Iteration quality: {iter:  4, res:  6.03364607140859045E-08}
+       - Iteration quality: {iter:  1, res:  2.69377850997587874E-06}
+       - Iteration quality: {iter:  2, res:  1.49266694679495511E-06}
+       - Iteration quality: {iter:  3, res:  1.77559108094090774E-06}
+       - Iteration quality: {iter:  4, res:  3.84029539642269218E-08}
+       - Iteration quality: {iter:  5, res:  7.05743601520757075E-09}
+       Iteration quality: {iter:  4, res:  6.03364610241599040E-08}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  1.29957282767180022E-07}
-       - Iteration quality: {iter:  2, res:  7.18564548056087455E-08}
-       - Iteration quality: {iter:  3, res:  8.49449352874695089E-08}
-       - Iteration quality: {iter:  4, res:  1.98673414008896913E-09}
-       Iteration quality: {iter:  5, res:  2.89026413821432813E-09}
+       - Iteration quality: {iter:  1, res:  1.29957283971134945E-07}
+       - Iteration quality: {iter:  2, res:  7.18564551030970531E-08}
+       - Iteration quality: {iter:  3, res:  8.49449183186852584E-08}
+       - Iteration quality: {iter:  4, res:  1.98673421168517346E-09}
+       Iteration quality: {iter:  5, res:  2.89026410855239568E-09}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  6.24728354709132593E-09}
-       Iteration quality: {iter:  6, res:  1.34554013910723037E-10}
+       - Iteration quality: {iter:  1, res:  6.24728461083307595E-09}
+       Iteration quality: {iter:  6, res:  1.34554039851501844E-10}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  7.61002591507038204E-09}
-       Iteration quality: {iter:  7, res:  1.38109247381654763E-10}
+       - Iteration quality: {iter:  1, res:  7.61002856667934596E-09}
+       Iteration quality: {iter:  7, res:  1.38109219977777499E-10}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  1.53135094621986184E-08}
-       - Iteration quality: {iter:  2, res:  4.78366043042700351E-10}
-       Iteration quality: {iter:  8, res:  1.30441282967410908E-10}
+       - Iteration quality: {iter:  1, res:  1.53135154798834143E-08}
+       - Iteration quality: {iter:  2, res:  4.78366027960301618E-10}
+       Iteration quality: {iter:  8, res:  1.30441314168063183E-10}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  4.18001203672445526E-10}
-       Iteration quality: {iter:  9, res:  2.64304480531468103E-12}
+       - Iteration quality: {iter:  1, res:  4.18000592914638506E-10}
+       Iteration quality: {iter:  9, res:  2.64306932349420330E-12}
  Inf. Norm difference with reference:
    Value                     :  2.387918782176257E-05
    Point                     :  [  30,  36,  36 ]
-   Some values: [-1.996746591714782E-05,  3.153655523391308E-07, -2.085960204567527E-08]
+   Some values: [-1.996746605925637E-05,  3.153655523391308E-07, -2.085960204567527E-08]
  Expected hartree energy     :  0.0
  Computed Hartree energy     :  164508.9946484841
  Diff of expected-computed Hartree energy: -164508.9946484841
  Comparison between numerical and starting analytical density with old GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  8.856775190224653E-03
-     Point                   :  [  14,  40,  36 ]
-     Some values: [ 1.924584350234682E-04,  5.246788191470841E-06, -3.584586456440775E-03]
+     Value                   :  8.856775207846113E-03
+     Point                   :  [  48,  40,  36 ]
+     Some values: [ 1.924584388390826E-04,  5.246791886293067E-06, -3.584586458259764E-03]
  Comparison between numerical and starting analytical density witn new 2 GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  6.751222775847054E-04
-     Point                   :  [  13,  40,  36 ]
-     Some values: [ 1.890883267918753E-04,  5.246970033567777E-06, -1.190937121009483E-04]
+     Value                   :  6.751222754246555E-04
+     Point                   :  [  49,  40,  36 ]
+     Some values: [ 1.890883305506463E-04,  5.246973785233422E-06, -1.190937138630943E-04]
  Comparison between Generalized Poisson operator PCG-style and analytical density:
    Inf. Norm difference with reference:
-     Value                   :  1.513058515233752E-01
-     Point                   :  [  50,  40,  36 ]
-     Some values: [ 1.266276633073460E-02, -3.763214238006185E-06,  1.228780856251888E-03]
+     Value                   :  1.513058515271268E-01
+     Point                   :  [  12,  40,  36 ]
+     Some values: [ 1.266276633450758E-02, -3.763209463159001E-06,  1.228780854034994E-03]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  2779
-   Tot. No. of Deallocations :  2779
+   Tot. No. of Allocations   :  2781
+   Tot. No. of Deallocations :  2781
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  278.250
+     Peak Value (MB)         :  288.248
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 120.456 MB
- Walltime since initialization:  00:00:03.279104508
- Max No. of dictionaries used:  606 #( 173 still in use)
+     Memory Peak of process  : 124.600 MB
+ Walltime since initialization:  00:00:03.496506961
+ Max No. of dictionaries used:  608 #( 173 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Input guess not used due to residual norm >1.0E-002
 ---
- rad_cav                     :  1.7
+ rad_cav                     :  2.7
  multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
  cavity =/ vacuum            :  Yes
  mPB                         :  Yes
  detgd                       :  0.4304134495199673
@@ -1527,14 +1845,14 @@
      Point                   :  [  45,  78,  41 ]
      Some values: [ 2.814950673030125E-02,  5.444848227398325E-06,  3.429690317148015E-03]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  4784
-   Tot. No. of Deallocations :  4784
+   Tot. No. of Allocations   :  4786
+   Tot. No. of Deallocations :  4786
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  263.905
+     Peak Value (MB)         :  273.903
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 116.828 MB
- Walltime since initialization:  00:00:03.873187845
- Max No. of dictionaries used:  542 #( 173 still in use)
+     Memory Peak of process  : 120.988 MB
+ Walltime since initialization:  00:00:04.833649261
+ Max No. of dictionaries used:  544 #( 173 still in use)
  Number of dictionary folders allocated:  1
