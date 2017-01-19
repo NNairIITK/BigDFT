@@ -60,9 +60,24 @@ GPS_PCG: &PCGref
   Computed Hartree energy: 6.5e-6
   Diff of expected-computed Hartree energy: 6.5e-6
   Integral of the density in the nonvacuum region: 8.0e-11
-  res: 1.0e-6
+  res: 6.0e-6
   Value: 2.07e-6
-GPS_mPB: *PCGref
+  dipole: 5.35e-09
+  normr: 3.52e-09
+  offset: 2.18e-10
+GPS_PI:
+  offset: 2.6e-10
+  dipole: 4.35e-09
+GPS_mPB:
+  offset: 2.81e-10
+  Some values: 2.57e-06
+  beta: 0.001
+  dipole: 3.93e-09
+  normr: 6.99e-07
+  Value: 2.59e-06
+  Computed Hartree energy: 6.5e-6
+  Diff of expected-computed Hartree energy: 6.5e-6
+  Integral of the density in the nonvacuum region: 7.08e-11
 Generalized_PSolver: #old values for reference
   itermax: 150.0
   dipole: 4.e-9
