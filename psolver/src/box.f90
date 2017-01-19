@@ -67,9 +67,27 @@ module box
   end interface square
 
   public :: cell_r,cell_periodic_dims,distance,closest_r,square,cell_new,box_iter,box_next_point
-  public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp
+  public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp,cell_null
 
 contains
+
+  !> Nullify the cell type
+  pure function cell_null() result(me)
+   implicit none
+   type(cell) :: me
+   me%orthorhombic=.true.
+   me%bc=0
+   me%ndims=0
+   me%hgrids=0.0_dp
+   me%angrad=0.0_dp
+   !derived data
+   me%ndim=0
+   me%volume_element=0.0_dp
+   me%habc=0.0_dp
+   me%gd=0.0_dp
+   me%gu=0.0_dp
+   me%detgd=0.0_dp
+  end function cell_null
 
   !> Nullify the iterator dpbox type
   pure subroutine nullify_box_iterator(boxit)

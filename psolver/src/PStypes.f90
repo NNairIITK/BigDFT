@@ -187,6 +187,7 @@ module PStypes
      !! this enumerator contains the algorithm and has the attribute associated to the 
      !! type of cavity to be used
      type(f_enumerator) :: method
+     type(cell) :: mesh !< structure which includes all cell informations 
      integer, dimension(3) :: ndims   !< dimension of the box of the density
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
@@ -358,6 +359,7 @@ contains
     k%cavity=cavity_default()
     k%opt=PSolver_options_null()
     k%mu=0.0_gp
+    k%mesh=cell_null()
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
     k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
