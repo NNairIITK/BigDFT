@@ -56,14 +56,34 @@ PS_Basics:
     potential integral: 8.00e-11
     Max diff: 6.65e-14
     dipole: 7.76e-09
-Generalized_PSolver:
+GPS_PCG: &PCGref
+  Computed Hartree energy: 6.5e-6
+  Diff of expected-computed Hartree energy: 6.5e-6
+  Integral of the density in the nonvacuum region: 8.0e-11
+  res: 6.0e-6
+  Value: 2.07e-6
+  dipole: 5.35e-09
+  normr: 3.52e-09
+  offset: 2.18e-10
+GPS_PI:
+  offset: 2.6e-10
+  dipole: 4.35e-09
+GPS_mPB:
+  offset: 2.81e-10
+  Some values: 2.57e-06
+  beta: 0.001
+  dipole: 3.93e-09
+  normr: 6.99e-07
+  Value: 2.59e-06
+  Integral of the density in the nonvacuum region: 7.08e-11
+Generalized_PSolver: #old values for reference
   itermax: 150.0
   dipole: 4.e-9
   value: 1.e-6
   offset: 1.9e-10
   normr: 2.6e-9
-  Computed Hartree energy: 3.0e-6
-  Diff of expected-computed Hartree energy: 3.0e-6
+  Computed Hartree energy: 6.5e-6
+  Diff of expected-computed Hartree energy: 6.5e-6
   Integral of the density in the nonvacuum region: 8.0e-11
   Value: 2.07e-6
   rad_cav: 1.05
@@ -78,11 +98,13 @@ PS_StressCheck:
   Max diff: 1.8e-15
   offset: 1.3e-11
   potential integral: 8.0e-12
-  stress analytical x: 5.04e-15
+  stress analytical x: 1.2e-14
   stress analytical y: 3.04e-14
   stress analytical z: 3.25e-14
-  stress analytical: 8.76e-15
+  stress analytical: 1.6e-14
   stress psolver trace: 1.47e-15
+  stress psolver x: 1.0e-14
+  stress psolver z: 1.0e-14
   Keys to ignore:
     - Max diff at
     - processes

@@ -511,6 +511,7 @@ contains
     type(coulomb_operator) :: kernel
     !local variables
     integer :: nthreads,group_size,taskgroup_size
+!    real(gp), dimension(3) :: angrad_new
     !$ integer :: omp_get_max_threads
 
     !nullification
@@ -523,8 +524,14 @@ contains
     kernel%hgrids=hgrids
 
     if (present(angrad)) then
+!       ! TO BE CLARIFIED WHY ARE INVERTED!!!
+!       angrad_new(1)=angrad(2)
+!       angrad_new(2)=angrad(1)
+!       angrad_new(3)=angrad(3)
+!       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad_new)
        kernel%angrad=angrad
     else
+!       kernel%mesh=cell_new(geocode,ndims,hgrids)
        kernel%angrad=onehalf* [ pi, pi, pi ]
     end if
 

@@ -1,5 +1,7 @@
 EXTRA_DIST = \
 	op2p_check.ref.yaml \
+	linalg_check.ref.yaml \
+	numerics_check.ref.yaml \
 	example.f90 \
 	mpi_check.f90 \
 	mpi_layer.f90 \
@@ -61,15 +63,15 @@ define F_REGTEST_INSTRUCTIONS
     - ./numerics_check
 - op2p_check:
    runs:
-    - $(run_parallel) ./op2p_check -o [10,10,10,10] -n 100 > op2p_check.out.yaml
-    - $(run_parallel) ./op2p_check -o [100,100] -n 1000 >> op2p_check.out.yaml
-    - $(run_parallel) ./op2p_check -o [201,201] -n 2000 >> op2p_check.out.yaml
+    - $(run_parallel) ./op2p_check -o [10,10,10,10] -n 100
+    - $(run_parallel) ./op2p_check -o [100,100] -n 1000
+    - $(run_parallel) ./op2p_check -o [201,201] -n 2000
 - linalg_check:
    runs:
-    - OMP_NUM_THREADS=1 ./linalg_check -o 75 -v 10000 > linalg_check.out.yaml
-    - ./linalg_check -o 75 -v 10000 >> linalg_check.out.yaml
-    - ./linalg_check -o 75 -v 10000 -s Yes >> linalg_check.out.yaml
-    - ./linalg_check -o 75 -v 10000 -c 2 >> linalg_check.out.yaml
-    - ./linalg_check -o 75 -v 10000 -c 2 -s Yes >> linalg_check.out.yaml
+    - OMP_NUM_THREADS=1 ./linalg_check -o 75 -v 10000
+    - ./linalg_check -o 75 -v 10000
+    - ./linalg_check -o 75 -v 10000 -s Yes
+    - ./linalg_check -o 75 -v 10000 -c 2
+    - ./linalg_check -o 75 -v 10000 -c 2 -s Yes
 endef
 export F_REGTEST_INSTRUCTIONS
