@@ -33,7 +33,7 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	testforces\
 	IO-wf
 
-LONG_TESTDIRS += QMMMplugins LAMMPSplugin
+LONG_TESTDIRS += QMMMplugins #LAMMPSplugin
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H

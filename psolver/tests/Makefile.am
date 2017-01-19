@@ -99,17 +99,17 @@ define F_REGTEST_INSTRUCTIONS
    binary: PS_Program
    runs:
     # broken - $(run_parallel) ./PS_Program -n [57,48,63] -g F > PS_Basics.out.yaml
-    - $(run_parallel) ./PS_Program -n [64,64,64] -g P > PS_Basics.out.yaml
-    - $(run_parallel) ./PS_Program -n [32,64,48] -g S >> PS_Basics.out.yaml
-    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [89,90,90] >> PS_Basics.out.yaml
-    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [60,90,90] >> PS_Basics.out.yaml
+    - $(run_parallel) ./PS_Program -n [64,64,64] -g P
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [89,90,90]
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [60,90,90]
     # broken - $(run_parallel) ./PS_Program -n [32,64,48] -g W >> PS_Basics.out.yaml
 - PS_Check:
    runs:
-    - $(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
-    - $(run_parallel) ./PS_Check -n [64,64,64] -g P >> PS_Check.out.yaml
-    - $(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
-- Generalized_PSolver:
+    - $(run_parallel) ./PS_Check -n [57,48,63] -g F
+    - $(run_parallel) ./PS_Check -n [64,64,64] -g P
+    - $(run_parallel) ./PS_Check -n [32,64,48] -g S
+- Generalized_PSolver: #this has an output which should be checked
    runs:
     - |  # PCG from psolver, ortho
       $(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG
@@ -135,8 +135,8 @@ define F_REGTEST_INSTRUCTIONS
 - PS_StressCheck:
    runs:
     - |  # Check stress on x,y,z direction individually
-      $(run_parallel) ./PS_StressCheck -n 50 -g P -s 50 > PS_StressCheck.out.yaml
+      $(run_parallel) ./PS_StressCheck -n 50 -g P -s 50
     - |  # Check stress on x,y,z direction concurrently
-      $(run_parallel) ./PS_StressCheck -n 50 -g P -s 50 -v yes >> PS_StressCheck.out.yaml
+      $(run_parallel) ./PS_StressCheck -n 50 -g P -s 50 -v yes
 endef
 export F_REGTEST_INSTRUCTIONS

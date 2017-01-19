@@ -564,13 +564,43 @@
       end do
       ncouples_local(iproc,iter_outer%istep)=ncouples_step
     end do OP2P_outer_loop_init
-    
     call free_OP2P_data(OP2P_outer)
     !then reduce the results of the communication for each of the steps
     call mpiallred(ncouples_local,op=MPI_SUM)
 
     call f_free(fake_res_psi)
     call f_free(pseudopsi)
+
+!!$
+!!$    !this information can now be used to extract the direct and transposed
+!!$    !components of the coupling matrix
+!!$    do isteps=0,nsteps
+!!$       call initialize_OP2P_data(OP2P_inner,mpiworld(),iproc,nproc,&
+!!$            ngroup,ncouples_local_max,&
+!!$            ncouples_local(0,isteps),0,symmetric,nearest_neighbor)
+!!$       !iterate now the OP2P mechanisms only on the couples
+!!$       !which are given to each of the process
+!!$
+!!$       !here the poisson solver to the density rho_j have to be
+!!$       !applied and these arrays have to be sent to all the processes.     
+!!$       call set_OP2P_iterator(iproc,OP2P_inner,iter_inner,&
+!!$            ncouples_local(iproc,isteps),treated_couples(1,isteps),fake_res_rho) !we should put a tag offest in the real loop and also the treated couples as a result array
+!!$
+!!$       OP2P_inner_loop_init: do
+!!$          call OP2P_communication_step(iproc,OP2P_inner,iter_inner)
+!!$          if (iter_inner%event == OP2P_EXIT) exit
+!!$          do iorb=iter_inner%isloc_i,iter_inner%nloc_i+iter_inner%isloc_i-1
+!!$             do jorb=iter_inner%isloc_j,iter_inner%nloc_j+iter_inner%isloc_j-1
+!!$                jorb_glb=iter_inner%phi_j%id_glb(jorb)
+!!$                iorb_glb=iter_inner%phi_i%id_glb(iorb)
+!!$                
+!!$                !identify the indices of the matrix which are filled
+!!$                
+!!$             end do
+!!$          end do
+!!$       end do OP2P_inner_loop_init
+!!$       
+!!$    end do
 
     contains
 
@@ -585,5 +615,15 @@
         jj=min(iorb,jorb)
         id=ii+(jj-1)*norb
       end function couple_global_id
+
+      pure subroutine get_couple_from_id(id,norb,iorb,jorb)
+        implicit none
+        integer, intent(in) :: id,norb
+        integer, intent(out) :: iorb,jorb
+
+        jorb=(id-1)/norb+1
+        iorb=id-(jorb-1)*norb
+      end subroutine get_couple_from_id
+
 
   end subroutine warmup

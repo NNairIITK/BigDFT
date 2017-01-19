@@ -62,7 +62,6 @@ program numeric_check
   call yaml_map('q2',mp%Q(2)%ptr)
   call yaml_mapping_close()
 
-
   call f_multipoles_free(mp)
 
   call f_free(density)

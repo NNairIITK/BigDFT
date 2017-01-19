@@ -730,7 +730,15 @@ module IObox
       end if
 
       ixyz0_=-1
-      if (present(ixyz0)) ixyz0_=ixyz0
+      if (present(ixyz0)) then
+         if (any(ixyz0 < 1) .or. any(ixyz0 > ndims)) then
+            call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                 ' should be within the size of the box (1 to'+&
+                 yaml_toa(ndims)+')') !,&
+                   !err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         ixyz0_=ixyz0
+      end if
 
       call f_zero(ns)
 
