@@ -41,28 +41,57 @@ Keys to ignore:
   - Timestamp of this run
   - Max No. of dictionaries used
   - Walltime since initialization
+  - Root process Hostname
+  - processes
 Patterns to ignore:
   - llocations
   - MB
   - Point
 
-Generalized_PSolver:
+PS_Basics:
+    Ehartree: 2.0e-10
+    Ehartree diff: 2.0e-10
+    Expected Eh: 2.3e-10
+    Max diff at: 28.0
+    potential integral: 8.00e-11
+    Max diff: 6.65e-14
+    dipole: 7.76e-09
+GPS_PCG: &PCGref
+  Computed Hartree energy: 6.5e-6
+  Diff of expected-computed Hartree energy: 6.5e-6
+  Integral of the density in the nonvacuum region: 8.0e-11
+  res: 1.0e-6
+  Value: 2.07e-6
+GPS_mPB: *PCGref
+Generalized_PSolver: #old values for reference
   itermax: 150.0
   dipole: 4.e-9
   value: 1.e-6
   offset: 1.9e-10
   normr: 2.6e-9
-  Computed Hartree energy: 7.0e-6
-  Diff of expected-computed Hartree energy: 7.0e-6
-  Integral of the density in the nonvacuum region: 3.4e-11
-  Value: 2.07e-06
+  Computed Hartree energy: 6.5e-6
+  Diff of expected-computed Hartree energy: 6.5e-6
+  Integral of the density in the nonvacuum region: 8.0e-11
+  Value: 2.07e-6
+  rad_cav: 1.05
+  res: 5.0e-6
+  beta: 0.0009 
+  normr: 7.9e-07
+  Some values: 2.57e-06
 PS_Check:
   itermax: 150.0
 PS_StressCheck:
   Ehartree: 9.1e-13
   Max diff: 1.8e-15
   offset: 1.3e-11
-  potential integral: 1.2e-12
+  potential integral: 8.0e-12
+  stress analytical x: 1.2e-14
+  stress analytical y: 3.04e-14
+  stress analytical z: 3.25e-14
+  stress analytical: 1.6e-14
+  stress psolver trace: 1.47e-15
+  stress psolver x: 1.0e-14
+  stress psolver z: 1.0e-14
   Keys to ignore:
     - Max diff at
     - processes

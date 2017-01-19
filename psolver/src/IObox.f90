@@ -678,8 +678,10 @@ module IObox
     subroutine dump_field(filename,geocode,ndims,hgrids,nspin,rho,&
          rxyz,iatype,nzatom,nelpsp,ixyz0)
       use dynamic_memory
+      use dictionaries, only: f_err_throw
       use f_utils
       use IOboxETSF, only: write_etsf_density
+      use yaml_strings
       implicit none
       !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
       integer, intent(in) :: nspin

@@ -1,0 +1,595 @@
+---
+ rad_cav                     :  2.7
+ multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
+ cavity =/ vacuum            :  Yes
+ mPB                         :  No
+ detgd                       :  1.0
+ Angles                      :  [  90.0,  90.0,  90.0 ]
+ Contravariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Covariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Product of the two:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ monopole                    : -1.7372906542613294E-013
+ dipole: [-3.4443806494783195E-012, -3.415864508060233E-012, -4.8779633324176822E-012]
+ offset                      : -24.73942945119144
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.256922819210800E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.144592076866599E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-9.799494211648607E-07, -9.424748871387997E-06, -5.105668530224393E-08]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.591428761832381E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.709354678784976E-03, -1.245326418629513E-05,  4.970466372320245E-08]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  2.256922819210800E-02
+   Point                     :  [  29,  49,  32 ]
+   Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
+     cavity                  : rigid #            Type of the cavity
+     gps_algorithm           : PI #               Algorithm for the Generalised Poisson Equation
+     epsilon                 : 78.36 #            Dielectric constant of the exterior region
+     radii_set               : UFF #              Set of vdW radii used by default in the setter function
+     atomic_radii            : 0 #                Mapping of the radii that have to be used for each atomic species
+     cavitation              : Yes #              Triggers the evaluation of the extra cavitation terms
+     fact_rigid              : 1.12 #             Multiplying factor for the whole rigid cavity
+     gammaS                  : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
+     alphaS                  : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
+      #                                            [dyn/cm]
+     betaV                   : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
+     pi_eta                  : 0.6 #              Mixing parameter of the PI algorithm
+     input_guess             : Yes #              Triggers the input guess procedure of gps_algorithm
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 200 #              Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-8 #            Convergence threshold of the loop
+     pb_method               : none #             Defines the method for the Poisson Boltzmann Equation
+   kernel:
+     screening               : 0 #                Mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              Triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  12
+   Iterative method for Generalised Equation: PI
+   Cavity determination      : rigid
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  1.44
+     Kernel (MB)             :  1.52
+     Full Grid Arrays (MB)   :  1.34
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  1
+   Integral of the density in the nonvacuum region:  14.07293043364177
+   Embedded PSolver Polarization Iteration Method:
+   - Iteration quality: {iter:  1, res:  1.31387686768080048E-01}
+      #WARNING: Input guess not used due to residual norm >1.0E-002
+   - Iteration quality: {iter:  2, res:  1.31387686768080048E-01}
+   - Iteration quality: {iter:  3, res:  8.30712552707618956E-02}
+   - Iteration quality: {iter:  4, res:  2.49359594937537711E-02}
+   - Iteration quality: {iter:  5, res:  8.66881353894407083E-03}
+   - Iteration quality: {iter:  6, res:  2.89230054614251142E-03}
+   - Iteration quality: {iter:  7, res:  1.26964978533537190E-03}
+   - Iteration quality: {iter:  8, res:  4.26691597744255011E-04}
+   - Iteration quality: {iter:  9, res:  1.60733634776592192E-04}
+   - Iteration quality: {iter:  10, res:  6.84035495658365391E-05}
+   - Iteration quality: {iter:  11, res:  2.59739341861738660E-05}
+   - Iteration quality: {iter:  12, res:  9.50467465477535489E-06}
+   - Iteration quality: {iter:  13, res:  3.82666386948776503E-06}
+   - Iteration quality: {iter:  14, res:  1.59163132418500984E-06}
+   - Iteration quality: {iter:  15, res:  6.30186730331370145E-07}
+   - Iteration quality: {iter:  16, res:  2.42914982796785433E-07}
+   - Iteration quality: {iter:  17, res:  9.67305386075819867E-08}
+   - Iteration quality: {iter:  18, res:  4.00609348976099820E-08}
+   - Iteration quality: {iter:  19, res:  1.65914538015433058E-08}
+   - Iteration quality: {iter:  20, res:  6.73892115466960298E-09}
+ Inf. Norm difference with reference:
+   Value                     :  6.188619099845027E-06
+   Point                     :  [  29,  25,  32 ]
+   Some values: [ 1.245205856648113E-06, -1.519152831569590E-07, -2.113837859663818E-07]
+ Expected hartree energy     :  0.0
+ Computed Hartree energy     :  45.43216408654933
+ Diff of expected-computed Hartree energy: -45.43216408654933
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  2.273756068650412E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [ 2.840905385461667E-04, -2.683983450211969E-05,  1.704196466633090E-07]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  2.155140589150607E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [ 3.885030945838253E-07, -9.791812419438923E-06,  1.373057162412095E-07]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.594661229966654E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.708720064949716E-03, -1.314854604739868E-05,  2.386726177386987E-07]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  556
+   Tot. No. of Deallocations :  556
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  157.444
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 81.760 MB
+ Walltime since initialization:  00:00:01.519151554
+ Max No. of dictionaries used:  582 #( 173 still in use)
+ Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Input guess not used due to residual norm >1.0E-002
+---
+ rad_cav                     :  2.7
+ multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  Yes
+ cavity =/ vacuum            :  Yes
+ mPB                         :  No
+ detgd                       :  1.0
+ Angles                      :  [  90.0,  90.0,  90.0 ]
+ Contravariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Covariant Metric:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ Product of the two:
+ -  [ 1.0,  0.0,  0.0]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.0,  0.0,  1.0]
+ monopole                    : -1.7372906542613294E-013
+ dipole: [-3.4443806494783195E-012, -3.415864508060233E-012, -4.8779633324176822E-012]
+ offset                      : -24.73942945119144
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.256922819210800E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.144592076866599E-02
+     Point                   :  [  29,  49,  32 ]
+     Some values: [-9.799494211648607E-07, -9.424748871387997E-06, -5.105668530224393E-08]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.591428761832381E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.709354678784976E-03, -1.245326418629513E-05,  4.970466372320245E-08]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  2.256922819210800E-02
+   Point                     :  [  29,  49,  32 ]
+   Some values: [ 2.833777658572956E-04, -2.648886262037050E-05, -1.797812965657277E-08]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
+     cavity                  : rigid #            Type of the cavity
+     gps_algorithm           : PI #               Algorithm for the Generalised Poisson Equation
+     epsilon                 : 78.36 #            Dielectric constant of the exterior region
+     radii_set               : UFF #              Set of vdW radii used by default in the setter function
+     atomic_radii            : 0 #                Mapping of the radii that have to be used for each atomic species
+     cavitation              : Yes #              Triggers the evaluation of the extra cavitation terms
+     fact_rigid              : 1.12 #             Multiplying factor for the whole rigid cavity
+     gammaS                  : 72.0 #             Cavitation term, surface tension of the solvent [dyn/cm]
+     alphaS                  : -22.0 #            Proportionality of repulsion free energy in term of the surface integral 
+      #                                            [dyn/cm]
+     betaV                   : -0.35 #            Proportionality of dispersion free energy in term of volume integral [GPa]
+     pi_eta                  : 0.6 #              Mixing parameter of the PI algorithm
+     input_guess             : Yes #              Triggers the input guess procedure of gps_algorithm
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 200 #              Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-8 #            Convergence threshold of the loop
+     pb_method               : none #             Defines the method for the Poisson Boltzmann Equation
+   kernel:
+     screening               : 0 #                Mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              Triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  12
+   Iterative method for Generalised Equation: PI
+   Cavity determination      : rigid
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  1.44
+     Kernel (MB)             :  1.52
+     Full Grid Arrays (MB)   :  1.34
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  1
+   Integral of the density in the nonvacuum region:  14.07293043364178
+   Embedded PSolver Polarization Iteration Method:
+   - Iteration quality: {iter:  1, res:  1.31410965312744488E-01}
+      #WARNING: Input guess not used due to residual norm >1.0E-002
+   - Iteration quality: {iter:  2, res:  1.31410965312744488E-01}
+   - Iteration quality: {iter:  3, res:  8.32784344096846874E-02}
+   - Iteration quality: {iter:  4, res:  2.53015258373578168E-02}
+   - Iteration quality: {iter:  5, res:  8.68188026470396654E-03}
+   - Iteration quality: {iter:  6, res:  2.93084212586617156E-03}
+   - Iteration quality: {iter:  7, res:  1.27032301853733038E-03}
+   - Iteration quality: {iter:  8, res:  4.29445415080774797E-04}
+   - Iteration quality: {iter:  9, res:  1.62042422017024806E-04}
+   - Iteration quality: {iter:  10, res:  6.84498407047421043E-05}
+   - Iteration quality: {iter:  11, res:  2.60338788897656761E-05}
+   - Iteration quality: {iter:  12, res:  9.56602986740124078E-06}
+   - Iteration quality: {iter:  13, res:  3.84009601569426582E-06}
+   - Iteration quality: {iter:  14, res:  1.59228455543180000E-06}
+   - Iteration quality: {iter:  15, res:  6.31214919619154193E-07}
+   - Iteration quality: {iter:  16, res:  2.43873835216729540E-07}
+   - Iteration quality: {iter:  17, res:  9.71015197899436616E-08}
+   - Iteration quality: {iter:  18, res:  4.01731328988625368E-08}
+   - Iteration quality: {iter:  19, res:  1.66524371782613490E-08}
+   - Iteration quality: {iter:  20, res:  6.78201226924448323E-09}
+ Inf. Norm difference with reference:
+   Value                     :  8.798232057835729E-06
+   Point                     :  [  29,  49,  32 ]
+   Some values: [ 2.840662650882564E-06,  8.705238557228974E-07,  9.631741232246437E-07]
+ Expected hartree energy     :  0.0
+ Computed Hartree energy     :  45.4321627891409
+ Diff of expected-computed Hartree energy: -45.4321627891409
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.451933352989441E-02
+     Point                   :  [  29,  1,  32 ]
+     Some values: [ 2.841358946774619E-04, -2.857068334787403E-05,  1.658084644850970E-07]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  1.324696112662191E-02
+     Point                   :  [  29,  1,  32 ]
+     Some values: [ 4.243838755968454E-07, -1.149955476899932E-05,  1.330316558223919E-07]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  1.594340429379626E-02
+     Point                   :  [  29,  30,  32 ]
+     Some values: [-9.708684570295389E-03, -1.297949557443110E-05,  2.313853988936759E-07]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  557
+   Tot. No. of Deallocations :  557
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  157.444
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 82.564 MB
+ Walltime since initialization:  00:00:01.487702643
+ Max No. of dictionaries used:  582 #( 173 still in use)
+ Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Input guess not used due to residual norm >1.0E-002
+---
+ rad_cav                     :  2.7
+ multp                       :  1.0
+ Check dsurfdrho subroutines :  No
+ Check internal subroutines for cavity vectors:  No
+ Running a Poisson-Boltzmann calculation: ---
+ cavity =/ vacuum            :  Yes
+ mPB                         :  No
+ detgd                       :  0.4304134495199673
+ Angles                      :  [  90.0,  41.0,  90.0 ]
+ Contravariant Metric:
+ -  [ 2.323347472332202,  0.0, -1.753452595555475]
+ -  [ 0.0,  0.9999999999999999,  0.0]
+ -  [-1.753452595555475,  0.0,  2.323347472332202]
+ Covariant Metric:
+ -  [ 1.0,  0.0,  0.754709580222772]
+ -  [ 0.0,  1.0,  0.0]
+ -  [ 0.754709580222772,  0.0,  1.0]
+ Product of the two:
+ -  [ 0.9999999999999998,  0.0, -2.2204460492503131E-016]
+ -  [ 0.0,  0.9999999999999999,  0.0]
+ -  [-2.2204460492503131E-016,  0.0,  0.9999999999999998]
+ monopole                    : -1.0018740222037728E-008
+ dipole: [-1376.268000792326, -3.5356456535075157E-007, -1376.268000843023]
+ offset                      : -1656.247850210105
+ Comparison between Generalized Poisson operator and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  2.315847521049363E-02
+     Point                   :  [  48,  40,  31 ]
+     Some values: [-7.623641955945004E-06, -8.060575453328056E-06, -7.528055648720056E-03]
+ Comparison between Generalized Poisson operator 2 and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  3.868686815167166E-05
+     Point                   :  [  31,  40,  18 ]
+     Some values: [-7.558074628377653E-07, -8.060188235958776E-06, -1.210570565035596E-05]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  3.528399452869735E-01
+     Point                   :  [  12,  40,  36 ]
+     Some values: [ 2.787199997133172E-02, -2.899402119282968E-05,  3.647703026274485E-03]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  2.315847521049363E-02
+   Point                     :  [  48,  40,  31 ]
+   Some values: [-7.623641955945004E-06, -8.060575453328056E-06, -7.528055648720056E-03]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   environment:
+     delta                   : 0.3
+     cavity                  : none #             Type of the cavity
+     fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
+     itermax                 : 200 #              Maximum number of iterations of the GPS outer loop
+     minres                  : 1.e-8 #            Convergence threshold of the loop
+     pb_method               : none #             Defines the method for the Poisson Boltzmann Equation
+   kernel:
+     screening               : 0 #                Mu screening parameter
+     isf_order               : 16 #               Order of the Interpolating Scaling Function family
+     stress_tensor           : Yes #              Triggers the calculation of the stress tensor
+   setup:
+     accel                   : none #             Material Acceleration
+     taskgroup_size          : 0 #                Size of the taskgroups of the Poisson Solver
+     global_data             : No #               Charge density and Electrostatic potential are given by global arrays
+     verbose                 : Yes #              Verbosity switch
+     output                  : none #             Quantities to be plotted after the main solver routine
+   MPI tasks                 :  1
+   OpenMP threads per MPI task:  12
+ Poisson Kernel Creation:
+   Boundary Conditions       : Surface
+   Memory Requirements per MPI task:
+     Density (MB)            :  2.56
+     Kernel (MB)             :  1.34
+     Full Grid Arrays (MB)   :  2.50
+ rpoints                     :  327600.0
+ Embedded PSolver, Polarization Iteration Method:
+ - Iteration quality: { #_____________________________________________________ Iteration  1
+ iter:  1, normr:  5.3984E+01}
+   Inf. Norm difference with reference:
+     Value                   :  1.089897406845028E+02
+     Point                   :  [  48,  1,  53 ]
+     Some values: [-7.406200828062731E+01,  3.967164085468899E+01,  2.948248924231137E+01]
+ - Iteration quality: { #_____________________________________________________ Iteration  2
+ iter:  2, normr:  3.7717E+01}
+   Inf. Norm difference with reference:
+     Value                   :  8.659349394208752E+01
+     Point                   :  [  15,  1,  17 ]
+     Some values: [ 8.055865657174195E-01, -3.594441621115097E+01, -2.995238204502704E+01]
+ - Iteration quality: { #_____________________________________________________ Iteration  3
+ iter:  3, normr:  8.2544E+00}
+   Inf. Norm difference with reference:
+     Value                   :  1.627666438905312E+01
+     Point                   :  [  48,  1,  55 ]
+     Some values: [ 5.676845020898966E+00,  6.459232700844017E+00,  5.191625746070592E+00]
+ - Iteration quality: { #_____________________________________________________ Iteration  4
+ iter:  4, normr:  3.2304E+00}
+   Inf. Norm difference with reference:
+     Value                   :  6.428083577711465E+00
+     Point                   :  [  48,  1,  53 ]
+     Some values: [ 1.350549141218380E-01,  2.792662873950198E+00,  2.365784022141305E+00]
+ - Iteration quality: { #_____________________________________________________ Iteration  5
+ iter:  5, normr:  7.8288E-01}
+   Inf. Norm difference with reference:
+     Value                   :  1.133388306562241E+00
+     Point                   :  [  25,  31,  43 ]
+     Some values: [-6.058292863468751E-01, -9.769499331229525E-02, -1.912190180504680E-02]
+ - Iteration quality: { #_____________________________________________________ Iteration  6
+ iter:  6, normr:  4.2521E-01}
+   Inf. Norm difference with reference:
+     Value                   :  7.776587663925704E-01
+     Point                   :  [  15,  1,  16 ]
+     Some values: [-1.786737836919627E-01, -3.044608781271698E-01, -2.377544262037361E-01]
+ - Iteration quality: { #_____________________________________________________ Iteration  7
+ iter:  7, normr:  1.5331E-01}
+   Inf. Norm difference with reference:
+     Value                   :  2.006468624075523E-01
+     Point                   :  [  48,  1,  52 ]
+     Some values: [ 2.279027069729977E-02, -9.746029957055669E-02, -8.711553021836238E-02]
+ - Iteration quality: { #_____________________________________________________ Iteration  8
+ iter:  8, normr:  6.1412E-02}
+   Inf. Norm difference with reference:
+     Value                   :  6.813461997536230E-02
+     Point                   :  [  23,  31,  45 ]
+     Some values: [ 3.586297230384616E-02, -6.019610090715943E-03, -1.127661856171969E-02]
+ - Iteration quality: { #_____________________________________________________ Iteration  9
+ iter:  9, normr:  2.6882E-02}
+   Inf. Norm difference with reference:
+     Value                   :  3.162517697638023E-02
+     Point                   :  [  38,  48,  28 ]
+     Some values: [ 1.208021105333046E-02,  8.888907357105680E-03,  5.281938727378588E-03]
+ - Iteration quality: { #____________________________________________________ Iteration  10
+ iter:  10, normr:  1.1137E-02}
+   Inf. Norm difference with reference:
+     Value                   :  1.187634432143077E-02
+     Point                   :  [  14,  1,  20 ]
+     Some values: [-5.868203869994204E-04,  5.344132881488051E-03,  4.539999944348949E-03]
+ - Iteration quality: { #____________________________________________________ Iteration  11
+ iter:  11, normr:  5.2101E-03}
+   Inf. Norm difference with reference:
+     Value                   :  5.138810508469760E-03
+     Point                   :  [  24,  40,  38 ]
+     Some values: [-2.667331288847663E-03,  1.752054642741641E-03,  1.933446014987794E-03]
+ - Iteration quality: { #____________________________________________________ Iteration  12
+ iter:  12, normr:  2.4328E-03}
+   Inf. Norm difference with reference:
+     Value                   :  2.290344528593558E-03
+     Point                   :  [  22,  31,  46 ]
+     Some values: [-1.396682481100697E-03,  2.465579235533255E-04,  4.623355808099916E-04]
+ - Iteration quality: { #____________________________________________________ Iteration  13
+ iter:  13, normr:  1.0352E-03}
+   Inf. Norm difference with reference:
+     Value                   :  9.483557986551538E-04
+     Point                   :  [  24,  31,  44 ]
+     Some values: [-2.662040975849322E-04, -1.258732392201978E-04, -4.721204691549019E-05]
+ - Iteration quality: { #____________________________________________________ Iteration  14
+ iter:  14, normr:  4.5447E-04}
+   Inf. Norm difference with reference:
+     Value                   :  5.083458453185585E-04
+     Point                   :  [  40,  40,  32 ]
+     Some values: [ 1.376774715708962E-04, -1.230572510255712E-04, -1.186249454967481E-04]
+ - Iteration quality: { #____________________________________________________ Iteration  15
+ iter:  15, normr:  2.1408E-04}
+   Inf. Norm difference with reference:
+     Value                   :  2.912031517894320E-04
+     Point                   :  [  25,  40,  43 ]
+     Some values: [ 1.424931315767708E-04, -5.909528761982585E-05, -7.026055523340347E-05]
+ - Iteration quality: { #____________________________________________________ Iteration  16
+ iter:  16, normr:  1.0227E-04}
+   Inf. Norm difference with reference:
+     Value                   :  1.078983961662061E-04
+     Point                   :  [  26,  40,  42 ]
+     Some values: [ 5.775305741906323E-05, -1.739830493008299E-05, -2.424129738543002E-05]
+ - Iteration quality: { #____________________________________________________ Iteration  17
+ iter:  17, normr:  5.0314E-05}
+   Inf. Norm difference with reference:
+     Value                   :  4.059728382799221E-05
+     Point                   :  [  22,  40,  47 ]
+     Some values: [ 3.623112661443884E-06, -1.056986656422509E-06, -2.869943042327350E-06]
+ - Iteration quality: { #____________________________________________________ Iteration  18
+ iter:  18, normr:  2.3602E-05}
+   Inf. Norm difference with reference:
+     Value                   :  3.646868112383572E-05
+     Point                   :  [  23,  40,  45 ]
+     Some values: [-1.142009931243138E-05,  2.378678507497511E-06,  2.583715385640062E-06]
+ - Iteration quality: { #____________________________________________________ Iteration  19
+ iter:  19, normr:  9.9868E-06}
+   Inf. Norm difference with reference:
+     Value                   :  1.946414398190655E-05
+     Point                   :  [  25,  40,  44 ]
+     Some values: [-8.420080519044859E-06,  1.775627360700582E-06,  2.224223024427374E-06]
+ - Iteration quality: { #____________________________________________________ Iteration  20
+ iter:  20, normr:  4.9337E-06}
+   Inf. Norm difference with reference:
+     Value                   :  6.485966594027559E-06
+     Point                   :  [  26,  40,  42 ]
+     Some values: [-2.799119528162919E-06,  7.821563166032774E-07,  1.010616209384807E-06]
+ - Iteration quality: { #____________________________________________________ Iteration  21
+ iter:  21, normr:  2.9571E-06}
+   Inf. Norm difference with reference:
+     Value                   :  3.427095897734489E-06
+     Point                   :  [  41,  40,  25 ]
+     Some values: [ 2.467692610252925E-07,  2.270550893967993E-07,  2.841464024072593E-07]
+ - Iteration quality: { #____________________________________________________ Iteration  22
+ iter:  22, normr:  1.4974E-06}
+   Inf. Norm difference with reference:
+     Value                   :  2.671972602286132E-06
+     Point                   :  [  39,  40,  27 ]
+     Some values: [ 9.200306152479243E-07,  2.255389475180891E-08,  1.750069600348070E-08]
+ - Iteration quality: { #____________________________________________________ Iteration  23
+ iter:  23, normr:  6.0267E-07}
+   Inf. Norm difference with reference:
+     Value                   :  1.389875023960485E-06
+     Point                   :  [  24,  40,  44 ]
+     Some values: [ 6.100221554561358E-07, -2.401702126064720E-08, -3.628396072485884E-08]
+ - Iteration quality: { #____________________________________________________ Iteration  24
+ iter:  24, normr:  2.9408E-07}
+   Inf. Norm difference with reference:
+     Value                   :  4.825897974569671E-07
+     Point                   :  [  36,  40,  30 ]
+     Some values: [ 2.158685532549498E-07, -2.152780886888195E-08, -2.748681993125501E-08]
+ - Iteration quality: { #____________________________________________________ Iteration  25
+ iter:  25, normr:  1.9396E-07}
+   Inf. Norm difference with reference:
+     Value                   :  2.314637761458016E-07
+     Point                   :  [  21,  42,  48 ]
+     Some values: [ 1.391950377183093E-08, -1.066618793288399E-08, -1.149766859498413E-08]
+ - Iteration quality: { #____________________________________________________ Iteration  26
+ iter:  26, normr:  1.0357E-07}
+   Inf. Norm difference with reference:
+     Value                   :  1.801974036652609E-07
+     Point                   :  [  23,  38,  46 ]
+     Some values: [-2.904170059991884E-08, -2.233903728665609E-09, -8.406431106777745E-10]
+ - Iteration quality: { #____________________________________________________ Iteration  27
+ iter:  27, normr:  4.2019E-08}
+   Inf. Norm difference with reference:
+     Value                   :  1.013103343439070E-07
+     Point                   :  [  38,  43,  28 ]
+     Some values: [-7.227512810459302E-09,  2.415193378624281E-09,  4.444714818419016E-09]
+ - Iteration quality: { #____________________________________________________ Iteration  28
+ iter:  28, normr:  1.9245E-08}
+   Inf. Norm difference with reference:
+     Value                   :  5.101677658103654E-08
+     Point                   :  [  36,  37,  30 ]
+     Some values: [ 2.022044043314963E-08,  4.250949814377236E-09,  6.352287584832084E-09]
+ - Iteration quality: { #____________________________________________________ Iteration  29
+ iter:  29, normr:  1.2919E-08}
+   Inf. Norm difference with reference:
+     Value                   :  5.890333909519541E-08
+     Point                   :  [  31,  40,  36 ]
+     Some values: [ 3.482227839413099E-08,  4.546356180412658E-09,  6.579540468010237E-09]
+ - Iteration quality: { #____________________________________________________ Iteration  30
+ iter:  30, normr:  7.2377E-09}
+   Inf. Norm difference with reference:
+     Value                   :  6.309242905899737E-08
+     Point                   :  [  31,  40,  36 ]
+     Some values: [ 3.845863716378517E-08,  4.273957188161148E-09,  6.229207372143719E-09]
+ Inf. Norm difference with reference:
+   Value                     :  6.309242905899737E-08
+   Point                     :  [  31,  40,  36 ]
+   Some values: [ 3.845863716378517E-08,  4.273957188161148E-09,  6.229207372143719E-09]
+ Termination of Polarization Iteration: ---
+ -------------------------------: ---
+ Inf. Norm difference with reference:
+   Value                     :  6.309242905899737E-08
+   Point                     :  [  31,  40,  36 ]
+   Some values: [ 3.845863716378517E-08,  4.273957188161148E-09,  6.229207372143719E-09]
+ Expected hartree energy     :  0.0
+ Computed Hartree energy     :  0.0
+ Diff of expected-computed Hartree energy:  0.0
+ Comparison between numerical and starting analytical density with old GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  2.315313504635697E-02
+     Point                   :  [  14,  40,  41 ]
+     Some values: [-7.750521646698871E-06, -9.390478169279959E-06, -7.530048699891267E-03]
+ Comparison between numerical and starting analytical density witn new 2 GPoperator:
+   Inf. Norm difference with reference:
+     Value                   :  4.506127515924163E-05
+     Point                   :  [  31,  40,  18 ]
+     Some values: [-8.827983961623431E-07, -9.390090781380422E-06, -1.409875932267823E-05]
+ Comparison between Generalized Poisson operator PCG-style and analytical density:
+   Inf. Norm difference with reference:
+     Value                   :  3.528449298158876E-01
+     Point                   :  [  50,  40,  36 ]
+     Some values: [ 2.787187318575235E-02, -3.032392055501987E-05,  3.645709978570721E-03]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  4767
+   Tot. No. of Deallocations :  4767
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  273.903
+     for the array           : re
+     in the routine          : Main_program
+     Memory Peak of process  : 111.256 MB
+ Walltime since initialization:  00:00:05.746109381
+ Max No. of dictionaries used:  544 #( 173 still in use)
+ Number of dictionary folders allocated:  1

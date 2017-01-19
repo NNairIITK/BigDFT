@@ -440,6 +440,7 @@ subroutine test_functions_new(mesh,nspden,a_gauss,&
   real(dp) :: factor,a2
   type(f_function), dimension(3) :: funcs
 
+  pot_ion=0.d0
   pers=cell_periodic_dims(mesh)
   do i=1,3
      if (pers(i)) then
