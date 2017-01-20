@@ -136,7 +136,7 @@ define F_REGTEST_INSTRUCTIONS
    binary: Generalized_PSolver
    runs:
     # mPB from psolver, ortho
-    - "$(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -g S -p yes  -i '{psolver: {cavity: modified}}' -l no"
+    - "$(run_parallel) ./Generalized_PSolver -n [60,78,70] -m PCG -g S -p yes -i '{environment: {minres: 1.e-6, pb_minres: 1.e-6}}' -l no"
     # mPB from Generalized_PSolver, non-ortho
     - $(run_parallel) ./Generalized_PSolver -n [60,78,70] -m VAC -e 8 -g S -f [90,41,90] -p yes -l no
 - PS_StressCheck:
