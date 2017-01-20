@@ -8,7 +8,6 @@
    nrepmax: accurate
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    check_sumrho: 2
    check_overlap: 2
  posinp:
