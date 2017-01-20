@@ -393,6 +393,29 @@ end subroutine PS_Check_options
 !!$  end select
 !!$
 !!$END SUBROUTINE functions
+
+subroutine fill_functions_arrays(separable,mesh,funcs,factor,density,potential)
+  use PSbase, only: dp
+  use numerics, only: fourpi
+  use box
+  use f_functions
+  implicit none
+  logical, intent(in) :: separable
+  real(dp), intent(in) :: factor
+  type(cell), intent(in) :: mesh !<definition of the cell
+  type(f_function), dimension(3), intent(in) :: funcs
+  real(dp), dimension(mesh%ndim), intent(out) :: density,potential
+  !local variables
+  integer, parameter :: DENSITY_=1,POTENTIAL_=2 !to improve readability
+
+  if (separable) then
+     call separable_3d_function(mesh,funcs,-factor*fourpi,potential)
+     call separable_3d_laplacian(mesh,funcs,factor,density)
+  else
+     call radial_3d_function(mesh,funcs(DENSITY_),factor,density)
+     call radial_3d_function(mesh,funcs(POTENTIAL_),1.0_dp,potential)
+  end if
+end subroutine fill_functions_arrays
   
 subroutine test_functions_new(mesh,nspden,a_gauss,&
      density,potential,rhopot,pot_ion,offset)
@@ -417,6 +440,7 @@ subroutine test_functions_new(mesh,nspden,a_gauss,&
   real(dp) :: factor,a2
   type(f_function), dimension(3) :: funcs
 
+  pot_ion=0.d0
   pers=cell_periodic_dims(mesh)
   do i=1,3
      if (pers(i)) then
@@ -444,14 +468,8 @@ subroutine test_functions_new(mesh,nspden,a_gauss,&
   end select
 
   !laplacian potential = -4pi density
-  select case (cell_geocode(mesh))
-  case('F') !non-separable case
-     call radial_3d_function(mesh,funcs(DENSITY_),factor,density)
-     call radial_3d_function(mesh,funcs(POTENTIAL_),1.0_dp,potential)
-  case default
-     call separable_3d_function(mesh,funcs,-factor*fourpi,potential)
-     call separable_3d_laplacian(mesh,funcs,factor/real(nspden,dp),density)
-  end select
+  call fill_functions_arrays(cell_geocode(mesh) /= 'F',mesh,funcs,factor,&
+       density,potential)
 
   !treatment for rhopot and pot_ion
   call f_memcpy(src=density,dest=rhopot)
@@ -500,10 +518,10 @@ subroutine test_functions_new2(mesh,acell,a_gauss,mu0,density,potential)
      factor=1.0_dp
      separable=.true.
   case('S')
-     funcs(1)=f_function_new(f_shrink_gaussian,&
-          length=acell)
-     funcs(2)=f_function_new(f_exp_cosine,&
+     funcs(1)=f_function_new(f_exp_cosine,&
           length=acell,frequency=2.0_dp)
+     funcs(2)=f_function_new(f_shrink_gaussian,&
+          length=acell)
      funcs(3)=funcs(1)
      factor=1.0_dp
      separable=.true.
@@ -525,13 +543,8 @@ subroutine test_functions_new2(mesh,acell,a_gauss,mu0,density,potential)
      !the different modes for the wires-like bc are not used here
   end select
 
-  if (separable) then
-     call separable_3d_function(mesh,funcs,-factor*fourpi,potential)
-     call separable_3d_laplacian(mesh,funcs,factor,density)
-  else
-     call radial_3d_function(mesh,funcs(DENSITY_),factor,density)
-     call radial_3d_function(mesh,funcs(POTENTIAL_),1.0_dp,potential)
-  end if
+  call fill_functions_arrays(separable,mesh,funcs,factor,&
+       density,potential)
 
   !add the screened term to the density if present
   call f_axpy(a=-mu0**2/fourpi*factor,x=potential,y=density)
