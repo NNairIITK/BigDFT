@@ -54,7 +54,6 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PStypes.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
-	box.f90 \
 	exctx_calculation.f90 \
 	$(fdder_file) \
 	IObox.f90 \
@@ -70,8 +69,7 @@ modules = POISSON_SOLVER.@MODULE_EXT@ \
 	PSBOX.@MODULE_EXT@ \
 	FDDER.@MODULE_EXT@ \
 	IOBOXETSF.@MODULE_EXT@ \
-	IOBOX.@MODULE_EXT@ \
-	BOX.@MODULE_EXT@
+	IOBOX.@MODULE_EXT@
 else
 modules = poisson_solver.@MODULE_EXT@ \
 	psolver_environment.@MODULE_EXT@ \
@@ -80,8 +78,7 @@ modules = poisson_solver.@MODULE_EXT@ \
 	psbox.@MODULE_EXT@ \
 	fdder.@MODULE_EXT@ \
 	ioboxetsf.@MODULE_EXT@ \
-	iobox.@MODULE_EXT@ \
-	box.@MODULE_EXT@
+	iobox.@MODULE_EXT@
 endif
 
 CLEANFILES = *.@MODULE_EXT@ $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
@@ -169,9 +166,8 @@ Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o PStypes.o PSbox.o P
 PStypes.o: environment.o FDder.o
 PSbox.o: PStypes.o PSbase.o IObox.o
 FDder.o: PSbase.o
-IObox.o: PSbase.o box.o $(etsf_dep)
-box.o: PSbase.o
-environment.o: PSbase.o box.o
+IObox.o: PSbase.o $(etsf_dep)
+environment.o: PSbase.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 IOetsf.o: PSbase.o
