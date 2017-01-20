@@ -419,7 +419,6 @@ module bigdft_matrices
       !integer :: kproc,jproc,jjorbold,jjorb,isend,irecv,ilr,ijorb,iiorb,ind,ierr, irow, irowold, iseg
       !integer :: compressed_index
     !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
-      character(len=*),parameter :: subname='init_sparse_matrix'
     
       call f_routine(id='init_matrixindex_in_compressed_fortransposed')
       call timing(iproc,'init_matrCompr','ON')

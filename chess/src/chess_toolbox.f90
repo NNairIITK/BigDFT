@@ -1301,6 +1301,7 @@ program chess_toolbox
                 'n', 'n', smat_m%nfvctr, smat_m%nfvctr, smat_m%nfvctr, &
                 1.0_mp, ovrlp_tmp(1:,1:), smat_m%nfvctr, &
                 hamiltonian_tmp(1:,1:), smat_m%nfvctr, 0.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_m%nfvctr)
+           call f_free(hamiltonian_tmp)
            call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                 'n', 'n', smat_m%nfvctr, smat_m%nfvctr, smat_m%nfvctr, &
                 1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_m%nfvctr, &
@@ -1446,6 +1447,7 @@ program chess_toolbox
                         'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
                         1.0_mp, hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, &
                         hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                   call f_free(hamiltonian_tmp)
                    call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
                         'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
                         1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, &
@@ -1556,7 +1558,6 @@ program chess_toolbox
        call deallocate_matrices(ovrlp_minus_one_half(1))
        call deallocate_sparse_matrix_metadata(smmd)
        call f_free(eval)
-       call f_free(hamiltonian_tmp)
        call f_free(ovrlp_tmp)
 
        !!call timing(mpiworld(),'LAST','PR')
