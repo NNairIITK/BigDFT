@@ -528,7 +528,7 @@ contains
 !       angrad_new(1)=angrad(2)
 !       angrad_new(2)=angrad(1)
 !       angrad_new(3)=angrad(3)
-!       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad_new)
+!       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
        kernel%angrad=angrad
     else
 !       kernel%mesh=cell_new(geocode,ndims,hgrids)
