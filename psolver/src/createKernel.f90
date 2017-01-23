@@ -50,12 +50,12 @@ function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   kernel%hgrids=hgrids
 
   if (present(angrad)) then
-     kernel%angrad=angrad
+!     kernel%angrad=angrad
   else
      alphat = 2.0_dp*datan(1.0_dp)
      betat = 2.0_dp*datan(1.0_dp)
      gammat = 2.0_dp*datan(1.0_dp)
-     kernel%angrad=(/alphat,betat,gammat/)
+!     kernel%angrad=(/alphat,betat,gammat/)
   end if
 
 

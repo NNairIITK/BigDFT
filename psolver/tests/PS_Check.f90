@@ -26,7 +26,7 @@ program PS_Check
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+!  character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,extra_ref
   type(coulomb_operator) :: pkernel,pkernelseq
   real(kind=8) :: hx,hy,hz,offset
@@ -35,7 +35,7 @@ program PS_Check
   real :: tcpu0,tcpu1
   integer :: ncount0,ncount1,ncount_rate,ncount_max
   integer :: n01,n02,n03,itype_scf!,i_all,i_stat
-  integer :: iproc,nproc,namelen,ierr,ispden
+  integer :: iproc,nproc,ierr,ispden
   integer :: n_cell,igpu
   integer, dimension(3) :: nxyz
   integer, dimension(3) :: ndims
@@ -324,6 +324,8 @@ contains
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
          0,n3d,n3p,n3pi,i3xcsh,i3s)
 
+    istpot=1
+    i3sd=1
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
        istden=n01*n02*(i3s-1)+1
@@ -426,6 +428,8 @@ contains
     call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,.false.,.false.,&
          0,n3d,n3p,n3pi,i3xcsh,i3s)
 
+    istpot=1
+    i3sd=1
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
        istden=n01*n02*(i3s-1)+1

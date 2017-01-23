@@ -467,6 +467,10 @@
      The atomic species or the atoms written as Atom No are specified, followed by a list
      of the shells for which the density matrix can be plotted
     default: None
+  #potentials:
+  #  format: CUBE
+  #  frequence: iteration, SCF
+    
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations

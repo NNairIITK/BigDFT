@@ -82,8 +82,8 @@ program PSolver_Program
   type(f_multipoles) :: multipoles
   type(box_iterator) :: bit
   external :: gather_timings  
+  logical, parameter :: wrtfiles=.false.
   nullify(rhocore_fake)
-
 
   !mode = "charged_thin_wire"
   !mode="cylindrical_capacitor"
@@ -213,16 +213,17 @@ program PSolver_Program
 
   call f_memcpy(src=density,dest=rhopot)
 
-  i2=n02/2
-  do i3=1,n03
+  if (wrtfiles) then
+   i2=n02/2
+   do i3=1,n03
      do i1=1,n01
         j1=n01/2+1-abs(n01/2+1-i1)
         j2=n02/2+1-abs(n02/2+1-i2)
         j3=n03/2+1-abs(n03/2+1-i3)
         write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
      end do
-  end do
-
+   end do
+  end if
 
 !!$  !offset, used only for the periodic solver case
 !!$  offset=0.0_gp!potential(1,1,1)!-pot_ion(1,1,1)
@@ -255,8 +256,9 @@ program PSolver_Program
   eexcu=sum(density)*hx*hy*hx*sqrt(detg)
   if (iproc==0) call yaml_map('potential integral',eexcu)
 
-  i3=n03/2
-  do i2=1,n02
+  if (wrtfiles) then
+   i3=n03/2
+   do i2=1,n02
      do i1=1,n01
         !j1=n01/2+1-abs(n01/2+1-i1)
         !j2=n02/2+1-abs(n02/2+1-i2)
@@ -267,10 +269,10 @@ program PSolver_Program
         !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
         !     density(i1,i2,i3)
      end do
-  end do
+   end do
 
-  i2=n02/2
-  do i3=1,n03
+   i2=n02/2
+   do i3=1,n03
      !do i2=1,n02
      do i1=1,n01
         !j1=n01/2+1-abs(n01/2+1-i1)
@@ -279,7 +281,8 @@ program PSolver_Program
         write(112,'(2(1x,i6),3(1x,1pe25.16e3))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
      end do
      !end do
-  end do
+   end do
+  end if
   
   call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm,nproc=karray%mpi_env%nproc,gather_routine=gather_timings)
   call pkernel_free(karray)
@@ -330,7 +333,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
   !local variables
   integer :: i1,i2,i3,ifx,ify,ifz,unit
-  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,a2,derf,factor,r,r2,r0,erfc_yy,erf_yy
+  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,a2,derf,factor,r,r2,r0
   real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
   real(kind=8) :: monopole
   real(kind=8), dimension(3) :: dipole
@@ -406,15 +409,16 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
    
      ! !original version
 
-     !plot of the functions used
-     do i1=1,n03
+     if (wrtfiles) then
+      !plot of the functions used
+      do i1=1,n03
         x = hx*real(i1-n01/2-1,kind=8)!valid if hy=hz
         y = hz*real(i1-n03/2-1,kind=8) 
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(y,az,bz,fz,fz1,fz2,ifz)
         write(20,'(1x,I8,4(1x,e22.15))') i1,fx,fx2,fz,fz2
-     end do
-
+      end do
+     end if
      !Initialization of density and potential
      denval=0.d0 !value for keeping the density positive
      do i3=1,n03
@@ -473,6 +477,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
 
      
+    if (wrtfiles) then
      i2=n02/2
      do i3=1,n03
         do i1=1,n01
@@ -482,7 +487,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            write(unit,'(2(1x,I8),2(1x,e22.15))') i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
-
+    end if
 !plane capacitor oriented along the y direction
 !!     do i2=1,n02
 !!        if (i2==n02/4) then
@@ -537,8 +542,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      density(:,:,:) = 0.d0!1d-20 !added
 
-     !plot of the functions used
-     do i1=1,n02
+     if (wrtfiles) then
+      !plot of the functions used
+      do i1=1,n02
         x = hx*real(i1-n02/2-1,kind=8)!valid if hy=hz
         y = hy*real(i1-n02/2-1,kind=8) 
         z = hz*real(i1-n02/2-1,kind=8)
@@ -546,8 +552,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         call functions(y,ay,by,fy,fy1,fy2,ify)
         call functions(z,az,bz,fz,fz1,fz2,ifz)
         write(20,'(1x,I8,6(1x,e22.15))') i1,fx,fx2,fy,fy2,fz,fz2
-     end do
-
+      end do
+     end if
      !Initialisation of density and potential
      !Normalisation
      do i3=1,n03
@@ -596,6 +602,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
 
 
+    if (wrtfiles) then
      i2=n02/2
      do i3=1,n03
         do i1=1,n01
@@ -607,7 +614,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
                 i1,i3,z,density(i1,i2,i3),potential(i1,i2,i3)
         end do
      end do
-
+    end if
 
      if (ixc==0) denval=0.d0
 
@@ -642,16 +649,17 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
          end do
       end do
 
-      i2=n02/2
-      do i3=1,n03
+      if (wrtfiles) then
+       i2=n02/2
+       do i3=1,n03
          do i1=1,n01
             !j1=n01/2+1-abs(n01/2+1-i1)
             !j2=n02/2+1-abs(n02/2+1-i2)
             !j3=n03/2+1-abs(n03/2+1-i3)
             write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
          end do
-      end do
-
+       end do
+      end if
    
 ! !plane capacitor oriented along the y direction
 ! !!     do i2=1,n02
@@ -760,15 +768,16 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      factor = 2.0d0
 
 
-     !plot of the functions used
-     do i1=1,min(n01,n03)
+     if (wrtfiles) then
+      !plot of the functions used
+      do i1=1,min(n01,n03)
         x = hx*real(i1-n01/2-1,kind=8)!isolated
         z = hz*real(i1-n03/2-1,kind=8)!periodic
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(z,az,bz,fz,fz1,fz2,ifz)
         write(20,*) i1,fx,fx2,fz,fz2
-     end do
-
+      end do
+     end if
 
      !Initialization of density and potential
    
@@ -944,6 +953,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      
 
+     if (wrtfiles) then
      i2=n02/2
      do i3=1,n03
         do i1=1,n01
@@ -953,7 +963,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
-
+     end if
 
 
      if (ixc==0) denval=0.d0

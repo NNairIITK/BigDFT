@@ -90,14 +90,14 @@ define F_REGTEST_INSTRUCTIONS
 - yaml_argparse:
    binary: yaml_argparse
    runs:
-   - ./yaml_argparse > yaml_argparse.out.yaml
-   - ./yaml_argparse -n 100 >> yaml_argparse.out.yaml
-   - ./yaml_argparse -n 100 -d [89,90,90] >> yaml_argparse.out.yaml
+   - ./yaml_argparse
+   - ./yaml_argparse -n 100
+   - ./yaml_argparse -n 100 -d [89,90,90]
    reference: $(srcdir)/yaml_argparse.ref.yaml
    output: yaml_argparse.out.yaml
 - f_allocations:
    runs:
-   - ./f_allocations > f_allocations.out.yaml
-   - $(DESTDIR)$(bindir)/f_memcheck ./f_allocations >> f_allocations.out.yaml 2>f_allocations.err
+   - ./f_allocations
+   - $(DESTDIR)$(bindir)/f_memcheck ./f_allocations 2>f_allocations.err
 endef
 export F_REGTEST_INSTRUCTIONS
