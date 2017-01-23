@@ -695,7 +695,7 @@
        This is the stepsize for the geometry optimization.
 
        This stepsize is system dependent and it has therefore to be determined for each system.
-       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest than
+       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest then
        a better value for {betax} in the last line of the data/geopt.mon file. Whether the stepsize is correct
        can also be seen from the data/geopt.mon output of the SDCG method.
 
@@ -703,6 +703,9 @@
        where it is around 8).
        In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but
        nevertheless one should try to find reasonable values also in this case.
+   
+       SQNM: For many systems 1 is a good stepsize. Some systems can be minimized more efficiently with
+       a larger stepsize.
      CONDITION:
        MASTER_KEY: method
        WHEN:
