@@ -44,7 +44,7 @@ module module_xc
      integer :: kind       !< ABINIT or LibXC
      integer :: family(2)  !< LDA, GGA, etc.
      integer :: id(2)      !< Identifier
-
+     real(kind=8) :: default_alpha !< alpha set by input
      type(libxc_functional) :: funcs(2)
   end type xc_info
 
@@ -74,7 +74,7 @@ module module_xc
 
 contains
 
-  subroutine obj_init_(xcObj, ixc, kind, nspden)
+  subroutine obj_init_(xcObj, ixc, kind, nspden, default_alpha)
     implicit none
 
     !Arguments
@@ -83,6 +83,7 @@ contains
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
+    real(kind=8), intent(in), optional :: default_alpha
 
     !Local variables
     !scalars
@@ -137,6 +138,13 @@ contains
           call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
        end if
     end if
+
+    if(present(default_alpha)) then
+      xcObj%default_alpha=default_alpha
+    else
+      xcObj%default_alpha=-1.0d0
+    end if
+    
   end subroutine obj_init_
 
   subroutine obj_free_(xcObj)
@@ -288,7 +296,7 @@ contains
   end subroutine xc_dump
 
   !>  Initialize the desired XC functional, from LibXC.
-  subroutine xc_init(xcObj,ixc,kind,nspden)
+  subroutine xc_init(xcObj,ixc,kind,nspden,default_alpha)
     implicit none
 
     !Arguments
@@ -297,6 +305,7 @@ contains
     integer, intent(in) :: nspden
     integer, intent(in) :: kind
     integer, intent(in) :: ixc
+    real(kind=8), intent(in), optional :: default_alpha
     !local variables
 !!$    integer :: ixc_prev
 
@@ -309,7 +318,11 @@ contains
 !!$            err_name='BIGDFT_RUNTIME_ERROR')) return
 !!$    end if
 !!$    libxc_init=.true.
-    call obj_init_(xcObj, ixc, kind, nspden)
+    if(present(default_alpha)) then
+      call obj_init_(xcObj, ixc, kind, nspden, default_alpha)
+    else
+      call obj_init_(xcObj, ixc, kind, nspden)
+    end if
   end subroutine xc_init
 
   !> End usage of LibXC functional. Call LibXC end function,
@@ -351,22 +364,28 @@ contains
 
     xc_exctXfac = 0.d0
     if (any(xcObj%family == XC_FAMILY_HYB_GGA)) then
-      do i=1,2
-        !factors for the exact exchange contribution of different hybrid functionals
-        if (xcObj%id(i) == 0) cycle
-        select case (abs(xcObj%id(i)))
-          case (XC_HYB_GGA_XC_HSE03, XC_HYB_GGA_XC_HSE06, XC_HYB_GGA_XC_HJS_PBE,&
-                XC_HYB_GGA_XC_HJS_PBE_SOL, XC_HYB_GGA_XC_HJS_B88, &
-                XC_HYB_GGA_XC_HJS_B97X, XC_HYB_GGA_XC_CAM_B3LYP, &
-                XC_HYB_GGA_XC_TUNED_CAM_B3LYP, XC_HYB_GGA_XC_CAMY_BLYP) !! SCREENED HYB
-            call xc_f90_hyb_cam_coef(xcObj%funcs(i)%conf, omega, alpha, xc_exctXfac)
-          case (XC_HARTREE_FOCK) !! PURE HF
-            xc_exctXfac = 1.d0
-          case default !! HYB
-            call xc_f90_hyb_exx_coef(xcObj%funcs(i)%conf,xc_exctXfac)
-            !!!write(6,*)"id,fact",xcObj%id(i),xc_exctXfac
-         end select
-       end do
+      ! Was the factor overriden in the input file ?
+      if(xcObj%default_alpha .ne. -1.0d0) then
+         xc_exctXfac=xcObj%default_alpha
+         !write(*,*) 'Alpha HF was overriden : ', xc_exctXfac
+      else 
+        do i=1,2
+          !factors for the exact exchange contribution of different hybrid functionals
+          if (xcObj%id(i) == 0) cycle
+          select case (abs(xcObj%id(i)))
+            case (XC_HYB_GGA_XC_HSE03, XC_HYB_GGA_XC_HSE06, XC_HYB_GGA_XC_HJS_PBE,&
+                  XC_HYB_GGA_XC_HJS_PBE_SOL, XC_HYB_GGA_XC_HJS_B88, &
+                  XC_HYB_GGA_XC_HJS_B97X, XC_HYB_GGA_XC_CAM_B3LYP, &
+                  XC_HYB_GGA_XC_TUNED_CAM_B3LYP, XC_HYB_GGA_XC_CAMY_BLYP) !! SCREENED HYB
+              call xc_f90_hyb_cam_coef(xcObj%funcs(i)%conf, omega, alpha, xc_exctXfac)
+            case (XC_HARTREE_FOCK) !! PURE HF
+              xc_exctXfac = 1.d0
+            case default !! HYB
+              call xc_f90_hyb_exx_coef(xcObj%funcs(i)%conf,xc_exctXfac)
+              !!!write(6,*)"id,fact",xcObj%id(i),xc_exctXfac
+           end select
+         end do
+      end if
     end if
   end function xc_exctXfac
 
