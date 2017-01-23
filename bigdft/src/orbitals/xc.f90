@@ -345,23 +345,29 @@ contains
   !> Calculate the exchange-correlation factor (percentage) to add in the functional
   real(kind=8) function xc_exctXfac(xcObj)
     implicit none
+    integer :: i
+    real(kind=8) :: alpha,omega
     type(xc_info), intent(in) :: xcObj
 
     xc_exctXfac = 0.d0
     if (any(xcObj%family == XC_FAMILY_HYB_GGA)) then
-       !factors for the exact exchange contribution of different hybrid functionals
-       if (any(xcObj%id == XC_HYB_GGA_XC_PBEH)) then
-          xc_exctXfac = 0.25d0 !PBE0
-       else if (any(xcObj%id == XC_HYB_GGA_XC_B3LYP)) then
-          xc_exctXfac = 0.2d0 !B3LYP
-       end if
+      do i=1,2
+        !factors for the exact exchange contribution of different hybrid functionals
+        if (xcObj%id(i) == 0) cycle
+        select case (abs(xcObj%id(i)))
+          case (XC_HYB_GGA_XC_HSE03, XC_HYB_GGA_XC_HSE06, XC_HYB_GGA_XC_HJS_PBE,&
+                XC_HYB_GGA_XC_HJS_PBE_SOL, XC_HYB_GGA_XC_HJS_B88, &
+                XC_HYB_GGA_XC_HJS_B97X, XC_HYB_GGA_XC_CAM_B3LYP, &
+                XC_HYB_GGA_XC_TUNED_CAM_B3LYP, XC_HYB_GGA_XC_CAMY_BLYP) !! SCREENED HYB
+            call xc_f90_hyb_cam_coef(xcObj%funcs(i)%conf, omega, alpha, xc_exctXfac)
+          case (XC_HARTREE_FOCK) !! PURE HF
+            xc_exctXfac = 1.d0
+          case default !! HYB
+            call xc_f90_hyb_exx_coef(xcObj%funcs(i)%conf,xc_exctXfac)
+            !!!write(6,*)"id,fact",xcObj%id(i),xc_exctXfac
+         end select
+       end do
     end if
-
-    !Hartree-Fock value
-    if (xcObj%id(1) == XC_HARTREE_FOCK .and. xcObj%id(2) == 0) then
-       xc_exctXfac = 1.d0 
-    end if
-
   end function xc_exctXfac
 
   subroutine xc_init_rho(xcObj, n, rho, nproc)
