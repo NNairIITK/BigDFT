@@ -551,7 +551,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   character(len=*), parameter :: subname='LocalHamiltonianApplication'
   logical :: exctX,op2p_flag, symmetric
   integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
-  integer :: igpu,i_stat,nsize,nspinor
+  integer :: igpu,gpudirect,i_stat,nsize,nspinor
   real(gp) :: evsic_tmp, ekin, epot,sfac
   real(f_double) :: tel,trm
   type(coulomb_operator) :: pkernelSIC
@@ -696,8 +696,16 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            else
               igpu=pkernel%igpu
            end if
-           call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
-           if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
+
+           gpudirect=0
+           !check that we did not deactivate gpudirect manually
+           if(igpu==1 .and. pkernel%use_gpu_direct .eqv. .true.) gpudirect=1
+
+           call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,gpudirect,symmetric)
+
+           !initialization deactivates gpudirect if not enough memory
+           if(gpudirect==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
+
            !allocate work array for the internal exctx calculation
            rp_ij = f_malloc(ndim,id='rp_ij')
            energs%eexctX=0.0_gp
