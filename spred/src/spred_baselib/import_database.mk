@@ -4,17 +4,16 @@
 #to copy such buffer into a character array
 # the list of the files have to be defined in the including makefile
 # as a value of the YAML_DATABASE variable
-# and the variable DATABASE_SOURCES have to be used in the corresponding
-# places in the including makefile.
-# Also the EXTRA_DIST and the CLEANFILES variable have to be defined
+# also the EXTRA_DIST and the CLEANFILES variable have to be defined
 
 EXTRA_DIST += YAML_DATABASE
 DATABASE_SOURCES=$(YAML_DATABASE:.yaml=.c)
 CLEANFILES += $(DATABASE_SOURCES)
 $(DATABASE_SOURCES): $(YAML_DATABASE)
+
 .yaml.c:
 	@base=$(shell basename $< .yaml);\
-	routinelc="get_"$$base;\
+	routinelc=`echo get_$$base | tr A-Z a-z`;\
 	routineuc=`echo $$routinelc | tr a-z A-Z`;\
 	array=$$base"_arr";\
 	file=$@;\

@@ -769,6 +769,7 @@ contains
   end subroutine yaml_close_stream
 
   subroutine yaml_purge_references(unit)
+    use yaml_strings, only: rstrip
     implicit none
     integer, intent(in), optional :: unit
     !local variables
@@ -777,7 +778,12 @@ contains
     strm=stream_id(unit=unit)
     if (associated(streams(strm)%dict_references)) then
        call get_stream_filename(unit,filename)
-       if (trim(filename) == 'stdout') filename='citations.bib'
+       if (trim(filename) == 'stdout') then
+          filename='citations.bib'
+       else
+          call rstrip(filename,'.yaml')
+          filename=trim(filename)//'.bib'
+       end if
        call yaml_newline(unit=unit)
        call yaml_comment('This program used features described in the following reference papers.',hfill='-',unit=unit)
        call yaml_comment('Bibtex version of the citations can be found in file "'//trim(filename)//'"',hfill='-',unit=unit)

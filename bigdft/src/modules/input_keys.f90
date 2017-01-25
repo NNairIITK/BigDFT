@@ -510,42 +510,55 @@ contains
 
   !> Allocate and initialize the variables 'parameters', 'params' and 'parsed_parameters'/
   subroutine input_keys_init()
-    use yaml_output
+    !use yaml_output
     use dynamic_memory
     use yaml_parse
-    use f_precisions, only: f_integer
+    use f_bibliography
+    !use f_precisions, only: f_integer
     implicit none
-    !local variables
-    integer(f_integer) :: params_size
-    !integer(kind = 8) :: cbuf_add !< address of c buffer
-    character, dimension(:), allocatable :: params
+!!$    !local variables
+!!$    integer(f_integer) :: params_size
+!!$    !integer(kind = 8) :: cbuf_add !< address of c buffer
+!!$    character, dimension(:), allocatable :: params
+    type(dictionary), pointer :: biblio
+    external :: get_input_variables_definition
+    external :: get_bigdft_bibliography !we put it here but there might be a better place
 
     call f_routine(id='input_keys_init')
 
-    !alternative filling of parameters from hard-coded source file
-    !call getstaticinputdef(cbuf_add,params_size)
-    call getinputdefsize(params_size)
-    !allocate array
-    params=f_malloc_str(1,params_size,id='params')
-    !fill it and parse dictionary
-    !print *,'after', f_loc(params),f_loc(params(1)),'shape',shape(params),params_size
-    !print *,'cbuf_add',cbuf_add
-    call getinputdef(params)
-    !write(*,*)'here definition'
-    !write(*,'('//trim(yaml_toa(params_size))//'a)')params
+    call yaml_parse_database(parsed_parameters,&
+         get_input_variables_definition)
 
-    !call copycbuffer(params,cbuf_add,params_size)
-    !print *,'there',params_size
-    call yaml_parse_from_char_array(parsed_parameters,params)
+!!$    !alternative filling of parameters from hard-coded source file
+!!$    !call getstaticinputdef(cbuf_add,params_size)
+!!$    call getinputdefsize(params_size)
+!!$    !allocate array
+!!$    params=f_malloc_str(1,params_size,id='params')
+!!$    !fill it and parse dictionary
+!!$    !print *,'after', f_loc(params),f_loc(params(1)),'shape',shape(params),params_size
+!!$    !print *,'cbuf_add',cbuf_add
+!!$    call getinputdef(params)
+!!$    !write(*,*)'here definition'
+!!$    !write(*,'('//trim(yaml_toa(params_size))//'a)')params
+!!$
+!!$    !call copycbuffer(params,cbuf_add,params_size)
+!!$    !print *,'there',params_size
+!!$    call yaml_parse_from_char_array(parsed_parameters,params)
+!!$    call f_free_str(1,params)
+
     !there is only one document in the input variables specifications
     parameters=>parsed_parameters//0
     profiles => parsed_parameters//1
-    call f_free_str(1,params)
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
 
 !!$    !in the case the errors have not been initialized before
 !!$    call input_keys_errors()
+
+    !then update the bibliography here
+    call yaml_parse_database(biblio,get_bigdft_bibliography)
+    call f_bib_update(biblio//0) !only first document
+    call dict_free(biblio)
 
     call f_release_routine()
 
