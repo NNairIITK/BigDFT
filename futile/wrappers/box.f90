@@ -493,7 +493,6 @@ contains
 
   end subroutine internal_point
 
-
   function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
     use numerics, only: onehalf,pi
     use wrapper_linalg, only: det_3x3

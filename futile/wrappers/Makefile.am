@@ -74,6 +74,7 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	numerics.f90 \
 	f_functions.f90 \
 	box.f90 \
+	mp_quadrature.f90 \
 	harmonics.f90
 
 # Dependencies
@@ -105,6 +106,7 @@ modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	F_FUNCTIONS.@MODULE_EXT@ \
 	F_HARMONICS.@MODULE_EXT@ \
 	NUMERICS.@MODULE_EXT@ \
+	MULTIPOLE_PRESERVING.@MODULE_EXT@ \
 	BOX.@MODULE_EXT@
 else
 modules = module_fft_sg.@MODULE_EXT@ \
@@ -116,6 +118,7 @@ modules = module_fft_sg.@MODULE_EXT@ \
 	f_functions.@MODULE_EXT@ \
 	f_harmonics.@MODULE_EXT@ \
 	numerics.@MODULE_EXT@ \
+	multipole_preserving.@MODULE_EXT@ \
 	box.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h

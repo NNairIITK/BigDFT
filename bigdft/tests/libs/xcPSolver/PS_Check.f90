@@ -18,7 +18,7 @@ program PS_Check
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use yaml_output
    use module_types, only: TCAT_EXCHANGECORR
-   use gaussians, only: initialize_real_space_conversion,finalize_real_space_conversion
+   use multipole_preserving
    use yaml_parse, only: yaml_load
    implicit none
    !Parameters
@@ -1100,7 +1100,7 @@ program PS_Check
 
   !> Calculate the value of the density in function of x
   subroutine functions(x,a,b,f,f2,whichone,hgrid,mp)
-     use gaussians, only: mp_exp
+     use multipole_preserving, only: mp_exp
      implicit none
      !Arguments
      real(kind=8), intent(in) :: x     !< Abscissae

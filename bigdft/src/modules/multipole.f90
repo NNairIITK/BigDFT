@@ -1312,7 +1312,7 @@ module multipole
                dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, nrho, pot_ion, rholeaked)
       use module_base
       use module_dpbox, only: denspot_distribution, dpbox_iterator, DPB_POT_ION, dpbox_iter, dpbox_iter_next
-      use gaussians, only: mp_exp
+      use multipole_preserving, only: mp_exp
       implicit none
       ! Calling arguments
       logical,intent(in) :: perx, pery, perz

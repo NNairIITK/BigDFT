@@ -56,38 +56,7 @@ test_plugin_LDADD = $(flib_libraries) @FC_EXPORTS@
 
 CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err libpong.so
 
-EXTRA_DIST += YAML_DATABASE
-DATABASE_SOURCES=$(YAML_DATABASE:.yaml=.c)
-CLEANFILES += $(DATABASE_SOURCES)
-$(DATABASE_SOURCES): $(YAML_DATABASE)
-.yaml.c:
-	@base=$(shell basename $< .yaml);\
-	routinelc="get_"$$base;\
-	routineuc=`echo $$routinelc | tr a-z A-Z`;\
-	array=$$base"_arr";\
-	file=$@;\
-	echo "#include <config.h>" > $$file &&\
-	echo "#define _GNU_SOURCE" >> $$file &&\
-	echo "#include <fcntl.h>" >> $$file &&\
-	echo "#include <stdio.h>" >> $$file &&\
-	echo "#include <stdlib.h>" >> $$file &&\
-	echo "#include <string.h>" >> $$file &&\
-	echo "static const char $$array[] =" >> $$file &&\
-	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< >> $$file &&\
-	echo "  ;" >> $$file &&\
-	echo "void FC_FUNC_($$routinelc, $$routineuc)(char* db_ptr,int* db_len)" >> $$file &&\
-	echo "{" >> $$file &&\
-	echo "  if (*db_len==0)" >> $$file &&\
-	echo "    {" >> $$file &&\
-	echo "    *db_len=strlen($$array);" >> $$file &&\
-	echo "    return;" >> $$file &&\
-	echo "    }" >> $$file &&\
-	echo "  else" >> $$file &&\
-	echo "    {" >> $$file &&\
-	echo "      memcpy(db_ptr,$$array, sizeof(char) * (*db_len));" >> $$file &&\
-	echo "    }" >> $$file &&\
-	echo "}" >> $$file
-
+include $(abs_top_srcdir)/import_database.mk
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a

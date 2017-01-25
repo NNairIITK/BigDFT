@@ -299,13 +299,32 @@ contains
 
   end subroutine yaml_get_default_stream
 
+  subroutine get_stream_filename(unit,filename)
+    implicit none
+    integer, intent(in) :: unit
+    character(len=*), intent(out) :: filename
+    !local variables
+    integer :: unt
+    type(dictionary), pointer :: iter
+
+    nullify(iter)
+    filename='stdout' !in case not found in the unit
+    do while(iterating(iter,on=stream_files))
+       unt=iter
+       if (unt==unit) then
+          filename=dict_key(iter)
+          exit
+       end if
+    end do
+  end subroutine get_stream_filename
+
 
   !> Get the unit associated to filename, if it is currently connected.
   subroutine yaml_stream_connected(filename, unit, istat)
     implicit none
     character(len=*), intent(in) :: filename !< Filename of the stream to inquire
     integer, intent(out)         :: unit     !< File unit specified by the user.(by default 6) Returns a error code if the unit
-    integer, optional, intent(out) :: istat  !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+    integer, optional, intent(out) :: istat  !< Status, zero if suceeded.
 
     integer, parameter :: NO_ERRORS           = 0
 
@@ -327,18 +346,21 @@ contains
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
     use f_utils, only: f_utils_recl,f_get_free_unit,f_open_file
     implicit none
-    integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
+    integer, optional, intent(in) :: unit  !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
     integer, optional, intent(in) :: tabbing           !< Indicate a tabbing for the stream (0 no tabbing, default)
-    integer, optional, intent(in) :: record_length     !< Maximum number of columns of the stream (default @link yaml_output::yaml_stream::tot_max_record_length @endlink)
+    !> Maximum number of columns of the stream (default @link yaml_output::yaml_stream::tot_max_record_length @endlink)
+    integer, optional, intent(in) :: record_length
     character(len=*), optional, intent(in) :: filename !< Filename of the stream
-    character(len=*), optional, intent(in) :: position !< specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
-    integer, optional, intent(out) :: istat            !< Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+    !> specifier of the position while opening the unit (all fortran values of position specifier in open statement are valid)
+    character(len=*), optional, intent(in) :: position
+    !> Status, zero if suceeded. When istat is present this routine is non-blocking, i.e. it does not raise exceptions.
+    integer, optional, intent(out) :: istat
     logical, optional, intent(in) :: setdefault        !< decide if the new stream will be set as default stream. True if absent
                                                        !! it is up the the user to deal with error signals sent by istat
 
     !local variables
-    integer, parameter :: NO_ERRORS           = 0
+    integer, parameter :: NO_ERRORS = 0
     logical :: unit_is_open,set_default,again
     integer :: istream,unt,ierr
     !integer(kind=8) :: recl_file
@@ -751,12 +773,15 @@ contains
     integer, intent(in), optional :: unit
     !local variables
     integer :: strm
+    character(len=128) :: filename
     strm=stream_id(unit=unit)
     if (associated(streams(strm)%dict_references)) then
+       call get_stream_filename(unit,filename)
+       if (trim(filename) == 'stdout') filename='citations.bib'
        call yaml_newline(unit=unit)
        call yaml_comment('This program used features described in the following reference papers.',hfill='-',unit=unit)
-       call yaml_comment('Bibtex version of the citations can be found in file "citations.bib"',hfill='-',unit=unit)
-       call yaml_bib_dump(streams(strm)%dict_references,'citations.bib',unit=unit)
+       call yaml_comment('Bibtex version of the citations can be found in file "'//trim(filename)//'"',hfill='-',unit=unit)
+       call yaml_bib_dump(streams(strm)%dict_references,filename,unit=unit)
        call dict_free(streams(strm)%dict_references)
        call yaml_flush_document(unit=unit)
     end if
@@ -2493,14 +2518,15 @@ contains
     integer, intent(in), optional :: unit
     !local variables
     integer :: unt,istat,strm
- 
+
     if (f_bib_item_exists(paper)) then
        unt=DEFAULT_STREAM_ID
        if (present(unit)) unt=unit
        call get_stream(unt,strm,istat)
        if (.not. associated(streams(strm)%dict_references)) then
           call dict_init(streams(strm)%dict_references)
-          call add(streams(strm)%dict_references,paper)
+          if (paper .notin. streams(strm)%dict_references) &
+               call add(streams(strm)%dict_references,paper)
        end if
     else
        call yaml_warning('Missed citation; paper "'+paper+&
@@ -2545,7 +2571,5 @@ contains
     call yaml_mapping_close(unit=unit)
 
   end subroutine yaml_bib_dump
-
-
 
 end module yaml_output

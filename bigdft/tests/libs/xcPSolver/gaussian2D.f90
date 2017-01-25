@@ -12,6 +12,7 @@
 program MP_gaussian
   use module_base
   use gaussians
+  use multipole_preserving
   use yaml_output
   implicit none
   integer, parameter :: iunit=16        !< File unit for the plot
@@ -116,7 +117,7 @@ end program MP_gaussian
 !> Classify the quality of a multipole extraction in both cases
 subroutine evaluate_moments2D(nmoms,npts,hgrid,pgauss,pow,x0,y0,fj_phi,fj_coll,moments)
   use module_base, only: gp
-  use gaussians, only: mp_exp
+  use multipole_preserving, only: mp_exp
   implicit none
   !Arguments
   integer, intent(in) :: npts,pow,nmoms
