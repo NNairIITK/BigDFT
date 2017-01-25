@@ -1268,7 +1268,8 @@ module foe_common
       ii = np
       call mpiallred(ii, 1, mpi_sum, comm=comm)
       if (ii/=n) then
-          call f_err_throw('wrong partition of n')
+          call f_err_throw('wrong partition: n='//trim(yaml_toa(n))//' /= '//trim(yaml_toa(ii))//'=ii &
+               &(n='//trim(yaml_toa(n))//', np='//trim(yaml_toa(np))//')')
       end if
       iimin = 1 + is
       call mpiallred(iimin, 1, mpi_min, comm=comm)
