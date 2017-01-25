@@ -197,6 +197,7 @@ module module_input_keys
      integer :: nrepmax
      integer :: occupancy_control_itermax !< number of maximal iterations to apply occupancy control
      integer :: occupancy_control_nrepmax !< number of maximal re-diagonalizations to apply occupancy control
+     real(gp) :: alpha_hartree_fock !< exact exchange contribution
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
      integer :: idsx        !< DIIS history
      integer :: ncongt      !< Number of conjugate garident for the tail treatment
@@ -791,7 +792,7 @@ contains
 
     ! Complement PAW initialisation.
     if (any(atoms%npspcode == PSPCODE_PAW)) then
-     call xc_init(xc, in%ixc, XC_MIXED, 1)
+     call xc_init(xc, in%ixc, XC_MIXED, 1, in%alpha_hartree_fock)
      xclevel = 1 ! xclevel=XC functional level (1=LDA, 2=GGA)
      if (xc_isgga(xc)) xclevel = 2
      call xc_end(xc)
@@ -1732,6 +1733,8 @@ contains
           in%occupancy_control_itermax=val
        case (OCCUPANCY_CONTROL_NREPMAX)
           in%occupancy_control_nrepmax=val
+       case (ALPHA_HARTREE_FOCK)
+          in%alpha_hartree_fock=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2407,6 +2410,7 @@ contains
     call f_zero(in%itermax_virt)
     call f_zero(in%occupancy_control_itermax)
     in%occupancy_control_nrepmax=1
+    in%alpha_hartree_fock=-1.d0
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)
