@@ -681,7 +681,7 @@ module ice
       real(kind=mp) :: evlow_old, evhigh_old, tt
       real(kind=mp),dimension(ovrlp_smat%nspin) :: eval_min, eval_max
       real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
+      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total, bounds_limit
       logical :: restart, calculate_SHS
       logical, dimension(2) :: emergency_stop
       real(kind=mp),dimension(2) :: allredarr
@@ -796,8 +796,12 @@ module ice
       if (foe_data_get_int(ice_obj,"evbounds_isatur")>foe_data_get_int(ice_obj,"evbounds_nsatur") .and. &
           foe_data_get_int(ice_obj,"evboundsshrink_isatur")<=foe_data_get_int(ice_obj,"evboundsshrink_nsatur")) then
           do ispin=1,inv_ovrlp_smat%nspin
-              call foe_data_set_real(ice_obj,"evlow",1.d0/0.9d0*foe_data_get_real(ice_obj,"evlow",ispin),ispin)
-              call foe_data_set_real(ice_obj,"evhigh",0.9d0*foe_data_get_real(ice_obj,"evhigh",ispin),ispin)
+              ! Make sure that the lower bound is not larger than the upper bound
+              bounds_limit = 0.5_mp*(foe_data_get_real(ice_obj,"evlow",ispin)+foe_data_get_real(ice_obj,"evhigh",ispin))
+              tt = min(1.d0/0.9d0*foe_data_get_real(ice_obj,"evlow",ispin),bounds_limit-1.e-2_mp)
+              call foe_data_set_real(ice_obj,"evlow",tt,ispin)
+              tt = max(0.9d0*foe_data_get_real(ice_obj,"evhigh",ispin),bounds_limit+1.e-2_mp)
+              call foe_data_set_real(ice_obj,"evhigh",tt,ispin)
           end do
           evbounds_shrinked=.true.
       else
