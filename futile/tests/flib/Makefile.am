@@ -56,7 +56,7 @@ test_plugin_LDADD = $(flib_libraries) @FC_EXPORTS@
 
 CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err libpong.so
 
-include $(abs_top_srcdir)/import_database.mk
+include $(srcdir)/import_database.mk
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
