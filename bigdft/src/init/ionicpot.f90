@@ -15,7 +15,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
-  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use multipole_preserving
   use module_atoms
   use module_dpbox
   use abi_interfaces_geometry, only: abi_metric
@@ -1903,7 +1903,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   use module_types
   use yaml_output
   use m_paw_numeric, only: paw_splint
-  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use multipole_preserving
   use module_atoms
   use ao_inguess, only: atomic_info
   use module_dpbox
@@ -2845,7 +2845,7 @@ subroutine external_potential(iproc,verb,at,rxyz,&
   use module_types
   use yaml_output
   use m_paw_numeric, only: paw_splint
-  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use multipole_preserving
   use module_atoms
   use module_dpbox
 !  use module_interfaces, only: mp_calculate
@@ -3615,7 +3615,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
   use public_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
-  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use multipole_preserving
   use module_atoms
   use module_dpbox
   use multipole, only: gaussian_density

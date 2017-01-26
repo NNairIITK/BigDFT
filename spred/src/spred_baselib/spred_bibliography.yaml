@@ -1,0 +1,35 @@
+---
+Goedecker2004:
+  JOURNAL_REF: 'J. Chem. Phys. 120, 9911–9917 (2004)'
+  BIBTEX_REF: |
+    @Article{Goedecker2004,
+    Title                    = {{M}inima hopping: {A}n efficient search method for the global minimum of the potential energy surface of complex molecular systems},
+    Author                   = {{G}oedecker, {S}.},
+    Journal                  = {The Journal of chemical physics},
+    Year                     = {2004},
+    
+    Month                    = jun,
+    Number                   = {21},
+    Pages                    = {9911--9917},
+    Volume                   = {120},
+    
+    Doi                      = {10.1063/1.1724816}
+    }
+  DESCRIPTION: Seminal paper of Minima Hopping Method
+Schaefer2014:
+  JOURNAL_REF: J. Chem. Phys. 140, 214102 (2014)
+  BIBTEX_REF: |
+    @article{Schaefer2014,
+    title                    = {Minima hopping guided path search: An efficient method for finding complex chemical reaction pathways},
+    author                   = {Schaefer, Bastian and Mohr, Stephan and Amsler, Maximilian and Goedecker, Stefan},
+    year                     = {2014},
+    
+    month                    = june, 
+    
+    Journal                  = {The Journal of Chemical Physics},
+    volume                   = {140},
+    number                   = {21}, 
+    pages                    = {214102},
+    doi                      = {10.1063/1.4878944}
+    }
+  DESCRIPTION: Minima Hopping guided Path Search Method, reference paper

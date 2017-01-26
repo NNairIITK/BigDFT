@@ -814,6 +814,10 @@ subroutine test_dictionary_for_atoms()
   fmts(1:len(fmts))='(es27.20)'
   call yaml_map('Real with format '//trim(fmts),-epsilon(1.d0),fmt=fmts)
 
+  !Cite a missing citation
+  call yaml_cite('C61')
+  !call a valid paper
+  call yaml_cite('C60')
 
   contains
 

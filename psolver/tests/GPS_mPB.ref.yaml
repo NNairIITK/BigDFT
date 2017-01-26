@@ -45,9 +45,9 @@
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
     #---------------------------------------------------------------------- Input parameters
-   psolver:
-     cavity                  : modified
    environment:
+     minres                  : 1.e-6 #            Convergence threshold of the loop
+     pb_minres               : 1.e-6 #            Convergence criterion of the PBe loop
      delta                   : 0.3 #              Amplitude of the transition region in the rigid cavity (AU)
      cavity                  : rigid #            Type of the cavity
      gps_algorithm           : PCG #              Algorithm for the Generalised Poisson Equation
@@ -64,8 +64,6 @@
      input_guess             : Yes #              Triggers the input guess procedure of gps_algorithm
      fd_order                : 16 #               Order of the Finite-difference derivatives for the GPS solver
      itermax                 : 200 #              Maximum number of iterations of the GPS outer loop
-     minres                  : 1.e-8 #            Convergence threshold of the loop
-     pb_minres               : 1.e-10 #           Convergence criterion of the PBe loop
      pb_input_guess          : Yes #              Triggers the input guess procedure of PBe loop
      pb_eta                  : 1.0 #              Mixing parameter of the PBe loop
      pb_itermax              : 50 #               Maximum number of iterations of the PBe loop
@@ -101,114 +99,80 @@
    BC                        : Surface
    Box                       :  [  60,  78,  70 ]
    MPI tasks                 :  1
-   Integral of the density in the nonvacuum region:  226.1329803278313
+   Integral of the density in the nonvacuum region:  226.1329803278312
    Poisson Boltzmann solver:
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  2.19191875686534559E+01}
+       - Iteration quality: {iter:  1, res:  2.19191875686534594E+01}
           #WARNING: Input guess not used due to residual norm >1.0E-002
        - Iteration quality: {iter:  1, res:  3.88944738629169109E+01}
-       - Iteration quality: {iter:  2, res:  8.61463364513550545E+00}
+       - Iteration quality: {iter:  2, res:  8.61463364513550367E+00}
        - Iteration quality: {iter:  3, res:  2.29390854177527892E+00}
-       - Iteration quality: {iter:  4, res:  7.88164211445114660E+00}
-       - Iteration quality: {iter:  5, res:  9.86164526547266412E-02}
-       - Iteration quality: {iter:  6, res:  2.26640548930422091E-02}
-       - Iteration quality: {iter:  7, res:  2.95281875853380810E-03}
-       - Iteration quality: {iter:  8, res:  3.04011589614786384E-04}
-       - Iteration quality: {iter:  9, res:  3.72218183412659144E-05}
-       - Iteration quality: {iter:  10, res:  3.20285938230272461E-06}
-       - Iteration quality: {iter:  11, res:  2.15282172681219204E-07}
-       - Iteration quality: {iter:  12, res:  1.77501842848826698E-08}
-       - Iteration quality: {iter:  13, res:  1.23322032396385444E-09}
-       Iteration quality: {iter:  1, res:  5.40478836527794894E-04}
+       - Iteration quality: {iter:  4, res:  7.88164211445122653E+00}
+       - Iteration quality: {iter:  5, res:  9.86164526547150810E-02}
+       - Iteration quality: {iter:  6, res:  2.26640548930432464E-02}
+       - Iteration quality: {iter:  7, res:  2.95281875853352924E-03}
+       - Iteration quality: {iter:  8, res:  3.04011589615082209E-04}
+       - Iteration quality: {iter:  9, res:  3.72218183414595191E-05}
+       - Iteration quality: {iter:  10, res:  3.20285938225166207E-06}
+       - Iteration quality: {iter:  11, res:  2.15282172592552642E-07}
+       Iteration quality: {iter:  1, res:  5.40478821543855675E-04}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  6.55844540081653815E-04}
-       - Iteration quality: {iter:  2, res:  3.82369782650710541E-04}
-       - Iteration quality: {iter:  3, res:  1.96257766234020142E-03}
-       - Iteration quality: {iter:  4, res:  2.19741856113115616E-05}
-       - Iteration quality: {iter:  5, res:  2.59558257190440097E-06}
-       - Iteration quality: {iter:  6, res:  2.73693210419496728E-07}
-       - Iteration quality: {iter:  7, res:  1.07452772754722988E-07}
-       - Iteration quality: {iter:  8, res:  1.18016958297422726E-08}
-       - Iteration quality: {iter:  9, res:  1.04894687400681667E-09}
-       Iteration quality: {iter:  2, res:  2.04511409004764682E-05}
+       - Iteration quality: {iter:  1, res:  6.55845895051370537E-04}
+       - Iteration quality: {iter:  2, res:  3.82370997825346316E-04}
+       - Iteration quality: {iter:  3, res:  1.96288764433381283E-03}
+       - Iteration quality: {iter:  4, res:  2.19752818432674259E-05}
+       - Iteration quality: {iter:  5, res:  2.59309375904957739E-06}
+       - Iteration quality: {iter:  6, res:  2.73793616250995456E-07}
+       Iteration quality: {iter:  2, res:  2.04504972843309070E-05}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  5.80608301707886900E-05}
-       - Iteration quality: {iter:  2, res:  3.21432155616227581E-05}
-       - Iteration quality: {iter:  3, res:  3.64150616451166807E-05}
-       - Iteration quality: {iter:  4, res:  8.90931101696854609E-07}
-       - Iteration quality: {iter:  5, res:  1.70706874426737675E-07}
-       - Iteration quality: {iter:  6, res:  5.81527734097045444E-08}
-       - Iteration quality: {iter:  7, res:  1.30530190797694657E-08}
-       - Iteration quality: {iter:  8, res:  1.59097488850372913E-09}
-       Iteration quality: {iter:  3, res:  1.30621657484638504E-06}
+       - Iteration quality: {iter:  1, res:  5.80586608051890225E-05}
+       - Iteration quality: {iter:  2, res:  3.21397002939268294E-05}
+       - Iteration quality: {iter:  3, res:  3.64332162135336509E-05}
+       - Iteration quality: {iter:  4, res:  8.88998373834258851E-07}
+       Iteration quality: {iter:  3, res:  1.31073574999407891E-06}
    - 
        Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  2.69377850997587874E-06}
-       - Iteration quality: {iter:  2, res:  1.49266694679495511E-06}
-       - Iteration quality: {iter:  3, res:  1.77559108094090774E-06}
-       - Iteration quality: {iter:  4, res:  3.84029539642269218E-08}
-       - Iteration quality: {iter:  5, res:  7.05743601520757075E-09}
-       Iteration quality: {iter:  4, res:  6.03364610241599040E-08}
-   - 
-       Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  1.29957283971134945E-07}
-       - Iteration quality: {iter:  2, res:  7.18564551030970531E-08}
-       - Iteration quality: {iter:  3, res:  8.49449183186852584E-08}
-       - Iteration quality: {iter:  4, res:  1.98673421168517346E-09}
-       Iteration quality: {iter:  5, res:  2.89026410855239568E-09}
-   - 
-       Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  6.24728461083307595E-09}
-       Iteration quality: {iter:  6, res:  1.34554039851501844E-10}
-   - 
-       Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  7.61002856667934596E-09}
-       Iteration quality: {iter:  7, res:  1.38109219977777499E-10}
-   - 
-       Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  1.53135154798834143E-08}
-       - Iteration quality: {iter:  2, res:  4.78366027960301618E-10}
-       Iteration quality: {iter:  8, res:  1.30441314168063183E-10}
-   - 
-       Embedded PSolver, Preconditioned Conjugate Gradient Method:
-       - Iteration quality: {iter:  1, res:  4.18000592914638506E-10}
-       Iteration quality: {iter:  9, res:  2.64306932349420330E-12}
+       - Iteration quality: {iter:  1, res:  2.73544025124489300E-06}
+       - Iteration quality: {iter:  2, res:  1.52840089044548925E-06}
+       - Iteration quality: {iter:  3, res:  1.69397608981310968E-06}
+       - Iteration quality: {iter:  4, res:  5.55961484541260055E-08}
+       Iteration quality: {iter:  4, res:  5.72786355470338478E-08}
  Inf. Norm difference with reference:
-   Value                     :  2.387918782176257E-05
-   Point                     :  [  30,  36,  36 ]
-   Some values: [-1.996746605925637E-05,  3.153655523391308E-07, -2.085960204567527E-08]
+   Value                     :  2.378694285454230E-05
+   Point                     :  [  32,  36,  36 ]
+   Some values: [-1.984193941950707E-05,  3.981650067430564E-07,  7.007967539607307E-08]
  Expected hartree energy     :  0.0
- Computed Hartree energy     :  164508.9946484841
- Diff of expected-computed Hartree energy: -164508.9946484841
+ Computed Hartree energy     :  164508.9946018222
+ Diff of expected-computed Hartree energy: -164508.9946018222
  Comparison between numerical and starting analytical density with old GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  8.856775207846113E-03
+     Value                   :  8.856396792566557E-03
      Point                   :  [  48,  40,  36 ]
-     Some values: [ 1.924584388390826E-04,  5.246791886293067E-06, -3.584586458259764E-03]
+     Some values: [ 1.924470101855036E-04,  5.246805244496500E-06, -3.584586345994012E-03]
  Comparison between numerical and starting analytical density witn new 2 GPoperator:
    Inf. Norm difference with reference:
-     Value                   :  6.751222754246555E-04
-     Point                   :  [  49,  40,  36 ]
-     Some values: [ 1.890883305506463E-04,  5.246973785233422E-06, -1.190937138630943E-04]
+     Value                   :  6.752406178520687E-04
+     Point                   :  [  13,  40,  36 ]
+     Some values: [ 1.890769533048342E-04,  5.246986916063179E-06, -1.190936255284214E-04]
  Comparison between Generalized Poisson operator PCG-style and analytical density:
    Inf. Norm difference with reference:
-     Value                   :  1.513058515271268E-01
+     Value                   :  1.513058658936188E-01
      Point                   :  [  12,  40,  36 ]
-     Some values: [ 1.266276633450758E-02, -3.763209463159001E-06,  1.228780854034994E-03]
+     Some values: [ 1.266275487784441E-02, -3.763197696571297E-06,  1.228780905137228E-03]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  2781
-   Tot. No. of Deallocations :  2781
+   Tot. No. of Allocations   :  2591
+   Tot. No. of Deallocations :  2591
    Remaining Memory (B)      :  0
    Memory occupation:
      Peak Value (MB)         :  288.248
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 124.600 MB
- Walltime since initialization:  00:00:03.496506961
- Max No. of dictionaries used:  608 #( 173 still in use)
+     Memory Peak of process  : 98.248 MB
+ Walltime since initialization:  00:00:03.131536331
+ Max No. of dictionaries used:  607 #( 172 still in use)
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -570,7 +534,7 @@
      Peak Value (MB)         :  273.903
      for the array           : re
      in the routine          : Main_program
-     Memory Peak of process  : 120.988 MB
- Walltime since initialization:  00:00:04.833649261
- Max No. of dictionaries used:  544 #( 173 still in use)
+     Memory Peak of process  : 96.864 MB
+ Walltime since initialization:  00:00:04.052161015
+ Max No. of dictionaries used:  543 #( 172 still in use)
  Number of dictionary folders allocated:  1

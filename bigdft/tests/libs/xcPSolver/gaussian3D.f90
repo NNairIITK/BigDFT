@@ -12,6 +12,7 @@
 program MP_gaussian
   use module_base
   use gaussians
+  use multipole_preserving
   use yaml_output
   use yaml_parse
   use pseudopotentials
@@ -227,7 +228,7 @@ end program MP_gaussian
 !> Classify the quality of a multipole extraction in both cases
 subroutine evaluate_moments3D(nmoms,npts,hgrid,pgauss,pow,x0,y0,z0,fj_phi,fj_coll,moments)
   use module_base, only: gp
-  use gaussians, only: mp_exp
+  use multipole_preserving, only: mp_exp
   implicit none
   !Arguments
   integer, intent(in) :: npts,pow,nmoms
