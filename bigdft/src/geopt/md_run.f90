@@ -35,6 +35,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
   use yaml_output
 !NNdbg
    use module_types
+   use constraints
   implicit none
 !
   TYPE(run_objects), intent(inout) :: run_md
@@ -53,7 +54,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
   !this will become an input variable
   type(NHC_data) :: NHC
 
-  REAL(KIND=8), DIMENSION(:,:), POINTER :: rxyz, fxyz, vxyz
+  REAL(KIND=8), DIMENSION(:,:), POINTER :: rxyz,drxyz0, fxyz, vxyz, constr_force !, drxyz, dfxyz 
   REAL(KIND=8), DIMENSION(:), POINTER   :: amass
   CHARACTER(LEN=5), DIMENSION(:), POINTER :: alabel
 
@@ -64,7 +65,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
   character(len=*), parameter :: subname='bomd'
   LOGICAL :: ionode, no_translation
 !NNdbg
-  integer :: norbp, iwfn
+  integer :: norbp, iwfn, i
+  type(cons_data)  ::  cvdata
 
   call f_routine(id='bomd')
 
@@ -92,15 +94,18 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   if(no_translation)call get_com(natoms,com,rxyz)
 
+  call read_constraints(3,natoms,cvdata)
   !FIXME
   if(no_translation)then
      ndof=3*natoms-3 !FIXME
   else
-     ndof=3*natoms
+     ndof=3*natoms - cvdata%nconstraints 
   end if
  
   vxyz = f_malloc_ptr([3,natoms],id='vxyz')
   fxyz = f_malloc_ptr([3,natoms],id='fxyz')
+  drxyz0 = f_malloc_ptr([3,natoms],id='drxyz0')
+  constr_force  = f_malloc_ptr([3,natoms],id='constr_force')
   amass = f_malloc_ptr(natoms,id='amass')
   alabel = f_malloc_str_ptr(len(alabel),natoms,id='alabel')
 
@@ -173,8 +178,10 @@ subroutine bomd(run_md,outs,nproc,iproc)
      IF(nhc%NHCHAIN)CALL NOSE_EVOLVE(natoms,ndof,T0ions,amass,vxyz,nhc)
 
      CALL velocity_verlet_vel(dt,natoms,rxyz,vxyz,fxyz)
+    call dcopy(3*natoms,rxyz,1,drxyz0,1) 
 
      CALL velocity_verlet_pos(dt,natoms,rxyz,vxyz)
+     if (cvdata%nconstraints>0) call shake(3,natoms,dt,amass,rxyz,drxyz0,cvdata,constr_force)   !3=ndim
      if(no_translation)CALL shift_com(natoms,com,rxyz)
 
 
@@ -186,8 +193,11 @@ subroutine bomd(run_md,outs,nproc,iproc)
      DO iat=1,natoms
         fxyz(1:3,iat)=outs%fxyz(1:3,iat)/amass(iat)
      END DO
-
-     CALL velocity_verlet_vel(dt,natoms,rxyz,vxyz,fxyz)
+     if (cvdata%nconstraints>0) then
+        call rattle(3,natoms,dt,amass,fxyz,drxyz0,rxyz,vxyz,cvdata) !3=ndim
+     else
+        CALL velocity_verlet_vel(dt,natoms,rxyz,vxyz,fxyz)
+     end if
 
      IF(nhc%NHCHAIN)THEN
         CALL NOSE_EVOLVE(natoms,ndof,T0ions,amass,vxyz,nhc)
@@ -217,12 +227,15 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   !the deallocation of the pointers
   call finalize_NHC_data(nhc)
+  call f_free_ptr(drxyz0)
   call f_free_ptr(vxyz)
   call f_free_ptr(fxyz)
   call f_free_ptr(amass)
   call f_free_str_ptr(len(alabel),alabel)
 
   call f_release_routine()
+  call deallocate_cvdata(cvdata)
+  call f_free_ptr(constr_force)
 
 end subroutine bomd
 
