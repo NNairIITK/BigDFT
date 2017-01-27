@@ -1709,17 +1709,6 @@ contains
           in%itermax_virt = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
-!!$       case (SOLVENT)
-!!$          in%set_epsilon= val
-!!$          dummy_char = val
-!!$          select case(trim(dummy_char))
-!!$          case ("vacuum")
-!!$             in%set_epsilon =EPSILON_VACUUM
-!!$          case("rigid")
-!!$             in%set_epsilon =EPSILON_RIGID_CAVITY
-!!$          case("sccs")
-!!$             in%set_epsilon =EPSILON_SCCS
-!!$          end select
        case (EXTERNAL_POTENTIAL)
           ! Do nothing?
        case(CALCULATE_STRTEN)

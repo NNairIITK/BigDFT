@@ -37,7 +37,7 @@ module module_globaltool
         real(gp) :: fp_delta
         integer  :: ndir
         character(len=500), allocatable :: directories(:)
-        character(len=3) :: fptype
+!        character(len=3) :: fptype
 
         integer  :: ntranspairs
         logical  :: search_transpairs
@@ -186,12 +186,14 @@ end subroutine construct_filename
 subroutine init_nat_rcov(gdat)
     use module_base
     use module_atoms, only: set_astruct_from_file,&
-                            deallocate_atomic_structure
+                            deallocate_atomic_structure,&
+                            nullify_atomic_structure
     implicit none
     !parameter
     type(gt_data), intent(inout) :: gdat
     !local
     character(len=600) :: filename
+    call nullify_atomic_structure(gdat%astruct)
     call check_filename(gdat,1)
     call construct_filename(gdat,1,1,filename)
     call deallocate_atomic_structure(gdat%astruct)
@@ -205,6 +207,7 @@ end subroutine init_nat_rcov
 subroutine init_gt_data(gdat)
     use module_base
     use module_atoms, only: nullify_atomic_structure
+    use module_fingerprints
     implicit none
     !parameters
     type(gt_data), intent(inout) :: gdat
@@ -307,7 +310,8 @@ subroutine read_globaltool_uinp(gdat)
 
     u=f_get_free_unit()
     open(u,file='globaltool.inp')
-    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta,gdat%uinp%fptype
+    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta
+!    read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta,gdat%uinp%fptype
     if(istat/=0)then
         call f_err_throw('Error in first line of globaltool.inp',&
              err_name='BIGDFT_RUNTIME_ERROR')
@@ -328,15 +332,16 @@ subroutine read_globaltool_uinp(gdat)
     close(u)
 
     call init_nat_rcov(gdat)
-    if(trim(adjustl(gdat%uinp%fptype))=='SO')then
-        gdat%nid = gdat%nat !s-overlap
-    elseif(trim(adjustl(gdat%uinp%fptype))=='SPO')then
-        gdat%nid = 4*gdat%nat !sp-overlap
-    else
-        call f_err_throw('Fingerprint type "'//&
-             trim(adjustl(gdat%uinp%fptype))//'" unknown.',&
-             err_name='BIGDFT_RUNTIME_ERROR')
-    endif
+    call init_fingerprint(gdat%spredinputs,gdat%nat,gdat%astruct%geocode,gdat%nid)
+    !if(trim(adjustl(gdat%uinp%fptype))=='SO')then
+    !    gdat%nid = gdat%nat !s-overlap
+    !elseif(trim(adjustl(gdat%uinp%fptype))=='SPO')then
+    !    gdat%nid = 4*gdat%nat !sp-overlap
+    !else
+    !    call f_err_throw('Fingerprint type "'//&
+    !         trim(adjustl(gdat%uinp%fptype))//'" unknown.',&
+    !         err_name='BIGDFT_RUNTIME_ERROR')
+    !endif
 
     !read transition pairs for which MH aligned version should
     !be found

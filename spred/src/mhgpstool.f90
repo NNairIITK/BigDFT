@@ -12,7 +12,7 @@ program mhgpstool
     use module_interfaces
     use yaml_output
     use bigdft_run
-    use module_atoms, only: set_astruct_from_file
+    use module_atoms, only: nullify_atomic_structure, set_astruct_from_file
     use module_mhgpstool
     use module_userinput, read_mhgps_input => read_input
     use SPREDtypes
@@ -39,9 +39,11 @@ program mhgpstool
     write(filename,'(a,i5.5,a)')trim(adjustl(folders(1)))//'/sad',1,'_finalF'
     nat = bigdft_nat(filename=filename)
     call count_saddle_points(nfolder,folders,nsad)
-    call init_mhgpstool_data(nat,nfolder,nsad,mdat)
 
+    call nullify_atomic_structure(mdat%astruct)
     call set_astruct_from_file(trim(filename),0,mdat%astruct,energy=energy)
+    call init_mhgpstool_data(nat,spredinputs,nfolder,nsad,mdat)
+
     call yaml_comment('Covalent radii ....',hfill='-')
     call give_rcov(0,mdat%astruct,mdat%astruct%nat,mdat%rcov)
     call read_and_merge_data(spredinputs,folders,nsad,mdat)

@@ -2323,7 +2323,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
              ixyz0=plot_pot_axes)
      else if (any(plot_pot_axes>=0)) then
         call f_err_throw('The coordinates of the point through which '//&
-             'the potential shall be plotted must all be non-zero',&
+             'the density shall be plotted must all be non-zero',&
              err_name='BIGDFT_RUNTIME_ERROR')
      else
          call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&

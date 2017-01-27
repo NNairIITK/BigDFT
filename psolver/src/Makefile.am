@@ -55,6 +55,7 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
 	exctx_calculation.f90 \
+	mp_quadrature.f90 \
 	$(fdder_file) \
 	IObox.f90 \
 	$(c_level) \
@@ -69,6 +70,7 @@ modules = POISSON_SOLVER.@MODULE_EXT@ \
 	PSBOX.@MODULE_EXT@ \
 	FDDER.@MODULE_EXT@ \
 	IOBOXETSF.@MODULE_EXT@ \
+	MULTIPOLE_PRESERVING.@MODULE_EXT@ \
 	IOBOX.@MODULE_EXT@
 else
 modules = poisson_solver.@MODULE_EXT@ \
@@ -78,6 +80,7 @@ modules = poisson_solver.@MODULE_EXT@ \
 	psbox.@MODULE_EXT@ \
 	fdder.@MODULE_EXT@ \
 	ioboxetsf.@MODULE_EXT@ \
+	multipole_preserving.@MODULE_EXT@ \
 	iobox.@MODULE_EXT@
 endif
 
