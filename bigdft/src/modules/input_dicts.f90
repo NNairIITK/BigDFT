@@ -1797,10 +1797,6 @@ contains
     if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf, cbuf, cbuf_len)
        call freeCBuffer(cbuf)
-!       if (mpi_env%nproc > 1 .and. cbuf_len > 0) &
-!            & call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
-!    else
-!       if (cbuf_len > 0) call mpi_bcast(fbuf(1), int(cbuf_len), MPI_CHARACTER, 0, mpi_env%mpi_comm, ierr)
     end if
 
     !this call can be replaced with the size of the character array

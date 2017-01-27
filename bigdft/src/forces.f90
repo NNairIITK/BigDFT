@@ -496,7 +496,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_base
   use module_types
   use yaml_output
-  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use multipole_preserving
   use module_dpbox
   use bounds, only: ext_buffers
   implicit none

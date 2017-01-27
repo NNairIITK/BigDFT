@@ -187,6 +187,7 @@ module PStypes
      !! this enumerator contains the algorithm and has the attribute associated to the 
      !! type of cavity to be used
      type(f_enumerator) :: method
+     type(cell) :: mesh !< structure which includes all cell informations 
      integer, dimension(3) :: ndims   !< dimension of the box of the density
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
@@ -358,6 +359,7 @@ contains
     k%cavity=cavity_default()
     k%opt=PSolver_options_null()
     k%mu=0.0_gp
+    k%mesh=cell_null()
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
     k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
@@ -509,6 +511,7 @@ contains
     type(coulomb_operator) :: kernel
     !local variables
     integer :: nthreads,group_size,taskgroup_size
+!    real(gp), dimension(3) :: angrad_new
     !$ integer :: omp_get_max_threads
 
     !nullification
@@ -521,8 +524,14 @@ contains
     kernel%hgrids=hgrids
 
     if (present(angrad)) then
+!       ! TO BE CLARIFIED WHY ARE INVERTED!!!
+!       angrad_new(1)=angrad(2)
+!       angrad_new(2)=angrad(1)
+!       angrad_new(3)=angrad(3)
+!       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
        kernel%angrad=angrad
     else
+!       kernel%mesh=cell_new(geocode,ndims,hgrids)
        kernel%angrad=onehalf* [ pi, pi, pi ]
     end if
 
@@ -633,24 +642,27 @@ contains
     type(dictionary), pointer :: parsed_parameters
     type(dictionary), pointer :: profiles
     type(dictionary), pointer :: nested,asis
+    external :: get_ps_inputvars
 
     call f_routine(id='PS_input_dict')
 
     nullify(parameters,parsed_parameters,profiles)
 
-    !alternative filling of parameters from hard-coded source file
-    !call getstaticinputdef(cbuf_add,params_size)
-    call getpsinputdefsize(params_size)
-    !allocate array
-    params=f_malloc_str(1,params_size,id='params')
-    !fill it and parse dictionary
-    call getpsinputdef(params)
+!!$    !alternative filling of parameters from hard-coded source file
+!!$    call getpsinputdefsize(params_size)
+!!$    !allocate array
+!!$    params=f_malloc_str(1,params_size,id='params')
+!!$    !fill it and parse dictionary
+!!$    call getpsinputdef(params)
+!!$    call yaml_parse_from_char_array(parsed_parameters,params)
+!!$    call f_free_str(1,params)
 
-    call yaml_parse_from_char_array(parsed_parameters,params)
-    !there is only one document in the input variables specifications
+    !new filing method, uses database parsing
+    call yaml_parse_database(parsed_parameters,get_ps_inputvars)
+    !for each of the documents in the input variables specifications
     parameters=>parsed_parameters//0
     profiles => parsed_parameters//1
-    call f_free_str(1,params)
+
 
     call input_file_complete(parameters,dict,imports=profiles)
 

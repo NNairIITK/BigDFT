@@ -458,6 +458,12 @@
    nrepmax_occ_ctrl:
      COMMENT: Number of re-diagonalizations of occupancy control scheme.
      default: 1
+   alpha_hf:
+     COMMENT: Part of the exact exchange contribution for hybrid functionals
+     DESCRIPTION: |
+       By default .25 for PBE0, and .2 for B3LYP
+     RANGE: [0.0,1.0]
+     default: -1.0
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out
@@ -467,6 +473,10 @@
      The atomic species or the atoms written as Atom No are specified, followed by a list
      of the shells for which the density matrix can be plotted
     default: None
+  #potentials:
+  #  format: CUBE
+  #  frequence: iteration, SCF
+    
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
@@ -695,7 +705,7 @@
        This is the stepsize for the geometry optimization.
 
        This stepsize is system dependent and it has therefore to be determined for each system.
-       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest than
+       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest then
        a better value for {betax} in the last line of the data/geopt.mon file. Whether the stepsize is correct
        can also be seen from the data/geopt.mon output of the SDCG method.
 
@@ -703,6 +713,9 @@
        where it is around 8).
        In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but
        nevertheless one should try to find reasonable values also in this case.
+   
+       SQNM: For many systems 1 is a good stepsize. Some systems can be minimized more efficiently with
+       a larger stepsize.
      CONDITION:
        MASTER_KEY: method
        WHEN:

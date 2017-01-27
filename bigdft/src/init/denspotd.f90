@@ -9,7 +9,7 @@
 
 
 !> Denspot initialization
-subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
+subroutine initialize_DFT_local_fields(denspot, ixc, nspden, alpha_hf)
   use module_base
   use module_dpbox, only: dpbox_null
   use module_types
@@ -18,6 +18,7 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   integer, intent(in) :: ixc, nspden
+  real(kind=8), intent(in) :: alpha_hf
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C)
@@ -48,9 +49,9 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   nullify(denspot%mix)
 
   if (ixc < 0) then
-     call xc_init(denspot%xc, ixc, XC_MIXED, nspden)
+     call xc_init(denspot%xc, ixc, XC_MIXED, nspden, alpha_hf)
   else
-     call xc_init(denspot%xc, ixc, XC_ABINIT, nspden)
+     call xc_init(denspot%xc, ixc, XC_ABINIT, nspden, alpha_hf)
   end if
 end subroutine initialize_DFT_local_fields
 

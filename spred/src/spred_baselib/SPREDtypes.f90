@@ -161,6 +161,7 @@ contains
     use dictionaries
     use f_input_file
     use yaml_parse
+    use f_bibliography
     implicit none
     !>input dictionary, a copy of the user input, to be filled
     !!with all the variables on exit
@@ -172,25 +173,37 @@ contains
     type(dictionary), pointer :: parameters
     type(dictionary), pointer :: parsed_parameters
     type(dictionary), pointer :: profiles
-    type(dictionary), pointer :: nested,asis
+    type(dictionary), pointer :: nested,asis,biblio
+    external :: get_spred_input_variables_definition
+    external :: get_spred_bibliography
 
     call f_routine(id='SPRED_init_input_dict')
 
     nullify(parameters,parsed_parameters,profiles)
 
-    !alternative filling of parameters from hard-coded source file
-    !call getstaticinputdef(cbuf_add,params_size)
-    call getspredinputdefsize(params_size)
-    !allocate array
-    params=f_malloc_str(1,params_size,id='params')
-    !fill it and parse dictionary
-    call getspredinputdef(params)
+!!$    !alternative filling of parameters from hard-coded source file
+!!$    !call getstaticinputdef(cbuf_add,params_size)
+!!$    call getspredinputdefsize(params_size)
+!!$    !allocate array
+!!$    params=f_malloc_str(1,params_size,id='params')
+!!$    !fill it and parse dictionary
+!!$    call getspredinputdef(params)
+!!$
+!!$    call yaml_parse_from_char_array(parsed_parameters,params)
+!!$    !there is only one document in the input variables specifications
+!!$    call f_free_str(1,params)
 
-    call yaml_parse_from_char_array(parsed_parameters,params)
-    !there is only one document in the input variables specifications
+    call yaml_parse_database(parsed_parameters,&
+         get_spred_input_variables_definition)
+
     parameters=>parsed_parameters//0
     profiles => parsed_parameters//1
-    call f_free_str(1,params)
+
+    !then update the bibliography here
+    call yaml_parse_database(biblio,get_spred_bibliography)
+    call f_bib_update(biblio//0) !only first document
+    call dict_free(biblio)
+
 
     call input_file_complete(parameters,dict,imports=profiles)
 

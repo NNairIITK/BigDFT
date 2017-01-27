@@ -73,6 +73,7 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	op2p_module.f90 \
 	numerics.f90 \
 	f_functions.f90 \
+	box.f90 \
 	harmonics.f90
 
 # Dependencies
@@ -103,7 +104,8 @@ modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	F_FUNCTIONS.@MODULE_EXT@ \
 	F_HARMONICS.@MODULE_EXT@ \
-	NUMERICS.@MODULE_EXT@
+	NUMERICS.@MODULE_EXT@ \
+	BOX.@MODULE_EXT@
 else
 modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
@@ -113,7 +115,8 @@ modules = module_fft_sg.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	f_functions.@MODULE_EXT@ \
 	f_harmonics.@MODULE_EXT@ \
-	numerics.@MODULE_EXT@
+	numerics.@MODULE_EXT@ \
+	box.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h
 

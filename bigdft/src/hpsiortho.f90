@@ -551,7 +551,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   character(len=*), parameter :: subname='LocalHamiltonianApplication'
   logical :: exctX,op2p_flag, symmetric
   integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
-  integer :: igpu,i_stat,nsize,nspinor
+  integer :: igpu,gpudirect,i_stat,nsize,nspinor
   real(gp) :: evsic_tmp, ekin, epot,sfac
   real(f_double) :: tel,trm
   type(coulomb_operator) :: pkernelSIC
@@ -696,8 +696,16 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            else
               igpu=pkernel%igpu
            end if
-           call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
-           if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
+
+           gpudirect=0
+           !check that we did not deactivate gpudirect manually
+           if(igpu==1 .and. pkernel%use_gpu_direct) gpudirect=1
+
+           call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,gpudirect,symmetric)
+
+           !initialization deactivates gpudirect if not enough memory
+           if(gpudirect==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
+
            !allocate work array for the internal exctx calculation
            rp_ij = f_malloc(ndim,id='rp_ij')
            energs%eexctX=0.0_gp
@@ -848,6 +856,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               call local_hamiltonian_ket(psi_it,Lzd%hgrids,ipotmethod,xc,&
                    pkernelSIC,wrk_lh,psir,vsicpsir,hpsi_ptr,pot,eSIC_DCi,SIC%alpha,epot,ekin)
               energs%ekin=energs%ekin+fi*ekin
+!!if(iproc==0)then
+!!write(*,'(a,3(x,es14.7))')'Ekin per orbital',fi,ekin,fi*ekin
+!!endif
               energs%epot=energs%epot+fi*epot
               energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
               !print *,'test',psi_it%iorb,sum(hpsi_ptr)
@@ -1917,7 +1928,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
   tr_min=(scf_mode .hasattr. 'MIXING') .or. energs%eexctX /=0.0_gp
   if(wfn%paw%usepaw) then
     !PAW: spsi is used.
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,tr_min,&
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,tr_min,& 
          wfn%psit,wfn%hpsi,energs%trH,wfn%paw%spsi)
   else
     !NC:
