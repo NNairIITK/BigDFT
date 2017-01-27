@@ -58,6 +58,7 @@ module public_keys
   character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
   character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
   character(len = *), parameter :: OCCUPANCY_CONTROL_NREPMAX= "nrepmax_occ_ctrl"
+  character(len = *), parameter :: ALPHA_HARTREE_FOCK= "alpha_hf"
   character(len = *), parameter :: RESET_DIIS_HISTORY = "reset_DIIS_history"
 
   character(len = *), parameter :: PSOLVER = "psolver"

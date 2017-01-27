@@ -15,6 +15,7 @@ program MP_gaussian
   use gaussians
   use yaml_output
   use gaussdaub
+  use multipole_preserving
   implicit none
   integer, parameter :: iplot=14,iunit=16 !< File unit for the plots
   integer, parameter :: nmoms=16          !< Number of calculated moments
@@ -329,7 +330,7 @@ contains
   !> Classify the quality of a multipole extraction in both cases
   subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
     use module_base, only: gp,safe_exp,f_open_file,f_close,yaml_toa
-    use gaussians, only: mp_exp, scfdotf
+    use multipole_preserving, only: mp_exp, scfdotf
     implicit none
     !Arguments
     integer, intent(in) :: npts,pow,nmoms

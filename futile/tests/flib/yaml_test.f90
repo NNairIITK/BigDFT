@@ -17,6 +17,7 @@ program yaml_test
    use dynamic_memory
    use yaml_parse
    use f_utils
+   use f_bibliography
    implicit none
    integer, parameter :: isize=16 !< size of functionality
    character(len=isize), parameter :: YAML               ='yaml'
@@ -37,8 +38,9 @@ program yaml_test
           UTILS              ,&
           ALLOCATIONS        ]
    
-   type(dictionary), pointer :: dict_tmp,run,dict_mp
+   type(dictionary), pointer :: dict_tmp,run,dict_mp,biblio
    type(yaml_cl_parse) :: parser
+   external :: get_database
 
    call f_lib_initialize()
 !   call yaml_set_stream(record_length=92)
@@ -103,6 +105,11 @@ program yaml_test
 !!$
 !!$
 !!$   !call profile_dictionary_usage()
+
+   !take database information
+   call yaml_parse_database(biblio,get_database)
+   call f_bib_update(biblio//0) !only first document
+   call dict_free(biblio)
 
    if (YAML .in. run) then
       !test to solve the bug of yaml_comment

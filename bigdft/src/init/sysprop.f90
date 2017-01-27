@@ -104,7 +104,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   if (present(denspot)) then
-     call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
+     call initialize_DFT_local_fields(denspot, in%ixc, in%nspin, in%alpha_hartree_fock)
 
      !here the initialization of dpbox can be set up
      call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &

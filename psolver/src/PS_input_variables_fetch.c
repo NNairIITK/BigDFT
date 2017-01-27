@@ -21,3 +21,18 @@ void FC_FUNC(getpsinputdef, GETPSINPUTDEF)(char *to)
 {
   memcpy(to,ps_input_vars_def, sizeof(char) * strlen(ps_input_vars_def));
 }
+
+/*example of the symbol to export for the database*/
+void FC_FUNC_(get_ps_inputvars, GET_PS_INPUTVARS)(char* db_ptr,int* db_len)
+{
+  if (*db_len==0) 
+    {
+    *db_len=strlen(ps_input_vars_def);
+    return;
+    }
+  else
+    {
+      memcpy(db_ptr,ps_input_vars_def, sizeof(char) * (*db_len));
+      /*printf("\n test address = %p %d; \n", NULL,*db_len);*/
+    }
+}

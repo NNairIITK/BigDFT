@@ -15,6 +15,8 @@ AM_FCFLAGS = -I../../flib -I../../src @FC_PIC_FLAG@
 AM_LDFLAGS = -L$(top_builddir)/src
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
 
+YAML_DATABASE= database.yaml
+
 
 if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
@@ -27,7 +29,15 @@ flib_libraries = $(top_builddir)/src/libfutile-1.a
 LIBS += @LIBS_EXT_DEPS@
 endif
 
-yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 utls.f90
+yaml_test_SOURCES = yaml_test.f90 \
+	errs.f90 \
+	yamlout.f90 \
+	dicts.f90 \
+	dynmem.f90 \
+	yaml_invoice.f90 \
+	utls.f90 \
+	$(DATABASE_SOURCES)
+
 yaml_test_LDADD = $(flib_libraries)
 
 yaml_argparse_SOURCES = yaml_argparse.f90
@@ -45,6 +55,8 @@ test_plugin_SOURCES = test_plugin.f90
 test_plugin_LDADD = $(flib_libraries) @FC_EXPORTS@
 
 CLEANFILES = *.out.yaml *.report.yaml *.@MODULE_EXT@ memstatus.yaml report_remarks *.err libpong.so
+
+include $(srcdir)/import_database.mk
 
 yaml_test.o: $(abs_top_builddir)/src/libfutile-1.a
 hooks.o: $(abs_top_builddir)/src/libfutile-1.a
@@ -69,10 +81,7 @@ yaml_argparse.report.yaml: tols.yaml yaml_argparse.ref.yaml yaml_argparse.out.ya
 	python $(pythondir)/fldiff_yaml.py --label yaml_argparse -t $(srcdir)/tols.yaml 	\
 		-r $(srcdir)/yaml_argparse.ref.yaml -d yaml_argparse.out.yaml --output $@
 
-hooks.out.yaml: hooks
-	./hooks > hooks.out.yaml
-
-hooks.report.yaml: tols.yaml hooks.ref.yaml hooks.out.yaml
+hooks.report.yaml: tols.yaml hooks.ref.yaml
 	python $(pythondir)/fldiff_yaml.py --label hooks -t $(srcdir)/tols.yaml 	\
 		-r $(srcdir)/hooks.ref.yaml -d hooks.out.yaml --output $@
 
@@ -81,7 +90,7 @@ check: yaml_test.report.yaml hooks.report.yaml regtest report
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(pythondir)/report.py ; fi
 
-regtest: yaml_argparse test_plugin libpong.so
+regtest: yaml_argparse test_plugin hooks libpong.so
 	python $(pythondir)/f_regtest.py --fldiff=$(pythondir)/fldiff_yaml.py \
 	       --tols=$(srcdir)/tols.yaml --srcdir=$(srcdir) \
 	       --exclusive=$(CHECK_ONLY)
@@ -99,5 +108,8 @@ define F_REGTEST_INSTRUCTIONS
    runs:
    - ./f_allocations
    - $(DESTDIR)$(bindir)/f_memcheck ./f_allocations 2>f_allocations.err
+- hooks:
+   runs:
+   - ./hooks
 endef
 export F_REGTEST_INSTRUCTIONS

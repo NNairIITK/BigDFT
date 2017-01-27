@@ -67,12 +67,13 @@ program numeric_check
   call f_free(density)
   call dict_free(options)
 
-  !test of the multipole preserving routine
-  !initialize the work arrays needed to integrate with isf
-  !names of the routines to be redefined
-  call initialize_real_space_conversion(isf_m=mp_isf_order)
-
-  call finalize_real_space_conversion()
+!!$  !test of the multipole preserving routine
+!!$  !initialize the work arrays needed to integrate with isf
+!!$  !names of the routines to be redefined
+!!$  call initialize_real_space_conversion(isf_m=mp_isf_order)
+!!$
+!!$  boxit = box_iter(mesh,origin=rxyz,cutoff=cutoff)
+!!$  call finalize_real_space_conversion()
 
   call f_lib_finalize()
 

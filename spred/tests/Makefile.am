@@ -11,7 +11,6 @@ EXTRA_DIST = MH_taskgroups
 # Give here the pseudo-potentials used by each test.
 NEB.psp: psppar.H
 SPLSAD.psp: HGH/psppar.N
-MINHOP.psp: psppar.Si psppar.H
 
 # Additional MINHOP in;
 MINHOP-test.post-in:

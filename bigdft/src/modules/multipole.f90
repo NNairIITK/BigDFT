@@ -1308,11 +1308,11 @@ module multipole
     !> Creates the charge density of a Gaussian function, to be used for the local part
     !! of the pseudopotentials (gives the error function term when later processed by the Poisson solver).
     subroutine gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, rx, ry, rz, &
-               rloc, zion, multipole_preserving, use_iterator, mp_isf, &
+               rloc, zion, multipole_preservingl, use_iterator, mp_isf, &
                dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, nrho, pot_ion, rholeaked)
       use module_base
       use module_dpbox, only: denspot_distribution, dpbox_iterator, DPB_POT_ION, dpbox_iter, dpbox_iter_next
-      use gaussians, only: mp_exp
+      use multipole_preserving, only: mp_exp
       implicit none
       ! Calling arguments
       logical,intent(in) :: perx, pery, perz
@@ -1320,7 +1320,7 @@ module multipole
       real(kind=8),intent(in) :: rloc, rx, ry, rz, hxh, hyh, hzh
       integer,intent(in) :: nbl1, nbl2, nbl3
       integer,intent(in) :: zion !< ionic charge (integer!)
-      logical,intent(in) :: multipole_preserving, use_iterator
+      logical,intent(in) :: multipole_preservingl, use_iterator
       integer,intent(in) :: mp_isf !< interpolating scaling function order for the multipole preserving
       integer,intent(in) :: nmpx, nmpy, nmpz !< sizes of the temporary arrays; if too small the code stops
       real(kind=8),dimension(0:nmpx),intent(inout) :: mpx !< temporary array for the exponetials in x direction
@@ -1349,7 +1349,7 @@ module multipole
     
       !cutoff of the range
       cutoff=10.0_gp*rloc
-      if (multipole_preserving) then
+      if (multipole_preservingl) then
          !We want to have a good accuracy of the last point rloc*10
          !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
          cutoff=cutoff+max(hxh,hyh,hzh)*real(mp_isf,kind=gp)
@@ -1379,13 +1379,13 @@ module multipole
          !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
          !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
          do i1=nbox(1,1),nbox(2,1)
-            mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
+            mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preservingl)
          end do
          do i2=nbox(1,2),nbox(2,2)
-            mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
+            mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preservingl)
          end do
          do i3=nbox(1,3),nbox(2,3)
-            mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
+            mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preservingl)
          end do
          boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
     
@@ -1421,13 +1421,13 @@ module multipole
          !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
          !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
          do i1=isx,iex
-            mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
+            mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preservingl)
          end do
          do i2=isy,iey
-            mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
+            mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preservingl)
          end do
          do i3=isz,iez
-            mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
+            mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preservingl)
          end do
     
          do i3=isz,iez

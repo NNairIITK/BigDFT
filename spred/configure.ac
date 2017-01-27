@@ -7,7 +7,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([Spred - DFT over wavelets],[1.8],[Damien.Caliste@cea.fr],[spred])
+AC_INIT([Spred - Structure PREDiction Package],[1.8],[Damien.Caliste@cea.fr],[spred])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -49,11 +49,12 @@ dnl If FC environment variable is not already set, it
 dnl looks for a modern Fortran compiler, prefering newest
 dnl fortran available (e. g. Fortran95). Then FC variable
 dnl is set.
+dnl AC_PROG_CC()
 AC_PROG_FC([], [Fortran 90])
 #	       ABI_PROG_FC()
 
 dnl Fortran 77 (to be removed)
-AC_PROG_F77([], [Fortran 77])
+dnl AC_PROG_F77([], [Fortran 77])
 
 dnl Defining Fortran language for tests.
 AC_LANG(Fortran)
