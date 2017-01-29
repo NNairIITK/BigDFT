@@ -46,6 +46,9 @@ recursive subroutine f_utils_test()
 
   r4=real(10.0,f_quadruple)
 
+
+  call yaml_cite('PS_FBC') !to check what happens
+
   call yaml_map('Long Integer kind',f_long)
   call yaml_map('Normal Integer kind',f_integer)
   call yaml_map('Short Integer kind',f_short)
