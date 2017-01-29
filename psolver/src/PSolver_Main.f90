@@ -241,6 +241,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
         call PB_iteration(n1,n23,i3s_pot_pb,kernel%PB_eta,kernel%cavity,rhov(1,1,i3s),kernel%w%pot,kernel%w%eps,&
              kernel%w%rho_ions,kernel%w%rho_pb,res_PB)
         if (kernel%method == PS_PCG_ENUM) call f_memcpy(src=kernel%w%rho_pb,dest=kernel%w%res)
+        call PS_reduce(res_PB,kernel)
         res_PB=sqrt(res_PB/product(kernel%ndims))
         if (wrtmsg) then
            call yaml_newline()
