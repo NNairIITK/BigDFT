@@ -465,12 +465,15 @@ subroutine test_functions_new(mesh,nspden,a_gauss,&
      factor = 1.d0/(a_gauss*a2*pi*sqrt(pi))
      funcs(DENSITY_)=f_function_new(f_gaussian,exponent=1.0_dp/a2)
      funcs(POTENTIAL_)=f_function_new(f_erf,scale=a_gauss/sqrt(2.0_dp))
+     
+     !test call
+     call radial_3d_function_mp(mesh,0.5_dp*a2,density)
   end select
 
   !laplacian potential = -4pi density
   call fill_functions_arrays(cell_geocode(mesh) /= 'F',mesh,funcs,factor,&
        density,potential)
-
+  
   !treatment for rhopot and pot_ion
   call f_memcpy(src=density,dest=rhopot)
 
@@ -551,6 +554,46 @@ subroutine test_functions_new2(mesh,acell,a_gauss,mu0,density,potential)
   
 end subroutine test_functions_new2
 
+subroutine radial_3d_function_mp(mesh,rloc,f)
+  use f_functions
+  use PSbase, only: dp
+  use box
+  use multipole_preserving
+  use dynamic_memory
+  implicit none
+  real(dp), intent(in) :: rloc
+  type(cell), intent(in) :: mesh
+  real(dp), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(out) :: f
+  !local variables
+  integer, parameter :: mp_isf=16
+  type(box_iterator) :: bit
+  real(dp), dimension(:), allocatable :: mpx,mpy,mpz
+
+  mpx=f_malloc(mesh%ndims(1),id='mpx')
+  mpy=f_malloc(mesh%ndims(2),id='mpy')
+  mpz=f_malloc(mesh%ndims(3),id='mpz')
+
+  !test of the multipole preserving routine
+  !initialize the work arrays needed to integrate with isf
+  !names of the routines to be redefined
+  call initialize_real_space_conversion(isf_m=mp_isf)
+
+  bit=box_iter(mesh,centered=.true.)
+  call gaussian_density(bit%oxyz,rloc,1,.true.,.false.,bit,&
+       mp_isf,mesh%ndims(1)-1,mesh%ndims(2)-1,mesh%ndims(3)-1,&
+       mpx, mpy, mpz,int(mesh%ndim),f)
+
+!!$  do while(box_next_point(bit))
+!!$     r2=square(mesh,bit%rxyz)
+!!$     r = sqrt(r2)
+!!$     f(bit%i,bit%j,bit%k) =factor*eval(func,r)
+!!$  end do
+
+  call f_free(mpx,mpy,mpz)
+
+  call finalize_real_space_conversion()
+
+end subroutine radial_3d_function_mp
 
 subroutine radial_3d_function(mesh,func,factor,f)
   use f_functions
