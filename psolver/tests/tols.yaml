@@ -77,7 +77,7 @@ GPS_mPB:
   Value: 2.59e-06
   Computed Hartree energy: 6.5e-6
   Diff of expected-computed Hartree energy: 6.5e-6
-  Integral of the density in the nonvacuum region: 7.08e-11
+  Integral of the density in the nonvacuum region: 7.7e-11
 Generalized_PSolver: #old values for reference
   itermax: 150.0
   dipole: 4.e-9

@@ -2529,11 +2529,8 @@ contains
        unt=DEFAULT_STREAM_ID
        if (present(unit)) unt=unit
        call get_stream(unt,strm,istat)
-       if (.not. associated(streams(strm)%dict_references)) then
-          call dict_init(streams(strm)%dict_references)
-          if (paper .notin. streams(strm)%dict_references) &
-               call add(streams(strm)%dict_references,paper)
-       end if
+       if (.not. associated(streams(strm)%dict_references)) call dict_init(streams(strm)%dict_references)
+       if (paper .notin. streams(strm)%dict_references) call add(streams(strm)%dict_references,paper)
     else
        call yaml_warning('Missed citation; paper "'+paper+&
             '" not present in the bibliography',unit=unit)

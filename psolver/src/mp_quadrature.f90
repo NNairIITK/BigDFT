@@ -192,7 +192,7 @@ end module multipole_preserving
 
 !> Creates the charge density of a Gaussian function, to be used for the local part
 !! of the pseudopotentials (gives the error function term when later processed by the Poisson solver).
-subroutine gaussian_density(rxyz,rloc, zion, multipole_preserving, use_iterator,boxit,&
+subroutine gaussian_density(rxyz,rloc, zion, multipole_preservingl, use_iterator,boxit,&
      mp_isf,nmpx, nmpy, nmpz, mpx, mpy, mpz, nrho, density)
   !use gaussians, only: mp_exp
   use box
@@ -203,7 +203,7 @@ subroutine gaussian_density(rxyz,rloc, zion, multipole_preserving, use_iterator,
   use dictionaries, only: f_err_throw
   implicit none
   ! Calling arguments
-  logical,intent(in) :: multipole_preserving, use_iterator
+  logical,intent(in) :: multipole_preservingl, use_iterator
   integer,intent(in) :: nrho
   real(dp),intent(in) :: rloc
   integer,intent(in) :: zion !< ionic charge (integer!)
@@ -250,7 +250,7 @@ subroutine gaussian_density(rxyz,rloc, zion, multipole_preserving, use_iterator,
 
   !cutoff of the range
   cutoff=10.0_dp*rloc
-  if (multipole_preserving) then
+  if (multipole_preservingl) then
      !We want to have a good accuracy of the last point rloc*10
      !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=dp)
      cutoff=cutoff+max(hxh,hyh,hzh)*real(mp_isf,kind=dp)
@@ -275,13 +275,13 @@ subroutine gaussian_density(rxyz,rloc, zion, multipole_preserving, use_iterator,
   end if
 
   do i1=isx,iex
-     mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preserving)
+     mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,multipole_preservingl)
   end do
   do i2=isy,iey
-     mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preserving)
+     mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,multipole_preservingl)
   end do
   do i3=isz,iez
-     mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
+     mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preservingl)
   end do
 
   if (use_iterator) then
