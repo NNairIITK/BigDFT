@@ -503,9 +503,6 @@
      Load Balancing of calculations:
        Density:
          MPI tasks 0- 6                : 100%
-         MPI task  7:
-           64                                                                                
-                       %
        Kernel:
          MPI tasks 0- 6                : 100%
          MPI task 7                    :  73%
