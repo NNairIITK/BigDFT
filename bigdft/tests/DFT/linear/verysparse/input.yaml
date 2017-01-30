@@ -11,12 +11,10 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    check_sumrho: 1
    check_overlap: 2
    kappa_conv: 0.5
-   evbounds_nsatur: 100
    correction_co_contra: Yes
  lin_general:
    hybrid: Yes
@@ -39,8 +37,6 @@
    alphamix: 0.1
    rpnrm_cv: 1.0E-008
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 1.0E-002
  lin_basis_params:
    C:
      ao_confinement: 3.9E-002
@@ -258,3 +254,27 @@
    - H: [-0.8799999952316284, -0.6600000262260437, 80.63999938964844]
    - H: [0.8799999952316284, -0.6600000262260437, 80.63999938964844]
    - H: [0.0, 0.6235299706459045, 81.54895782470703]
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 1.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

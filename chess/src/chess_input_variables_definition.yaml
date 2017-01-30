@@ -1,0 +1,124 @@
+## Definitions of the input variables
+##inputvar: #name of the variable as declared in the code
+## DESCRIPTION: Extended description of the variable to be used for documentation
+## COMMENT: This is the description of the variable as will appear in the logfile
+## RANGE: [from,to] #always put two numbers (also .inf can be put)
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
+## CONDITION: #here the conditions for which the variable makes sense are written
+##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
+##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
+##     - fooval1
+##     - fooval2
+## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
+###then the profiles follows, which gives to the variables the allowed name
+## default: value of the default, written as a string
+## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
+## profile2: value2
+##
+## DO NOT USE the character ':' and "" in the COMMENT or DESCRIPTION
+############################################
+# chess:
+#   DESCRIPTION: Parameters required for CheSS
+ foe:
+   DESCRIPTION: Parameters for Fermi Operatir Expansion
+   ef_interpol_det:
+     COMMENT: FOE max determinant of cubic interpolation matrix
+     RANGE: [0., 1.]
+     default: 1.e-12
+   ef_interpol_chargediff:
+     COMMENT: FOE max charge difference for interpolation
+     RANGE: [0., 1000.]
+     default: 1.0
+   evbounds_nsatur:
+     COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+     default: 3
+   evboundsshrink_nsatur:
+     COMMENT: Maximal number of unsuccessful eigenvalue bounds shrinkings
+     default: 4
+   fscale:
+     COMMENT: Initial guess for the error fucntion decay length
+     DESCRIPTION: |
+       Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+       This value will be adjusted automatically if not chosen appropriately.
+     RANGE: [1.e-4,1.e-1]
+     default: 5.e-2
+   fscale_lowerbound:
+     COMMENT: Lower bound for the error function decay length
+     RANGE: [1.e-4,1.e-2]
+     default: 5.e-3
+   fscale_upperbound:
+     COMMENT: Upper bound for the error function decay length
+     default: 5.e-2
+     RANGE: [1.e-2,1.0]
+   eval_range_foe:
+     COMMENT: Lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+     DESCRIPTION: |
+       Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
+       This spectrum will be adjusted automatically if not chosen appropriately.
+     RANGE: [-10.0,10.0]
+     default: [-0.5,0.5]
+   #fscale:
+   #  COMMENT: Decay length of the error function
+   #  DESCRIPTION: |
+   #    Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+   #    This value will be adjusted automatically if not chosen appropriately.
+   #  RANGE: [1.e-3,5.e-2]
+   #  default: 2.e-2
+ lapack:
+   blocksize_pdsyev:
+     COMMENT: SCALAPACK linear scaling blocksize for diagonalization
+     default: -8
+   blocksize_pdgemm:
+     COMMENT: SCALAPACK linear scaling blocksize for matrix matrix multiplication
+     default: -8
+   maxproc_pdsyev:
+     COMMENT: SCALAPACK linear scaling max num procs
+     default: 4
+   maxproc_pdgemm:
+     COMMENT: SCALAPACK linear scaling max num procs
+     default: 4
+ pexsi:
+   pexsi_npoles:
+     COMMENT: Number of poles used by PEXSI
+     DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+     default: 40
+     RANGE: [20,200]
+   pexsi_mumin:
+     COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
+     DESCRIPTION: |
+       Initial guesss for the lower bound of the chemical potential (in hartree)
+       used by PEXSI, will be adjusted automatically later.
+     default: -1.0
+     RANGE: [-5.0,5.0]
+   pexsi_mumax:
+     COMMENT: Initial guess for the upper bound of the chemical potential used by PEXSI
+     DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree) used by PEXSI, will be adjusted automatically later
+     default: 1.0
+     RANGE: [-5.0,5.0]
+   pexsi_mu:
+     COMMENT: Initial guess for the  chemical potential used by PEXSI
+     DESCRIPTION: initial guesss for the chemical potential (in hartree) used by PEXSI, will be adjusted automatically later
+     default: 0.5
+     RANGE: [-5.0,5.0]
+   pexsi_temperature:
+     COMMENT: Temperature used by PEXSI
+     DESCRIPTION: temperature (in atomic units) used by PEXSI
+     default: 1.e-3
+     RANGE: [0.0,1.0]
+   pexsi_tol_charge:
+     COMMENT: Charge tolerance used PEXSI
+     DESCRIPTION: tolerance on the number of electrons used by PEXSI
+     default: 1.e-3
+     RANGE: [1.e-10,1.0]
+   pexsi_np_sym_fact:
+     COMMENT: Number of tasks for the symbolic factorization used by PEXSI
+     DESCRIPTION: Number of tasks used for the symbolic factorization within PEXSI. Too large values can apparently decrease the performance
+     default: 16
+     RANGE: [1,10000]
+   pexsi_DeltaE:
+     COMMENT: Upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI
+     DESCRIPTION: Upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI. This does not seem to be a critical parameter.
+     default: 10.0
+     RANGE: [-100.0,100.0]

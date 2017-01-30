@@ -8,6 +8,9 @@
    itermax: 100
    nrepmax: 2
    inputpsiid: linear
+ chess:
+   foe:
+     fscale: 5.0000000000000003E-002
  perf:
    correction_co_contra: no
  lin_general:
@@ -25,7 +28,6 @@
    nit: 8
    alphamix: 1.0
    linear_method: DIRMIN
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    O:
      ao_confinement: 1.0E-003

@@ -28,8 +28,8 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8
- Timestamp of this run                 : 2016-10-26 09:42:08.073
- Root process Hostname                 : s11r2b12
+ Timestamp of this run                 : 2017-01-16 16:54:09.675
+ Root process Hostname                 : s12r2b69
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
  Maximal OpenMP threads per MPI task   :  2
@@ -52,10 +52,11 @@
    hgrids                              : 0.60 #   Grid spacing in the three directions (bohr)
    rmult: [3.0, 3.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : -101130 # Exchange-correlation parameter (LDA=1,PBE=11)
-   gnrm_cv                             : 1.e-2 #  convergence criterion gradient
+   gnrm_cv                             : 1.e-2 #  Convergence criterion gradient
    nrepmax                             : 10 #     Max. number of re-diag. runs
    ncong                               : 2 #      No. of CG it. for preconditioning eq.
    inputpsiid                          : 100 #    Input guess wavefunctions
+   ngrids: [0, 0, 0] #                            Number of grid spacing division in each direction
    qcharge                             : 0 #      Charge of the system. Can be integer or real.
    elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
    nspin                               : 1 #      Spin polarization treatment
@@ -71,7 +72,7 @@
    norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
-   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   gnrm_cv_virt                        : 1.e-4 #  Convergence criterion gradient for virtual orbitals
    itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
    disablesym                          : No #     Disable the symmetry detection
    external_potential                  : 0.0 #    Multipole moments of an external potential
@@ -84,18 +85,18 @@
    occupancy_control                   : None #   Dictionary of the atomic matrices to be applied for a given iteration number
    itermax_occ_ctrl                    : 0 #      Number of iterations of occupancy control scheme. Should be between itermin and 
     #                                              itermax
+   nrepmax_occ_ctrl                    : 1 #      Number of re-diagonalizations of occupancy control scheme.
  perf:
    store_index                         : No #     Store indices or recalculate them for linear scaling
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    check_sumrho                        : 1 #      Enables linear sumrho check
    experimental_mode                   : Yes #    Activate the experimental mode in linear scaling
    calculate_KS_residue                : No #     Linear scaling calculate Kohn-Sham residue
    kappa_conv                          : 0.9 #    Exit kappa for extended input guess (experimental mode)
-   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
    check_overlap                       : 1 #      Enables linear overlap check
-   hamapp_radius_incr                  : 4 #      radius enlargement for the Hamiltonian application (in grid points)
+   hamapp_radius_incr                  : 4 #      Radius enlargement for the Hamiltonian application (in grid points)
    debug                               : No #     Debug option
-   profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
+   profiling_depth                     : -1 #     Maximum level of the profiling for the tracking of the routines
    fftcache                            : 8192 #   Cache size for the FFT
    accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
@@ -121,113 +122,95 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitly specify localization centers
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
-   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
-   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
-   coeff_weight_analysis               : No #     linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
+   calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
+   coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
-   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
-   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
-   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
-   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
-   adjust_kernel_iterations            : True #   enable the adaptive ajustment of the number of kernel iterations
-   adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
+   imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
+   adjust_kernel_iterations            : True #   Enable the adaptive ajustment of the number of kernel iterations
+   adjust_kernel_threshold             : True #   Enable the adaptive ajustment of the kernel convergence threshold according to the 
     #                                              support function convergence
-   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+   wf_extent_analysis                  : False #  Perform an analysis of the extent of the support functions (and possibly KS orbitals)
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
  lin_general:
-   hybrid                              : Yes #    activate the hybrid mode; if activated, only the low accuracy values will be relevant
-   nit                                 : 1 #      number of iteration with low/high accuracy
-   rpnrm_cv                            : 5.0e-6 # convergence criterion for low/high accuracy
-   taylor_order                        : 1020 #   order of the Taylor approximation; 0 -> exact
-   max_inversion_error                 : 5.0e-8 # linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+   hybrid                              : Yes #    Activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit                                 : 1 #      Number of iteration with low/high accuracy
+   rpnrm_cv                            : 5.0e-6 # Convergence criterion for low/high accuracy
+   taylor_order                        : 1020 #   Order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 5.0e-8 # Linear scaling maximal error of the Taylor approximations to calculate the inverse of 
     #                                              the overlap matrix
-   calc_dipole                         : Yes #    calculate dipole
-   calc_quadrupole                     : Yes #    calculate quadrupole
-   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+   calc_dipole                         : Yes #    Calculate dipole
+   calc_quadrupole                     : Yes #    Calculate quadrupole
+   conf_damping                        : -0.5 #   How the confinement should be decreased, only relevant for hybrid mode; negative -> 
     #                                              automatic
-   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
-   output_mat                          : 0 #      output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 
+   output_wf                           : 0 #      Output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   output_mat                          : 0 #      Output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 
     #                                              formatted both
-   output_coeff                        : 0 #      output KS coefficients; 0 no output, 1 formatted output
-   output_fragments                    : 0 #      output support functions, kernel and coeffs; 0 fragments and full system, 1 
+   output_coeff                        : 0 #      Output KS coefficients; 0 no output, 1 formatted output
+   output_fragments                    : 0 #      Output support functions, kernel and coeffs; 0 fragments and full system, 1 
     #                                              fragments only, 2 full system only
-   kernel_restart_mode                 : 0 #      method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 
+   kernel_restart_mode                 : 0 #      Method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 
     #                                              support function weights
-   kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
-   frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
-   frag_neighbour_cutoff               : 12.0d0 # number of neighbours to output for each fragment
+   kernel_restart_noise                : 0.0d0 #  Add random noise to kernel or coefficients when restarting
+   frag_num_neighbours                 : 0 #      Number of neighbours to output for each fragment
+   frag_neighbour_cutoff               : 12.0d0 # Number of neighbours to output for each fragment
    cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
    cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
-   subspace_diag                       : No #     diagonalization at the end
+   subspace_diag                       : No #     Diagonalization at the end
    extra_states                        : 0 #      Number of extra states to include in support function and kernel optimization (dmin 
     #                                              only), must be equal to norbsempty
-   calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
+   calculate_onsite_overlap            : No #     Calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
    charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
     #                                              new approach Projector
    support_function_multipoles         : False #  Calculate the multipole moments of the support functions
-   plot_locreg_grids                   : False #  plot the scaling function and wavelets grid of each localization region
+   plot_locreg_grids                   : False #  Plot the scaling function and wavelets grid of each localization region
    calculate_FOE_eigenvalues: [0, -1] #           First and last eigenvalue to be calculated using the FOE procedure
-   precision_FOE_eigenvalues           : 5.e-3 #  decay length of the error function used to extract the eigenvalues (i.e. something like 
+   precision_FOE_eigenvalues           : 5.e-3 #  Decay length of the error function used to extract the eigenvalues (i.e. something like 
     #                                              the resolution)
  lin_basis:
-   nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
+   nit                                 : 8 #      Maximal number of iterations in the optimization of the support functions
    idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
-   gnrm_cv                             : 2.0e-3 # convergence criterion for the optimization of the support functions (low/high accuracy)
-   min_gnrm_for_dynamic                : 4.0e-3 # minimal gnrm to active the dynamic gnrm criterion
-   alpha_diis                          : 0.5 #    multiplicator for DIIS
-   alpha_sd                            : 0.5 #    initial step size for SD
-   nstep_prec                          : 6 #      number of iterations in the preconditioner
-   fix_basis                           : 1.0e-12 # fix the support functions if the density change is below this threshold
-   correction_orthoconstraint          : 0 #      correction for the slight non-orthonormality in the orthoconstraint
+   gnrm_cv                             : 2.0e-3 # Convergence criterion for the optimization of the support functions (low/high accuracy)
+   min_gnrm_for_dynamic                : 4.0e-3 # Minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 0.5 #    Multiplicator for DIIS
+   alpha_sd                            : 0.5 #    Initial step size for SD
+   nstep_prec                          : 6 #      Number of iterations in the preconditioner
+   fix_basis                           : 1.0e-12 # Fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 0 #      Correction for the slight non-orthonormality in the orthoconstraint
    nit_ig                              : 50 #     maximal number of iterations to optimize the support functions in the extended input 
     #                                              guess (experimental mode only)
-   gnrm_ig                             : 1.e-3 #  convergence criterion for the optimization of the support functions in the extended 
+   gnrm_ig                             : 1.e-3 #  Convergence criterion for the optimization of the support functions in the extended 
     #                                              input guess (experimental mode only)
-   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
-   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   deltae_cv                           : 1.e-4 #  Total relative energy difference to stop the optimization ('experimental_mode' only)
+   gnrm_dyn                            : 1.e-4 #  Dynamic convergence criterion ('experimental_mode' only)
    orthogonalize_ao                    : Yes #    Orthogonalize the atomic orbitals used as input guess
-   reset_DIIS_history                  : No #     reset the DIIS history when starting the loop which optimizes the support functions
+   reset_DIIS_history                  : No #     Reset the DIIS history when starting the loop which optimizes the support functions
  lin_kernel:
-   nstep                               : 10 #     number of steps taken when updating the coefficients via direct minimization for 
+   nstep                               : 10 #     Number of steps taken when updating the coefficients via direct minimization for 
     #                                              each iteration of the density kernel loop
-   nit                                 : 1 #      number of iterations in the (self-consistent) optimization of the density kernel
+   nit                                 : 1 #      Number of iterations in the (self-consistent) optimization of the density kernel
    idsx_coeff: [6, 0] #                           DIIS history for direct mininimization
-   idsx                                : 6 #      mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
-   alphamix                            : 0.1 #    mixing parameter (low/high accuracy)
-   linear_method                       : FOE #    method to optimize the density kernel
-   eval_range_foe: [-1.0, 1.0] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
-    #                                              automatically if chosen unproperly
-   fscale_foe                          : 1.0E-002 # decay length of the error function
-   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
-   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+   idsx                                : 6 #      Mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix                            : 0.1 #    Mixing parameter (low/high accuracy)
+   linear_method                       : FOE #    Method to optimize the density kernel
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                Convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   Convergence criterion (change in density/potential) for the kernel 
     #                                              optimization
-   mixing_method                       : DEN #    quantity to be mixed
-   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   mixing_method                       : DEN #    Quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
-   delta_pnrm                          : -1.0 #   stop the kernel optimization if the density/potential difference has decreased by this 
+   coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
+   delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  charge tolerance used PEXSI
  lin_basis_params:
    Si:
      ao_confinement                    : 5.e-2
@@ -240,7 +223,32 @@
    confinement: [8.3e-3, 0.0] #                   Prefactor for the confining potential (low/high accuracy)
    rloc: [7.0, 7.0] #                             Localization radius for the support functions
    rloc_kernel                         : 9.0 #    Localization radius for the density kernel
-   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+   rloc_kernel_foe                     : 14.0 #   Cutoff radius for the FOE matrix vector multiplications
+ chess:
+   lapack:
+     blocksize_pdsyev                  : -8 #     SCALAPACK linear scaling blocksize for diagonalization
+     blocksize_pdgemm                  : -8 #     SCALAPACK linear scaling blocksize for matrix matrix multiplication
+     maxproc_pdsyev                    : 4 #      SCALAPACK linear scaling max num procs
+     maxproc_pdgemm                    : 4 #      SCALAPACK linear scaling max num procs
+   foe:
+     ef_interpol_chargediff            : 1.0 #    FOE max charge difference for interpolation
+     eval_range_foe: [-1.0, 1.0] #                Lower and upper bound of the eigenvalue spectrum, will be adjusted 
+      #                                            automatically if chosen unproperly
+     fscale                            : 1.0E-002 # Initial guess for the error fucntion decay length
+     ef_interpol_det                   : 1.e-12 # FOE max determinant of cubic interpolation matrix
+     evbounds_nsatur                   : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+     evboundsshrink_nsatur             : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
+     fscale_lowerbound                 : 5.e-3 #  Lower bound for the error function decay length
+     fscale_upperbound                 : 5.e-2 #  Upper bound for the error function decay length
+   pexsi:
+     pexsi_npoles                      : 40 #     Number of poles used by PEXSI
+     pexsi_mumin                       : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
+     pexsi_mumax                       : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
+     pexsi_mu                          : 0.5 #    Initial guess for the  chemical potential used by PEXSI
+     pexsi_temperature                 : 1.e-3 #  Temperature used by PEXSI
+     pexsi_tol_charge                  : 1.e-3 #  Charge tolerance used PEXSI
+     pexsi_np_sym_fact                 : 16 #     Number of tasks for the symbolic factorization used by PEXSI
+     pexsi_DeltaE                      : 10.0 #   Upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI
  psolver:
    kernel:
      screening                         : 0 #      Mu screening parameter
@@ -731,7 +739,7 @@
    Orthoconstraint:  Yes, summary: {npl:  110, bounds:  [  0.500,  1.500 ], 
                               exp accur:  [  5.11E-14 ]}, correction orthoconstraint:  Yes, 
                         Preconditioning:  Yes,  rel D:  0.00E+00, 
- iter:  1, fnrm:  2.53E-01, Omega: {TRACE:  2.620487808503552E+02}, D:  2.62E+02, 
+ iter:  1, fnrm:  2.53E-01, Omega: {TRACE:  2.620487808503551E+02}, D:  2.62E+02, 
                                    D best:  2.62E+02, 
  Optimization: {algorithm: DIIS, history length:  8, consecutive failures:  0, 
            total failures:  0}, 
@@ -801,11 +809,11 @@
        summary: {nit:  14, eF:  7.263216E-01, Tr(K):  2.2000000E+02, D Tr(K):  1.33E-07}
        Asymmetry of kernel             :  1.14E-04
        symmetrize_kernel               :  Yes
-       EBS                             :  1.137103745707E+02
-       EBS higher temperature          :  1.135623226664E+02
-       difference                      : -1.480519043057E-01
-       relative difference             :  1.302008764500E-03
-       trace(KS)                       :  220.0000001348862
+       EBS                             :  1.137103748292E+02
+       EBS higher temperature          :  1.135623227052E+02
+       difference                      : -1.480521239910E-01
+       relative difference             :  1.302010693513E-03
+       trace(Ktilde)                   :  220.0000001334283
        modify error function decay length: decrease
        need to repeat with sharper decay (new):  Yes
      -  #--------------------------------------------------------------- ispin: 1, itemp: 2
@@ -839,15 +847,17 @@
        summary: {nit:  10, eF:  7.257198E-01, Tr(K):  2.2000000E+02, D Tr(K): -1.49E-08}
        Asymmetry of kernel             :  1.15E-04
        symmetrize_kernel               :  Yes
-       EBS                             :  1.137018587086E+02
-       EBS higher temperature          :  1.136240351219E+02
-       difference                      : -7.782358670883E-02
-       relative difference             :  6.844530739668E-04
-       trace(KS)                       :  219.9999999865162
+       EBS                             :  1.137018589671E+02
+       EBS higher temperature          :  1.136240350804E+02
+       difference                      : -7.782388672862E-02
+       relative difference             :  6.844557110638E-04
+       trace(Ktilde)                   :  219.999999985086
        modify error function decay length: decrease
        fscale reached lower limit; reset to:  5.0000000000000001E-003
        need to repeat with sharper decay (new):  Yes
        limit reached, exit loop        :  Yes
+       trace(KS)                       :  2.199999999865E+02
+       trace(KH)                       :  1.137018587086E+02
       #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
      Asymmetry of the matrices:
        Overlap                         :  0.00E+00
@@ -893,11 +903,11 @@
                                                                                     rel D:  1, 
                                                                                     kappa:  5, 
                                                                          kappa to history:  Y, 
- iter:  2, fnrm:  1.72E-01, Omega: {HYBRID: -4.848525420973581E+01}, D: -4.75E+00, 
+ iter:  2, fnrm:  1.72E-01, Omega: {HYBRID: -4.848525420973587E+01}, D: -4.75E+00, 
                                     D best: -4.75E+00, exit criterion: energy difference}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 2
  Components: {Ekin:  2.27333725632E+02, Epot: -1.00831152943E+02, Enl:  1.35237594457E+02}, 
- nit:  2, fnrm:  1.72E-01, Omega: {HYBRID: -4.848525420973581E+01}, D total: -4.75E+00}
+ nit:  2, fnrm:  1.72E-01, Omega: {HYBRID: -4.848525420973587E+01}, D total: -4.75E+00}
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.94E-01,  2.31E-01 ], warnings:  220}
      -  {type: Si, mean / max value:  [  1.94E-01,  2.31E-01 ], warnings:  220}
@@ -943,15 +953,17 @@
          summary: {nit:  9, eF:  7.207855E-01, Tr(K):  2.2000000E+02, D Tr(K):  4.08E-09}
          Asymmetry of kernel           :  1.86E-04
          symmetrize_kernel             :  Yes
-         EBS                           :  1.097926582073E+02
-         EBS higher temperature        :  1.097198393109E+02
-         difference                    : -7.281889635856E-02
-         relative difference           :  6.632401250462E-04
-         trace(KS)                     :  220.0000000071567
+         EBS                           :  1.097926588643E+02
+         EBS higher temperature        :  1.097198709406E+02
+         difference                    : -7.278792372438E-02
+         relative difference           :  6.629580199377E-04
+         trace(Ktilde)                 :  220.0000000040839
          modify error function decay length: decrease
          fscale reached lower limit; reset to:  5.0000000000000001E-003
          need to repeat with sharper decay (new):  Yes
          limit reached, exit loop      :  Yes
+         trace(KS)                     :  2.200000000072E+02
+         trace(KH)                     :  1.097926582073E+02
         #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
        Asymmetry of the matrices:
          Overlap                       :  0.00E+00
@@ -999,15 +1011,15 @@
    -  [-1.5602E+02,  7.9995E+01,  2.4339E+02]
    -  [ 7.9995E+01,  2.0475E+01,  3.1521E+02]
    -  [ 2.4339E+02,  3.1521E+02,  1.3554E+02]
-   trace                               : -1.17E-11
+   trace                               : -1.58E-11
  Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -1.286124595866E-02, -1.611776776468E-05, -1.442869789859E-05 ]
+   -  [ -1.286124595866E-02, -1.611776776468E-05, -1.442869789858E-05 ]
    -  [ -1.611776776468E-05, -1.292519255061E-02,  3.747909778520E-06 ]
-   -  [ -1.442869789859E-05,  3.747909778520E-06, -1.302656724666E-02 ]
+   -  [ -1.442869789858E-05,  3.747909778520E-06, -1.302656724666E-02 ]
    Pressure:
      Ha/Bohr^3                         : -1.29376685853127E-02
      GPa                               : -380.639
@@ -1020,7 +1032,7 @@
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  35.87
-   Elapsed time (s)                    :  18.26
+   Elapsed time (s)                    :  18.12
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.16080848E-03, y:  8.21549607E-03, z:  8.13893326E-03, 
                     total:  1.17645953E-02}
@@ -1030,69 +1042,69 @@
  -  {Si: [ 1.956693314728E-02,  4.662380947710E-02,  8.666516414443E-02]} # 0001
  -  {Si: [-1.858619031970E-02,  1.424106970341E-02,  5.896750898643E-02]} # 0002
  -  {Si: [-4.981085055340E-02,  3.329752565328E-02,  6.178950771822E-02]} # 0003
- -  {Si: [-3.467511130162E-03,  6.941492295840E-03,  2.337874935368E-02]} # 0004
- -  {Si: [-1.909781349106E-02,  2.189617783157E-02,  4.248529663806E-02]} # 0005
+ -  {Si: [-3.467511130161E-03,  6.941492295839E-03,  2.337874935368E-02]} # 0004
+ -  {Si: [-1.909781349106E-02,  2.189617783157E-02,  4.248529663807E-02]} # 0005
  -  {Si: [-2.387246558726E-02, -1.941495537404E-02,  3.976377962627E-02]} # 0006
- -  {Si: [-2.867004984623E-02,  4.036912197191E-03, -2.653476262274E-03]} # 0007
+ -  {Si: [-2.867004984623E-02,  4.036912197191E-03, -2.653476262277E-03]} # 0007
  -  {Si: [-3.895865012565E-02, -1.085914240629E-02, -1.111038987079E-02]} # 0008
  -  {Si: [-2.661612717725E-02,  1.156312506575E-01,  1.013127653780E-01]} # 0009
- -  {Si: [ 3.402384250278E-02, -2.696703426130E-02,  8.195547166825E-02]} # 0010
+ -  {Si: [ 3.402384250278E-02, -2.696703426130E-02,  8.195547166824E-02]} # 0010
  -  {Si: [ 4.999327519105E-02,  5.923699596344E-02, -2.666117090025E-02]} # 0011
- -  {Si: [-2.121526459068E-03,  3.745314835454E-03,  1.111917372097E-02]} # 0012
- -  {Si: [ 3.063806092414E-02,  5.014130511155E-02,  7.217219333846E-02]} # 0013
+ -  {Si: [-2.121526459070E-03,  3.745314835452E-03,  1.111917372097E-02]} # 0012
+ -  {Si: [ 3.063806092414E-02,  5.014130511155E-02,  7.217219333845E-02]} # 0013
  -  {Si: [ 2.594309701186E-02, -4.689320059752E-02,  8.888335438089E-02]} # 0014
  -  {Si: [ 2.549113524832E-02,  6.641593448542E-02, -5.332356786878E-02]} # 0015
  -  {Si: [ 4.284324635582E-02, -3.459310433727E-02, -3.962710847761E-02]} # 0016
- -  {Si: [ 8.368291733299E-02, -8.354745913752E-02,  1.359727487698E-01]} # 0017
+ -  {Si: [ 8.368291733299E-02, -8.354745913751E-02,  1.359727487698E-01]} # 0017
  -  {Si: [-6.389251190324E-02, -3.034161229080E-02,  5.996525445037E-02]} # 0018
- -  {Si: [-4.702597634762E-02, -3.012895490807E-02, -9.798987435229E-03]} # 0019
- -  {Si: [ 2.468028860035E-02, -7.447314660470E-03,  1.526493443409E-02]} # 0020
- -  {Si: [ 4.672457941986E-05, -9.091861462813E-03,  8.699337797391E-02]} # 0021
+ -  {Si: [-4.702597634762E-02, -3.012895490807E-02, -9.798987435231E-03]} # 0019
+ -  {Si: [ 2.468028860036E-02, -7.447314660469E-03,  1.526493443409E-02]} # 0020
+ -  {Si: [ 4.672457942122E-05, -9.091861462811E-03,  8.699337797391E-02]} # 0021
  -  {Si: [-1.209765034873E-01,  6.885664438810E-02,  2.294133605585E-02]} # 0022
  -  {Si: [-1.242427225036E-01, -6.120197847901E-02,  3.622256953916E-02]} # 0023
- -  {Si: [ 2.588393840485E-02,  1.143929020901E-03, -4.158377113180E-02]} # 0024
+ -  {Si: [ 2.588393840485E-02,  1.143929020902E-03, -4.158377113180E-02]} # 0024
  -  {Si: [-7.212091990439E-02, -7.816075877794E-02,  8.271464336699E-02]} # 0025
  -  {Si: [ 5.358302700951E-02, -5.819304315572E-02,  7.168556742511E-02]} # 0026
- -  {Si: [-9.318930867267E-03, -1.887952898203E-01,  1.209321689901E-01]} # 0027
+ -  {Si: [-9.318930867268E-03, -1.887952898203E-01,  1.209321689901E-01]} # 0027
  -  {Si: [ 1.399993028049E-01,  1.228437929224E-01,  1.961628718859E-01]} # 0028
  -  {Si: [ 1.333773512338E-01, -1.419751780579E-01, -1.492951080234E-01]} # 0029
  -  {Si: [-2.568427443129E-02,  1.786277570340E-01, -6.864958331405E-02]} # 0030
  -  {Si: [ 1.157073577616E-01,  1.119448215498E-01, -1.274266090280E-01]} # 0031
- -  {Si: [-6.336052182325E-02, -4.632288107769E-02, -4.961735222779E-02]} # 0032
- -  {Si: [-5.707540721841E-03,  2.857731672070E-02, -7.684342486740E-02]} # 0033
- -  {Si: [ 1.612039555775E-02,  1.526880524752E-02, -6.817453036296E-02]} # 0034
+ -  {Si: [-6.336052182325E-02, -4.632288107769E-02, -4.961735222778E-02]} # 0032
+ -  {Si: [-5.707540721843E-03,  2.857731672070E-02, -7.684342486740E-02]} # 0033
+ -  {Si: [ 1.612039555775E-02,  1.526880524751E-02, -6.817453036297E-02]} # 0034
  -  {Si: [ 2.853169522919E-02,  4.915472626583E-02, -3.116585344607E-02]} # 0035
  -  {Si: [-5.680450213344E-02, -4.787037916552E-02, -1.719970212967E-01]} # 0036
  -  {Si: [-1.275627470572E-01, -2.154708754105E-02,  5.165986068902E-02]} # 0037
- -  {Si: [-5.927891526752E-02, -1.211853408999E-01,  7.237073994457E-02]} # 0038
- -  {Si: [-1.098873803845E-01,  2.990429082991E-02, -3.554581995146E-02]} # 0039
+ -  {Si: [-5.927891526752E-02, -1.211853408999E-01,  7.237073994458E-02]} # 0038
+ -  {Si: [-1.098873803845E-01,  2.990429082991E-02, -3.554581995145E-02]} # 0039
  -  {Si: [ 5.932419733410E-02,  6.307888849365E-02, -6.591636216556E-02]} # 0040
  -  {Si: [-3.121911411296E-02,  7.654131024428E-02, -2.091439552517E-01]} # 0041
  -  {Si: [ 1.362202847045E-01, -1.420115207758E-01, -1.621911343340E-01]} # 0042
  -  {Si: [ 1.192816533524E-01,  1.523140376209E-01,  1.194643021222E-01]} # 0043
  -  {Si: [-1.030164252616E-02, -7.913766569455E-02,  1.771446321832E-01]} # 0044
  -  {Si: [-1.064478678541E-02, -7.733411212619E-02, -7.058723349415E-02]} # 0045
- -  {Si: [ 1.369176547042E-03,  6.148374420975E-02, -4.374647674842E-02]} # 0046
- -  {Si: [ 4.020224986876E-02, -5.045699374686E-02, -2.283001724979E-01]} # 0047
+ -  {Si: [ 1.369176547041E-03,  6.148374420976E-02, -4.374647674842E-02]} # 0046
+ -  {Si: [ 4.020224986876E-02, -5.045699374685E-02, -2.283001724979E-01]} # 0047
  -  {Si: [-1.615936310955E-01,  1.233801304248E-01, -1.540773776099E-01]} # 0048
- -  {Si: [-8.066337704672E-02, -3.971671840215E-02,  1.705573323270E-01]} # 0049
+ -  {Si: [-8.066337704671E-02, -3.971671840215E-02,  1.705573323270E-01]} # 0049
  -  {Si: [ 1.128763837997E-01,  1.135107632806E-01,  9.560693726673E-02]} # 0050
- -  {Si: [-1.413334394245E-02, -7.439782146894E-02, -1.267786914563E-01]} # 0051
+ -  {Si: [-1.413334394245E-02, -7.439782146893E-02, -1.267786914563E-01]} # 0051
  -  {Si: [-8.656915563351E-02, -1.185908026343E-01, -1.563557434177E-01]} # 0052
  -  {Si: [ 1.239811803904E-01,  9.650691472318E-02, -1.464956142145E-01]} # 0053
  -  {Si: [ 1.310590066397E-01, -1.267988033964E-01,  1.023704559009E-01]} # 0054
  -  {Si: [-9.826202344874E-02,  1.185631030180E-01,  1.009037819183E-01]} # 0055
  Energy (Hartree)                      : -1.51772515472760688E+02
- Force Norm (Hartree/Bohr)             :  1.10700626755314335E+00
+ Force Norm (Hartree/Bohr)             :  1.10700626755313869E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  20005
-   Tot. No. of Deallocations           :  20005
+   Tot. No. of Allocations             :  20073
+   Tot. No. of Deallocations           :  20073
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  260.475
      for the array                     : psirwork
      in the routine                    : communicate_basis_for_density_co
-     Memory Peak of process            : 314.996 MB
- Walltime since initialization         :  00:00:19.321289035
- Max No. of dictionaries used          :  11285 #( 1025 still in use)
+     Memory Peak of process            : 315.420 MB
+ Walltime since initialization         :  00:00:19.174417430
+ Max No. of dictionaries used          :  11564 #( 1058 still in use)
  Number of dictionary folders allocated:  2

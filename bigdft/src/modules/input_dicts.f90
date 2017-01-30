@@ -775,24 +775,24 @@ contains
     call input_var("mp_isf", 16, "Interpolating scaling function for the multipole preserving option",dummy_int)
     call set(dict // MP_ISF, dummy_int)
 
-    !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-    call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
-    call set(dict // PDSYEV_BLOCKSIZE, dummy_int)
-    call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
-    call set(dict // PDGEMM_BLOCKSIZE, dummy_int)
+!!    !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+!!    call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+!!    call set(dict // PDSYEV_BLOCKSIZE, dummy_int)
+!!    call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+!!    call set(dict // PDGEMM_BLOCKSIZE, dummy_int)
 
-    !max number of process uses for pdsyev/pdsygv, pdgemm
-    call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
-    call set(dict // MAXPROC_PDSYEV, dummy_int)
-    call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
-    call set(dict // MAXPROC_PDGEMM, dummy_int)
+!!    !max number of process uses for pdsyev/pdsygv, pdgemm
+!!    call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+!!    call set(dict // MAXPROC_PDSYEV, dummy_int)
+!!    call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+!!    call set(dict // MAXPROC_PDGEMM, dummy_int)
 
-    !FOE: if the determinant of the interpolation matrix to find the Fermi energy
-    !is smaller than this value, switch from cubic to linear interpolation.
-    call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
-    call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
-    call input_var("ef_interpol_chargediff",1.d0,"FOE: max ",dummy_real)
-    call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
+!!    !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+!!    !is smaller than this value, switch from cubic to linear interpolation.
+!!    call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
+!!    call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
+!!    call input_var("ef_interpol_chargediff",1.d0,"FOE: max ",dummy_real)
+!!    call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
 
     !determines whether a mixing step shall be preformed after the input guess !(linear version)
     call input_var("mixing_after_inputguess",1,"mixing after inguess (0/1/2)",dummy_int)
@@ -826,11 +826,11 @@ contains
     call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
     call set(dict // KAPPA_CONV, dummy_real)
 
-    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
-    call set(dict // EVBOUNDS_NSATUR, dummy_int)
-
-    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
-    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
+!!    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
+!!    call set(dict // EVBOUNDS_NSATUR, dummy_int)
+!!
+!!    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
+!!    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
 
     call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
     call set(dict // CALCULATE_GAP, dummy_bool)
@@ -847,11 +847,11 @@ contains
     call input_var("correction_co_contra", .true., "correction covariant / contravariant gradient", dummy_bool)
     call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
 
-    call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
-    call set(dict // FSCALE_LOWERBOUND, dummy_real)
-
-    call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
-    call set(dict // FSCALE_UPPERBOUND, dummy_real)
+!!    call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
+!!    call set(dict // FSCALE_LOWERBOUND, dummy_real)
+!!
+!!    call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
+!!    call set(dict // FSCALE_UPPERBOUND, dummy_real)
 
     call input_var("imethod_overlap", 1, (/1,2/), "lin scaling method to calculate overlap matrix (1:old, 2:new)", dummy_int)
     call set(dict // IMETHOD_OVERLAP, dummy_int)
@@ -1584,7 +1584,8 @@ contains
          .item. MINIMAL_FILE_KEY,&
          .item. F_IMPORT_KEY,&
          .item. PY_HOOKS,&
-         .item. PLUGINS])
+         .item. PLUGINS,&
+         .item. CHESS])
     ! If we have mode // sections, then, we need to exclude all
     ! section keys, they will be checked later.
     nullify(mode)
