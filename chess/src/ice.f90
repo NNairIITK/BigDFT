@@ -727,8 +727,8 @@ module ice
           verbosity_ = 100
       end if
 
-      inv_ovrlp_matrixp_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp,1),ncalc/),id='inv_ovrlp_matrixp_new')
-      inv_ovrlp_matrixp_small_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp_mm,1),ncalc/),id='inv_ovrlp_matrixp_small_new')
+      inv_ovrlp_matrixp_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,ncalc/),id='inv_ovrlp_matrixp_new')
+      inv_ovrlp_matrixp_small_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp_mm,ncalc/),id='inv_ovrlp_matrixp_small_new')
       hamscal_compr = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
       if (present(ice_objx)) then
@@ -852,7 +852,7 @@ module ice
           do icalc=1,ncalc
               call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                    SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
-                   inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+                   ONESIDED_FULL, inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
               !!write(*,*) 'BEFORE ispin, sum(inv_ovrlp_matrixp_small_new(:,icalc))', &
               !!    ispin, sum(inv_ovrlp_matrixp_small_new(:,icalc))
               !!write(*,*) 'BEFORE ispin, sum(inv_ovrlp(icalc)%matrix_compr(ilshift2+1:ilshift2+inv_ovrlp_smat%nvctr))', &

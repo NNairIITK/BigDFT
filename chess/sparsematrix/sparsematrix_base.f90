@@ -35,7 +35,7 @@ module sparsematrix_base
   use sparsematrix_errorhandling
   use sparsematrix_timing
   use sparsematrix_types
- use sparsematrix_memory
+  use sparsematrix_memory
 
   implicit none
 
@@ -45,6 +45,11 @@ module sparsematrix_base
   integer,parameter :: MATMUL_NEW = 101
   integer,parameter :: MATMUL_OLD = 102
   integer,parameter :: matmul_version = MATMUL_NEW 
+
+  ! Keywords for the onesided communications
+  integer,parameter :: ONESIDED_POST   = 201
+  integer,parameter :: ONESIDED_GATHER = 202
+  integer,parameter :: ONESIDED_FULL   = 203
 
 
 end module sparsematrix_base

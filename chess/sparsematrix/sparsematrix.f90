@@ -694,15 +694,18 @@ module sparsematrix
 
 
 
-   subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed_wrapper_1(iproc, nproc, smat, layout, matrixp, &
+              onesided_action, matrix_compr, matrix_localx, windowsx)
      use dynamic_memory
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
+     integer,intent(in) :: iproc, nproc, layout, onesided_action
      type(sparse_matrix),intent(in) :: smat
      real(kind=mp),dimension(:),target,intent(in) :: matrixp
      real(kind=mp),dimension(smat%nvctrp_tg),intent(out) :: matrix_compr
+     real(kind=mp),dimension(:),intent(inout),target,optional :: matrix_localx
+     integer,dimension(:),intent(inout),optional :: windowsx
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -723,7 +726,7 @@ module sparsematrix
              call f_err_throw('sparse matrix multiplication not initialized', &
                   err_name='SPARSEMATRIX_RUNTIME_ERROR')
          end if
-         if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
+         if (size(matrixp)/=smat%smmm%nvctrp_mm) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
@@ -739,12 +742,29 @@ module sparsematrix
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
          end if
-         matrix_local = f_malloc_ptr(max(1,smat%smmm%nvctrp_mm),id='matrix_local')
-         call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-              smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-              smat%smmm%nvctrp, smat%smmm%isvctr, &
-              smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-              'large_to_small', matrix_s_out=matrix_local, matrix_l_in=matrixp)
+         select case (onesided_action)
+         case (ONESIDED_POST,ONESIDED_GATHER)
+             if (.not.present(matrix_localx)) then
+                 call f_err_throw('matrix_localx not present')
+             end if
+             if (size(matrix_localx)/=smat%smmm%nvctrp_mm) then
+                 call f_err_throw('Array matrix_localx has size '//trim(yaml_toa(size(matrix_localx),fmt='(i0)'))//&
+                      &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
+                      err_name='SPARSEMATRIX_MANIPULATION_ERROR')
+             end if
+             matrix_local => matrix_localx
+         case (ONESIDED_FULL)
+             matrix_local = f_malloc_ptr(smat%smmm%nvctrp_mm,id='matrix_local')
+         case default
+             call f_err_throw('wrong value for onesided_action')
+         end select
+         if (onesided_action==ONESIDED_POST .or. onesided_action==ONESIDED_FULL) then
+             call transform_sparsity_pattern(iproc, smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+                  smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
+                  smat%smmm%nvctrp, smat%smmm%isvctr, &
+                  smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+                  'large_to_small', matrix_s_out=matrix_local, matrix_l_in=matrixp)
+         end if
          !call f_free_ptr(matrix_local)
      else
              call f_err_throw('layout has the value '//trim(yaml_toa(layout,fmt='(i0)'))//&
@@ -753,10 +773,18 @@ module sparsematrix
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
      end if
 
-     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, matrix_local, matrix_compr)
+     if (present(windowsx)) then
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+              matrix_local, onesided_action, matrix_compr, windowsx)
+     else
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+              matrix_local, onesided_action, matrix_compr)
+     end if
 
      if (layout==SPARSE_MATMUL_LARGE) then
-         call f_free_ptr(matrix_local)
+         if (onesided_action==ONESIDED_FULL) then
+             call f_free_ptr(matrix_local)
+         end if
      end if
 
      !!call timing(iproc,'compressd_comm_new','OF')
@@ -766,16 +794,19 @@ module sparsematrix
   end subroutine compress_matrix_distributed_wrapper_1
 
 
-   subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, matrix_compr)
+   subroutine compress_matrix_distributed_wrapper_2(iproc, nproc, smat, layout, matrixp, &
+              onesided_action, matrix_compr, matrix_localx, windowsx)
      !!use yaml_output
      use dynamic_memory
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
+     integer,intent(in) :: iproc, nproc, layout, onesided_action
      type(sparse_matrix),intent(in) :: smat
      real(kind=mp),dimension(:,:),intent(in) :: matrixp
-     real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     real(kind=mp),dimension(smat%nvctrp_tg),intent(out) :: matrix_compr
+     real(kind=mp),dimension(:),intent(inout),target,optional :: matrix_localx
+     integer,dimension(:),intent(inout),optional :: windowsx
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -783,7 +814,6 @@ module sparsematrix
      integer :: jproc_send, iorb, jproc
      !integer :: window
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
-     integer,dimension(:),allocatable :: request, windows
      real(kind=mp),dimension(:),pointer :: matrix_local
      real(kind=mp),dimension(:),allocatable :: recvbuf
 
@@ -829,7 +859,7 @@ module sparsematrix
 
 
      !@ NEW #####################
-     matrix_local = f_malloc_ptr(max(1,nvctrp),id='matrix_local')
+     matrix_local = f_malloc_ptr(nvctrp,id='matrix_local')
      if (layout==DENSE_PARALLEL) then
          ii = 0
          if (nfvctrp>0) then
@@ -867,7 +897,18 @@ module sparsematrix
      !call timing(iproc,'compressd_mcpy','OF')
      call f_timing(TCAT_SMAT_COMPRESSION,'OF')
 
-     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, matrix_local, matrix_compr)
+     if (onesided_action/=ONESIDED_FULL) then
+         ! For the other cases I have to pass a proper workarray matrix_local
+         call f_err_throw('compress_matrix_distributed_wrapper_2 not yet functional for onesided_action/=ONESIDED_FULL')
+     end if
+
+     if (present(windowsx)) then
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, &
+              matrix_local, onesided_action, matrix_compr, windowsx)
+     else
+         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_PARALLEL, &
+              matrix_local, onesided_action, matrix_compr)
+     end if
      call f_free_ptr(matrix_local)
      !@ END NEW #################
 
@@ -880,16 +921,18 @@ module sparsematrix
    !> Gathers together the matrix parts calculated by other tasks.
    !! Attention: Even if the output array has size smat%nvctrp_tg, only the
    !! relevant part (indicated by smat%istartend_local) is calculated
-  subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, matrix_compr)
+  subroutine compress_matrix_distributed_core(iproc, nproc, smat, layout, matrixp, &
+             onesided_action, matrix_compr, windowsx)
     use dynamic_memory
      implicit none
 
      ! Calling arguments
-     integer,intent(in) :: iproc, nproc, layout
+     integer,intent(in) :: iproc, nproc, layout, onesided_action
      type(sparse_matrix),intent(in) :: smat
      !real(kind=mp),dimension(smat%smmm%nvctrp_mm),intent(in) :: matrixp
      real(kind=mp),dimension(:),intent(in) :: matrixp
      real(kind=mp),dimension(smat%nvctrp_tg),target,intent(out) :: matrix_compr
+     integer,dimension(:),intent(inout),target,optional :: windowsx
 
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
@@ -897,7 +940,7 @@ module sparsematrix
      integer :: window, sizeof, jproc_send, iorb, jproc, info, nccomm
      real(kind=mp) :: window_fake
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
-     integer,dimension(:),allocatable :: request, windows
+     integer,dimension(:),pointer :: windows
      real(kind=mp),dimension(:),pointer :: matrix_local
      real(kind=mp),dimension(:),allocatable :: recvbuf
      integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
@@ -909,6 +952,27 @@ module sparsematrix
 
      !call timing(iproc,'compressd_mcpy','ON')
      call f_timing(TCAT_SMAT_COMPRESSION,'ON')
+
+     ! Check the arguments
+     select case (onesided_action)
+     case (ONESIDED_POST,ONESIDED_GATHER)
+         if (.not.present(windowsx)) call f_err_throw('windowsx not present')
+         if (nproc>1) then
+             if (size(windowsx)/=smat%ntaskgroup) then
+                 call f_err_throw('size(windowsx)='//trim(yaml_toa(size(windowsx))) //&
+                      &' /= smat%ntaskgroup='//trim(yaml_toa(smat%ntaskgroup)))
+             end if
+             !!!!write(*,*) 'windwos is present, iproc', iproc
+             windows => windowsx
+         end if
+     case (ONESIDED_FULL)
+         if (nproc>1) then
+             ! Create a window for all taskgroups to which iproc belongs (max 2)
+             windows = f_malloc_ptr(smat%ntaskgroup,id='windows')
+         end if
+     case default
+         call f_err_throw('wrong value for onesided_action')
+     end select
 
 
      if (data_strategy==GLOBAL_MATRIX) then
@@ -930,7 +994,7 @@ module sparsematrix
              nvctrp = smat%smmm%nvctrp_mm
              nccomm = smat%smmm%nccomm_smmm
          end if
-         if (size(matrixp)/=max(1,nvctrp)) then
+         if (size(matrixp)/=nvctrp) then
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(nvctrp,fmt='(i0)')), &
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
@@ -941,50 +1005,59 @@ module sparsematrix
              !call timing(iproc,'compressd_comm','ON')
              call f_timing(TCAT_SMAT_COMPRESSION_COMMUNICATION,'ON')
 
-             if (nproc>1) then
-                call f_zero(matrix_compr)
+             if (onesided_action==ONESIDED_POST .or. onesided_action==ONESIDED_FULL) then
+                 if (nproc>1) then
+                    call f_zero(matrix_compr)
 
-                 ! Create a window for all taskgroups to which iproc belongs (max 2)
-                 windows = f_malloc(smat%ntaskgroup,id='windows')
-                 do itg=1,smat%ntaskgroupp
-                     iitg = smat%taskgroupid(itg)
-                     ! Use a fake window if nvctrp is zero
-                     if (nvctrp>0) then
-                         windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
-                     else
-                         windows(iitg) = mpiwindow(1, window_fake, smat%mpi_groups(iitg)%mpi_comm)
-                     end if
-                 end do
-                 do jproc=1,nccomm
-                     jproc_send = luccomm(1,jproc)
-                     ist_send = luccomm(2,jproc)
-                     ist_recv = luccomm(3,jproc)
-                     ncount = luccomm(4,jproc)
-                     !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
-                     iitg = get_taskgroup_id(iproc,jproc_send)
-                     ! Now get the task ID on the taskgroup (subtract the ID of the first task)
-                     !jproc_send = jproc_send - smat%isrank(iitg)
-                     ii = jproc_send
-                     jproc_send = get_rank_on_taskgroup(ii,iitg)
-                     !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
-                     !write(*,'(3(a,i0))') 'task ',iproc,' gets data from task ',jproc_send,' on window ',iitg
-                     call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), windows(iitg))
-                 end do
-             else
-                 ist_send = luccomm(2,1)
-                 ist_recv = luccomm(3,1)
-                 ncount = luccomm(4,1)
-                 call vcopy(ncount, matrixp(ist_send), 1, matrix_compr(ist_recv), 1)
+                     !!! Create a window for all taskgroups to which iproc belongs (max 2)
+                     !!windows = f_malloc(smat%ntaskgroup,id='windows')
+                     do itg=1,smat%ntaskgroupp
+                         iitg = smat%taskgroupid(itg)
+                         ! Use a fake window if nvctrp is zero
+                         if (nvctrp>0) then
+                             windows(iitg) = mpiwindow(nvctrp, matrixp(1), smat%mpi_groups(iitg)%mpi_comm)
+                         else
+                             windows(iitg) = mpiwindow(1, window_fake, smat%mpi_groups(iitg)%mpi_comm)
+                         end if
+                     end do
+                     do jproc=1,nccomm
+                         jproc_send = luccomm(1,jproc)
+                         ist_send = luccomm(2,jproc)
+                         ist_recv = luccomm(3,jproc)
+                         ncount = luccomm(4,jproc)
+                         !write(*,'(5(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv,' from position ',ist_send,' on task ',jproc_send
+                         iitg = get_taskgroup_id(iproc,jproc_send)
+                         ! Now get the task ID on the taskgroup (subtract the ID of the first task)
+                         !jproc_send = jproc_send - smat%isrank(iitg)
+                         ii = jproc_send
+                         jproc_send = get_rank_on_taskgroup(ii,iitg)
+                         !call mpiget(matrix_compr(ist_recv), ncount, jproc_send, int(ist_send-1,kind=mpi_address_kind), window)
+                         !!write(*,'(6(a,i0))') 'task ',iproc,' gets ',ncount,' elements at position ',ist_recv, &
+                         !!                     ' from task ',jproc_send,' with offset ',ist_send-1,' on window ',iitg
+                         call mpiget(matrix_compr(ist_recv), ncount, jproc_send, &
+                              int(ist_send-1,kind=mpi_address_kind), windows(iitg))
+                     end do
+                 else
+                     ist_send = luccomm(2,1)
+                     ist_recv = luccomm(3,1)
+                     ncount = luccomm(4,1)
+                     call vcopy(ncount, matrixp(ist_send), 1, matrix_compr(ist_recv), 1)
+                 end if
              end if
 
-             if (nproc>1) then
-                 ! Synchronize the communication
-                 do itg=1,smat%ntaskgroupp
-                     iitg = smat%taskgroupid(itg)
-                     call mpi_fenceandfree(windows(iitg))
-                 end do
-                 call f_free(windows)
-                 !call mpi_fenceandfree(window)
+             if (onesided_action==ONESIDED_GATHER .or. onesided_action==ONESIDED_FULL) then
+                 if (nproc>1) then
+                     ! Synchronize the communication
+                     do itg=1,smat%ntaskgroupp
+                         iitg = smat%taskgroupid(itg)
+                         !!write(*,'(a,i0,a)') 'task ',iproc,' calls fence'
+                         call mpi_fenceandfree(windows(iitg))
+                     end do
+                     if (onesided_action==ONESIDED_FULL) then
+                         call f_free_ptr(windows)
+                     end if
+                     !call mpi_fenceandfree(window)
+                 end if
              end if
 
              !!call f_free_ptr(matrix_local)
@@ -1918,7 +1991,7 @@ module sparsematrix
       end if
       call sparsemm_new(iproc, smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
-           c_exp, c)
+           c_exp, ONESIDED_FULL, c)
 
       call f_free(b_exp)
       call f_free(c_exp)
@@ -1955,7 +2028,7 @@ module sparsematrix
           if (ind>smat%isvctr+smat%nvctrp) then
               exit
           end if
-          tr = tr + mat(ind)
+          tr = tr + mat(ind-smat%isvctrp_tg)
       end do
       if (nproc > 1) then
           call mpiallred(tr, 1, mpi_sum, comm=comm)
@@ -2523,33 +2596,63 @@ module sparsematrix
 
 
 
-    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, &
-               exp_power, smat_in, smat_out, mat_in, mat_out)
+    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, keep_full_result, &
+               exp_power, smat_in, smat_out, mat_in, mat_out, algorithm)
       use dynamic_memory
       implicit none
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, comm, scalapack_blocksize
+      logical,intent(in) :: keep_full_result
       real(mp),intent(in) :: exp_power
       type(sparse_matrix),intent(in) :: smat_in, smat_out
       type(matrices),intent(in) :: mat_in
       type(matrices),intent(out) :: mat_out
+      character(len=*),intent(in),optional :: algorithm
 
       ! Local variables
       integer :: blocksize
       real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
-      real(kind=8),dimension(:,:,:),allocatable :: mat_check_accur_dense
 
       call f_routine(id='operation_using_dense_lapack')
 
+      if (keep_full_result) then
+          if (.not.associated(mat_in%matrix)) then
+              call f_err_throw('mat_in%matrix must be associated')
+          end if
+          if (size(mat_in%matrix,1)/=smat_in%nfvctr) then
+              call f_err_throw('wrong first dimension of mat_in%matrix')
+          end if
+          if (size(mat_in%matrix,2)/=smat_in%nfvctr) then
+              call f_err_throw('wrong second dimension of mat_in%matrix')
+          end if
+          if (.not.associated(mat_out%matrix)) then
+              call f_err_throw('mat_out%matrix must be associated')
+          end if
+          if (size(mat_out%matrix,1)/=smat_out%nfvctr) then
+              call f_err_throw('wrong first dimension of mat_out%matrix')
+          end if
+          if (size(mat_out%matrix,2)/=smat_out%nfvctr) then
+              call f_err_throw('wrong second dimension of mat_out%matrix')
+          end if
+      end if
+
       mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
       mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
-      !mat_check_accur_dense = f_malloc((/smat%nfvctr,smat%nfvctr,2/),id='mat_check_accur_dense')
       call uncompress_matrix(iproc, nproc, &
            smat_in, mat_in%matrix_compr, mat_in_dense)
-      call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
-           mat_in_dense, exp_power, mat_out_dense)
+      if (present(algorithm)) then
+          call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
+               mat_in_dense, exp_power, mat_out_dense, algorithm=algorithm)
+      else
+          call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
+               mat_in_dense, exp_power, mat_out_dense)
+      end if
       call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
+      if (keep_full_result) then
+          call f_memcpy(src=mat_in_dense, dest=mat_in%matrix)
+          call f_memcpy(src=mat_out_dense, dest=mat_out%matrix)
+      end if
       call f_free(mat_in_dense)
       call f_free(mat_out_dense)
 
@@ -2560,7 +2663,7 @@ module sparsematrix
 
 
     !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
-    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out)
+    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out, algorithm)
       !use module_base
       use parallel_linalg, only: dgemm_parallel, dsyev_parallel
       use dynamic_memory
@@ -2571,6 +2674,7 @@ module sparsematrix
       real(kind=8),dimension(n,n),intent(in) :: mat_in
       real(kind=8),intent(in) :: ex
       real(kind=8),dimension(n,n),intent(out) :: mat_out
+      character(len=*),intent(in),optional :: algorithm
 
       ! Local variables
       integer :: i, j, info
@@ -2592,7 +2696,11 @@ module sparsematrix
           end do
       end do
 
-      call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
+      if (present(algorithm)) then
+          call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info, algorithm=algorithm)
+      else
+          call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
+      endif
       if (info /= 0) then
           if (iproc==0) then
               call f_err_throw('dsyev_parallel issued error code '//trim(yaml_toa(info)))
@@ -2607,9 +2715,11 @@ module sparsematrix
           end do
       end do
 
-      ! Apply the diagonalized overlap matrix to the matrix constructed above
-      call dgemm_parallel(iproc, nproc, blocksize, mpi_comm_world, 'n', 't', n, n, n, 1.d0, mat_tmp(1,1,1), n, &
-           mat_tmp(1,1,2), n, 0.d0, mat_out, n)
+      ! Apply the diagonalized matrix to the matrix constructed above
+      call dgemm_parallel(iproc, nproc, blocksize, comm, 'n', 't', n, n, n, 1.d0, mat_tmp(1:,1:,1), n, &
+           mat_tmp(1:,1:,2), n, 0.d0, mat_out, n)
+      !call dgemm_parallel(iproc, nproc, -1, comm, 'n', 't', n, n, n, 1.d0, mat_tmp(1:,1:,1), n, &
+      !     mat_tmp(1:,1:,2), n, 0.d0, mat_out, n)
 
       call f_free(mat_tmp)
       call f_free(eval)
@@ -2657,7 +2767,7 @@ module sparsematrix
     end subroutine check_deviation_from_unity_dense
 
 
-    subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
+    subroutine diagonalizeHamiltonian2(iproc, nproc, comm, blocksize, norb, HamSmall, ovrlp, eval)
       use dynamic_memory
       !
       ! Purpose:
@@ -2672,18 +2782,23 @@ module sparsematrix
       !   ----------------
       !     iproc     process ID
       !     nproc     number of MPI processes
-      !     orbs      type describing the physical orbitals psi
+      !     comm      MPI communicator
+      !     blocksize ScaLAPACK block size (negative for sequential LAPACK)
+      !     norb      size of the matrices
       !   Input / Putput arguments
       !     HamSmall  on input: the Hamiltonian
       !               on exit: the eigenvectors
+      !     ovrlp     on input: overlap matrix
+      !               on exit: overwritten
       !   Output arguments
       !     eval      the associated eigenvalues 
       !
-      use yaml_output, only: yaml_map
+      use yaml_output
+      use parallel_linalg, only: dsygv_parallel
       implicit none
     
       ! Calling arguments
-      integer, intent(in) :: iproc, norb
+      integer, intent(in) :: iproc, nproc, comm, blocksize, norb
       real(mp),dimension(norb, norb),intent(inout) :: HamSmall
       real(mp),dimension(norb, norb),intent(inout) :: ovrlp
       real(mp),dimension(norb),intent(out) :: eval
@@ -2692,125 +2807,133 @@ module sparsematrix
       integer :: lwork, info
       real(mp),dimension(:),allocatable :: work
       character(len=*),parameter :: subname='diagonalizeHamiltonian'
-      !!real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
-      !!real(8) :: tt, tt2
-      !!integer :: nproc
-      !!real(8),dimension(norb,norb) :: kernel
-    
-      !!allocate(hamtmp(norb,norb))
-      !!allocate(ovrlptmp(norb,norb))
-      !!allocate(invovrlp(norb,norb))
-      !!allocate(tmpmat(norb,norb))
-      !!allocate(tmpmat2(norb,norb))
-    
-      !!call mpi_comm_size(mpi_comm_world,nproc,istat)
-    
-      !!hamtmp=HamSmall
-      !!ovrlptmp=ovrlp
-      !!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
-    
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
-    
-      !!lwork=10000
-      !!allocate(work(lwork))
-      !!call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
-      !!deallocate(work)
-    
-      !!ovrlptmp=ovrlp
-      !!tmpmat=tmpmat2
-      !!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
-      !!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
-      !!!if (iproc==0) then
-      !!!    do istat=1,norb
-      !!!        do iall=1,norb
-      !!!            write(200,*) tmpmat2(iall,istat)
-      !!!        end do
-      !!!    end do
-      !!!end if
-    
-      !!call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
-      !!if (iproc==0) then
-      !!    tt=0.d0
-      !!    tt2=0.d0
-      !!    do istat=1,norb
-      !!        do iall=1,norb
-      !!            write(300,*) kernel(iall,istat)
-      !!            if (istat==iall) tt=tt+kernel(iall,istat)
-      !!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
-      !!        end do
-      !!    end do
-      !!    write(*,*) 'Before: trace(K)',tt
-      !!    write(*,*) 'Before: trace(KS)',tt2
-      !!end if
-    
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
-      !!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
-      !!if (iproc==0) then
-      !!    tt=0.d0
-      !!    tt2=0.d0
-      !!    do istat=1,norb
-      !!        do iall=1,norb
-      !!            write(305,*) kernel(iall,istat)
-      !!            if (istat==iall) tt=tt+kernel(iall,istat)
-      !!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
-      !!        end do
-      !!    end do
-      !!    write(*,*) 'After: trace(K)',tt
-      !!    write(*,*) 'After: trace(KS)',tt2
-      !!end if
-    
-    
-      !call timing(iproc,'diagonal_seq  ','ON')
-      call f_timing(TCAT_SMAT_HL_DSYGV,'ON')
-      call f_routine(id='diagonalizeHamiltonian2')
-    
-      ! DEBUG: print hamiltonian and overlap matrices
-      !if (iproc==0) then
-      !   open(10)
-      !   open(11)
-      !   do iorb=1,orbs%norb
-      !      do jorb=1,orbs%norb
-      !         write(10,*) iorb,jorb,HamSmall(iorb,jorb)
-      !         write(11,*) iorb,jorb,ovrlp(iorb,jorb)
-      !      end do
-      !      write(10,*) ''
-      !      write(11,*) ''
-      !   end do
-      !   close(10)
-      !   close(11)
-      !end if
-      ! DEBUG: print hamiltonian and overlap matrices
-    
-      !call yaml_map('Hamiltonian before',HamSmall)
-      ! Get the optimal work array size
-      lwork=-1 
-      work = f_malloc(100,id='work')
-      call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
-      lwork=int(work(1))
-    
-      ! Deallocate the work array and reallocate it with the optimal size
-      call f_free(work)
-      work = f_malloc(lwork,id='work')
-    
-      ! Diagonalize the Hamiltonian
-      call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
-      if(info/=0)then
-        write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
+
+
+      call dsygv_parallel(iproc, nproc, comm, blocksize, nproc, &
+           1, 'v', 'l', norb, HamSmall, norb, ovrlp, norb, eval, info)
+      if (info/=0) then
+          call yaml_warning('dsygv_parallel returned non-zero error code, value = '//trim(yaml_toa(info)))
       end if
-      !!if (iproc==0) then
-      !!    do istat=1,norb
-      !!        do iall=1,norb
-      !!            write(201,*) hamsmall(iall,istat)
-      !!        end do
-      !!    end do
+
+      !!!!real(8),dimension(:,:),pointer :: hamtmp, ovrlptmp, invovrlp, tmpmat, tmpmat2
+      !!!!real(8) :: tt, tt2
+      !!!!integer :: nproc
+      !!!!real(8),dimension(norb,norb) :: kernel
+    
+      !!!!allocate(hamtmp(norb,norb))
+      !!!!allocate(ovrlptmp(norb,norb))
+      !!!!allocate(invovrlp(norb,norb))
+      !!!!allocate(tmpmat(norb,norb))
+      !!!!allocate(tmpmat2(norb,norb))
+    
+      !!!!call mpi_comm_size(mpi_comm_world,nproc,istat)
+    
+      !!!!hamtmp=HamSmall
+      !!!!ovrlptmp=ovrlp
+      !!!!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+    
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, hamtmp, norb, 0.d0, tmpmat, norb)
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, tmpmat2, norb)
+    
+      !!!!lwork=10000
+      !!!!allocate(work(lwork))
+      !!!!call dsyev('v', 'l', norb, tmpmat2, norb, eval, work, lwork, info)
+      !!!!deallocate(work)
+    
+      !!!!ovrlptmp=ovrlp
+      !!!!tmpmat=tmpmat2
+      !!!!call overlapPowerGeneral(iproc, nproc, 100, -2, -1, norb, ovrlptmp, invovrlp, tt)
+      !!!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, tmpmat, norb, 0.d0, tmpmat2, norb)
+      !!!!!if (iproc==0) then
+      !!!!!    do istat=1,norb
+      !!!!!        do iall=1,norb
+      !!!!!            write(200,*) tmpmat2(iall,istat)
+      !!!!!        end do
+      !!!!!    end do
+      !!!!!end if
+    
+      !!!!call dgemm('n', 't', norb, norb, 28, 1.d0, tmpmat2, norb, tmpmat2, norb, 0.d0, kernel, norb)
+      !!!!if (iproc==0) then
+      !!!!    tt=0.d0
+      !!!!    tt2=0.d0
+      !!!!    do istat=1,norb
+      !!!!        do iall=1,norb
+      !!!!            write(300,*) kernel(iall,istat)
+      !!!!            if (istat==iall) tt=tt+kernel(iall,istat)
+      !!!!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+      !!!!        end do
+      !!!!    end do
+      !!!!    write(*,*) 'Before: trace(K)',tt
+      !!!!    write(*,*) 'Before: trace(KS)',tt2
+      !!!!end if
+    
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, invovrlp, norb, kernel, norb, 0.d0, tmpmat, norb)
+      !!!!call dgemm('n', 'n', norb, norb, norb, 1.d0, tmpmat, norb, invovrlp, norb, 0.d0, kernel, norb)
+      !!!!if (iproc==0) then
+      !!!!    tt=0.d0
+      !!!!    tt2=0.d0
+      !!!!    do istat=1,norb
+      !!!!        do iall=1,norb
+      !!!!            write(305,*) kernel(iall,istat)
+      !!!!            if (istat==iall) tt=tt+kernel(iall,istat)
+      !!!!            tt2=tt2+kernel(iall,istat)*ovrlp(iall,istat)
+      !!!!        end do
+      !!!!    end do
+      !!!!    write(*,*) 'After: trace(K)',tt
+      !!!!    write(*,*) 'After: trace(KS)',tt2
+      !!!!end if
+    
+    
+      !!!call timing(iproc,'diagonal_seq  ','ON')
+      !!call f_timing(TCAT_SMAT_HL_DSYGV,'ON')
+      !!call f_routine(id='diagonalizeHamiltonian2')
+    
+      !!! DEBUG: print hamiltonian and overlap matrices
+      !!!if (iproc==0) then
+      !!!   open(10)
+      !!!   open(11)
+      !!!   do iorb=1,orbs%norb
+      !!!      do jorb=1,orbs%norb
+      !!!         write(10,*) iorb,jorb,HamSmall(iorb,jorb)
+      !!!         write(11,*) iorb,jorb,ovrlp(iorb,jorb)
+      !!!      end do
+      !!!      write(10,*) ''
+      !!!      write(11,*) ''
+      !!!   end do
+      !!!   close(10)
+      !!!   close(11)
+      !!!end if
+      !!! DEBUG: print hamiltonian and overlap matrices
+    
+      !!!call yaml_map('Hamiltonian before',HamSmall)
+      !!! Get the optimal work array size
+      !!lwork=-1 
+      !!work = f_malloc(100,id='work')
+      !!call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
+      !!lwork=int(work(1))
+    
+      !!! Deallocate the work array and reallocate it with the optimal size
+      !!call f_free(work)
+      !!work = f_malloc(lwork,id='work')
+    
+      !!! Diagonalize the Hamiltonian
+      !!call dsygv(1, 'v', 'l', norb, HamSmall(1,1), norb, ovrlp(1,1), norb, eval(1), work(1), lwork, info) 
+      !!if(info/=0)then
+      !!  write(*,*) 'ERROR: dsygv in diagonalizeHamiltonian2, info=',info,'N=',norb
       !!end if
+      !!!!if (iproc==0) then
+      !!!!    do istat=1,norb
+      !!!!        do iall=1,norb
+      !!!!            write(201,*) hamsmall(iall,istat)
+      !!!!        end do
+      !!!!    end do
+      !!!!end if
     
-      call f_free(work)
+      !!call f_free(work)
     
-      call f_release_routine()
-      !call timing(iproc,'diagonal_seq  ','OF')
-      call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
+      !!call f_release_routine()
+      !!!call timing(iproc,'diagonal_seq  ','OF')
+      !!call f_timing(TCAT_SMAT_HL_DSYGV,'OF')
     
     end subroutine diagonalizeHamiltonian2
 
@@ -2818,7 +2941,7 @@ module sparsematrix
     !> Get the minimal and maximal eigenvalue of a matrix
     subroutine get_minmax_eigenvalues(iproc, nproc, comm, mode, scalapack_blocksize, &
                smat, mat, eval_min, eval_max, &
-               quiet, smat2, mat2, evals)
+               algorithm, quiet, smat2, mat2, evals)
       use parallel_linalg, only: dsyev_parallel, dsygv_parallel
       use dynamic_memory
       use yaml_output
@@ -2830,6 +2953,7 @@ module sparsematrix
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       real(mp),dimension(smat%nspin),intent(out) :: eval_min, eval_max
+      character(len=*),intent(in),optional :: algorithm
       logical,intent(in),optional :: quiet
       type(sparse_matrix),intent(in),optional :: smat2
       type(matrices),intent(in),optional :: mat2
@@ -2858,7 +2982,7 @@ module sparsematrix
       quiet_ = .false.
       if (present(quiet)) quiet_ = quiet
 
-      tempmat = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat')
+      tempmat = f_malloc0((/smat%nfvctr,smat%nfvctr/),id='tempmat')
       eval = f_malloc(smat%nfvctr,id='eval')
 
       do ispin=1,smat%nspin
@@ -2876,7 +3000,7 @@ module sparsematrix
           end do
 
           if (imode==2) then
-              tempmat2 = f_malloc((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
+              tempmat2 = f_malloc0((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
               do iseg=1,smat2%nseg
                   ii=smat2%keyv(iseg)
                   do i=smat2%keyg(1,1,iseg),smat2%keyg(2,1,iseg)
@@ -2887,8 +3011,13 @@ module sparsematrix
           end if
 
           if (imode==1) then
-              call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
-                   smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+              if (present(algorithm)) then
+                  call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+                       smat%nfvctr, tempmat, smat%nfvctr, eval, info, algorithm=algorithm)
+              else
+                  call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
+                       smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+              end if
           else if (imode==2) then
               call dsygv_parallel(iproc, nproc, comm, scalapack_blocksize, nproc, 1, 'n', 'l', &
                    smat%nfvctr, tempmat, smat%nfvctr, tempmat2, smat%nfvctr, eval, info)

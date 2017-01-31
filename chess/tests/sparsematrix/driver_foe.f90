@@ -22,7 +22,7 @@
 program driver_foe
   ! The following module are part of the sparsematrix library
   use sparsematrix_base
-  use foe_base, only: foe_data, foe_data_deallocate
+  use foe_base, only: foe_data, foe_data_deallocate, foe_data_get_real
   use foe_common, only: init_foe
   use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_ccs, &
                                     sparse_matrix_init_from_file_ccs, matrices_init, &
@@ -34,12 +34,15 @@ program driver_foe
                                     sparse_matrix_and_matrices_init_from_file_bigdft
   use sparsematrix, only: write_matrix_compressed, transform_sparse_matrix, get_minmax_eigenvalues
   use sparsematrix_init, only: matrixindex_in_compressed, write_sparsematrix_info, &
-                               get_number_of_electrons
+                               get_number_of_electrons, distribute_on_tasks
   ! The following module is an auxiliary module for this test
-  use utilities, only: get_ccs_data_from_file
+  use utilities, only: get_ccs_data_from_file, calculate_error
   use futile
   use wrapper_MPI
   use wrapper_linalg
+  use pexsi, only: pexsi_wrapper
+  use coeffs, only: get_coeffs_diagonalization, calculate_kernel_and_energy
+  use fermi_level, only: eval_to_occ, SMEARING_DIST_ERF
 
   implicit none
 
@@ -49,18 +52,32 @@ program driver_foe
   type(matrices),dimension(1) :: mat_ovrlpminusonehalf
   type(sparse_matrix_metadata) :: smmd
   integer :: nfvctr, nvctr, ierr, iproc, nproc, nthread, ncharge, nfvctr_mult, nvctr_mult, scalapack_blocksize, icheck
-  integer :: ispin, ihomo, imax
+  integer :: ispin, ihomo, imax, ntemp, npl_max, pexsi_npoles, norbu, norbd, ii, info, norbp, isorb, norb, iorb, pexsi_np_sym_fact
+  real(mp) :: pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_DeltaE, pexsi_temperature, pexsi_tol_charge
   integer,dimension(:),pointer :: row_ind, col_ptr, row_ind_mult, col_ptr_mult
   real(mp),dimension(:),pointer :: kernel, overlap, overlap_large
-  real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max
-  real(mp) :: energy, tr_KS, tr_KS_check
+  real(mp),dimension(:),allocatable :: charge, evals, eval_min, eval_max, eval_all, eval_occup, occup
+  real(mp),dimension(:,:),allocatable :: coeff
+  real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake, efermi, eTS, evlow, evhigh
   type(foe_data) :: foe_obj, ice_obj
-  real(mp) :: tr
+  real(mp) :: tr, fscale, fscale_lowerbound, fscale_upperbound
   type(dictionary),pointer :: dict_timing_info, options
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
-  character(len=1024) :: sparsity_format, matrix_format
-  logical :: check_spectrum
+  character(len=1024) :: sparsity_format, matrix_format, kernel_method
+  logical :: check_spectrum, do_cubic_check
+  integer,parameter :: nthreshold = 10 !< number of checks with threshold
+  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-1_mp, &
+                                                             1.e-2_mp, &
+                                                             1.e-3_mp, &
+                                                             1.e-4_mp, &
+                                                             1.e-5_mp, &
+                                                             1.e-6_mp, &
+                                                             1.e-7_mp, &
+                                                             1.e-8_mp,&
+                                                             1.e-9_mp,&
+                                                             1.e-10_mp /) !< threshold for the relative errror
+
   external :: gather_timings
   !$ integer :: omp_get_max_threads
 
@@ -118,8 +135,26 @@ program driver_foe
       kernel_matmul_file = options//'kernel_matmul_file'
       sparsity_format = options//'sparsity_format'
       matrix_format = options//'matrix_format'
+      kernel_method = options//'kernel_method'
       scalapack_blocksize = options//'scalapack_blocksize'
       check_spectrum = options//'check_spectrum'
+      fscale = options//'fscale'
+      fscale_lowerbound = options//'fscale_lowerbound'
+      fscale_upperbound = options//'fscale_upperbound'
+      evlow = options//'evlow'
+      evhigh = options//'evhigh'
+      ntemp = options//'ntemp'
+      ef = options//'ef'
+      npl_max = options//'npl_max'
+      pexsi_npoles = options//'pexsi_npoles'
+      pexsi_mumin = options//'pexsi_mumin'
+      pexsi_mumax = options//'pexsi_mumax'
+      pexsi_mu = options//'pexsi_mu'
+      pexsi_temperature = options//'pexsi_temperature'
+      pexsi_tol_charge = options//'pexsi_tol_charge'
+      pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
+      pexsi_DeltaE = options//'pexsi_DeltaE'
+      do_cubic_check = options//'do_cubic_check'
      
       call dict_free(options)
 
@@ -131,8 +166,26 @@ program driver_foe
       call yaml_map('Hamiltonian matrix file',trim(hamiltonian_file))
       call yaml_map('Density kernel matrix file',trim(kernel_file))
       call yaml_map('Density kernel matrix multiplication file',trim(kernel_matmul_file))
+      call yaml_map('Kernel method',trim(kernel_method))
       call yaml_map('Blocksize for ScaLAPACK',scalapack_blocksize)
       call yaml_map('Check the Hamiltonian spectrum',check_spectrum)
+      call yaml_map('Initial guess for decay length',fscale)
+      call yaml_map('Lower bound for decay length',fscale_lowerbound)
+      call yaml_map('Upper bound for decay length',fscale_upperbound)
+      call yaml_map('Initial minimal eigenvalue',evlow)
+      call yaml_map('Initial maximal eigenvalue',evhigh)
+      call yaml_map('Iterations with varying temperatures',ntemp)
+      call yaml_map('Guess for Fermi energy',ef)
+      call yaml_map('Maximal polynomial degree',npl_max)
+      call yaml_map('PEXSI number of poles',pexsi_npoles)
+      call yaml_map('PEXSI mu min',pexsi_mumin)
+      call yaml_map('PEXSI mu max',pexsi_mumax)
+      call yaml_map('PEXSI mu',pexsi_mu)
+      call yaml_map('PEXSI Delta E',pexsi_DeltaE)
+      call yaml_map('PEXSI temperature',pexsi_temperature)
+      call yaml_map('PEXSI charge tolerance',pexsi_tol_charge)
+      call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
+      call yaml_map('Do a check with cubic scaling (Sca)LAPACK',do_cubic_check)
       call yaml_mapping_close()
   end if
 
@@ -144,8 +197,25 @@ program driver_foe
   call mpibcast(hamiltonian_file, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_file, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  call mpibcast(kernel_method, root=0, comm=mpi_comm_world)
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(kernel_matmul_file, root=0, comm=mpi_comm_world)
+  call mpibcast(fscale, root=0, comm=mpi_comm_world)
+  call mpibcast(fscale_lowerbound, root=0, comm=mpi_comm_world)
+  call mpibcast(fscale_upperbound, root=0, comm=mpi_comm_world)
+  call mpibcast(evlow, root=0, comm=mpi_comm_world)
+  call mpibcast(evhigh, root=0, comm=mpi_comm_world)
+  call mpibcast(ntemp, root=0, comm=mpi_comm_world)
+  call mpibcast(ef, root=0, comm=mpi_comm_world)
+  call mpibcast(npl_max, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_npoles, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_mumin, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_mumax, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_mu, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_DeltaE, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_temperature, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_tol_charge, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
       if (check_spectrum) then
@@ -159,6 +229,19 @@ program driver_foe
       check_spectrum = .true.
   else
       check_spectrum = .false.
+  end if
+  if (iproc==0) then
+      if (do_cubic_check) then
+          icheck = 1
+      else
+          icheck = 0
+      end if
+  end if
+  call mpibcast(icheck, root=0, comm=mpi_comm_world)
+  if (icheck==1) then
+      do_cubic_check = .true.
+  else
+      do_cubic_check = .false.
   end if
 
 
@@ -240,10 +323,14 @@ program driver_foe
   ! Only provide the mandatory values and take for the optional values the default ones.
   charge = f_malloc(smat_s%nspin,id='charge')
   charge(:) = real(ncharge,kind=mp)
-  call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj)
+  call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj, &
+       fscale=fscale, fscale_lowerbound=fscale_lowerbound, fscale_upperbound=fscale_upperbound, &
+       evlow=evlow, evhigh=evhigh, &
+       ntemp = ntemp, ef=ef, npl_max=npl_max)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
   call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
 
@@ -283,18 +370,69 @@ program driver_foe
       call f_free(eval_max)
   end if
 
+  call mpibarrier()
+  call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(), &
+       gather_routine=gather_timings)
+
   ! Calculate the density kernel for the system described by the pair smat_s/mat_s and smat_h/mat_h and 
   ! store the result in smat_k/mat_k.
   ! Attention: The sparsity pattern of smat_s must be contained within that of smat_h
   ! and the one of smat_h within that of smat_k. It is your responsabilty to assure this, 
   ! the routine does only some minimal checks.
   ! The final result will be contained in mat_k%matrix_compr.
-  call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
-       foe_obj, ice_obj, smat_s, smat_h, smat_k, &
-       mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
-       calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
-       calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+  if (trim(kernel_method)=='FOE') then
+      call matrix_fermi_operator_expansion(iproc, nproc, mpi_comm_world, &
+           foe_obj, ice_obj, smat_s, smat_h, smat_k, &
+           mat_s, mat_h, mat_ovrlpminusonehalf, mat_k, energy, &
+           calculate_minusonehalf=.true., foe_verbosity=1, symmetrize_kernel=.true., &
+           calculate_energy_density_kernel=.true., energy_kernel=mat_ek)
+  else if (trim(kernel_method)=='PEXSI') then
+      call pexsi_wrapper(iproc, nproc, mpi_comm_world, smat_s, smat_h, smat_k, mat_s, mat_h, &
+           foe_data_get_real(foe_obj,"charge",1), pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_DeltaE, &
+           pexsi_temperature, pexsi_tol_charge, pexsi_np_sym_fact, &
+           mat_k, energy, mat_ek)
+  else if (trim(kernel_method)=='LAPACK') then
+      norbu = smat_h%nfvctr
+      norbd = 0
+      norb = norbu + norbd
+      coeff = f_malloc((/smat_h%nfvctr,norb/),id='coeff')
+      eval_all = f_malloc(smat_h%nfvctr,id='eval_all')
+      eval_occup = f_malloc(norb,id='eval_occup')
+      call get_coeffs_diagonalization(iproc, nproc, mpi_comm_world, &
+           smat_h%nfvctr, norbu, norbd, norb, scalapack_blocksize, &
+           smat_s, smat_h, mat_s, mat_h, coeff, &
+           eval_all, eval_occup, info)
+      occup = f_malloc0(norb,id='occup')
+      if (smat_h%nspin/=1) call f_err_throw('The kernel calculation with LAPACK is currently not possible for nspin/=1')
+      ii = nint(0.5_mp*foe_data_get_real(foe_obj,"charge",1))
+      occup(1:ii) = 2.0_mp
+      call eval_to_occ(iproc, nproc, norbu, norbd, norb, 1, (/1.0_mp/), &
+           eval_occup, occup, .false., .true., pexsi_temperature, SMEARING_DIST_ERF, efermi, eTS, &
+           norbu, norbd)
+      call distribute_on_tasks(norb, iproc, nproc, norbp, isorb)
+      ! Density kernel
+      call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
+           smat_k, smat_h, mat_k, mat_h, energy,&
+           coeff, norbp, isorb, norbu, norb, occup, .true.)
+      ! Energy density kernel
+      do iorb=1,norb
+          occup(iorb) = occup(iorb)*eval_occup(iorb)
+      end do
+      call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
+           smat_k, smat_h, mat_ek, mat_h, energy_fake,&
+           coeff, norbp, isorb, norbu, norb, occup, .true.)
+      call f_free(coeff)
+      call f_free(eval_all)
+      call f_free(eval_occup)
+      call f_free(occup)
+      if (iproc==0) then
+          call yaml_mapping_close()
+      end if
+  else
+      call f_err_throw("wrong value for 'kernel_method'; possible values are 'FOE', 'PEXSI' or 'LAPACK'")
+  end if
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
 
@@ -340,6 +478,43 @@ program driver_foe
   ! Write the difference to the previous result
   if (iproc==0) call yaml_map('difference',tr_KS-tr_KS_check)
 
+  if (do_cubic_check) then
+      if (iproc==0) then
+          call yaml_mapping_open('Calculate kernel with LAPACK')
+      end if
+      norbu = smat_h%nfvctr
+      norbd = 0
+      norb = norbu + norbd
+      coeff = f_malloc((/smat_h%nfvctr,norb/),id='coeff')
+      eval_all = f_malloc(smat_h%nfvctr,id='eval_all')
+      eval_occup = f_malloc(norb,id='eval_occup')
+      call get_coeffs_diagonalization(iproc, nproc, mpi_comm_world, &
+           smat_h%nfvctr, norbu, norbd, norb, scalapack_blocksize, &
+           smat_s, smat_h, mat_s, mat_h, coeff, &
+           eval_all, eval_occup, info)
+      occup = f_malloc0(norb,id='occup')
+      if (smat_h%nspin/=1) call f_err_throw('The kernel calculation with LAPACK is currently not possible for nspin/=1')
+      ii = nint(0.5_mp*foe_data_get_real(foe_obj,"charge",1))
+      occup(1:ii) = 2.0_mp
+      call eval_to_occ(iproc, nproc, norbu, norbd, norb, 1, (/1.0_mp/), &
+           eval_occup, occup, .false., .true., pexsi_temperature, SMEARING_DIST_ERF, efermi, eTS, &
+           norbu, norbd)
+      call distribute_on_tasks(norb, iproc, nproc, norbp, isorb)
+      ! Density kernel... Use mat_ek to store this reference kernel.
+      call calculate_kernel_and_energy(iproc, nproc, mpi_comm_world, &
+           smat_k, smat_h, mat_ek, mat_h, energy,&
+           coeff, norbp, isorb, norbu, norb, occup, .true.)
+      if (iproc==0) then
+          call yaml_map('Energy',energy)
+      end if
+      call calculate_error(iproc, smat_k, mat_k, mat_ek, nthreshold, threshold, .false., &
+           'Check the deviation from the exact result using LAPACK')
+      call f_free(coeff)
+      call f_free(eval_all)
+      call f_free(eval_occup)
+      call f_free(occup)
+  end if
+
   ! Deallocate the object holding the FOE parameters
   call foe_data_deallocate(foe_obj)
   call foe_data_deallocate(ice_obj)
@@ -363,6 +538,7 @@ program driver_foe
   call f_free_ptr(overlap)
   call f_free_ptr(overlap_large)
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(), &
        gather_routine=gather_timings)
 
@@ -470,6 +646,13 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'String'))
 
+  call yaml_cl_parse_option(parser,'kernel_method','FOE',&
+       'Indicate which kernel method should be used (FOE or PEXSI)',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate which kernel method should be used (FOE or PEXSI)',&
+       'Allowed values' .is. &
+       'String'))
+
   call yaml_cl_parse_option(parser,'sparsity_format','bigdft',&
        'indicate the sparsity format',&
        help_dict=dict_new('Usage' .is. &
@@ -494,8 +677,129 @@ subroutine commandline_options(parser)
   call yaml_cl_parse_option(parser,'check_spectrum','.false.',&
        'Indicate whether the spectral properties of the Hamiltonian shall be calculated',&
        help_dict=dict_new('Usage' .is. &
-       'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagoanlization)',&
+       'Indicate whether the spectral properties of the Hamiltonian shall be calculated by a diagonalization',&
        'Allowed values' .is. &
        'Logical'))
+
+  call yaml_cl_parse_option(parser,'fscale','2.e-2',&
+       'Indicate the initial value for the Fermi function decay length',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the initial value for the Fermi function decay length that should be used to calculate the density kernel',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'fscale_lowerbound','5.e-3',&
+       'Indicate the minimal value for the Fermi function decay length',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the minimal value for the Fermi function decay length that should be used to calculate the density kernel',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'fscale_upperbound','5.e-2',&
+       'Indicate the maximal value for the Fermi function decay length',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the maximal value for the Fermi function decay length that should be used to calculate the density kernel',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'ntemp','4',&
+       'Indicate the maximal number of FOE iterations with various temperatures',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the maximal number of FOE iterations with various temperatures, to determine dynamically the width of the gap',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'ef','0.0',&
+       'Indicate the initial guess for the Fermi energy',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the initial guess for the Fermi energy, will then be adjusted automatically',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'npl_max','5000',&
+       'Indicate the maximal polynomial degree',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the maximal polynomial degree',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'pexsi_npoles','40',&
+       'Indicate the number of poles to be used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the number of poles to be used by PEXSI',&
+       'Allowed values' .is. &
+       'Integer'))
+
+  call yaml_cl_parse_option(parser,'pexsi_mumin','-1.0',&
+       'Initial guess for the lower bound of the chemical potential used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Initial guesss for the lower bound of the chemical potential (in hartree?) used by PEXSI,&
+       & will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_mumax','1.0',&
+       'Initial guess for the lower bound of the chemical potential used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI,&
+       & will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_mu','0.0',&
+       'initial guess for the chemical potential used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_DeltaE','10.0',&
+       'upper bound for the spectral radius of S^-1H used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_temperature','1.e-3',&
+       'Indicate the temperature used by PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the temperature (in atomic units?) used by PEXSI',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_tol_charge','1.e-3',&
+       'Indicate the charge tolerance used PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the tolerance on the number of electrons used by PEXSI',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'pexsi_np_sym_fact','16',&
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       'Allowed values' .is. &
+       'Integer'))
+
+   call yaml_cl_parse_option(parser,'do_cubic_check','.true.',&
+       'perform a check using cubic scaling dense (Sca)LAPACK',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate whether a cubic scaling check using dense (Sca)LAPACK should be performed',&
+       'Allowed values' .is. &
+       'Logical'))
+
+  call yaml_cl_parse_option(parser,'evlow','-0.5',&
+       'guess for the lowest matrix eigenvalue',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate a guess for the lowest eigenvalue of the matrix',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'evhigh','0.5',&
+       'guess for the highest matrix eigenvalue',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate a guess for the highest eigenvalue of the matrix',&
+       'Allowed values' .is. &
+       'Double'))
 
 end subroutine commandline_options

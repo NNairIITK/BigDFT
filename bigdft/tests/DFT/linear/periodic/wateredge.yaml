@@ -11,7 +11,6 @@
    inputpsiid: linear
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    experimental_mode: Yes
    calculate_KS_residue: No
@@ -41,8 +40,6 @@
    idsx_coeff: [6, 0]
    idsx: 6
    alphamix: 0.2
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    O:
      ao_confinement: -1.0
@@ -156,3 +153,27 @@
    - O: [-2.3368989247581351E-002,  6.8205825570438527E-002,  2.6582471616900083E-002]
    - H: [-8.0603186415029171E-004,  1.0255935221177293E-003, -3.9681560089577239E-004]
    energy (Ha): -261.7129559404147
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

@@ -214,7 +214,9 @@ def parse():
     group.add_option("--fragment_file", type="str", default="fragment.dat", metavar="FRAGMENTSNAME",
              		 help="file with the fragment to be analyzed [default: %default]")
     group.add_option("--hamiltonian_manipulated_file", type="str", default="hamiltonian_manipulated_sparse.bin", metavar="MATRIXNAME",
-             		 help="output file for the manipulated hamiltonian[default: %default]")
+             		 help="output file for the manipulated hamiltonian matrix[default: %default]")
+    group.add_option("--overlap_manipulated_file", type="str", default="overlap_manipulated_sparse.bin", metavar="MATRIXNAME",
+             		 help="output file for the manipulated overlap matrix[default: %default]")
 
     # solve the eigensystem to get the coefficients
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[15],
@@ -320,6 +322,9 @@ def parse():
     group.add_option("--lumo_value", type="float", default=0.0, metavar="NUM",)
     group.add_option("--smallest_value", type="float", default=0.0, metavar="NUM",)
     group.add_option("--largest_value", type="float", default=0.0, metavar="NUM",)
+    group.add_option("--scalapack_blocksize", type="int", default=-1, metavar="NUM",)
+    group.add_option("--diag_algorithm", type="string", default="pdsyevx", metavar="NAME",)
+    group.add_option("--manipulation_mode", type="string", default='full', metavar="NUM",)
 
     return parser
 
@@ -1120,7 +1125,7 @@ options:
     if options.action == "solve-eigensystem":
         print 'calling memguess to solve the eigensystem'
         #command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.hamiltonian_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
-        command = "%s %s solve-eigensystem %s %s %s %s %s" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.coeff_file)
+        command = "%s %s solve-eigensystem %s %s %s %s %s %i" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.coeff_file, options.scalapack_blocksize)
     if options.action == "analyse-coeffs":
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
@@ -1173,7 +1178,7 @@ options:
         command = "%s %s build-KS-orbitals %s %s %i %i" % (options.mpirun, utilities, options.metadata_file, options.coeff_file, options.is_ks, options.ie_ks)
         print command
     if options.action == "manipulate-eigenvalue-spectrum":
-        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %i %f %f %f %f" % (options.mpirun, chess_toolbox, options.matrix_format, options.metadata_file, options.hamiltonian_file, options.overlap_file, options.hamiltonian_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value)
+        command = "%s %s manipulate-eigenvalue-spectrum %s %s %s %s %s %s %s %s %i %f %f %f %f %s %i" % (options.mpirun, chess_toolbox, options.manipulation_mode, options.matrix_format, options.metadata_file, options.overlap_file, options.hamiltonian_file, options.kernel_file, options.kernel_matmul_file, options.hamiltonian_manipulated_file, options.homo_state, options.homo_value, options.lumo_value, options.smallest_value, options.largest_value, options.diag_algorithm, options.scalapack_blocksize)
         print command
     if command is not None:
         os.system(command)

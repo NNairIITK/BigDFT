@@ -573,7 +573,7 @@ module matrix_operations
                         call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, layout=DENSE_PARALLEL, &
                              matrixp=&
                                inv_ovrlp_local(1:,inv_ovrlp_smat%isfvctr+1:inv_ovrlp_smat%isfvctr+inv_ovrlp_smat%nfvctrp,ispin), &
-                             matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(ishift2+1:))
+                             onesided_action=ONESIDED_FULL, matrix_compr=inv_ovrlp_mat(icalc)%matrix_compr(ishift2+1:))
                     end do
                 end do
                 call f_free_ptr(ovrlp_local)
@@ -650,7 +650,7 @@ module matrix_operations
                     !call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                     !     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                     call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
-                         Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
+                         Amat21p_new, ONESIDED_FULL, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                     !!write(*,*) 'after compr, sum(Amat21_compr)', sum(Amat21_compr)
                     !call timing(iproc,'lovrlp^-1     ','ON')
                     call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
@@ -706,7 +706,7 @@ module matrix_operations
                             !!     Amat21p, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                             !!write(*,*) 'sum(Amat21p_new)',sum(Amat21p_new)
                             call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
-                                 Amat21p_new, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
+                                 Amat21p_new, ONESIDED_FULL, Amat21_compr(inv_ovrlp_smat%isvctrp_tg+1:))
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
                         end if
@@ -719,7 +719,7 @@ module matrix_operations
                             !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, &
                             !!     Amat12p, Amat12_compr)
                             call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, &
-                                 Amat12p_new, Amat12_compr)
+                                 Amat12p_new, ONESIDED_FULL, Amat12_compr)
                             !call timing(iproc,'lovrlp^-1     ','ON')
                             call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
                         end if
@@ -737,7 +737,7 @@ module matrix_operations
                         !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, Amat12p, &
                         !!     inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
                         call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, SPARSE_MATMUL_LARGE, Amat12p_new, &
-                             inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
+                             ONESIDED_FULL, inv_ovrlp_mat(1)%matrix_compr(ishift2+1:))
                         !call timing(iproc,'lovrlp^-1     ','ON')
                         call f_timing(TCAT_HL_MATRIX_OPERATIONS,'ON')
                     !else if (power(1)==2) then
@@ -904,7 +904,7 @@ module matrix_operations
                             !!     inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                             call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
                                  SPARSE_MATMUL_LARGE, invovrlpp_arr_new(1:,icalc), &
-                                 inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
+                                 ONESIDED_FULL, inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1:))
                             !!write(500+bigdft_mpi%iproc,'(a,2es16.8)') 'inv_mat, inv_compr', invovrlpp_arr_new(1,icalc), inv_ovrlp_mat(icalc)%matrix_compr(ilshift2+1)
                         end do
                         !call timing(iproc,'lovrlp^-1     ','ON')
@@ -2633,7 +2633,8 @@ module matrix_operations
       type(matrices),intent(inout) :: ovrlp_, inv_ovrlp_
 
       ! Local variables
-      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb, isshift, ilshift, ispin
+      integer :: nat, natp, isat, ii, iorb, iiat, iiat_old, n, jorb, jjat, ind, korb, isshift, ilshift, ispin
+      integer :: iiorb_min, iiorb_max, iiorb, jjorb, iseg
       real(kind=mp),dimension(:,:),allocatable :: matrix
       real(kind=mp),dimension(:),allocatable :: matrix_compr_notaskgroup
 
@@ -2657,53 +2658,119 @@ module matrix_operations
 
 
       call f_zero(inv_ovrlp_%matrix_compr)
-      matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
+
+      !# OLD ######################################################################
+      !!matrix_compr_notaskgroup = sparsematrix_malloc0(smatl, iaction=SPARSE_FULL,id='matrix_compr_notaskgroup')
+
+      !!do ispin=1,smats%nspin
+
+      !!    isshift = (ispin-1)*smats%nvctrp_tg
+      !!    ilshift = (ispin-1)*smatl%nvctrp_tg
+
+      !!    iorb = 1
+      !!    do
+      !!        iiat = onwhichatom(iorb)
+      !!        n = 0
+      !!        !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
+      !!        if (iiat>=isat+1 .and. iiat<=isat+natp) then
+      !!            do jorb=iorb,norb
+      !!                jjat = onwhichatom(jorb)
+      !!                if (jjat/=iiat) exit
+      !!                n = n + 1
+      !!            end do
+      !!            matrix = f_malloc((/n,n/),id='matrix')
+      !!            do jorb=iorb,iorb+n-1
+      !!                do korb=iorb,iorb+n-1
+      !!                    ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg + isshift
+      !!                    matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+      !!                end do
+      !!            end do
+      !!            ! Passing 0 as comm... not best practice
+      !!            call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
+      !!            do jorb=iorb,iorb+n-1
+      !!                do korb=iorb,iorb+n-1
+      !!                    !ind = matrixindex_in_compressed(smatl, korb, jorb) - smatl%isvctrp_tg + ilshift
+      !!                    ind = matrixindex_in_compressed(smatl, korb, jorb) + ilshift
+      !!                    !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+      !!                    matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+      !!                end do
+      !!            end do
+      !!            call f_free(matrix)
+      !!        end if
+      !!        iorb = iorb + max(n,1)
+      !!        if (iorb>norb) exit
+      !!    end do
+
+      !!end do
+
+      !!!call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=comm)
+      !!call mpiallred(matrix_compr_notaskgroup, mpi_sum, comm=comm)
+      !!call extract_taskgroup(smatl, matrix_compr_notaskgroup, inv_ovrlp_%matrix_compr)
+
+      !!!call f_free(matrix_compr_notaskgroup)
+
+      !# END OLD ##################################################################
+
+
+      !# NEW ######################################################################
+      !isegstart=smatl%istsegline(smatl%isfvctr+1)
+      !isegend=smatl%istsegline(smatl%isfvctr+smatl%nfvctrp)+smatl%nsegline(smatl%isfvctr+smatl%nfvctrp)-1
+      iiorb_min = smatl%nfvctr
+      iiorb_max = 0
+      do iseg=smatl%istartendseg_local(1),smatl%istartendseg_local(2)
+          ii=smatl%keyv(iseg)-1
+          ! A segment is always on one line, therefore no double loop
+          do jorb=smatl%keyg(1,1,iseg),smatl%keyg(2,1,iseg)
+              ii=ii+1
+              iiorb = smatl%keyg(1,2,iseg)
+              jjorb = jorb
+              iiorb_min = min(iiorb_min,iiorb,jjorb)
+              iiorb_max = max(iiorb_max,iiorb,jjorb)
+          end do
+      end do
 
       do ispin=1,smats%nspin
 
           isshift = (ispin-1)*smats%nvctrp_tg
           ilshift = (ispin-1)*smatl%nvctrp_tg
 
-          iorb = 1
-          do
+          iiat_old = -1
+          do iorb=iiorb_min,iiorb_max
               iiat = onwhichatom(iorb)
+              if (iiat==iiat_old) cycle
+              iiat_old = iiat
               n = 0
               !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
-              if (iiat>=isat+1 .and. iiat<=isat+natp) then
-                  do jorb=iorb,norb
-                      jjat = onwhichatom(jorb)
-                      if (jjat/=iiat) exit
-                      n = n + 1
+              do jorb=iorb,norb
+                  jjat = onwhichatom(jorb)
+                  if (jjat/=iiat) exit
+                  n = n + 1
+              end do
+              matrix = f_malloc((/n,n/),id='matrix')
+              do jorb=iorb,iorb+n-1
+                  do korb=iorb,iorb+n-1
+                      ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg + isshift
+                      !!write(2000+iproc,*) 'iorb, jorb, korb, mic, is, ind', &
+                      !!     iorb, jorb, korb, matrixindex_in_compressed(smats, korb, jorb), smats%isvctrp_tg, ind
+                      matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+                      !!write(1000+iproc,*) 'iorb, jorb, korb, ind, val', iorb, jorb, korb, ind, ovrlp_%matrix_compr(ind)
                   end do
-                  matrix = f_malloc((/n,n/),id='matrix')
-                  do jorb=iorb,iorb+n-1
-                      do korb=iorb,iorb+n-1
-                          ind = matrixindex_in_compressed(smats, korb, jorb) - smats%isvctrp_tg + isshift
-                          matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
-                      end do
+              end do
+              ! Passing 0 as comm... not best practice
+              call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
+              do jorb=iorb,iorb+n-1
+                  do korb=iorb,iorb+n-1
+                      ind = matrixindex_in_compressed(smatl, korb, jorb) - smatl%isvctrp_tg + ilshift
+                      !ind = matrixindex_in_compressed(smatl, korb, jorb) + ilshift
+                      inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                      !matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
                   end do
-                  ! Passing 0 as comm... not best practice
-                  call  overlap_plus_minus_one_half_exact(0,1,0,n,-1,.false.,matrix,smats)
-                  do jorb=iorb,iorb+n-1
-                      do korb=iorb,iorb+n-1
-                          ind = matrixindex_in_compressed(smatl, korb, jorb) - smatl%isvctrp_tg + ilshift
-                          !inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
-                          matrix_compr_notaskgroup(ind) = matrix(korb-iorb+1,jorb-iorb+1)
-                      end do
-                  end do
-                  call f_free(matrix)
-              end if
-              iorb = iorb + max(n,1)
-              if (iorb>norb) exit
+              end do
+              call f_free(matrix)
           end do
 
       end do
-
-      !call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      call mpiallred(matrix_compr_notaskgroup, mpi_sum, comm=comm)
-      call extract_taskgroup(smatl, matrix_compr_notaskgroup, inv_ovrlp_%matrix_compr)
-
-      call f_free(matrix_compr_notaskgroup)
+      !# END NEW ##################################################################
 
       call f_release_routine()
 

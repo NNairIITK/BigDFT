@@ -19,6 +19,7 @@ module module_input_keys
   use multipole_base, only: external_potential_descriptors
   use dynamic_memory
   use fragment_base
+  use chess_base, only: chess_params
   implicit none
 
   private
@@ -93,15 +94,16 @@ module module_input_keys
      integer :: mixHist_lowaccuracy
      integer :: mixHist_highaccuracy
      integer :: dmin_hist_lowaccuracy, dmin_hist_highaccuracy
-     integer :: blocksize_pdgemm, blocksize_pdsyev
-     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
+     !integer :: blocksize_pdgemm, blocksize_pdsyev
+     integer :: correctionOrthoconstraint!, nproc_pdsyev, nproc_pdgemm
      integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
      integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy, nit_extendedIG
      real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, convCrit_extendedIG
-     real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
+     real(kind=8) :: alphaSD, alphaDIIS!, evlow, evhigh!, ef_interpol_chargediff
      real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
      integer :: plotBasisFunctions
-     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
+     !real(kind=8) :: fscale
+     real(kind=8) :: deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
      real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
      real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
      real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -128,9 +130,11 @@ module module_input_keys
      real(kind=8) :: frag_neighbour_cutoff !< distance cutoff for including neighbouring atoms
      integer :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density (0:no, >0:yes)
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
-     integer :: pexsi_npoles !< number of poles used by PEXSI
-     real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
-     real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
+     !integer :: pexsi_npoles !< number of poles used by PEXSI
+     !real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
+     !real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
+     !real(kind=8) :: pexsi_DeltaE ! An upper bound for the spectral radius of S^-1H for PEXSI
+     !integer :: pexsi_np_sym_fact !< number of prcos used for the symbolic factorization used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
      logical :: plot_locreg_grids
      integer,dimension(2) :: calculate_FOE_eigenvalues !< First and last eigenvalue to be calculated using the FOE procedure
@@ -231,6 +235,10 @@ module module_input_keys
 
      !> solver parameters
      type(dictionary), pointer :: PS_dict,PS_dict_seq
+
+     !> CheSS parameters
+     type(dictionary), pointer :: chess_dict
+     type(chess_params) :: cp
 
      !> atomic density matrix requests
      type(dictionary), pointer :: at_gamma
@@ -379,11 +387,11 @@ module module_input_keys
      !> linear scaling: exit kappa for extended input guess (experimental mode)
      real(kind=8) :: kappa_conv
 
-     !> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-     integer :: evbounds_nsatur
+     !!!> linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+     !!integer :: evbounds_nsatur
 
-     !> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-     integer :: evboundsshrink_nsatur
+     !!!> linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+     !!integer :: evboundsshrink_nsatur
 
      !> linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
      logical :: calculate_gap
@@ -400,11 +408,11 @@ module module_input_keys
      !> linear scaling: correction covariant / contravariant gradient
      logical :: correction_co_contra
 
-     !> linear scaling: lower bound for the error function decay length
-     real(kind=8) :: fscale_lowerbound
+     !!!> linear scaling: lower bound for the error function decay length
+     !!real(kind=8) :: fscale_lowerbound
 
-     !> linear scaling: upper bound for the error function decay length
-     real(kind=8) :: fscale_upperbound
+     !!!> linear scaling: upper bound for the error function decay length
+     !!real(kind=8) :: fscale_upperbound
 
      !> linear scaling: Restart method to be used for the FOE method
      integer :: FOE_restart
@@ -664,6 +672,10 @@ contains
     call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
     !then other treatments for the sequential solver might be added
     call set(in%PS_dict_seq // SETUP_VARIABLES // VERBOSITY, .false.)
+
+    !copy the CheSS dictionary
+    call dict_copy(src=dict // CHESS, dest=in%chess_dict)
+
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -999,11 +1011,12 @@ contains
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
     use PStypes, only: PS_input_dict
+    use chess_base, only: chess_input_dict
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested,dict_ps_min,tmp
+    type(dictionary), pointer :: as_is,nested,dict_ps_min,dict_chess_min,tmp
     character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar
@@ -1033,6 +1046,10 @@ contains
     !then we can complete the Poisson solver dictionary
     call PS_input_dict(dict // PSOLVER,dict_ps_min)
 
+    !then we can complete the CheSS dictionary
+    !call yaml_map('dict // CHESS',dict // CHESS)
+    call chess_input_dict(dict // CHESS,dict_chess_min)
+
     call input_file_complete(parameters,dict,imports=profiles,nocheck=nested,verbose=.true.)
 
     !create a shortened dictionary which will be associated to the given run
@@ -1049,6 +1066,7 @@ contains
 
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
+    if (associated(dict_chess_min)) call set(dict_minimal // CHESS,dict_chess_min)
     call dict_free(nested,as_is)
 
 
@@ -1822,27 +1840,27 @@ contains
           end if
        case (STORE_INDEX)
           in%store_index = val
-       case (PDSYEV_BLOCKSIZE)
-          !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
-          in%lin%blocksize_pdsyev = val
-       case (PDGEMM_BLOCKSIZE)
-          in%lin%blocksize_pdgemm = val
-       case (MAXPROC_PDSYEV)
-          !max number of process uses for pdsyev/pdsygv, pdgemm
-          in%lin%nproc_pdsyev = val
-       case (MAXPROC_PDGEMM)
-          in%lin%nproc_pdgemm = val
-       case (EF_INTERPOL_DET)
-          !FOE: if the determinant of the interpolation matrix to find the Fermi energy
-          !is smaller than this value, switch from cubic to linear interpolation.
-          in%lin%ef_interpol_det = val
-       case (EF_INTERPOL_CHARGEDIFF)
-          in%lin%ef_interpol_chargediff = val
-          !determines whether a mixing step shall be preformed after the input guess !(linear version)
+       !!case (PDSYEV_BLOCKSIZE)
+       !!   !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+       !!   in%lin%blocksize_pdsyev = val
+       !!case (PDGEMM_BLOCKSIZE)
+       !!   in%lin%blocksize_pdgemm = val
+       !!case (MAXPROC_PDSYEV)
+       !!   !max number of process uses for pdsyev/pdsygv, pdgemm
+       !!   in%lin%nproc_pdsyev = val
+       !!case (MAXPROC_PDGEMM)
+       !!   in%lin%nproc_pdgemm = val
+       !!case (EF_INTERPOL_DET)
+       !!   !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+       !!   !is smaller than this value, switch from cubic to linear interpolation.
+       !!   in%lin%ef_interpol_det = val
+       !!case (EF_INTERPOL_CHARGEDIFF)
+       !!   in%lin%ef_interpol_chargediff = val
        case (MIXING_AFTER_INPUTGUESS)
+          !determines whether a mixing step shall be preformed after the input guess !(linear version)
           in%lin%mixing_after_inputguess = val
-          !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
        case (ITERATIVE_ORTHOGONALIZATION)
+          !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
           in%lin%iterative_orthogonalization = val
        case (CHECK_SUMRHO)
           in%check_sumrho = val
@@ -1867,12 +1885,12 @@ contains
        case (KAPPA_CONV)
           ! linear scaling: exit kappa for extended input guess (experimental mode)
           in%kappa_conv = val
-       case (EVBOUNDS_NSATUR)
-          ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
-          in%evbounds_nsatur = val
-       case(EVBOUNDSSHRINK_NSATUR)
-          ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
-          in%evboundsshrink_nsatur = val
+       !!case (EVBOUNDS_NSATUR)
+       !!   ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+       !!   in%evbounds_nsatur = val
+       !!case(EVBOUNDSSHRINK_NSATUR)
+       !!   ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+       !!   in%evboundsshrink_nsatur = val
        case (CALCULATE_GAP)
           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
           in%calculate_gap = val
@@ -1888,12 +1906,12 @@ contains
        case (CORRECTION_CO_CONTRA)
           ! linear scaling: correction covariant / contravariant gradient
           in%correction_co_contra = val
-       case (FSCALE_LOWERBOUND)
-          ! linear scaling: lower bound for the error function decay length
-          in%fscale_lowerbound = val
-       case (FSCALE_UPPERBOUND)
-          ! linear scaling: upper bound for the error function decay length
-          in%fscale_upperbound = val
+       !!case (FSCALE_LOWERBOUND)
+       !!   ! linear scaling: lower bound for the error function decay length
+       !!   in%fscale_lowerbound = val
+       !!case (FSCALE_UPPERBOUND)
+       !!   ! linear scaling: upper bound for the error function decay length
+       !!   in%fscale_upperbound = val
        case (FOE_RESTART)
           ! linear scaling: Restart method to be used for the FOE method
           in%FOE_restart = val
@@ -2258,32 +2276,93 @@ contains
           in%lin%alphaSD_coeff = val
        case (ALPHA_FIT_COEFF)
           in%lin%curvefit_dmin = val
-       case (EVAL_RANGE_FOE)
-          dummy_gp(1:2) = val
-          in%lin%evlow = dummy_gp(1)
-          in%lin%evhigh = dummy_gp(2)
-       case (FSCALE_FOE)
-          in%lin%fscale = val
+       !!case (EVAL_RANGE_FOE)
+       !!   dummy_gp(1:2) = val
+       !!   in%lin%evlow = dummy_gp(1)
+       !!   in%lin%evhigh = dummy_gp(2)
+       !!case (FSCALE_FOE)
+       !!   in%lin%fscale = val
        case (COEFF_SCALING_FACTOR)
           in%lin%coeff_factor = val
        case (DELTA_PNRM)
           in%lin%delta_pnrm = val
-       case (PEXSI_NPOLES)
-          in%lin%pexsi_npoles = val
-       case (PEXSI_MUMIN)
-          in%lin%pexsi_mumin = val
-       case (PEXSI_MUMAX)
-          in%lin%pexsi_mumax = val
-       case (PEXSI_MU)
-          in%lin%pexsi_mu = val
-       case (PEXSI_TEMPERATURE)
-          in%lin%pexsi_temperature = val
-       case (PEXSI_TOL_CHARGE)
-          in%lin%pexsi_tol_charge = val
+       !!case (PEXSI_NPOLES)
+       !!   in%lin%pexsi_npoles = val
+       !!case (PEXSI_MUMIN)
+       !!   in%lin%pexsi_mumin = val
+       !!case (PEXSI_MUMAX)
+       !!   in%lin%pexsi_mumax = val
+       !!case (PEXSI_MU)
+       !!   in%lin%pexsi_mu = val
+       !!case (PEXSI_DELTAE)
+       !!   in%lin%pexsi_DeltaE = val
+       !!case (PEXSI_TEMPERATURE)
+       !!   in%lin%pexsi_temperature = val
+       !!case (PEXSI_TOL_CHARGE)
+       !!   in%lin%pexsi_tol_charge = val
+       !!case (PEXSI_NP_SYM_FACT)
+       !!   in%lin%pexsi_np_sym_fact = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
        ! the KPT variables ------------------------------------------------------
+    ! The CheSS variables...will be moved later
+    !!case (CHESS)
+    !!   write(*,*) 'trim(dict_key(val)) ',trim(dict_key(val))
+    !!   select case (trim(dict_key(val)))
+    !!   case (EF_INTERPOL_DET)
+    !!      !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+    !!      !is smaller than this value, switch from cubic to linear interpolation.
+    !!      in%lin%ef_interpol_det = val
+    !!   case (EF_INTERPOL_CHARGEDIFF)
+    !!      in%lin%ef_interpol_chargediff = val
+    !!   case (PDSYEV_BLOCKSIZE)
+    !!      !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+    !!      in%lin%blocksize_pdsyev = val
+    !!   case (PDGEMM_BLOCKSIZE)
+    !!      in%lin%blocksize_pdgemm = val
+    !!   case (MAXPROC_PDSYEV)
+    !!      !max number of process uses for pdsyev/pdsygv, pdgemm
+    !!      in%lin%nproc_pdsyev = val
+    !!   case (MAXPROC_PDGEMM)
+    !!      in%lin%nproc_pdgemm = val
+    !!   case (EVBOUNDS_NSATUR)
+    !!      ! linear scaling: number of FOE cycles before the eigenvalue bounds are shrinked
+    !!      in%evbounds_nsatur = val
+    !!   case(EVBOUNDSSHRINK_NSATUR)
+    !!      ! linear scaling: maximal number of unsuccessful eigenvalue bounds shrinkings
+    !!      in%evboundsshrink_nsatur = val
+    !!   case (FSCALE_LOWERBOUND)
+    !!      ! linear scaling: lower bound for the error function decay length
+    !!      in%fscale_lowerbound = val
+    !!   case (FSCALE_UPPERBOUND)
+    !!      ! linear scaling: upper bound for the error function decay length
+    !!      in%fscale_upperbound = val
+    !!   case (EVAL_RANGE_FOE)
+    !!      dummy_gp(1:2) = val
+    !!      in%lin%evlow = dummy_gp(1)
+    !!      in%lin%evhigh = dummy_gp(2)
+    !!   case (FSCALE_FOE)
+    !!      in%lin%fscale = val
+    !!   case (PEXSI_NPOLES)
+    !!      in%lin%pexsi_npoles = val
+    !!   case (PEXSI_MUMIN)
+    !!      in%lin%pexsi_mumin = val
+    !!   case (PEXSI_MUMAX)
+    !!      in%lin%pexsi_mumax = val
+    !!   case (PEXSI_MU)
+    !!      in%lin%pexsi_mu = val
+    !!   case (PEXSI_DELTAE)
+    !!      in%lin%pexsi_DeltaE = val
+    !!   case (PEXSI_TEMPERATURE)
+    !!      in%lin%pexsi_temperature = val
+    !!   case (PEXSI_TOL_CHARGE)
+    !!      in%lin%pexsi_tol_charge = val
+    !!   case (PEXSI_NP_SYM_FACT)
+    !!      in%lin%pexsi_np_sym_fact = val
+    !!   case DEFAULT
+    !!      call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+    !!   end select
     case (KPT_VARIABLES)
     case (LIN_BASIS_PARAMS)
     case (OCCUPATION)
@@ -2387,6 +2466,7 @@ contains
     nullify(in%nkptsv_group)
     nullify(in%PS_dict)
     nullify(in%PS_dict_seq)
+    nullify(in%chess_dict)
     nullify(in%at_gamma)
     call f_zero(in%calculate_strten)
     call f_zero(in%nab_options)
@@ -2439,6 +2519,7 @@ contains
 
   !> Assign default values for mixing variables
   subroutine mix_input_variables_default(in)
+    use fermi_level, only: SMEARING_DIST_ERF
     implicit none
     type(input_variables), intent(inout) :: in
 
@@ -2540,6 +2621,7 @@ contains
     call f_ref_free(in%refcnt)
     call dict_free(in%PS_dict)
     call dict_free(in%PS_dict_seq)
+    call dict_free(in%chess_dict)
     call dict_free(in%at_gamma)
     call free_geopt_variables(in)
     call free_kpt_variables(in)

@@ -2100,7 +2100,7 @@ module io
     
       if (write_dense) then
           call write_dense_matrix(iproc, nproc, comm, tmb%linmat%m, tmb%linmat%ham_, &
-               trim(filename//'hamiltonian.bin'), binary)
+               uncompress=.true., filename=trim(filename//'hamiltonian.bin'), binary=binary)
       end if
 
       if (write_sparse) then
@@ -2111,7 +2111,7 @@ module io
     
       if (write_dense) then
           call write_dense_matrix(iproc, nproc, comm, tmb%linmat%s, tmb%linmat%ovrlp_, &
-               trim(filename//'overlap.bin'), binary)
+               uncompress=.true., filename=trim(filename//'overlap.bin'), binary=binary)
       end if
 
       if (write_sparse) then
@@ -2122,7 +2122,7 @@ module io
     
       if (write_dense) then
           call write_dense_matrix(iproc, nproc, comm, tmb%linmat%l, tmb%linmat%kernel_, &
-          trim(filename//'density_kernel.bin'), binary)
+               uncompress=.true., filename=trim(filename//'density_kernel.bin'), binary=binary)
       end if
 
       if (write_sparse) then
@@ -2212,7 +2212,7 @@ module io
           call f_free_ptr(tmp_large)
           if (write_dense) then
               call write_dense_matrix(iproc, nproc, comm, tmb%linmat%l, SminusonehalfH(1), &
-                   trim(filename//'SminusonehalfH.bin'), binary)
+                   uncompress=.true., filename=trim(filename//'SminusonehalfH.bin'), binary=binary)
           end if
 
           if (write_sparse) then

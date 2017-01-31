@@ -14,9 +14,7 @@
    ncount_cluster_x: 3
    betax: NEB
  perf:
-   ef_interpol_det: 0.10E-07
    mixing_after_inputguess: 2
-   evbounds_nsatur: 100
    correction_co_contra: no
  lin_general:
    nit: [2, 3]
@@ -31,8 +29,6 @@
    nit: [2, 3]
    rpnrm_cv: 1.0000000000000001E-009
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 3.2000000000000002E-003
@@ -109,3 +105,27 @@
    properties:
      format: int
      source: posinp
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-07
+    
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0000000000000003E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

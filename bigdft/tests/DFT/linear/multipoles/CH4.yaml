@@ -55,7 +55,6 @@
        q2: [-9.07864905E-03, -1.14283728E-02, 3.00946651E-02, -3.79762417E-03, 3.56496376E-02]
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    check_overlap: 1
    experimental_mode: Yes
@@ -92,8 +91,6 @@
    idsx: 4
    alphamix: 0.2
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    H:
      nbasis: 1
@@ -119,3 +116,27 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

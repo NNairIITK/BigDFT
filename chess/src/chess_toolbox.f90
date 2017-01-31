@@ -37,7 +37,7 @@ program chess_toolbox
                                 write_sparsematrix_info
    use sparsematrix_io, only: read_sparse_matrix, write_sparse_matrix, write_dense_matrix
    use sparsematrix, only: uncompress_matrix, uncompress_matrix_distributed2, diagonalizeHamiltonian2, &
-                           transform_sparse_matrix, compress_matrix
+                           transform_sparse_matrix, compress_matrix, get_minmax_eigenvalues
    use sparsematrix_highlevel, only: sparse_matrix_and_matrices_init_from_file_bigdft, &
                                      sparse_matrix_and_matrices_init_from_file_ccs, &
                                      sparse_matrix_metadata_init_from_file, &
@@ -46,7 +46,8 @@ program chess_toolbox
                                      ccs_matrix_write, &
                                      matrices_init, &
                                      get_selected_eigenvalues_from_FOE, &
-                                     matrix_matrix_multiplication
+                                     matrix_matrix_multiplication, &
+                                     matrix_chebyshev_expansion
    !!use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN
    !!use multipole, only: multipole_analysis_driver_new
    !!use multipole_base, only: lmax
@@ -54,18 +55,20 @@ program chess_toolbox
    !!use bigdft_run, only: bigdft_init
    use matrix_operations, only: matrix_for_orthonormal_basis
    use parallel_linalg, only: dgemm_parallel
+   use f_random, only: f_random_number
+   use highlevel_wrappers, only: calculate_eigenvalues, solve_eigensystem_lapack
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=1) :: geocode
    character(len=3) :: do_ortho
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
-   character(len=128) :: method_name, overlap_file, hamiltonian_file, hamiltonian_manipulated_file
+   character(len=128) :: method_name, overlap_file, hamiltonian_file, hamiltonian_manipulated_file, overlap_manipulated_file
    character(len=128) :: kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
-   character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_
+   character(len=128) :: ihomo_state_, homo_value_, lumo_value_, smallest_value_, largest_value_, scalapack_blocksize_
    !!character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
-   character(len=128) :: kernel_matmul_file, fragment_file
+   character(len=128) :: kernel_matmul_file, fragment_file, manipulation_mode, diag_algorithm
    logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
    logical :: calculate_pdos = .false.
@@ -102,7 +105,7 @@ program chess_toolbox
    type(dictionary), pointer :: dict_timing_info
    integer :: iunit, nat, iat, iat_prev, ii, iitype, iorb, itmb, itype, ival, ios, ipdos, ispin
    integer :: jtmb, norbks, npdos, npt, ntmb, jjtmb, nat_frag, nfvctr_frag, i, iiat
-   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state, ieval
+   integer :: icol, irow, icol_atom, irow_atom, iseg, iirow, iicol, j, ifrag, index_dot, ihomo_state, ieval, scalapack_blocksize
    character(len=20),dimension(:),pointer :: atomnames
    character(len=128),dimension(:),allocatable :: pdos_name, fragment_atomnames
    real(kind=8),dimension(3) :: cell_dim
@@ -110,6 +113,8 @@ program chess_toolbox
    real(kind=8) :: energy, occup, occup_pdos, total_occup, fscale, factor, scale_value, shift_value
    real(kind=8) :: maxdiff, meandiff, tt, tracediff, totdiff
    real(kind=8) :: homo_value, lumo_value, smallest_value, largest_value, gap, gap_target, actual_eval
+   real(kind=8) :: mult_factor, add_shift
+   real(mp),dimension(:),allocatable :: eval_min, eval_max
    type(f_progress_bar) :: bar
    integer,parameter :: ncolors = 12
    character(len=1024) :: outfile_base, outfile_extension, matrix_format
@@ -226,6 +231,9 @@ program chess_toolbox
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = coeff_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = scalapack_blocksize_)
+            read(scalapack_blocksize_,fmt=*,iostat=ierr) scalapack_blocksize
             !write(*,'(1x,2a)')&
             !   &   'perform a Loewdin charge analysis'
             solve_eigensystem = .true.
@@ -291,13 +299,19 @@ program chess_toolbox
             kernel_purity = .true.
         else if (trim(tatonam)=='manipulate-eigenvalue-spectrum') then
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = manipulation_mode)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = matrix_format)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = metadata_file)
             i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = overlap_file)
+            i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_file)
             i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = overlap_file)
+            call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = kernel_matmul_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = hamiltonian_manipulated_file)
             i_arg = i_arg + 1
@@ -315,6 +329,11 @@ program chess_toolbox
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = largest_value_)
             read(largest_value_,fmt=*,iostat=ierr) largest_value
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = diag_algorithm)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = scalapack_blocksize_)
+            read(scalapack_blocksize_,fmt=*,iostat=ierr) scalapack_blocksize
             manipulate_eigenvalue_spectrum = .true.
          end if
          i_arg = i_arg + 1
@@ -447,33 +466,36 @@ program chess_toolbox
 
 
    if (solve_eigensystem) then
+       call solve_eigensystem_lapack(iproc, nproc, matrix_format, metadata_file, &
+            overlap_file, hamiltonian_file, scalapack_blocksize, write_output=.true.)
 
-       !if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
-            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
-            init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
-            !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
-       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       !if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
-            init_matmul=.false.)
+       !!!if (iproc==0) call yaml_comment('Reading from file '//trim(overlap_file),hfill='~')
+       !!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
+       !!     iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+       !!     init_matmul=.false.)!, nat=nat, rxyz=rxyz, iatype=iatype, ntypes=ntypes, &
+       !!     !nzatom=nzatom, nelpsp=nelpsp, atomnames=atomnames)
+       !!call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+       !!!if (iproc==0) call yaml_comment('Reading from file '//trim(hamiltonian_file),hfill='~')
+       !!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+       !!     iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+       !!     init_matmul=.false.)
 
-       ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
-       call uncompress_matrix(iproc, nproc, &
-            smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
-       hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
-       call uncompress_matrix(iproc, nproc, &
-            smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
-       eval = f_malloc(smat_s%nfvctr,id='eval')
+       !!ovrlp_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
+       !!call uncompress_matrix(iproc, nproc, &
+       !!     smat_s, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+       !!hamiltonian_mat%matrix = sparsematrix_malloc_ptr(smat_s, iaction=DENSE_FULL, id='hamiltonian_mat%matrix')
+       !!call uncompress_matrix(iproc, nproc, &
+       !!     smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
+       !!eval = f_malloc(smat_s%nfvctr,id='eval')
 
-       if (iproc==0) then
-           call yaml_comment('Diagonalizing the matrix',hfill='~')
-       end if
-       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
-       if (iproc==0) then
-           call yaml_comment('Matrix successfully diagonalized',hfill='~')
-       end if
+       !!if (iproc==0) then
+       !!    call yaml_comment('Diagonalizing the matrix',hfill='~')
+       !!end if
+       !!call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !!     smat_s%nfvctr, hamiltonian_mat%matrix, ovrlp_mat%matrix, eval)
+       !!if (iproc==0) then
+       !!    call yaml_comment('Matrix successfully diagonalized',hfill='~')
+       !!end if
        iunit=99
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
        !call writeLinearCoefficients(iunit, .true., nat, rxyz, smat_s%nfvctr, smat_s%nfvctr, &
@@ -485,11 +507,11 @@ program chess_toolbox
        call f_close(iunit)
 
        call f_free(eval)
-       call deallocate_matrices(ovrlp_mat)
-       call deallocate_matrices(hamiltonian_mat)
-       call deallocate_sparse_matrix(smat_s)
-       call deallocate_sparse_matrix(smat_m)
-       call deallocate_sparse_matrix_metadata(smmd)
+       !!call deallocate_matrices(ovrlp_mat)
+       !!call deallocate_matrices(hamiltonian_mat)
+       !!call deallocate_sparse_matrix(smat_s)
+       !!call deallocate_sparse_matrix(smat_m)
+       !!call deallocate_sparse_matrix_metadata(smmd)
        !call f_free_ptr(rxyz)
        !call f_free_ptr(iatype)
        !call f_free_ptr(nzatom)
@@ -844,7 +866,8 @@ program chess_toolbox
                     smat, mat, trim(outfile_base))
            end select
        case (3)
-           call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, trim(outfile), .false.)
+           call write_dense_matrix(iproc, nproc, mpiworld(), smat, mat, &
+                uncompress=.true., filename=trim(outfile), binary=.false.)
 
        end select
 
@@ -854,65 +877,68 @@ program chess_toolbox
 
 
    if (calculate_selected_eigenvalues) then
-       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
-            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
-            init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
-            init_matmul=.false.)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
-            iproc, nproc, mpiworld(), smat_l, kernel_mat, &
-            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
-       call matrices_init(smat_l, ovrlp_minus_one_half(1))
+       call calculate_eigenvalues(iproc, nproc, matrix_format, metadata_file, &
+            overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file, &
+            iev_min, iev_max, fscale)
+       !!!call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
+       !!!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
+       !!!     iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+       !!!     init_matmul=.false.)
+       !!!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+       !!!     iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+       !!!     init_matmul=.false.)
+       !!!call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
+       !!!     iproc, nproc, mpiworld(), smat_l, kernel_mat, &
+       !!!     init_matmul=.true., filename_mult=trim(kernel_matmul_file))
+       !!!call matrices_init(smat_l, ovrlp_minus_one_half(1))
 
-       !call timing(mpiworld(),'INIT','PR')
-       call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
-                    gather_routine=gather_timings)
-       if (iev_min<1 .or. iev_min>smat_s%nfvctr .or. iev_max>smat_s%nfvctr .or. iev_max<1) then
-           if (iproc==0) then
-               call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
-           end if
-       end if
-       iev_min = max(iev_min,1)
-       iev_min = min(iev_min,smat_s%nfvctr)
-       iev_max = min(iev_max,smat_s%nfvctr)
-       iev_max = max(iev_max,1)
-       eval = f_malloc(iev_min.to.iev_max,id='eval')
-       if (iproc==0) then
-           call yaml_mapping_open('Calculating eigenvalues using FOE')
-       end if
-       call get_selected_eigenvalues_from_FOE(iproc, nproc, mpiworld(), &
-            iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
-            ovrlp_minus_one_half, eval, fscale)
+       !!!!call timing(mpiworld(),'INIT','PR')
+       !!!call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
+       !!!             gather_routine=gather_timings)
+       !!!if (iev_min<1 .or. iev_min>smat_s%nfvctr .or. iev_max>smat_s%nfvctr .or. iev_max<1) then
+       !!!    if (iproc==0) then
+       !!!        call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
+       !!!    end if
+       !!!end if
+       !!!iev_min = max(iev_min,1)
+       !!!iev_min = min(iev_min,smat_s%nfvctr)
+       !!!iev_max = min(iev_max,smat_s%nfvctr)
+       !!!iev_max = max(iev_max,1)
+       !!!eval = f_malloc(iev_min.to.iev_max,id='eval')
+       !!!if (iproc==0) then
+       !!!    call yaml_mapping_open('Calculating eigenvalues using FOE')
+       !!!end if
+       !!!call get_selected_eigenvalues_from_FOE(iproc, nproc, mpiworld(), &
+       !!!     iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
+       !!!     ovrlp_minus_one_half, eval, fscale)
 
-       !!call timing(mpiworld(),'CALC','PR')
-       call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
-                    gather_routine=gather_timings)
+       !!!!!call timing(mpiworld(),'CALC','PR')
+       !!!call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
+       !!!             gather_routine=gather_timings)
 
-       if (iproc==0) then
-           call yaml_sequence_open('values')
-           do iev=iev_min,iev_max
-               call yaml_sequence(advance='no')
-               call yaml_mapping_open(flow=.true.)
-               call yaml_map('ID',iev,fmt='(i6.6)')
-               call yaml_map('eval',eval(iev),fmt='(es12.5)')
-               call yaml_mapping_close()
-           end do
-           call yaml_sequence_close()
-           call yaml_mapping_close()
-       end if
+       !!!if (iproc==0) then
+       !!!    call yaml_sequence_open('values')
+       !!!    do iev=iev_min,iev_max
+       !!!        call yaml_sequence(advance='no')
+       !!!        call yaml_mapping_open(flow=.true.)
+       !!!        call yaml_map('ID',iev,fmt='(i6.6)')
+       !!!        call yaml_map('eval',eval(iev),fmt='(es12.5)')
+       !!!        call yaml_mapping_close()
+       !!!    end do
+       !!!    call yaml_sequence_close()
+       !!!    call yaml_mapping_close()
+       !!!end if
 
 
-       call deallocate_sparse_matrix(smat_s)
-       call deallocate_sparse_matrix(smat_m)
-       call deallocate_sparse_matrix(smat_l)
-       call deallocate_matrices(ovrlp_mat)
-       call deallocate_matrices(hamiltonian_mat)
-       call deallocate_matrices(kernel_mat)
-       call deallocate_matrices(ovrlp_minus_one_half(1))
-       call deallocate_sparse_matrix_metadata(smmd)
-       call f_free(eval)
+       !!!call deallocate_sparse_matrix(smat_s)
+       !!!call deallocate_sparse_matrix(smat_m)
+       !!!call deallocate_sparse_matrix(smat_l)
+       !!!call deallocate_matrices(ovrlp_mat)
+       !!!call deallocate_matrices(hamiltonian_mat)
+       !!!call deallocate_matrices(kernel_mat)
+       !!!call deallocate_matrices(ovrlp_minus_one_half(1))
+       !!!call deallocate_sparse_matrix_metadata(smmd)
+       !!!call f_free(eval)
 
        !!call timing(mpiworld(),'LAST','PR')
        call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&
@@ -1160,6 +1186,7 @@ program chess_toolbox
 
        if (iproc==0) then
            call yaml_mapping_open('Input parameters')
+           call yaml_map('Manipulation mode',trim(manipulation_mode))
            call yaml_map('Matrix format',trim(matrix_format))
            call yaml_map('Matrix metadata file',trim(metadata_file))
            call yaml_map('Input hamiltonian file',trim(hamiltonian_file))
@@ -1174,17 +1201,21 @@ program chess_toolbox
        end if
 
        call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
-       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
-            init_matmul=.false.)
        call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
             iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
             init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
+            iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+            init_matmul=.false.)
+       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
+            iproc, nproc, mpiworld(), smat_l, ovrlp_minus_one_half(1), &
+            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
 
        if (iproc==0) then
            call yaml_mapping_open('Matrix properties')
-           call write_sparsematrix_info(smat_m, 'Hamiltonian')
            call write_sparsematrix_info(smat_s, 'Overlap matrix')
+           call write_sparsematrix_info(smat_m, 'Hamiltonian')
+           call write_sparsematrix_info(smat_l, 'Kernel')
            call yaml_mapping_close()
        end if
 
@@ -1196,174 +1227,281 @@ program chess_toolbox
             smat_m, inmat=hamiltonian_mat%matrix_compr, outmat=hamiltonian_mat%matrix)
        eval = f_malloc(smat_s%nfvctr,id='eval')
 
-       ! Diagonalize the original Hamiltonian matrix
-       if (iproc==0) then
-           call yaml_comment('Diagonalizing the matrix',hfill='~')
-       end if
+       !!! Diagonalize the original Hamiltonian matrix
+       !!if (iproc==0) then
+       !!    call yaml_comment('Diagonalizing the matrix',hfill='~')
+       !!end if
        hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
        ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
-       call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
-       call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
-       if (iproc==0) then
-           call yaml_comment('Matrix succesfully diagonalized',hfill='~')
-       end if
+       !!call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       !!call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       !!call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !!     smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       !!if (iproc==0) then
+       !!    call yaml_comment('Matrix succesfully diagonalized',hfill='~')
+       !!end if
 
-       if (iproc==0) then
-           call yaml_mapping_open('Eigenvalue spectrum')
-           call yaml_map('Smallest value',eval(1))
-           call yaml_map('Largest value',eval(smat_s%nfvctr))
-           call yaml_map('HOMO value',eval(ihomo_state))
-           call yaml_map('LUMO value',eval(ihomo_state+1))
-           call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
-           call yaml_mapping_close()
-       end if
+       !!if (iproc==0) then
+       !!    call yaml_mapping_open('Eigenvalue spectrum')
+       !!    call yaml_map('Smallest value',eval(1))
+       !!    call yaml_map('Largest value',eval(smat_s%nfvctr))
+       !!    call yaml_map('HOMO value',eval(ihomo_state))
+       !!    call yaml_map('LUMO value',eval(ihomo_state+1))
+       !!    call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
+       !!    call yaml_mapping_close()
+       !!end if
 
        ! Manipulate the Hamiltonian matrix such that it has the desired spectral properteis
        if (iproc==0) then
            call yaml_mapping_open('Manipulate the Hamiltonian spectrum')
        end if
 
-       ! Scale the gap to the desired value
-       gap = eval(ihomo_state+1)-eval(ihomo_state)
-       gap_target = lumo_value-homo_value
-       scale_value = gap_target/gap
-       if (iproc==0) then
-           call yaml_map('Scaling factor',scale_value)
-       end if
-       call vscal(smat_s%nfvctr**2, scale_value, hamiltonian_mat%matrix(1,1,1), 1)
+       mode_if: if (manipulation_mode=='diagonal') then
+           ! Set the matrix to zero
+           !call f_zero(hamiltonian_mat%matrix)
+           call f_zero(ovrlp_mat%matrix)
+           call f_zero(hamiltonian_tmp)
 
-       ! Move the HOMO level to the desired value
-       call f_zero(ovrlp_tmp)
-       shift_value=homo_value-scale_value*eval(ihomo_state)
-       !if (iproc==0) then
-       !    call yaml_map('shift_value',shift_value)
-       !end if
-       if (iproc==0) then
-           call yaml_map('Shift value',shift_value)
-       end if
-       do i=1,smat_s%nfvctr
-           do j=1,smat_s%nfvctr
-               !ovrlp_tmp(i,i)=shift_value*ovrlp_mat%matrix(i,i,1)
-               hamiltonian_mat%matrix(j,i,1) = hamiltonian_mat%matrix(j,i,1) + shift_value*ovrlp_mat%matrix(j,i,1)
+           ! Set the lowest eigenvalue
+           hamiltonian_tmp(1,1) = smallest_value
+
+           ! Set the highest eigenvalue
+           hamiltonian_tmp(smat_s%nfvctr,smat_s%nfvctr) = largest_value
+
+           ! Set the HOMO eigenvalue
+           hamiltonian_tmp(ihomo_state,ihomo_state) = homo_value
+
+           ! Set the LUMO eigenvalue
+           hamiltonian_tmp(ihomo_state+1,ihomo_state+1) = lumo_value
+
+           ! Set the remaining values at random
+           call f_random_number(tt, reset=.true.)
+           mult_factor = homo_value-smallest_value
+           add_shift = smallest_value
+           do i=2,ihomo_state-1
+               call f_random_number(tt)
+               tt = tt*mult_factor+add_shift
+               hamiltonian_tmp(i,i) = tt
            end do
-       end do
-       call axpy(smat_s%nfvctr**2, 1.0_mp, ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+           mult_factor = largest_value-lumo_value
+           add_shift = lumo_value
+           do i=ihomo_state+2,smat_s%nfvctr-1
+               call f_random_number(tt)
+               tt = tt*mult_factor+add_shift
+               hamiltonian_tmp(i,i) = tt
+           end do
+           ! Calculate S^1/2
+           !call matrices_init(smat_l, ovrlp_minus_one_half(1))
+           call matrix_chebyshev_expansion(iproc, nproc, mpiworld(), 1, (/0.5_mp/), &
+                smat_s, smat_l, ovrlp_mat, ovrlp_minus_one_half)
+           call uncompress_matrix(iproc, nproc, &
+                smat_l, inmat=ovrlp_minus_one_half(1)%matrix_compr, outmat=ovrlp_tmp)
 
-       matrix_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='matrix_tmp')
-       !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-       !     1.0_mp, hamiltonian_tmp(1,1), smat_s%nfvctr, &
-       !     hamiltonian_tmp(1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-       !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-       !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-       !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-       !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-       !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-       !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-       !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(1)+shift_value), &
-       !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
-       ! Move the lowest eigenvalue to the desired value.
-       ! This is also necessary for all eigevalues that are smaller than the new target value.
-       if (iproc==0) then
-           call yaml_sequence_open('Moving lower eigenvalues')
-       end if
-       do ieval=1,smat_s%nfvctr
-           actual_eval = scale_value*eval(ieval)+shift_value
-           if (ieval==1 .or. actual_eval<smallest_value) then
-               if (iproc==0) then
-                   call yaml_sequence(advance='no')
-                   call yaml_mapping_open(flow=.true.)
-                   call yaml_map('eigenvalue number',ieval)
-                   call yaml_map('Shift value',smallest_value-actual_eval)
-                   call yaml_mapping_close()
-               end if
-               !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-               !     1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
-               !     hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-               !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-               !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-               !call dgemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-               !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-               !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-                    1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
-                    hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
-                    ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, matrix_tmp, smat_s%nfvctr, &
-                    ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
-               call axpy(smat_s%nfvctr**2, smallest_value-actual_eval, &
-                    ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+           call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                'n', 'n', smat_m%nfvctr, smat_m%nfvctr, smat_m%nfvctr, &
+                1.0_mp, ovrlp_tmp(1:,1:), smat_m%nfvctr, &
+                hamiltonian_tmp(1:,1:), smat_m%nfvctr, 0.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_m%nfvctr)
+           call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                'n', 'n', smat_m%nfvctr, smat_m%nfvctr, smat_m%nfvctr, &
+                1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_m%nfvctr, &
+                ovrlp_tmp(1:,1:), smat_m%nfvctr, 0.0_mp, hamiltonian_mat%matrix(1:,1:,1), smat_m%nfvctr)
+           do i=1,smat_s%nfvctr
+               ovrlp_mat%matrix(i,i,1) = 1.0_mp
+           end do
+           !call yaml_map('H',ovrlp_tmp(:,:))
+       else if (manipulation_mode=='full') then mode_if
+
+           ! Diagonalize the original Hamiltonian matrix
+           if (iproc==0) then
+               call yaml_comment('Diagonalizing the matrix',hfill='~')
            end if
-       end do
-       if (iproc==0) then
-           call yaml_sequence_close()
-       end if
-
-       ! Move the higest eigenvalue to the desired value.
-       ! This is also necessary for all eigevalues that are bigger than the new target value.
-       if (iproc==0) then
-           call yaml_sequence_open('Moving upper eigenvalues')
-       end if
-       do ieval=1,smat_s%nfvctr
-           actual_eval = scale_value*eval(ieval)+shift_value
-           if (ieval==smat_s%nfvctr .or. actual_eval>largest_value) then
-               if (iproc==0) then
-                   call yaml_sequence(advance='no')
-                   call yaml_mapping_open(flow=.true.)
-                   call yaml_map('eigenvalue number',ieval)
-                   call yaml_map('Shift value',smallest_value-actual_eval)
-                   call yaml_mapping_close()
-               end if
-               !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-               !     1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
-               !     hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-               !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
-               !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
-               !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-               !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
-               !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
-                    1.0_mp, hamiltonian_tmp(1:,ieval), smat_s%nfvctr, &
-                    hamiltonian_tmp(1:,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, ovrlp_mat%matrix, smat_s%nfvctr, &
-                    ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
-               call dgemm_parallel(iproc, nproc, -2, mpi_comm_world, 'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
-                    1.0_mp, matrix_tmp, smat_s%nfvctr, &
-                    ovrlp_mat%matrix, smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
-               call axpy(smat_s%nfvctr**2, largest_value-actual_eval, &
-                    ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+           !!hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
+           !!ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
+           call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+           call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+           call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+                smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+           if (iproc==0) then
+               call yaml_comment('Matrix succesfully diagonalized',hfill='~')
            end if
-       end do
-       if (iproc==0) then
-           call yaml_sequence_close()
-           call yaml_mapping_close()
-       end if
-       !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
-       !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+
+           if (iproc==0) then
+               call yaml_mapping_open('Eigenvalue spectrum')
+               call yaml_map('Smallest value',eval(1))
+               call yaml_map('Largest value',eval(smat_s%nfvctr))
+               call yaml_map('HOMO value',eval(ihomo_state))
+               call yaml_map('LUMO value',eval(ihomo_state+1))
+               call yaml_map('HOMO-LUMO gap',eval(ihomo_state+1)-eval(ihomo_state))
+               call yaml_mapping_close()
+           end if
 
 
+           ! Scale the gap to the desired value
+           gap = eval(ihomo_state+1)-eval(ihomo_state)
+           gap_target = lumo_value-homo_value
+           scale_value = gap_target/gap
+           if (iproc==0) then
+               call yaml_map('Scaling factor',scale_value)
+           end if
+           call vscal(smat_s%nfvctr**2, scale_value, hamiltonian_mat%matrix(1,1,1), 1)
+
+           ! Move the HOMO level to the desired value
+           call f_zero(ovrlp_tmp)
+           shift_value=homo_value-scale_value*eval(ihomo_state)
+           !if (iproc==0) then
+           !    call yaml_map('shift_value',shift_value)
+           !end if
+           if (iproc==0) then
+               call yaml_map('Shift value',shift_value)
+           end if
+           do i=1,smat_s%nfvctr
+               do j=1,smat_s%nfvctr
+                   !ovrlp_tmp(i,i)=shift_value*ovrlp_mat%matrix(i,i,1)
+                   hamiltonian_mat%matrix(j,i,1) = hamiltonian_mat%matrix(j,i,1) + shift_value*ovrlp_mat%matrix(j,i,1)
+               end do
+           end do
+           call axpy(smat_s%nfvctr**2, 1.0_mp, ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+
+           matrix_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='matrix_tmp')
+           !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+           !     1.0_mp, hamiltonian_tmp(1,1), smat_s%nfvctr, &
+           !     hamiltonian_tmp(1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+           !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+           !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+           !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+           !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+           !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+           !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+           !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(1)+shift_value), &
+           !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+           ! Move the lowest eigenvalue to the desired value.
+           ! This is also necessary for all eigevalues that are smaller than the new target value.
+           if (iproc==0) then
+               call yaml_sequence_open('Moving lower eigenvalues')
+           end if
+           do ieval=1,smat_s%nfvctr
+               actual_eval = scale_value*eval(ieval)+shift_value
+               if (ieval==1 .or. actual_eval<smallest_value) then
+                   if (iproc==0) then
+                       call yaml_sequence(advance='no')
+                       call yaml_mapping_open(flow=.true.)
+                       call yaml_map('eigenvalue number',ieval)
+                       call yaml_map('Shift value',smallest_value-actual_eval)
+                       call yaml_mapping_close()
+                   end if
+                   !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                   !     1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
+                   !     hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+                   !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                   !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+                   !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+                   !call dgemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                   !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+                   !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+                   call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                        'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                        1.0_mp, hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, &
+                        hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                   call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                        'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                        1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, &
+                        ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
+                   call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                        'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                        1.0_mp, matrix_tmp, smat_s%nfvctr, &
+                        ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                   call axpy(smat_s%nfvctr**2, smallest_value-actual_eval, &
+                        ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+               end if
+           end do
+           if (iproc==0) then
+               call yaml_sequence_close()
+           end if
+
+           ! Move the higest eigenvalue to the desired value.
+           ! This is also necessary for all eigevalues that are bigger than the new target value.
+           if (iproc==0) then
+               call yaml_sequence_open('Moving upper eigenvalues')
+           end if
+           do ieval=1,smat_s%nfvctr
+               actual_eval = scale_value*eval(ieval)+shift_value
+               if (ieval==smat_s%nfvctr .or. actual_eval>largest_value) then
+                   if (iproc==0) then
+                       call yaml_sequence(advance='no')
+                       call yaml_mapping_open(flow=.true.)
+                       call yaml_map('eigenvalue number',ieval)
+                       call yaml_map('Shift value',smallest_value-actual_eval)
+                       call yaml_mapping_close()
+                   end if
+                   !call gemm('n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                   !     1.0_mp, hamiltonian_tmp(1,ieval), smat_s%nfvctr, &
+                   !     hamiltonian_tmp(1,ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+                   !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                   !     1.0_mp, ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, &
+                   !     ovrlp_tmp(1,1), smat_s%nfvctr, 0.0_mp, matrix_tmp(1,1), smat_s%nfvctr)
+                   !call gemm('n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                   !     1.0_mp, matrix_tmp(1,1), smat_s%nfvctr, &
+                   !     ovrlp_mat%matrix(1,1,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp(1,1), smat_s%nfvctr)
+                   call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                        'n', 't', smat_s%nfvctr, smat_s%nfvctr, 1, &
+                        1.0_mp, hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, &
+                        hamiltonian_tmp(1:,ieval:ieval), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                   call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                        'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                        1.0_mp, ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, &
+                        ovrlp_tmp, smat_s%nfvctr, 0.0_mp, matrix_tmp, smat_s%nfvctr)
+                   call dgemm_parallel(iproc, nproc, scalapack_blocksize, mpi_comm_world, &
+                        'n', 'n', smat_s%nfvctr, smat_s%nfvctr, smat_s%nfvctr, &
+                        1.0_mp, matrix_tmp, smat_s%nfvctr, &
+                        ovrlp_mat%matrix(1:,1:,1), smat_s%nfvctr, 0.0_mp, ovrlp_tmp, smat_s%nfvctr)
+                   call axpy(smat_s%nfvctr**2, largest_value-actual_eval, &
+                        ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+               end if
+           end do
+           if (iproc==0) then
+               call yaml_sequence_close()
+               call yaml_mapping_close()
+           end if
+           !call axpy(smat_s%nfvctr**2, smallest_value-(scale_value*eval(smat_s%nfvctr)+shift_value), &
+           !     ovrlp_tmp(1,1), 1, hamiltonian_mat%matrix(1,1,1), 1)
+
+           call f_free(matrix_tmp)
+
+       else mode_if
+           call f_err_throw("wrong manipulation mode; must be 'diagonal' or 'full'")
+       end if mode_if
+
+       ! Compress the matrix
+       call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
 
        ! Diagonalize the modified Hamiltonian matrix
        if (iproc==0) then
            call yaml_comment('Diagonalizing the matrix',hfill='~')
        end if
-       !hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
-       !ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
-       call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
-       call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
-       call diagonalizeHamiltonian2(iproc, smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       !!hamiltonian_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='hamiltonian_tmp')
+       !!ovrlp_tmp = f_malloc((/smat_s%nfvctr,smat_s%nfvctr/),id='ovrlp_tmp')
+       !!call f_memcpy(src=hamiltonian_mat%matrix,dest=hamiltonian_tmp)
+       !!call f_memcpy(src=ovrlp_mat%matrix,dest=ovrlp_tmp)
+       !!call diagonalizeHamiltonian2(iproc, nproc, mpiworld(), scalapack_blocksize, &
+       !!     smat_s%nfvctr, hamiltonian_tmp, ovrlp_tmp, eval)
+       eval_min = f_malloc(smat_m%nspin,id='eval_min')
+       eval_max = f_malloc(smat_m%nspin,id='eval_max')
+       call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'generalized', scalapack_blocksize, &
+            smat_m, hamiltonian_mat, eval_min, eval_max, &
+            diag_algorithm, quiet=.true., smat2=smat_s, mat2=ovrlp_mat, evals=eval)
+       !!do i=1,smat_m%nfvctr
+       !!    write(*,*) 'i',eval(i)
+       !!end do
+       call f_free(eval_min)
+       call f_free(eval_max)
+
        if (iproc==0) then
            call yaml_comment('Matrix succesfully diagonalized',hfill='~')
        end if
 
        if (iproc==0) then
            call yaml_mapping_open('Eigenvalue spectrum')
+           !call yaml_map('EVALS',eval)
            call yaml_map('Smallest value',eval(1))
            call yaml_map('Largest value',eval(smat_s%nfvctr))
            call yaml_map('HOMO value',eval(ihomo_state))
@@ -1372,6 +1510,7 @@ program chess_toolbox
            call yaml_mapping_close()
        end if
 
+       ! Write the manipulated Hamiltonian matrix
        index_dot = index(hamiltonian_manipulated_file,'.',back=.true.)
        outfile_base = hamiltonian_manipulated_file(1:index_dot-1)
        outfile_extension = hamiltonian_manipulated_file(index_dot:)
@@ -1386,19 +1525,39 @@ program chess_toolbox
        else
            call f_err_throw('Wrong matrix format')
        end if
-       call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
+       !call compress_matrix(iproc, nproc, smat_m, hamiltonian_mat%matrix, hamiltonian_mat%matrix_compr)
        call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
             smat_m, hamiltonian_mat, trim(outfile_base))
 
+       !!!! Write the manipulated overlap matrix
+       !!!index_dot = index(overlap_manipulated_file,'.',back=.true.)
+       !!!outfile_base = overlap_manipulated_file(1:index_dot-1)
+       !!!outfile_extension = overlap_manipulated_file(index_dot:)
+       !!!if (trim(matrix_format)=='serial_text') then
+       !!!    if (trim(outfile_extension)/='.txt') then
+       !!!        call f_err_throw('Wrong file extension; must be .txt, but found '//trim(outfile_extension))
+       !!!    end if
+       !!!else if (trim(matrix_format)=='parallel_mpi-native') then
+       !!!    if (trim(outfile_extension)/='.mpi') then
+       !!!        call f_err_throw('Wrong file extension; must be .mpi, but found '//trim(outfile_extension))
+       !!!    end if
+       !!!else
+       !!!    call f_err_throw('Wrong matrix format')
+       !!!end if
+       !!!call compress_matrix(iproc, nproc, smat_s, ovrlp_mat%matrix, ovrlp_mat%matrix_compr)
+       !!!call write_sparse_matrix(matrix_format, iproc, nproc, mpiworld(), &
+       !!!     smat_s, ovrlp_mat, trim(outfile_base))
+
        call deallocate_sparse_matrix(smat_s)
        call deallocate_sparse_matrix(smat_m)
+       call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(hamiltonian_mat)
+       call deallocate_matrices(ovrlp_minus_one_half(1))
        call deallocate_sparse_matrix_metadata(smmd)
        call f_free(eval)
        call f_free(hamiltonian_tmp)
        call f_free(ovrlp_tmp)
-       call f_free(matrix_tmp)
 
        !!call timing(mpiworld(),'LAST','PR')
        call f_timing_checkpoint(ctr_name='LAST',mpi_comm=mpiworld(),nproc=mpisize(),&

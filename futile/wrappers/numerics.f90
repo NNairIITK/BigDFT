@@ -127,6 +127,7 @@ module numerics
 
     !> give a function which takes into account overflows and underflows even in the gaussian arguments
     pure function safe_gaussian(x0,x,alpha) result(gau)
+      use f_precisions
       implicit none
       double precision, intent(in) :: x0 !< gaussian center
       double precision, intent(in) :: x !< argument
@@ -135,9 +136,9 @@ module numerics
       double precision :: gau
       !local variables
       !> if the sqrt is bigger than this value, the result is tiny(1.0)
-      double precision, parameter :: mn_sqrt= sqrt(tiny(1.d0))
+      real(f_double), parameter :: mn_sqrt= 1.49166814624004134865819306309258677E-154_f_double ! = sqrt(tiny(1.d0))sqrt(tiny(1.d0))
       !> if the sqrt is lower than this value, the result is huge(1.0)
-      double precision, parameter :: mx_sqrt= sqrt(huge(1.d0))
+      real(f_double), parameter :: mx_sqrt= 1.34078079299425963552911713195043695E+154_f_double ! = sqrt(huge(1.d0))sqrt(huge(1.d0))
 
       double precision :: gau_arg,xd
 

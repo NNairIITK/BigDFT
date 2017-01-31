@@ -152,7 +152,7 @@ program smatmul
 
 
   call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
-       vector_out, matA%matrix_compr)
+       vector_out, ONESIDED_FULL, matA%matrix_compr)
   if (iproc==0 .and. verbosity==2) then
       call write_matrix_compressed('final result', smat, matA)
   end if

@@ -59,6 +59,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use orbitalbasis
   use sparsematrix_highlevel, only: get_selected_eigenvalues_from_FOE
   use sparsematrix_io, only: write_linear_coefficients
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
 
   ! Calling arguments
@@ -130,13 +131,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8), dimension(1,1) :: K_H
   real(kind=8), dimension(4,4) :: K_O
   integer :: j, ind, n, ishifts, ishiftm, iq
-  real(kind=8), dimension(:,:), allocatable :: ham_small, coeffs
-  real(kind=8), dimension(:,:), pointer :: com
-  real(kind=8), dimension(:,:), allocatable :: coeff
-  real(kind=8),dimension(:),allocatable :: projector_compr, evals, hphi_pspandkin
+  real(kind=8),dimension(:),allocatable :: evals, hphi_pspandkin
   real(kind=8), dimension(:,:,:), allocatable :: matrixElements, coeff_all,multipoles_out
-  real(kind=8), dimension(:,:,:), pointer :: multipoles
-!!$  real(kind=8), dimension(:), allocatable :: projector_compr
   !type(external_potential_descriptors) :: ep
 !!$  real(kind=8), dimension(:), allocatable :: rho_tmp
 !!$  real(kind=8), dimension(:,:), allocatable :: tempmat, tmat, all_evals, theta, projector_small, ovrlp_small, ovrlp_full
@@ -279,9 +275,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      !!call extract_taskgroup_inplace(tmb%linmat%m, weight_matrix_)
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+     call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_,weight_matrix_,&
-          ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+          ebs,tmb%coeff, &
+          KSwfn%orbs%norbp, KSwfn%orbs%isorb, KSwfn%orbs%norbu, KSwfn%orbs%norb, KSwfn%orbs%occup, .false.)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, weight_matrix_)
 
@@ -329,7 +326,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+          tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
           denspot%rhov, rho_negative)
      !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      !!call f_free(tmparr)
@@ -472,9 +469,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,.true.,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
-                     input%tel, input%occopt, &
-                     input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
-                     input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                     input%tel, input%occopt, input%cp%pexsi%pexsi_npoles, &
+                     input%cp%pexsi%pexsi_mumin,input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE, &
+                     input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact, &
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff, &
                      hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
@@ -889,7 +886,8 @@ tmb%can_use_transposed=.false.
       !call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
       !     tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
       call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, &
-           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, &
+           tmb%linmat%l, tmb%linmat%auxl, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed)
 
   call deallocate_matrices(tmb%linmat%ovrlp_)
@@ -897,7 +895,7 @@ tmb%can_use_transposed=.false.
   ! allocate_matrices takes much memory for large systems...
   call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
-       tmb%linmat%s, tmb%linmat%ovrlp_)
+       tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
 
   ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
   max_deviation=0.d0
@@ -923,14 +921,15 @@ tmb%can_use_transposed=.false.
       !call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
       !     tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
       call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, &
-           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, &
+           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%l, tmb%linmat%auxl, &
+           tmb%collcom, tmb%orthpar, tmb%psi, &
            tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
 
   call deallocate_matrices(tmb%linmat%ovrlp_)
   tmb%linmat%ovrlp_ = matrices_null()
   call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
-       tmb%linmat%s, tmb%linmat%ovrlp_)
+       tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
 
   ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
   max_deviation=0.d0
@@ -976,8 +975,9 @@ end if
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
            input%tel, input%occopt, &
-           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
-           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
+           input%cp%pexsi%pexsi_npoles,input%cp%pexsi%pexsi_mumin,&
+           input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE, &
+           input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1214,7 +1214,7 @@ end if
       end if
           ! Recalculate the charge density...
           call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-               tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+               tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
                denspot%rhov, rho_negative)
           if (rho_negative) then
               call corrections_for_negative_charge(iproc, nproc, at, denspot)
@@ -1233,7 +1233,7 @@ end if
                rxyz, method, do_ortho, projectormode, &
                calculate_multipole_matrices=.true., do_check=.true., &
                write_multipole_matrices_mode=input%lin%output_mat_format, &
-               nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
+               auxs=tmb%linmat%auxs, nphi=tmb%npsidim_orbs, lphi=tmb%psi, nphir=max(tmb%collcom_sr%ndimpsi_c,1), &
                hgrids=tmb%lzd%hgrids, orbs=tmb%orbs, collcom=tmb%collcom, collcom_sr=tmb%collcom_sr, &
                lzd=tmb%lzd, at=at, denspot=denspot, orthpar=tmb%orthpar, shift=at%astruct%shift, &
                ice_obj=tmb%ice_obj, filename=trim(input%dir_output))
@@ -1461,7 +1461,7 @@ end if
   !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+       tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
   !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
   !!call f_free(tmparr)
@@ -1558,9 +1558,9 @@ end if
                          invert_overlap_matrix,calculate_pspandkin,update_phi,&
                          calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                         input%tel, input%occopt, &
-                         input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                         input%tel, input%occopt,input%cp%pexsi%pexsi_npoles,&
+                         input%cp%pexsi%pexsi_mumin,input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE,&
+                         input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact, &
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
                          hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                     call get_lagrange_mult(cdft_it,vgrad)
@@ -1580,8 +1580,9 @@ end if
                       calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      input%cp%pexsi%pexsi_npoles,input%cp%pexsi%pexsi_mumin,&
+                      input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE,&
+                      input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                end if
@@ -1615,9 +1616,9 @@ end if
                          invert_overlap_matrix,calculate_pspandkin,update_phi,&
                          calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                          input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                         input%tel, input%occopt, &
-                         input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                         input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                         input%tel, input%occopt,input%cp%pexsi%pexsi_npoles,&
+                         input%cp%pexsi%pexsi_mumin,input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE,&
+                         input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact,&
                          convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft, &
                          hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
                     call get_lagrange_mult(cdft_it,vgrad)
@@ -1637,8 +1638,9 @@ end if
                       calculate_ham,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       input%tel, input%occopt, &
-                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
-                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      input%cp%pexsi%pexsi_npoles,input%cp%pexsi%pexsi_mumin,&
+                      input%cp%pexsi%pexsi_mumax,input%cp%pexsi%pexsi_mu,input%cp%pexsi%pexsi_DeltaE,&
+                      input%cp%pexsi%pexsi_temperature,input%cp%pexsi%pexsi_tol_charge,input%cp%pexsi%pexsi_np_sym_fact,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder, &
                       hphi_pspandkin=hphi_pspandkin,eproj=eproj,ekin=ekin)
               end if
@@ -1719,7 +1721,7 @@ end if
            !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
            !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
            call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-                tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+                tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, &
                 denspot%dpbox%ndimrhopot, &
                 denspot%rhov, rho_negative)
            !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
@@ -2338,7 +2340,7 @@ end if
       !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
       !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       !!call f_free(tmparr)
@@ -2409,9 +2411,9 @@ end if
 
 
          ! CDFT: Calculate gradient of V=Tr[Kw]-Nc
-         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+         call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,tmb%linmat%m, &
               tmb%linmat%kernel_,weight_matrix_,&
-              ebs,tmb%coeff,KSwfn%orbs,tmb%orbs,.false.)
+              ebs,tmb%coeff,KSwfn%orbs%norbp, KSwfn%orbs%isorb, KSwfn%orbs%norbu, KSwfn%orbs%norb, KSwfn%orbs%occup,.false.)
          vgrad=ebs-cdft%charge
 
          ! CDFT: update V (maximizing E wrt V)

@@ -26,7 +26,8 @@ program driver_random
   use sparsematrix_init, only: generate_random_symmetric_sparsity_pattern, &
                                matrixindex_in_compressed, write_sparsematrix_info
   use sparsematrix, only: symmetrize_matrix, check_deviation_from_unity_sparse, &
-                          matrix_power_dense_lapack, get_minmax_eigenvalues
+                          matrix_power_dense_lapack, get_minmax_eigenvalues, &
+                          uncompress_matrix, transform_sparse_matrix
   use sparsematrix_highlevel, only: matrix_chebyshev_expansion, matrices_init, &
                                     matrix_matrix_multiplication, &
                                     sparse_matrix_init_from_file_bigdft, &
@@ -37,12 +38,14 @@ program driver_random
   use foe_base, only: foe_data, foe_data_deallocate
   use foe_common, only: init_foe
   use wrapper_MPI
+  use selinv, only: selinv_wrapper
+  use utilities, only: calculate_error
 
   implicit none
 
   ! Variables
   integer :: iproc, nproc, iseg, ierr, idum, ii, i, nthread
-  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold, icheck
+  integer :: nfvctr, nvctr, nbuf_large, nbuf_mult, iwrite, scalapack_blocksize, ithreshold, icheck, j, pexsi_np_sym_fact
   type(sparse_matrix) :: smats
   type(sparse_matrix),dimension(1) :: smatl
   real(kind=4) :: tt_real
@@ -51,17 +54,20 @@ program driver_random
   type(matrices) :: mat1, mat2
   type(matrices),dimension(3) :: mat3
   real(mp) :: condition_number, expo, max_error, mean_error, betax
-  real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh
+  real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh, eval_multiplicator
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
-  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method
+  character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method, diag_algorithm
+  character(len=1024) :: solution_method
   logical :: write_matrices, do_cubic_check
   type(dictionary), pointer :: options, dict_timing_info
   type(yaml_cl_parse) :: parser !< command line parser
   external :: gather_timings
   !$ integer :: omp_get_max_threads
-  integer,parameter :: nthreshold = 8 !< number of checks with threshold
-  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-5_mp, &
+  integer,parameter :: nthreshold = 10 !< number of checks with threshold
+  real(mp),dimension(nthreshold),parameter :: threshold = (/ 1.e-3_mp, &
+                                                             1.e-4_mp, &
+                                                             1.e-5_mp, &
                                                              1.e-6_mp, &
                                                              1.e-7_mp, &
                                                              1.e-8_mp, &
@@ -69,8 +75,8 @@ program driver_random
                                                              1.e-10_mp,&
                                                              1.e-11_mp,&
                                                              1.e-12_mp /) !< threshold for the relative errror
-  integer,dimension(nthreshold) :: nrel_threshold
-  real(mp),dimension(nthreshold) :: max_error_rel_threshold, mean_error_rel_threshold
+  !!integer,dimension(nthreshold) :: nrel_threshold
+  !!real(mp),dimension(nthreshold) :: max_error_rel_threshold, mean_error_rel_threshold
 
   ! Initialize flib
   call f_lib_initialize()
@@ -89,6 +95,7 @@ program driver_random
   call sparsematrix_initialize_timing_categories()
 
   ! Timing initialization
+  call mpibarrier()
   call f_timing_reset(filename='time.yaml', master=(iproc==0), verbose_mode=.false.)
 
   if (iproc==0) then
@@ -132,6 +139,10 @@ program driver_random
       evlow = options//'evlow'
       evhigh = options//'evhigh'
       do_cubic_check = options//'do_cubic_check'
+      diag_algorithm = options//'diag_algorithm'
+      eval_multiplicator = options//'eval_multiplicator'
+      solution_method = options//'solution_method'
+      pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
 
       call dict_free(options)
 
@@ -163,9 +174,16 @@ program driver_random
           call f_err_throw("Wrong value for 'matgen_method'")
       end if
       call yaml_map('Exponent for the matrix power calculation',expo)
+      call yaml_map('Solution method',trim(solution_method))
       call yaml_map('Write the matrices',write_matrices)
       call yaml_map('betax',betax,fmt='(f9.1)')
+      call yaml_map('Initial minimal eigenvalue',evlow)
+      call yaml_map('Initial maximal eigenvalue',evhigh)
       call yaml_map('scalapack_blocksize',scalapack_blocksize)
+      call yaml_map('ScaLAPACK diagonalization algorithm',diag_algorithm)
+      call yaml_map('ICE multiplication factor',eval_multiplicator)
+      call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
+      call yaml_map('Do a check with cubic scaling (Sca)LAPACK',do_cubic_check)
       call yaml_mapping_close()
   end if
 
@@ -181,10 +199,14 @@ program driver_random
   call mpibcast(outmatmulfile, root=0, comm=mpi_comm_world)
   call mpibcast(sparsegen_method, root=0, comm=mpi_comm_world)
   call mpibcast(matgen_method, root=0, comm=mpi_comm_world)
+  call mpibcast(solution_method, root=0, comm=mpi_comm_world)
   call mpibcast(betax, root=0, comm=mpi_comm_world)
   call mpibcast(scalapack_blocksize, root=0, comm=mpi_comm_world)
   call mpibcast(evlow, root=0, comm=mpi_comm_world)
   call mpibcast(evhigh, root=0, comm=mpi_comm_world)
+  call mpibcast(diag_algorithm, root=0, comm=mpi_comm_world)
+  call mpibcast(eval_multiplicator, root=0, comm=mpi_comm_world)
+  call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -249,7 +271,8 @@ program driver_random
   ! in this way improving the performance.
   ! Should maybe go to a wrapper.
   charge_fake = f_malloc0(1,id='charge_fake')
-  call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, betax=betax)
+  call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
+       betax=betax, eval_multiplicator=eval_multiplicator)
   call f_free(charge_fake)
 
 
@@ -257,6 +280,11 @@ program driver_random
   call matrices_init(smatl(1), mat3(1))
   call matrices_init(smatl(1), mat3(2))
   call matrices_init(smatl(1), mat3(3))
+
+  !!write(*,*) 'smats%istartend_local(1),smats%istartend_local(2)',smats%istartend_local(1),smats%istartend_local(2)
+  !!do i=1,size(smats%transposed_lookup_local)
+  !!    write(*,*) 'i, tll(i)', i, smats%transposed_lookup_local(i)
+  !!end do
 
   if (trim(matgen_method)=='random') then
 
@@ -302,12 +330,14 @@ program driver_random
 
   ! Initialization part done
   !call timing(mpi_comm_world,'INIT','PR')
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
   ! Calculate the minimal and maximal eigenvalue, to determine the condition number
   call get_minmax_eigenvalues(iproc, nproc, mpiworld(), 'standard', scalapack_blocksize, &
-       smats, mat2, eval_min, eval_max, quiet=.true.)
+       smats, mat2, eval_min, eval_max, &
+       algorithm=diag_algorithm, quiet=.true.)
   if (iproc==0) then
       call yaml_mapping_open('Eigenvalue properties')
       call yaml_map('Minimal',eval_min)
@@ -318,9 +348,10 @@ program driver_random
 
   !call write_dense_matrix(iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix.dat', binary=.false.)
   if (write_matrices) then
-      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse.dat')
+      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smats, mat2, 'randommatrix_sparse')
   end if
 
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='INFO',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
@@ -330,15 +361,32 @@ program driver_random
       call yaml_comment('Calculating mat^x',hfill='~')
       call yaml_mapping_open('Calculating mat^x')
   end if
-  call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
-       1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
+  if (trim(solution_method)=='ICE') then
+      call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
+           1, (/expo/), smats, smatl(1), mat2, mat3(1), ice_obj=ice_obj)
+  else if (trim(solutioN_method)=='SelInv') then
+      if (expo/=-1.0_mp) then
+          call f_err_throw('Selecetd Inversion is only possible for the calculation of the inverse')
+      end if
+      call selinv_wrapper(iproc, nproc, mpi_comm_world, smats, smatl(1), mat2, pexsi_np_sym_fact, mat3(1))
+  else if (trim(solutioN_method)=='LAPACK') then
+      mat2%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat2%matrix')
+      mat3(1)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
+      call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .false., &
+            expo, smats, smatl(1), mat2, mat3(1), algorithm=diag_algorithm)
+      call f_free_ptr(mat2%matrix)
+      call f_free_ptr(mat3(1)%matrix)
+  else
+      call f_err_throw("wrong value for 'solution_method'; possible values are 'ICE', 'SelInv' or 'LAPACK'")
+  end if
   ! Calculation part done
   !call timing(mpi_comm_world,'CALC','PR')
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='CALC',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
   if (write_matrices) then
-      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse.dat')
+      call write_sparse_matrix('serial_text', iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'solutionmatrix_sparse')
   end if
 
   if (iproc==0) then
@@ -373,7 +421,35 @@ program driver_random
       call yaml_mapping_close()
   end if
 
+
+  ! Calculate the inverse operation, applied to the operation itsel, i.e. (mat^x)^-x
+  if (iproc==0) then
+      call yaml_comment('Calculating (mat^x)^(1/x)',hfill='~')
+      call yaml_mapping_open('Calculating (mat^x)^(1/x)')
+  end if
+
+  ! Reset the ICE object
+  call foe_data_deallocate(ice_obj)
+  charge_fake = f_malloc0(1,id='charge_fake')
+  call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
+       betax=betax, eval_multiplicator=eval_multiplicator)
+  call f_free(charge_fake)
+  call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
+       1, (/1.0_mp/expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
+
+  if (iproc==0) then
+      call yaml_mapping_close()
+  end if
+
+  ! Calculate the errors
+  call transform_sparse_matrix(iproc, smats, smatl(1), SPARSE_FULL, 'small_to_large', &
+               smat_in=mat2%matrix_compr, lmat_out=mat3(2)%matrix_compr)
+
+  call calculate_error(iproc, smatl(1), mat3(3), mat3(2), nthreshold, threshold, .false., &
+       'Check the deviation from the original matrix')
+
   !call timing(mpi_comm_world,'CHECK_LINEAR','PR')
+  call mpibarrier()
   call f_timing_checkpoint(ctr_name='CHECK_LINEAR',mpi_comm=mpiworld(),nproc=mpisize(),&
        gather_routine=gather_timings)
 
@@ -384,63 +460,142 @@ program driver_random
           call yaml_comment('Do the same calculation using dense LAPACK',hfill='~')
       end if
       !call operation_using_dense_lapack(iproc, nproc, smats_in, mat_in)
-      call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, &
-            expo, smats, smatl(1), mat2, mat3(3))
+      mat2%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat2%matrix')
+      mat3(3)%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='mat3(3)%matrix')
+      call matrix_power_dense_lapack(iproc, nproc, mpiworld(), scalapack_blocksize, .true., &
+            expo, smats, smatl(1), mat2, mat3(3), algorithm=diag_algorithm)
+      call mpibarrier()
+      call f_timing_checkpoint(ctr_name='CALC_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
+           gather_routine=gather_timings)
+      if (write_matrices) then
+          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat3(3), &
+               uncompress=.false., filename='solutionmatrix_dense', binary=.false.)
+          call write_dense_matrix(iproc, nproc, mpiworld(), smatl(1), mat2, &
+               uncompress=.false., filename='randommatrix_dense', binary=.false.)
+      end if
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(1), 'resultchebyshev.dat', binary=.false.)
       !call write_dense_matrix(iproc, nproc, mpi_comm_world, smatl(1), mat3(3), 'resultlapack.dat', binary=.false.)
-      max_error = 0.0_mp
-      mean_error = 0.0_mp
-      max_error_rel = 0.0_mp
-      mean_error_rel = 0.0_mp
-      max_error_rel_threshold(:) = 0.0_mp
-      mean_error_rel_threshold(:) = 0.0_mp
-      nrel_threshold(:) = 0
-      do i=1,smatl(1)%nvctr
-          tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
-          tt_rel = tt/abs(mat3(3)%matrix_compr(i))
-          mean_error = mean_error + tt
-          max_error = max(max_error,tt)
-          mean_error_rel = mean_error_rel + tt_rel
-          max_error_rel = max(max_error_rel,tt_rel)
-          do ithreshold=1,nthreshold
-              if (abs(mat3(3)%matrix_compr(i))>threshold(ithreshold)) then
-                  nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
-                  mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
-                  max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
-              end if
-          end do
-      end do
-      mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
-      mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
-      do ithreshold=1,nthreshold
-          mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
-      end do
-      if (iproc==0) then
-          call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
-          call yaml_mapping_open('absolute error')
-          call yaml_map('max error',max_error,fmt='(es10.3)')
-          call yaml_map('mean error',mean_error,fmt='(es10.3)')
-          call yaml_mapping_close()
-          call yaml_mapping_open('relative error')
-          call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
-          call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
-          call yaml_mapping_close()
-          !call yaml_mapping_open('relative error with threshold')
-          call yaml_sequence_open('relative error with threshold')
-          do ithreshold=1,nthreshold
-              call yaml_sequence(advance='no')
-              call yaml_mapping_open(flow=.true.)
-              call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
-              call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
-              call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
-              call yaml_mapping_close()
-          end do
-          call yaml_sequence_close()
-          call yaml_mapping_close()
-          call yaml_mapping_close()
-      end if
+
+      mat3(1)%matrix = sparsematrix_malloc0_ptr(smatl(1), iaction=DENSE_FULL,id=' mat3(1)%matrix')
+      call uncompress_matrix(iproc, nproc, smatl(1), mat3(1)%matrix_compr, mat3(1)%matrix)
+
+      ! Calculate the errors
+      call calculate_error(iproc, smatl(1), mat3(1), mat3(3), nthreshold, threshold, .true., &
+           'Check the deviation from the exact result using BLAS')
+
+      !!! Sparse matrices
+      !!max_error = 0.0_mp
+      !!mean_error = 0.0_mp
+      !!max_error_rel = 0.0_mp
+      !!mean_error_rel = 0.0_mp
+      !!max_error_rel_threshold(:) = 0.0_mp
+      !!mean_error_rel_threshold(:) = 0.0_mp
+      !!nrel_threshold(:) = 0
+      !!do i=1,smatl(1)%nvctr
+      !!    tt = abs(mat3(1)%matrix_compr(i)-mat3(3)%matrix_compr(i))
+      !!    tt_rel = tt/abs(mat3(3)%matrix_compr(i))
+      !!    mean_error = mean_error + tt
+      !!    max_error = max(max_error,tt)
+      !!    mean_error_rel = mean_error_rel + tt_rel
+      !!    max_error_rel = max(max_error_rel,tt_rel)
+      !!    do ithreshold=1,nthreshold
+      !!        if (abs(mat3(3)%matrix_compr(i))>threshold(ithreshold)) then
+      !!            nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+      !!            mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+      !!            max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+      !!        end if
+      !!    end do
+      !!end do
+      !!mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
+      !!mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
+      !!do ithreshold=1,nthreshold
+      !!    mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+      !!end do
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('Check the deviation from the exact result using BLAS (only within the sparsity pattern)')
+      !!    call yaml_mapping_open('absolute error')
+      !!    call yaml_map('max error',max_error,fmt='(es10.3)')
+      !!    call yaml_map('mean error',mean_error,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_open('relative error')
+      !!    call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+      !!    call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    !call yaml_mapping_open('relative error with threshold')
+      !!    call yaml_sequence_open('relative error with threshold')
+      !!    do ithreshold=1,nthreshold
+      !!        call yaml_sequence(advance='no')
+      !!        call yaml_mapping_open(flow=.true.)
+      !!        call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+      !!        call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_mapping_close()
+      !!    end do
+      !!    call yaml_sequence_close()
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_close()
+      !!end if
+
+      !!! Full matrices
+      !!max_error = 0.0_mp
+      !!mean_error = 0.0_mp
+      !!max_error_rel = 0.0_mp
+      !!mean_error_rel = 0.0_mp
+      !!max_error_rel_threshold(:) = 0.0_mp
+      !!mean_error_rel_threshold(:) = 0.0_mp
+      !!nrel_threshold(:) = 0
+      !!do i=1,smatl(1)%nfvctr
+      !!    do j=1,smatl(1)%nfvctr
+      !!        tt = abs(mat3(1)%matrix(j,i,1)-mat3(3)%matrix(j,i,1))
+      !!        tt_rel = tt/abs(mat3(3)%matrix(j,i,1))
+      !!        mean_error = mean_error + tt
+      !!        max_error = max(max_error,tt)
+      !!        mean_error_rel = mean_error_rel + tt_rel
+      !!        max_error_rel = max(max_error_rel,tt_rel)
+      !!        do ithreshold=1,nthreshold
+      !!            if (abs(mat3(3)%matrix(j,i,1))>threshold(ithreshold)) then
+      !!                nrel_threshold(ithreshold) = nrel_threshold(ithreshold) + 1
+      !!                mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold) + tt_rel
+      !!                max_error_rel_threshold(ithreshold) = max(max_error_rel_threshold(ithreshold),tt_rel)
+      !!            end if
+      !!        end do
+      !!    end do
+      !!end do
+      !!mean_error = mean_error/real(smatl(1)%nvctr,kind=8)
+      !!mean_error_rel = mean_error_rel/real(smatl(1)%nvctr,kind=8)
+      !!do ithreshold=1,nthreshold
+      !!    mean_error_rel_threshold(ithreshold) = mean_error_rel_threshold(ithreshold)/real(nrel_threshold(ithreshold),kind=8)
+      !!end do
+
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('Check the deviation from the exact result using BLAS (for the entire matrix)')
+      !!    call yaml_mapping_open('absolute error')
+      !!    call yaml_map('max error',max_error,fmt='(es10.3)')
+      !!    call yaml_map('mean error',mean_error,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_open('relative error')
+      !!    call yaml_map('max error relative',max_error_rel,fmt='(es10.3)')
+      !!    call yaml_map('mean error relative',mean_error_rel,fmt='(es10.3)')
+      !!    call yaml_mapping_close()
+      !!    !call yaml_mapping_open('relative error with threshold')
+      !!    call yaml_sequence_open('relative error with threshold')
+      !!    do ithreshold=1,nthreshold
+      !!        call yaml_sequence(advance='no')
+      !!        call yaml_mapping_open(flow=.true.)
+      !!        call yaml_map('threshold value',threshold(ithreshold),fmt='(es8.1)')
+      !!        call yaml_map('max error relative',max_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_map('mean error relative',mean_error_rel_threshold(ithreshold),fmt='(es10.3)')
+      !!        call yaml_mapping_close()
+      !!    end do
+      !!    call yaml_sequence_close()
+      !!    call yaml_mapping_close()
+      !!    call yaml_mapping_close()
+      !!end if
+
+      call f_free_ptr(mat3(1)%matrix)
 
       !call timing(mpi_comm_world,'CHECK_CUBIC','PR')
+      call mpibarrier()
       call f_timing_checkpoint(ctr_name='CHECK_CUBIC',mpi_comm=mpiworld(),nproc=mpisize(),&
            gather_routine=gather_timings)
   end if cubic_check
@@ -460,6 +615,7 @@ program driver_random
   call foe_data_deallocate(ice_obj)
 
   ! Gather the timings
+  call mpibarrier()
   call build_dict_info(iproc, nproc, dict_timing_info)
   call f_timing_stop(mpi_comm=mpi_comm_world, nproc=nproc, &
        gather_routine=gather_timings, dict_info=dict_timing_info)
@@ -593,14 +749,14 @@ subroutine commandline_options(parser)
        'Allowed values' .is. &
        'String'))
 
-  call yaml_cl_parse_option(parser,'sparsegen_method','unknown',&
+  call yaml_cl_parse_option(parser,'sparsegen_method','file',&
        'sparsity pattern generation',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether the sparsity patterns should be created randomly or read from files',&
        'Allowed values' .is. &
        'String'))
 
-  call yaml_cl_parse_option(parser,'matgen_method','unknown',&
+  call yaml_cl_parse_option(parser,'matgen_method','file',&
        'matrix content generation',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether the matrix contents should be created randomly or read from files',&
@@ -622,31 +778,61 @@ subroutine commandline_options(parser)
        'Double'))
 
   call yaml_cl_parse_option(parser,'scalapack_blocksize','-1',&
-      'blocksize for ScaLAPACK (negative for standard LAPACK)',&
+       'blocksize for ScaLAPACK (negative for standard LAPACK)',&
        help_dict=dict_new('Usage' .is. &
        'Indicate the blocksize to be used by ScaLAPACK. If negative, then the standard LAPACK routines will be used',&
        'Allowed values' .is. &
        'Integer'))
 
   call yaml_cl_parse_option(parser,'evlow','0.5',&
-      'guess for the lowest matrix eigenvalue',&
+       'guess for the lowest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the lowest eigenvalue of the matrix',&
        'Allowed values' .is. &
        'Double'))
 
   call yaml_cl_parse_option(parser,'evhigh','1.5',&
-      'guess for the highest matrix eigenvalue',&
+       'guess for the highest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the highest eigenvalue of the matrix',&
        'Allowed values' .is. &
        'Double'))
 
    call yaml_cl_parse_option(parser,'do_cubic_check','.true.',&
-      'perform a check using cubic scaling dense (Sca)LAPACK',&
+       'perform a check using cubic scaling dense (Sca)LAPACK',&
        help_dict=dict_new('Usage' .is. &
        'Indicate whether a cubic scaling check using dense (Sca)LAPACK should be performed',&
        'Allowed values' .is. &
        'Logical'))
 
+   call yaml_cl_parse_option(parser,'diag_algorithm','pdsyevx',&
+       'ScaLAPACK algorithm to be used for the diagonalization (pdsyevx, pdsyevd)',&
+       help_dict=dict_new('Usage' .is. &
+       'ScaLAPACK algorithm to be used for the diagonalization: pdsyevx or pdsyevd',&
+       'Allowed values' .is. &
+       'String'))
+
+   call yaml_cl_parse_option(parser,'eval_multiplicator','1.0',&
+       'scale the matrix by this factor',&
+       help_dict=dict_new('Usage' .is. &
+       'scale the matrix by this factor to get a spectrum which is asier representable using the Chebyshe polynomials',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'solution_method','ICE',&
+       'Indicate which solution method should be used (ICE or SelInv)',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate which solution method should be used (ICE or SelInv)',&
+       'Allowed values' .is. &
+       'String'))
+
+  call yaml_cl_parse_option(parser,'pexsi_np_sym_fact','16',&
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
+       'Allowed values' .is. &
+       'Integer'))
+
 end subroutine commandline_options
+
+

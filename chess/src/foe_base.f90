@@ -27,7 +27,7 @@ module foe_base
   private
 
   type,public :: foe_data
-    real(kind=mp),dimension(:),pointer :: ef     !< Fermi energy for FOE (up/down spin)
+    real(kind=mp) :: ef     !< Fermi energy for FOE
     real(kind=mp),dimension(:),pointer :: evlow, evhigh !< Eigenvalue bounds for FOE (up/down spin)
     real(kind=mp),dimension(:),pointer :: bisection_shift !< Bisection shift to find Fermi energy (FOE) (up/down spin)
     real(kind=mp) :: fscale                      !< Length scale for complementary error function (FOE)
@@ -44,6 +44,7 @@ module foe_base
     integer :: npl_max !< maximal polynomial degree
     integer :: npl_stride !< stride to increase the polynomial order when searching for the degree yielding the desired precision
     real(kind=mp) :: betax !< exponent to be used for the exponential penalty function
+    integer :: ntemp !< Number of FOE iterations with adapted temperature
   end type foe_data
 
 
@@ -64,7 +65,7 @@ module foe_base
       use f_utils, only: f_none,assignment(=)
       implicit none
       type(foe_data) :: foe_obj
-      nullify(foe_obj%ef)
+      foe_obj%ef                      =f_none()
       !foe_obj%ef                     = uninitialized(foe_obj%ef)
       !foe_obj%evlow                  = uninitialized(foe_obj%evlow)
       nullify(foe_obj%evlow)
@@ -89,6 +90,8 @@ module foe_base
       foe_obj%npl_min                =f_none()
       foe_obj%npl_max                =f_none()
       foe_obj%npl_stride             =f_none()
+      foe_obj%betax                  =f_none()
+      foe_obj%ntemp                  =f_none()
     end function foe_data_null
 
 
@@ -96,7 +99,6 @@ module foe_base
       use dynamic_memory
       implicit none
       type(foe_data) :: foe_obj
-      call f_free_ptr(foe_obj%ef)
       call f_free_ptr(foe_obj%evlow)
       call f_free_ptr(foe_obj%evhigh)
       call f_free_ptr(foe_obj%bisection_shift)
@@ -127,6 +129,8 @@ module foe_base
           foe_obj%npl_max = val
       case ("npl_stride")
           foe_obj%npl_stride = val
+      case ("ntemp")
+          foe_obj%ntemp = val
       case default
           call f_err_throw("wrong argument for "//trim(fieldname))
       end select
@@ -156,6 +160,8 @@ module foe_base
           val = foe_obj%npl_max
       case ("npl_stride")
           val = foe_obj%npl_stride
+      case ("ntemp")
+          val = foe_obj%ntemp
       case default
           call f_err_throw("wrong argument for "//trim(fieldname))
       end select
@@ -171,13 +177,7 @@ module foe_base
 
       select case (fieldname)
       case ("ef")
-          if (.not.present(ind)) then
-              call f_err_throw('ind not present')
-          end if
-          if (.not.associated(foe_obj%ef)) then
-              call f_err_throw('ef not associated')
-          end if
-          foe_obj%ef(ind) = val
+          foe_obj%ef = val
       case ("evlow")
           if (.not.present(ind)) then
               call f_err_throw('ind not present')
@@ -250,13 +250,7 @@ module foe_base
 
       select case (fieldname)
       case ("ef")
-          if (.not.present(ind)) then
-              call f_err_throw('ind not present')
-          end if
-          if (.not.associated(foe_obj%ef)) then
-              call f_err_throw('ef not associated')
-          end if
-          val = foe_obj%ef(ind)
+          val = foe_obj%ef
       case ("evlow")
           if (.not.present(ind)) then
               call f_err_throw('ind not present')

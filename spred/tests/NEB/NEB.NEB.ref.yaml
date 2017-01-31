@@ -71,8 +71,8 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdsyev -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdgemm -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
@@ -499,8 +499,8 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdsyev -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdgemm -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
@@ -927,8 +927,8 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdsyev -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdgemm -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
@@ -1355,8 +1355,8 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdsyev -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdgemm -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           
@@ -1792,8 +1792,8 @@
  #|verbosity 2                  verbosity of the output 0=low, 2=high                        
  #|outdir .                     Writing directory                                            
  #|psp_onfly T                  Calculate pseudopotential projectors on the fly              
- #|pdsyev_blocksize -8          SCALAPACK linear scaling blocksize                           
- #|pdgemm_blocksize -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdsyev -8          SCALAPACK linear scaling blocksize                           
+ #|blocksize_pdgemm -8          SCALAPACK linear scaling blocksize                           
  #|maxproc_pdsyev 4             SCALAPACK linear scaling max num procs                       
  #|maxproc_pdgemm 4             SCALAPACK linear scaling max num procs                       
  #|ef_interpol_det  1.00E-20    FOE: max determinant of cubic interpolation matrix           

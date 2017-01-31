@@ -33,11 +33,11 @@ alborz_interfacemodmod = alborz_fake module_alborz
 alborz_interfacemodCAPmod = alborz_FAKE MODULE_alborz
 endif
 
-if HAVE_PEXSI
-PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
-else
-PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
-endif
+#if HAVE_PEXSI
+#PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
+#else
+#PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
+#endif
 
 
 libmodules_a_SOURCES = ab7_mixing.f90 \
@@ -90,7 +90,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	sort.f90 \
 	forces_linear.f90 \
 	bigdft_matrices.f90 \
-	$(PEXSI_SRC) \
 	configure.c \
 	$(alborz_interfacemod) \
 	$(cp2k_interfacemod) \
@@ -150,10 +149,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
 	MODULE_TDPOT.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@ \
-	SWPOTENTIAL.@MODULE_EXT@ \
-	PEXSI_BASE.@MODULE_EXT@ \
-	PEXSI_INTERFACES.@MODULE_EXT@ \
-	PEXSI.@MODULE_EXT@
+	SWPOTENTIAL.@MODULE_EXT@
 else
 modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
@@ -207,10 +203,7 @@ modules = module_types.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@ \
 	module_coulomb.@MODULE_EXT@ \
 	module_bazant.@MODULE_EXT@ \
-	swpotential.@MODULE_EXT@ \
-	pexsi_base.@MODULE_EXT@ \
-	pexsi_interfaces.@MODULE_EXT@ \
-	pexsi.@MODULE_EXT@
+	swpotential.@MODULE_EXT@
 endif
 
 ATOMS_INCLUDES = astruct-inc.f90
@@ -281,14 +274,15 @@ orthonormalization.o: types.o communications.o transposed_operations.o atoms_dat
 locregs_init.o: types.o communications.o sort.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
 sw_potential.o: atoms_data.o
-#pexsi.o also depends on pexsi_interfaces, but it is not known which one...
-if HAVE_PEXSI
-pexsi_interfaces.o: pexsi_base.o
-pexsi.o: pexsi_base.o pexsi_interfaces.o
-else
-pexsi_interfaces_fake.o: pexsi_base.o
-pexsi.o: pexsi_base.o pexsi_interfaces_fake.o
-endif
+bigdft_matrices.o: types.o sparsematrix_wrappers.o
+##pexsi.o also depends on pexsi_interfaces, but it is not known which one...
+#if HAVE_PEXSI
+#pexsi_interfaces.o: pexsi_base.o
+#pexsi.o: pexsi_base.o pexsi_interfaces.o
+#else
+#pexsi_interfaces_fake.o: pexsi_base.o
+#pexsi.o: pexsi_base.o pexsi_interfaces_fake.o
+#endif
 
 
 # Copy modules in a common include directory.

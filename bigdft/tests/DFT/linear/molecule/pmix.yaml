@@ -9,7 +9,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    correction_co_contra: no
  lin_general:
@@ -27,7 +26,6 @@
    alphamix: 0.4
    rpnrm_cv: 9.9999999999999998E-013
    mixing_method: POT
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    C:
      ao_confinement: 1.0E-004
@@ -124,3 +122,27 @@
    - H: [ 1.4606584812564285E-006, -1.3249403939922108E-007, -6.8824162003715272E-008]
    - H: [ 7.5977385148598359E-007, -6.6745171501954395E-007, -1.1953257268823714E-007]
    energy (Ha): -176.6095336060855
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+    
+    
+    
+    
+    
+     fscale: 5.0000000000000003E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

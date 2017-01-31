@@ -393,13 +393,14 @@ module rhopotential
     END SUBROUTINE full_local_potential
 
 
-    subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
-            print_results)
+    subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, aux, denskern_, ndimrho, rho, &
+            rho_negative, print_results)
       use module_base
       use module_types
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
       use bigdft_matrices, only: get_modulo_array
+      use module_types, only: linmat_auxiliary
       implicit none
     
       ! Calling arguments
@@ -407,6 +408,7 @@ module rhopotential
       real(kind=8),intent(in) :: hx, hy, hz
       type(comms_linear),intent(inout) :: collcom_sr
       type(sparse_matrix),intent(in) :: denskern
+      type(linmat_auxiliary) :: aux
       type(matrices),intent(in) :: denskern_
       real(kind=8),dimension(ndimrho),intent(out) :: rho
       logical,intent(out) :: rho_negative
@@ -425,7 +427,7 @@ module rhopotential
     
       call f_routine('sumrho_for_TMBs')
 
-      call get_modulo_array(denskern, moduloarray)
+      call get_modulo_array(denskern%nfvctr, aux%offset_matrixindex_in_compressed_fortransposed, moduloarray)
     
       ! check whether all entries of the charge density are positive
       rho_negative=.false.
@@ -478,7 +480,7 @@ module rhopotential
           iorb_shift=(ispin-1)*denskern%nfvctr
           ishift_mat=(ispin-1)*denskern%nvctr
           !$omp parallel default(private) &
-          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, moduloarray) &
+          !$omp shared(total_charge, collcom_sr, factor, denskern, aux, denskern_, rho_local, moduloarray) &
           !$omp shared(rho_neg, ispin, ishift, ishift_mat, iorb_shift) 
           !$omp do schedule(static,200) reduction(+:total_charge, rho_neg)
           do ipt=1,collcom_sr%nptsp_c
@@ -490,14 +492,14 @@ module rhopotential
                   iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
                   iorb=moduloarray(iiorb)
                   tt1=collcom_sr%psit_c(i0+i)
-                  ind=denskern%matrixindex_in_compressed_fortransposed(iorb,iorb)
+                  ind=aux%matrixindex_in_compressed_fortransposed(iorb,iorb)
                   ind=ind+ishift_mat-denskern%isvctrp_tg
                   tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
                   tt2=2.0_dp*tt1
                   do j=i+1,ii
                       jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
                       jorb=moduloarray(jjorb)
-                      ind=denskern%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                      ind=aux%matrixindex_in_compressed_fortransposed(jorb,iorb)
                       if (ind==0) cycle
                       ind=ind+ishift_mat-denskern%isvctrp_tg
                       tt=tt+denskern_%matrix_compr(ind)*tt2*collcom_sr%psit_c(i0+j)

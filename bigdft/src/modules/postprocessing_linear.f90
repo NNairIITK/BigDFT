@@ -112,7 +112,7 @@ module postprocessing_linear
          end if
     
          call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-              tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+              tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
          !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
          ! This can then be deleted if the transition to the new type has been completed.
          !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
@@ -603,7 +603,7 @@ module postprocessing_linear
       call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
       call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       call f_free(tmparr)
@@ -624,9 +624,9 @@ module postprocessing_linear
               energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .true., .false., .true., 0, 0, 0, 0, &
               order_taylor,input%lin%max_inversion_error,&
               input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-              input%tel, input%occopt, &
-              input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
-              input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
+              input%tel, input%occopt, input%cp%pexsi%pexsi_npoles, &
+              input%cp%pexsi%pexsi_mumin, input%cp%pexsi%pexsi_mumax, input%cp%pexsi%pexsi_mu, input%cp%pexsi%pexsi_DeltaE, &
+              input%cp%pexsi%pexsi_temperature, input%cp%pexsi%pexsi_tol_charge, input%cp%pexsi%pexsi_np_sym_fact)
          !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
          if (bigdft_mpi%iproc ==0) then
@@ -771,7 +771,7 @@ module postprocessing_linear
       call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
+           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
            denspot%rhov, rho_negative)
       call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       call f_free(tmparr)
@@ -788,9 +788,10 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, &
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-           input%tel, input%occopt, &
-           input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
-           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, updatekernel=.false.)
+           input%tel, input%occopt, input%cp%pexsi%pexsi_npoles, &
+           input%cp%pexsi%pexsi_mumin, input%cp%pexsi%pexsi_mumax, input%cp%pexsi%pexsi_mu, input%cp%pexsi%pexsi_DeltaE, &
+           input%cp%pexsi%pexsi_temperature, input%cp%pexsi%pexsi_tol_charge, &
+           input%cp%pexsi%pexsi_np_sym_fact, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -811,7 +812,7 @@ module postprocessing_linear
                nkpt, kpt, wkpt, in_which_locreg, at, lzd, rxyz, npsidim_orbs, psi, coeff)
       use module_base
       use module_types
-      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
+      use module_interfaces, only: write_eigenvalues_data, write_orbital_density
       use communications_base, only: comms_cubic, comms_cubic_null
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v

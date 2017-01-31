@@ -11,8 +11,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   #ef_interpol_chargediff: 0.10E-02
-   evbounds_nsatur: 100
    loewdin_charge_analysis: no
    correction_co_contra: no
    check_sumrho: 2
@@ -34,8 +32,6 @@
    nit: [2, 0]
    rpnrm_cv: 6.9999999999999997E-007
    linear_method: FOE
-   eval_range_foe: [-2.0, 2.2]
-   fscale_foe: 2.9999999999999999E-002
  lin_basis_params:
    C:
      ao_confinement: 0.14
@@ -86,3 +82,27 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     #ef_interpol_chargediff: 0.10E-02
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-2.0, 2.2]
+     fscale: 2.9999999999999999E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    
