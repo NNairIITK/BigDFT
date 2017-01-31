@@ -770,24 +770,20 @@ contains
 
   subroutine yaml_purge_references(unit)
     use yaml_strings, only: rstrip
+    use f_bibliography
     implicit none
     integer, intent(in), optional :: unit
     !local variables
     integer :: strm
-    character(len=128) :: filename
+    character(len=128) :: filename,stream_out
     strm=stream_id(unit=unit)
     if (associated(streams(strm)%dict_references)) then
-       call get_stream_filename(unit,filename)
-       if (trim(filename) == 'stdout') then
-          filename='citations.bib'
-       else
-          call rstrip(filename,'.yaml')
-          filename=trim(filename)//'.bib'
-       end if
+       call get_stream_filename(unit,stream_out)
+       call get_bib_filename(stream_out,filename)
        call yaml_newline(unit=unit)
        call yaml_comment('This program used features described in the following reference papers.',hfill='-',unit=unit)
        call yaml_comment('Bibtex version of the citations can be found in file "'//trim(filename)//'"',hfill='-',unit=unit)
-       call yaml_bib_dump(streams(strm)%dict_references,filename,unit=unit)
+       call yaml_bib_dump(streams(strm)%dict_references,unit=unit)
        call dict_free(streams(strm)%dict_references)
        call yaml_flush_document(unit=unit)
     end if
@@ -2519,34 +2515,57 @@ contains
 
   subroutine yaml_cite(paper,unit)
     use f_bibliography
+    use f_utils
     implicit none
     character(len=*), intent(in) :: paper !<the item to be cited in the bibliography
     integer, intent(in), optional :: unit
     !local variables
-    integer :: unt,istat,strm
+    integer :: unt,istat,strm,unitfile
+    character(len=128) :: filename,stream_out
+    type(dictionary), pointer :: item,iter2,iter3
 
     if (f_bib_item_exists(paper)) then
        unt=DEFAULT_STREAM_ID
        if (present(unit)) unt=unit
        call get_stream(unt,strm,istat)
-       if (.not. associated(streams(strm)%dict_references)) call dict_init(streams(strm)%dict_references)
-       if (paper .notin. streams(strm)%dict_references) call add(streams(strm)%dict_references,paper)
+       if (.not. associated(streams(strm)%dict_references)) then
+          call dict_init(streams(strm)%dict_references)
+          call get_stream_filename(unt,stream_out)
+          call get_bib_filename(stream_out,filename)
+          unitfile=100
+          call f_open_file(unitfile,filename,position='append')
+          write(unitfile,*)'% This program used features described in the following reference papers.'
+          write(unitfile,*)'% Please consider citing these papers when using the results for scientific output.'
+          call f_close(unitfile) !close the file to flush its present value
+       end if
+       if (paper .notin. streams(strm)%dict_references) then
+          call add(streams(strm)%dict_references,paper)
+          call get_stream_filename(unt,stream_out)
+          call get_bib_filename(stream_out,filename)
+          unitfile=100
+          call f_open_file(unitfile,filename,position='append')
+          item => f_bib_get_item(paper)
+          iter2=item .get. 'BIBTEX_REF'
+          nullify(iter3)
+          do while(iterating(iter3,on=iter2))
+             write(unitfile,*)trim(dict_value(iter3))
+          end do
+          call f_close(unitfile) !close the file to flush its present value
+       end if
     else
        call yaml_warning('Missed citation; paper "'+paper+&
             '" not present in the bibliography',unit=unit)
     end if
   end subroutine yaml_cite
 
-  subroutine yaml_bib_dump(citations,bibfile,unit) !plus other variables for the format
+  subroutine yaml_bib_dump(citations,unit) !plus other variables for the format
     use f_bibliography
     use f_utils
     implicit none
     type(dictionary), pointer :: citations
-    character(len=*), intent(in) :: bibfile
     integer, intent(in), optional :: unit !< yaml stream associated
     !local variables
-    integer :: unitfile
-    type(dictionary), pointer :: iter,item,iter2,iter3
+    type(dictionary), pointer :: iter,item,iter2
 
     call yaml_mapping_open('Citations',unit=unit)
 
@@ -2556,17 +2575,8 @@ contains
        call yaml_mapping_open(dict_value(iter),unit=unit)
        nullify(iter2)
        do while(iterating(iter2,on=item))
-          if (trim(dict_key(iter2)) /= 'BIBTEX_REF') then
-             call yaml_map(trim(dict_key(iter2)),iter2,unit=unit)
-          else
-             unitfile=100
-             call f_open_file(unitfile,bibfile)
-             nullify(iter3)
-             do while(iterating(iter3,on=iter2))
-                write(unitfile,*)trim(dict_value(iter3))
-             end do
-             call f_close(unitfile)
-          end if
+          if (trim(dict_key(iter2)) /= 'BIBTEX_REF') &
+               call yaml_map(trim(dict_key(iter2)),iter2,unit=unit)
        end do
        call yaml_mapping_close(unit=unit)
     end do

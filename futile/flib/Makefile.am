@@ -214,7 +214,7 @@ yaml_parse.o : dictionaries.o yaml_output.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o f_malloc.o
 
 f_enums.o: yaml_strings.o
-f_bibliography.o: dictionaries.o
+f_bibliography.o: dictionaries.o yaml_strings.o
 f_objects.o: f_precisions.o dictionaries.o yaml_output.o
 f_ternary.o: f_precisions.o yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)
