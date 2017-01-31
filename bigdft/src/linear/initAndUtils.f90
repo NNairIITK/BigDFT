@@ -674,7 +674,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
            ef_interpol_det=input%cp%foe%ef_interpol_det, &
            ef_interpol_chargediff=input%cp%foe%ef_interpol_chargediff, &
            fscale_lowerbound=input%cp%foe%fscale_lowerbound, &
-           fscale_upperbound=input%cp%foe%fscale_upperbound, eval_multiplicator=1.d0)
+           fscale_upperbound=input%cp%foe%fscale_upperbound, eval_multiplicator=1.d0, accuracy=1.d-8)
       call f_free(charge_fake)
 
   end if

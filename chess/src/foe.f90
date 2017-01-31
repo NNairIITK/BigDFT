@@ -98,7 +98,7 @@ module foe
       integer :: irow, icol, itemp, iflag,info, ispin, isshift, imshift, ilshift, i, j, itg, ncount, istl, ists
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
       real(kind=mp),parameter :: CHECK_RATIO=1.25d0
-      real(kind=mp) :: degree_multiplicator, ebsp_allspins
+      real(kind=mp) :: degree_multiplicator, ebsp_allspins, accuracy
       real(kind=mp),dimension(1) :: max_error, x_max_error_check, max_error_check, mean_error_check
       type(fermi_aux) :: f
       real(kind=mp),dimension(2) :: temparr
@@ -243,11 +243,13 @@ module foe
                foe_data_get_real(foe_obj,"bisection_shift",1), foe_data_get_real(foe_obj,"ef_interpol_chargediff"), &
                foe_data_get_real(foe_obj,"ef_interpol_det"), foe_verbosity)
 
+          accuracy = foe_data_get_real(foe_obj,"accuracy")
+
           ! Use kernel_%matrix_compr as workarray to save memory
           efarr(1) = foe_data_get_real(foe_obj,"ef")
           fscale_arr(1) = foe_data_get_real(foe_obj,"fscale",1)
           call get_bounds_and_polynomials(iproc, nproc, comm, 2, 1, npl_max, npl_stride, &
-               1, FUNCTION_ERRORFUNCTION, .false., 1.2_mp, 1.2_mp, foe_verbosity, &
+               1, FUNCTION_ERRORFUNCTION, accuracy, .false., 1.2_mp, 1.2_mp, foe_verbosity, &
                smatm, smatl, ham_, foe_obj, npl_min, ham_eff, & !kernel_%matrix_compr(ilshift+1:), &
                chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
                smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
@@ -667,7 +669,7 @@ module foe
 
       ! Local variables
       integer :: iev, i, ispin, ilshift, npl, npl_min, ind, npl_max, npl_stride
-      real(mp) :: dq, q, scale_factor, shift_value, factor
+      real(mp) :: dq, q, scale_factor, shift_value, factor, accuracy
       real(mp),dimension(:),allocatable :: charges
       type(matrices) :: kernel
       real(mp),dimension(1),parameter :: EF = 0.0_mp
@@ -717,8 +719,9 @@ module foe
       ! Use kernel_%matrix_compr as workarray to save memory
       npl_min = 10
       ispin = 1 !hack
+      accuracy = foe_data_get_real(foe_obj,"accuracy")
       call get_bounds_and_polynomials(iproc, nproc, comm, 2, ispin, npl_max, npl_stride, &
-           1, FUNCTION_ERRORFUNCTION, .false., 2.2_mp, 2.2_mp, 0, &
+           1, FUNCTION_ERRORFUNCTION, accuracy, .false., 2.2_mp, 2.2_mp, 0, &
            smatm, smatl, ham_, foe_obj, npl_min, kernel%matrix_compr, &
            chebyshev_polynomials, npl, scale_factor, shift_value, hamscal_compr, &
            smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &

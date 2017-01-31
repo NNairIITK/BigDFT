@@ -272,7 +272,7 @@ program driver_random
   ! Should maybe go to a wrapper.
   charge_fake = f_malloc0(1,id='charge_fake')
   call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
-       betax=betax, eval_multiplicator=eval_multiplicator)
+       betax=betax, eval_multiplicator=eval_multiplicator, accuracy=1.d-8)
   call f_free(charge_fake)
 
 
@@ -432,7 +432,7 @@ program driver_random
   call foe_data_deallocate(ice_obj)
   charge_fake = f_malloc0(1,id='charge_fake')
   call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
-       betax=betax, eval_multiplicator=eval_multiplicator)
+       betax=betax, eval_multiplicator=eval_multiplicator, accuracy=1.d-8)
   call f_free(charge_fake)
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/1.0_mp/expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)

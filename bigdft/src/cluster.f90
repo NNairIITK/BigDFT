@@ -446,7 +446,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           ef_interpol_chargediff=in%cp%foe%ef_interpol_chargediff, &
           fscale_lowerbound=in%cp%foe%fscale_lowerbound, &
           fscale_upperbound=in%cp%foe%fscale_upperbound, &
-          eval_multiplicator=1.d0)
+          eval_multiplicator=1.d0, accuracy=1.d-8)
      call f_free(charge_fake)
 
      !!call f_free(locreg_centers)

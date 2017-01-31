@@ -328,7 +328,7 @@ program driver_foe
        evlow=evlow, evhigh=evhigh, &
        ntemp = ntemp, ef=ef, npl_max=npl_max)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
-  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp)
+  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp, accuracy=1.e-8_mp)
 
   call mpibarrier()
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(), &

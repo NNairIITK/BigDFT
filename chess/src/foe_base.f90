@@ -45,6 +45,7 @@ module foe_base
     integer :: npl_stride !< stride to increase the polynomial order when searching for the degree yielding the desired precision
     real(kind=mp) :: betax !< exponent to be used for the exponential penalty function
     integer :: ntemp !< Number of FOE iterations with adapted temperature
+    real(mp) :: accuracy !< Accuracy of the Chebyshev fit
   end type foe_data
 
 
@@ -92,6 +93,7 @@ module foe_base
       foe_obj%npl_stride             =f_none()
       foe_obj%betax                  =f_none()
       foe_obj%ntemp                  =f_none()
+      foe_obj%accuracy               =f_none()
     end function foe_data_null
 
 
@@ -236,6 +238,8 @@ module foe_base
           foe_obj%eval_multiplicator(ind) = val
       case ("betax")
           foe_obj%betax = val
+      case ("accuracy")
+          foe_obj%accuracy = val
       case default
           call f_err_throw("wrong argument for "//trim(fieldname))
       end select
@@ -309,6 +313,8 @@ module foe_base
           val = foe_obj%eval_multiplicator(ind)
       case ("betax")
           val = foe_obj%betax
+      case ("accuracy")
+          val = foe_obj%accuracy
       case default
           call f_err_throw("wrong argument for "//trim(fieldname))
       end select
