@@ -554,6 +554,7 @@ cleanup:
  Maxdiff for transpose (checksum): 1.5e-11
  e: 6.3e-10
  trace(Ktilde): 1.2e-11
+ ENERGY: 3.0e-11
 
 directmin:
  Patterns to ignore:
@@ -1051,6 +1052,7 @@ foe:
  tr(KS) before purification: 7.0e-8
  decay length of error function: 1.1e-5
  EBS: 7.1e-8
+ ENERGY: 3.0-11
  difference: 7.1e-8
  EBS higher temperature: 1.1e-10
  guess for new ef: 4.2e-8
@@ -1420,8 +1422,9 @@ sparsity:
  EH: 1.1e-8
  eF: 1.1e-9
  D eF: 1.1e-9
- EBS higher temperature: 2.1e-10
- EBS: 2.1e-10
+ EBS higher temperature: 8.51e-9
+ trace(Ktilde): 2.7e-8
+ EBS: 8.4e-9
  difference: 1.1e-9
  D Tr: 1.1e-10
  Energy (Hartree): 9.6e-10
@@ -1563,8 +1566,8 @@ O2spin_diag:
  Clean forces norm (Ha/Bohr): 3.09e-6
  Raw forces norm (Ha/Bohr): 2.51e-6
  Orbitals: 2.9e-7
- EBS: 1.7e-9
- EBS higher temperature: 1.7e-9
+ EBS: 2.1e-9
+ EBS higher temperature: 2.1e-9
  EH: 1.9e-6
  EXC: 3.5e-7
  Ekin: 2.3e-6
@@ -1591,7 +1594,7 @@ O2spin_diag:
  relative difference: 5.9e-11
  Tr(K): 1.1e-7
  spin occupations: 1.1e-7
- trace(KH): 1.2e-9
+ trace(KH): 2.1e-9
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7
@@ -1628,7 +1631,7 @@ O2spin_foe:
  D: 2.1e-7
  number of corrected points: 953
  total charge correction: 5.5e-09
- trace(KH): 7.0e-9
+ trace(KH): 7.7e-9
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 2.44e-5
@@ -1658,6 +1661,7 @@ O2spin_dirmin:
  Force Norm (Hartree/Bohr): 3.45e-5
  Maxdiff for transpose (checksum): 5.9e-11
  number of corrected points: 33.0
+ ENERGY: 1.3e-7
 
 verysparse:
  Total charge: 2.3e-8
@@ -1968,6 +1972,7 @@ surface_graphene:
  Total ionic charge: 1.2e-11
  Energy (Hartree): 2.5e-11
  Total charge: 1.1e-10
+ trace(KH): 3.1e-10
  energy: 2.0e-11
  trace: 2.3e-9
  D Tr: 2.1e-11
@@ -2343,6 +2348,7 @@ extendedfrags_read:
  PV (Ha): 2.6e-10
  trace(Ktilde): 2.6e-11
  Clean forces norm (Ha/Bohr): 3.1e-11
+ ENERGY: 2.0-11
  Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
@@ -2361,6 +2367,7 @@ extendedfrags_readrotated:
  EXC: 2.1e-7
  EvXC: 2.8e-7
  EH: 2.2e-6
+ ENERGY: 2.2-11
  Enl: 3.1e-10
  Total charge: 3.8e-7
  Force Norm (Hartree/Bohr): 6.4e-11
@@ -2793,14 +2800,15 @@ matrixtaskgroups_no:
   EvXC: 1.1e-9
   EXC: 1.1e-9
   Enl: 2.0e-9
-  Energy (Hartree): 3.9e-09
+  Energy (Hartree): 4.1e-09
   Ion-Ion interaction energy: 2.9e-10
   Omega: 4.1e-09
   Total charge: 2.1e-10
   difference: 8.0e-11
-  energy: 3.9e-09
+  energy: 4.1e-09
   trace: 1.50e-06
   trace(Ktilde): 5.1e-11
+  trace(KH): 6.1e-10
   HOMO-LUMO gap (eV): 6.3e-11
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.6e-9
@@ -2833,6 +2841,9 @@ matrixtaskgroups_yes:
   trace: 1.51e-06
   trace(Ktilde): 4.8e-11
   HOMO-LUMO gap (eV): 6.3e-11
+  HYBRID: 4.0e-9
+  TRACE: 4.0e-9
+  trace(KH): 3.1e-10
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
   Force Norm (Hartree/Bohr): 9.6e-11
