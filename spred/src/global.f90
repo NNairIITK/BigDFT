@@ -177,12 +177,12 @@ program MINHOP
   enddo
   if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
-  inquire(file='disable_hatrans',exist=disable_hatrans)
-  if(disable_hatrans)then
-    open(unit=137,file='disable_hatrans')
-        read(137,*)nposaccmax
-    close(137)
-  endif
+!!  inquire(file='disable_hatrans',exist=disable_hatrans)
+!!  if(disable_hatrans)then
+!!    open(unit=137,file='disable_hatrans')
+!!        read(137,*)nposaccmax
+!!    close(137)
+!!  endif
   
   ! open output files
   if (bigdft_mpi%iproc==0) then 
@@ -291,7 +291,7 @@ program MINHOP
 ! call yaml_map('Conditions for ha_trans',[bigdft_get_geocode(run_md)=='F',(.not. disable_hatrans)])
 
 
-  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),rxyz_md)
+!!  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),rxyz_md)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
@@ -595,7 +595,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
 !      close(864)
 !  endif
 
-  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),rxyz_md)
+!!  if (bigdft_get_geocode(run_md)=='F' .and. (.not. disable_hatrans)) call ha_trans(bigdft_nat(run_md),rxyz_md)
 
 !  if ( .not. atoms%astruct%geocode=='F') then 
 !         write(*,*) 'Generating new input guess'
