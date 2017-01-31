@@ -696,15 +696,15 @@ molecule_dmix:
  Epot: 1.3e-08
  energy: 1.3e-9
  Omega: 1.4e-8
- Atomic Forces (Ha/Bohr): 4.3e-10
- Clean forces norm (Ha/Bohr): 3.9e-10
- Raw forces norm (Ha/Bohr): 4.0e-10
+ Atomic Forces (Ha/Bohr): 7.2e-10
+ Clean forces norm (Ha/Bohr): 7.0e-10
+ Raw forces norm (Ha/Bohr): 7.0e-10
  Average noise forces: 1.1e-8
- e: 1.8e-10
+ e: 2.7e-10
  Total charge: 1.1e-08
- Energy (Hartree): 1.6e-10
+ Energy (Hartree): 2.2e-10
  Maxdiff for transpose (checksum): 1.9e-09
- Force Norm (Hartree/Bohr): 9.0e-10
+ Force Norm (Hartree/Bohr): 1.6e-9
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -1566,8 +1566,8 @@ O2spin_diag:
  Clean forces norm (Ha/Bohr): 3.09e-6
  Raw forces norm (Ha/Bohr): 2.51e-6
  Orbitals: 2.9e-7
- EBS: 2.1e-9
- EBS higher temperature: 2.1e-9
+ EBS: 2.5e-9
+ EBS higher temperature: 2.5e-9
  EH: 1.9e-6
  EXC: 3.5e-7
  Ekin: 2.3e-6
@@ -1594,7 +1594,7 @@ O2spin_diag:
  relative difference: 5.9e-11
  Tr(K): 1.1e-7
  spin occupations: 1.1e-7
- trace(KH): 2.1e-9
+ trace(KH): 2.5e-9
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 3.0e-7
@@ -1882,6 +1882,7 @@ periodic_silicon:
  Maxdiff for transpose (checksum): 2.4e-10
  fnrm2: 1.11e-11
  Total charge: 1.0e-10
+ trace(KH): 1.1e-10
 
 periodic_wateredge:
  relative difference: 1.7e-11
@@ -2216,7 +2217,7 @@ igortho_44:
  EBS: 7.2e-04
  EBS higher temperature: 7.2e-04
  relative difference: 9.5e-10
- trace(Ktilde): 1.6e-08
+ trace(Ktilde): 1.7e-08
  energy: 1.1e-06
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.6e-6
@@ -2843,7 +2844,7 @@ matrixtaskgroups_yes:
   HOMO-LUMO gap (eV): 6.3e-11
   HYBRID: 4.0e-9
   TRACE: 4.0e-9
-  trace(KH): 3.1e-10
+  trace(KH): 4.0e-10
   Raw forces norm (Ha/Bohr): 3.6e-9
   Clean forces norm (Ha/Bohr): 3.9e-9
   Force Norm (Hartree/Bohr): 9.6e-11
