@@ -691,7 +691,7 @@ module ice
       integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2, verbosity_, npl_min_fake
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
       real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
-      real(kind=mp) :: degree_multiplicator, accuracy
+      real(kind=mp) :: degree_multiplicator, accuracy_function, accuracy_penalty
       integer, parameter :: SPARSE=1
       integer, parameter :: DENSE=2
       integer, parameter :: imode=SPARSE
@@ -736,7 +736,8 @@ module ice
       else
           charge_fake = f_malloc0(ovrlp_smat%nspin,id='charge_fake')
           call init_foe(iproc, nproc, ovrlp_smat%nspin, charge=charge_fake, &
-               evlow=0.5_mp, evhigh=1.5_mp, foe_obj=ice_obj_, accuracy=1.e-8_mp)
+               evlow=0.5_mp, evhigh=1.5_mp, foe_obj=ice_obj_, &
+               accuracy_function=1.e-8_mp, accuracy_penalty=1.e-5_mp)
           call f_free(charge_fake)
           ice_obj => ice_obj_
           !!!@ JUST FOR THE MOMENT.... ########################
@@ -822,9 +823,10 @@ module ice
       !!write(*,*) 'IN MAIN, sum(ovrlp_mat_matrix_compr(1:ovrlp_smat)), sum(ovrlp_mat_matrix_compr(ovrlp_smat+1:2*ovrlp_smat))',&
       !!            sum(ovrlp_mat%matrix_compr(1:ovrlp_smat%nvctr)), &
       !!            sum(ovrlp_mat%matrix_compr(ovrlp_smat%nvctr+1:2*ovrlp_smat%nvctr))
-      accuracy = foe_data_get_real(ice_obj,"accuracy")
+      accuracy_function = foe_data_get_real(ice_obj,"accuracy_function")
+      accuracy_penalty = foe_data_get_real(ice_obj,"accuracy_penalty")
       call get_bounds_and_polynomials(iproc, nproc, comm, 1, 1, NPL_MAX, NPL_STRIDE, &
-           ncalc, FUNCTION_POLYNOMIAL, accuracy, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
+           ncalc, FUNCTION_POLYNOMIAL, accuracy_function, accuracy_penalty, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, ice_obj, npl_min_fake, &
            inv_ovrlp(1)%matrix_compr, chebyshev_polynomials, &
            npl, scale_factor, shift_value, hamscal_compr, &

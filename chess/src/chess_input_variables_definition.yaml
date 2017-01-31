@@ -67,6 +67,10 @@
      COMMENT: Required accuracy for the Chebyshev fit for ICE (calculation of matrix powers)
      default: 1.e-8
      RANGE: [1.e-10,1.e-3]
+   accuracy_penalty:
+     COMMENT: Required accuracy for the Chebyshev fit for the penalty function
+     default: 1.e-5
+     RANGE: [1.e-10,1.e-3]
    #fscale:
    #  COMMENT: Decay length of the error function
    #  DESCRIPTION: |

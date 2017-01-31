@@ -46,7 +46,8 @@ subroutine init_foe_wrapper(iproc, nproc, input, orbs_KS, tmprtr, foe_obj)
        ef_interpol_chargediff=input%cp%foe%ef_interpol_chargediff, &
        fscale_lowerbound=input%cp%foe%fscale_lowerbound, &
        fscale_upperbound=input%cp%foe%fscale_upperbound,  &
-       eval_multiplicator=1.d0)
+       eval_multiplicator=1.d0, &
+       accuracy_function=input%cp%foe%accuracy_foe, accuracy_penalty=input%cp%foe%accuracy_penalty)
 
   call f_release_routine()
 
@@ -674,7 +675,9 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
            ef_interpol_det=input%cp%foe%ef_interpol_det, &
            ef_interpol_chargediff=input%cp%foe%ef_interpol_chargediff, &
            fscale_lowerbound=input%cp%foe%fscale_lowerbound, &
-           fscale_upperbound=input%cp%foe%fscale_upperbound, eval_multiplicator=1.d0, accuracy=1.d-8)
+           fscale_upperbound=input%cp%foe%fscale_upperbound, &
+           eval_multiplicator=1.d0, &
+           accuracy_function=input%cp%foe%accuracy_ice, accuracy_penalty=input%cp%foe%accuracy_penalty)
       call f_free(charge_fake)
 
   end if

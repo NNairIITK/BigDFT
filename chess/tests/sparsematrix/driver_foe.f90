@@ -60,7 +60,7 @@ program driver_foe
   real(mp),dimension(:,:),allocatable :: coeff
   real(mp) :: energy, tr_KS, tr_KS_check, ef, energy_fake, efermi, eTS, evlow, evhigh
   type(foe_data) :: foe_obj, ice_obj
-  real(mp) :: tr, fscale, fscale_lowerbound, fscale_upperbound
+  real(mp) :: tr, fscale, fscale_lowerbound, fscale_upperbound, accuracy_foe, accuracy_ice, accuracy_penalty
   type(dictionary),pointer :: dict_timing_info, options
   type(yaml_cl_parse) :: parser !< command line parser
   character(len=1024) :: metadata_file, overlap_file, hamiltonian_file, kernel_file, kernel_matmul_file
@@ -155,6 +155,9 @@ program driver_foe
       pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
       pexsi_DeltaE = options//'pexsi_DeltaE'
       do_cubic_check = options//'do_cubic_check'
+      accuracy_foe = options//'accuracy_foe'
+      accuracy_ice = options//'accuracy_ice'
+      accuracy_penalty = options//'accuracy_penalty'
      
       call dict_free(options)
 
@@ -186,6 +189,9 @@ program driver_foe
       call yaml_map('PEXSI charge tolerance',pexsi_tol_charge)
       call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
       call yaml_map('Do a check with cubic scaling (Sca)LAPACK',do_cubic_check)
+      call yaml_map('Accuracy of Chebyshev fit for FOE',accuracy_foe)
+      call yaml_map('Accuracy of Chebyshev fit for ICE',accuracy_ice)
+      call yaml_map('Accuracy of Chebyshev fit for the penalty function',accuracy_penalty)
       call yaml_mapping_close()
   end if
 
@@ -216,6 +222,9 @@ program driver_foe
   call mpibcast(pexsi_temperature, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_tol_charge, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
+  call mpibcast(accuracy_foe, root=0, comm=mpi_comm_world)
+  call mpibcast(accuracy_ice, root=0, comm=mpi_comm_world)
+  call mpibcast(accuracy_penalty, root=0, comm=mpi_comm_world)
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
       if (check_spectrum) then
@@ -326,9 +335,11 @@ program driver_foe
   call init_foe(iproc, nproc, smat_s%nspin, charge, foe_obj, &
        fscale=fscale, fscale_lowerbound=fscale_lowerbound, fscale_upperbound=fscale_upperbound, &
        evlow=evlow, evhigh=evhigh, &
-       ntemp = ntemp, ef=ef, npl_max=npl_max)
+       ntemp = ntemp, ef=ef, npl_max=npl_max, &
+       accuracy_function=accuracy_foe, accuracy_penalty=accuracy_penalty)
   ! Initialize the same object for the calculation of the inverse. Charge does not really make sense here...
-  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp, accuracy=1.e-8_mp)
+  call init_foe(iproc, nproc, smat_s%nspin, charge, ice_obj, evlow=0.5_mp, evhigh=1.5_mp, &
+       accuracy_function=accuracy_ice, accuracy_penalty=accuracy_penalty)
 
   call mpibarrier()
   call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(), &
@@ -799,6 +810,27 @@ subroutine commandline_options(parser)
        'guess for the highest matrix eigenvalue',&
        help_dict=dict_new('Usage' .is. &
        'Indicate a guess for the highest eigenvalue of the matrix',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'accuracy_foe','1.e-5',&
+       'Required accuracy for the Chebyshev fit for FOE',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the required accuracy for the Chebyshev fit for FOE',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'accuracy_ice','1.e-8',&
+       'Required accuracy for the Chebyshev fit for ICE',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the required accuracy for the Chebyshev fit for ICE',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'accuracy_penalty','1.e-5',&
+       'Required accuracy for the Chebyshev fit for the penalty function',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the required accuracy for the Chebyshev fit for teh penalty function',&
        'Allowed values' .is. &
        'Double'))
 

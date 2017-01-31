@@ -43,7 +43,7 @@ module chess_base
     real(mp) :: fscale_lowerbound
     real(mp) :: fscale_upperbound
     real(mp),dimension(2) :: eval_range_foe
-    real(mp) :: accuracy_foe, accuracy_ice
+    real(mp) :: accuracy_foe, accuracy_ice, accuracy_penalty
   end type foe_params
 
   type :: lapack_params
@@ -99,6 +99,7 @@ module chess_base
   character(len=*),parameter :: PEXSI_DELTAE           = "pexsi_DeltaE"
   character(len=*),parameter :: ACCURACY_FOE           = "accuracy_foe"
   character(len=*),parameter :: ACCURACY_ICE           = "accuracy_ice"
+  character(len=*),parameter :: ACCURACY_PENALTY       = "accuracy_penalty"
 
 
 
@@ -125,6 +126,7 @@ module chess_base
       fp%eval_range_foe(1:2) = 0.0_mp
       fp%accuracy_foe = 0.0_mp
       fp%accuracy_ice = 0.0_mp
+      fp%accuracy_penalty = 0.0_mp
     end function foe_params_null
 
     pure function lapack_params_null() result(lp)
@@ -286,6 +288,8 @@ module chess_base
               cp%foe%accuracy_foe = val
           case(ACCURACY_ICE)
               cp%foe%accuracy_ice = val
+          case(ACCURACY_PENALTY)
+              cp%foe%accuracy_penalty = val
           case default
               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
           end select

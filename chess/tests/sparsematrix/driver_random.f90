@@ -54,7 +54,7 @@ program driver_random
   type(matrices) :: mat1, mat2
   type(matrices),dimension(3) :: mat3
   real(mp) :: condition_number, expo, max_error, mean_error, betax
-  real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh, eval_multiplicator
+  real(mp) :: max_error_rel, mean_error_rel, evlow, evhigh, eval_multiplicator, accuracy_ice, accuracy_penalty
   real(mp),dimension(:),allocatable :: charge_fake
   type(foe_data) :: ice_obj
   character(len=1024) :: infile, outfile, outmatmulfile, sparsegen_method, matgen_method, diag_algorithm
@@ -143,6 +143,8 @@ program driver_random
       eval_multiplicator = options//'eval_multiplicator'
       solution_method = options//'solution_method'
       pexsi_np_sym_fact = options//'pexsi_np_sym_fact'
+      accuracy_ice = options//'accuracy_ice'
+      accuracy_penalty = options//'accuracy_penalty'
 
       call dict_free(options)
 
@@ -185,6 +187,8 @@ program driver_random
       call yaml_map('PEXSI number of procs for symbolic factorization',pexsi_np_sym_fact)
       call yaml_map('Do a check with cubic scaling (Sca)LAPACK',do_cubic_check)
       call yaml_mapping_close()
+      call yaml_map('Accuracy of Chebyshev fit for ICE',accuracy_ice)
+      call yaml_map('Accuracy of Chebyshev fit for the penalty function',accuracy_penalty)
   end if
 
   ! Send the input parameters to all MPI tasks
@@ -207,6 +211,8 @@ program driver_random
   call mpibcast(diag_algorithm, root=0, comm=mpi_comm_world)
   call mpibcast(eval_multiplicator, root=0, comm=mpi_comm_world)
   call mpibcast(pexsi_np_sym_fact, root=0, comm=mpi_comm_world)
+  call mpibcast(accuracy_ice, root=0, comm=mpi_comm_world)
+  call mpibcast(accuracy_penalty, root=0, comm=mpi_comm_world)
 
   ! Since there is no wrapper for logicals...
   if (iproc==0) then
@@ -272,7 +278,8 @@ program driver_random
   ! Should maybe go to a wrapper.
   charge_fake = f_malloc0(1,id='charge_fake')
   call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
-       betax=betax, eval_multiplicator=eval_multiplicator, accuracy=1.d-8)
+       betax=betax, eval_multiplicator=eval_multiplicator, &
+       accuracy_function=accuracy_ice, accuracy_penalty=accuracy_penalty)
   call f_free(charge_fake)
 
 
@@ -432,7 +439,8 @@ program driver_random
   call foe_data_deallocate(ice_obj)
   charge_fake = f_malloc0(1,id='charge_fake')
   call init_foe(iproc, nproc, 1, charge_fake, ice_obj, evlow=evlow, evhigh=evhigh, &
-       betax=betax, eval_multiplicator=eval_multiplicator, accuracy=1.d-8)
+       betax=betax, eval_multiplicator=eval_multiplicator, &
+       accuracy_function=accuracy_ice, accuracy_penalty=accuracy_penalty)
   call f_free(charge_fake)
   call matrix_chebyshev_expansion(iproc, nproc, mpi_comm_world, &
        1, (/1.0_mp/expo/), smatl(1), smatl(1), mat3(1), mat3(3), ice_obj=ice_obj)
@@ -832,6 +840,20 @@ subroutine commandline_options(parser)
        'Indicate the number of tasks used for the symbolic factorization within PEXSI',&
        'Allowed values' .is. &
        'Integer'))
+
+  call yaml_cl_parse_option(parser,'accuracy_ice','1.e-8',&
+       'Required accuracy for the Chebyshev fit for ICE',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the required accuracy for the Chebyshev fit for ICE',&
+       'Allowed values' .is. &
+       'Double'))
+
+  call yaml_cl_parse_option(parser,'accuracy_penalty','1.e-5',&
+       'Required accuracy for the Chebyshev fit for the penalty function',&
+       help_dict=dict_new('Usage' .is. &
+       'Indicate the required accuracy for the Chebyshev fit for teh penalty function',&
+       'Allowed values' .is. &
+       'Double'))
 
 end subroutine commandline_options
 
