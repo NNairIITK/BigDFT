@@ -86,7 +86,8 @@ program MINHOP
    
   call SPRED_read_uinp('globalinput',spredinputs,bigdft_mpi)
 
-   if (iproc==0) call print_logo_MH()
+  if(iproc==0)call yaml_cite('Goedecker2004')
+  if (iproc==0) call print_logo_MH()
 
   !if (iproc == 0) write(*,'(a,2(1x,1pe10.3))') '(MH) predicted fraction accepted, rejected', & 
   !     ratio/(1.d0+ratio), 1.d0/(1.d0+ratio)
