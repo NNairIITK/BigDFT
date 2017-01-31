@@ -1084,7 +1084,7 @@ module foe_common
     subroutine init_foe(iproc, nproc, nspin, charge, foe_obj, ef, tmprtr, evbounds_nsatur, evboundsshrink_nsatur, &
                evlow, evhigh, fscale, ef_interpol_det, ef_interpol_chargediff, &
                fscale_lowerbound, fscale_upperbound, eval_multiplicator, &
-               npl_min, npl_max, npl_stride, betax, ntemp)
+               npl_min, npl_max, npl_stride, betax, ntemp, accuracy_function, accuracy_penalty)
       use foe_base, only: foe_data, foe_data_set_int, foe_data_set_real, foe_data_set_logical, foe_data_get_real, foe_data_null
       use dynamic_memory
       use chess_base, only: chess_params, chess_input_dict, chess_init
@@ -1112,6 +1112,8 @@ module foe_common
       integer,intent(in),optional :: npl_stride
       real(kind=mp),intent(in),optional :: betax
       integer,intent(in),optional :: ntemp
+      real(kind=mp),intent(in),optional :: accuracy_function
+      real(kind=mp),intent(in),optional :: accuracy_penalty
 
       ! Local variables
       character(len=*), parameter :: subname='init_foe'
@@ -1133,6 +1135,8 @@ module foe_common
       integer :: npl_stride_
       real(kind=mp) :: betax_
       integer :: ntemp_
+      real(kind=mp) :: accuracy_function_
+      real(kind=mp) :: accuracy_penalty_
       type(chess_params) :: cp
       type(dictionary),pointer :: dict
 
@@ -1164,6 +1168,8 @@ module foe_common
       npl_stride_ = 10
       betax_ = -1000.0_mp
       ntemp_ = 4
+      accuracy_function_ = 1.e-5_mp
+      accuracy_penalty_ = 1.e-5_mp
 
       if (present(ef)) ef_ = ef
       if (present(evbounds_nsatur)) evbounds_nsatur_ = evbounds_nsatur
@@ -1182,6 +1188,8 @@ module foe_common
       if (present(npl_stride)) npl_stride_ = npl_stride
       if (present(betax)) betax_ = betax
       if (present(ntemp)) ntemp_ = ntemp
+      if (present(accuracy_function)) accuracy_function_ = accuracy_function
+      if (present(accuracy_penalty)) accuracy_penalty_ = accuracy_penalty
     
       foe_obj = foe_data_null()
 
@@ -1201,6 +1209,8 @@ module foe_common
       call foe_data_set_int(foe_obj,"npl_stride",npl_stride_)
       call foe_data_set_real(foe_obj,"betax",betax_)
       call foe_data_set_int(foe_obj,"ntemp",ntemp_)
+      call foe_data_set_real(foe_obj,"accuracy_function",accuracy_function_)
+      call foe_data_set_real(foe_obj,"accuracy_penalty",accuracy_penalty_)
 
       foe_obj%charge = f_malloc0_ptr(nspin,id='foe_obj%charge')
       foe_obj%evlow = f_malloc0_ptr(nspin,id='foe_obj%evlow')
@@ -1268,7 +1278,8 @@ module foe_common
       ii = np
       call mpiallred(ii, 1, mpi_sum, comm=comm)
       if (ii/=n) then
-          call f_err_throw('wrong partition of n')
+          call f_err_throw('wrong partition: n='//trim(yaml_toa(n))//' /= '//trim(yaml_toa(ii))//'=ii &
+               &(n='//trim(yaml_toa(n))//', np='//trim(yaml_toa(np))//')')
       end if
       iimin = 1 + is
       call mpiallred(iimin, 1, mpi_min, comm=comm)
@@ -1418,7 +1429,7 @@ module foe_common
       real(kind=mp),dimension(2) :: efarr, sumnarr, allredarr
       real(kind=mp) :: ebs_check, ef, ebsp
       integer :: irow, icol, itemp, iflag,info, i, j, itg, ncount, istl, ists, isshift, imshift
-      logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
+      logical :: overlap_calculated, evbounds_shrinked, reached_limit
       integer,parameter :: NTEMP_ACCURATE=4
       integer,parameter :: NTEMP_FAST=1
       real(kind=mp) :: x_max_error, max_error, x_max_error_check, max_error_check
@@ -1676,7 +1687,7 @@ module foe_common
       logical,dimension(2) :: eval_bounds_ok, bisection_bounds_ok
       real(kind=mp) :: temp_multiplicator, ebs_check, ef, ebsp
       integer :: irow, icol, itemp, iflag,info, isshift, imshift, ilshift2, i, j, itg, ncount, istl, ists
-      logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit
+      logical :: overlap_calculated, evbounds_shrinked, reached_limit
       !real(kind=mp),parameter :: FSCALE_LOWER_LIMIT=5.d-3
       !real(kind=mp),parameter :: FSCALE_UPPER_LIMIT=5.d-2
       real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_ACCURATE=3.d0
@@ -1751,7 +1762,6 @@ module foe_common
 
           !call get_minmax_eigenvalues(iproc, smatm, ham_, imshift, smats, ovrlp_, isshift)
 
-          degree_sufficient=.true.
 
           fscale_new = temp_multiplicator*foe_data_get_real(foe_obj,"fscale")
 
@@ -2024,7 +2034,6 @@ module foe_common
 
 
 
-      degree_sufficient=.true.
 
       !if (iproc==0) call yaml_comment('FOE calculation of kernel finished',hfill='~')
 
@@ -2086,7 +2095,7 @@ module foe_common
 
     !> Determine the polynomial degree which yields the desired precision
     subroutine get_polynomial_degree(iproc, nproc, comm, ispin, ncalc, fun, foe_obj, &
-               npl_min, npl_max, npl_stride, max_polynomial_degree, verbosity, npl, cc, &
+               npl_min, npl_max, npl_stride, accuracy_function, accuracy_penalty, verbosity, npl, cc, &
                max_error, x_max_error, mean_error, anoise, &
                ex, ef, fscale)
       use foe_base, only: foe_data, foe_data_get_real
@@ -2099,7 +2108,7 @@ module foe_common
       integer,intent(in) :: iproc, nproc, comm, ispin, ncalc, fun, verbosity
       integer,intent(in) :: npl_min, npl_max, npl_stride
       type(foe_data),intent(in) :: foe_obj
-      real(kind=mp),intent(in) :: max_polynomial_degree
+      real(kind=mp),intent(in) :: accuracy_function, accuracy_penalty
       integer,intent(out) :: npl
       real(kind=mp),dimension(:,:,:),pointer,intent(inout) :: cc
       real(kind=mp),dimension(ncalc),intent(out) :: max_error, x_max_error, mean_error
@@ -2180,6 +2189,7 @@ module foe_common
               do icalc=1,ncalc
                   !call yaml_map('Operation '//trim(yaml_toa(icalc)), &
                   !    (/x_max_error(icalc),max_error(icalc),mean_error(icalc),max_error_penaltyfunction/),fmt='(es9.2)')
+                  !if (iproc==0) write(*,*) 'accuracy_function, accuracy_penalty', accuracy_function, accuracy_penalty
                   call yaml_map('Operation '//trim(yaml_toa(icalc)), &
                       (/x_max_error(icalc),max_error(icalc),mean_error(icalc)/),fmt='(es9.2)')
               end do
@@ -2188,7 +2198,7 @@ module foe_common
 
           error_ok = .true.
           do icalc=1,ncalc
-              if (max_error(icalc)>max_polynomial_degree) then
+              if (max_error(icalc)>accuracy_function) then
                   error_ok = .false.
                   exit
               end if
@@ -2203,7 +2213,7 @@ module foe_common
                   do jpl=1,ipl
                       cc_trial(jpl,icalc,3) = -cc_trial(jpl,icalc,2)
                   end do
-                  if (max_error_penaltyfunction>1.d-5) then
+                  if (max_error_penaltyfunction>accuracy_penalty) then
                       error_ok = .false.
                   end if
               end do
@@ -2374,7 +2384,8 @@ module foe_common
 
 
 
-    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, npl_max, npl_stride, ncalc, func_name, &
+    subroutine get_bounds_and_polynomials(iproc, nproc, comm, itype, ispin, &
+               npl_max, npl_stride, ncalc, func_name, accuracy_function, accuracy_penalty, &
                do_scaling, bounds_factor_low, bounds_factor_up, foe_verbosity, &
                smatm, smatl, ham_, foe_obj, npl_min, workarr_compr, chebyshev_polynomials, &
                npl, scale_factor, shift_value, hamscal_compr, &
@@ -2389,6 +2400,7 @@ module foe_common
       type(sparse_matrix),intent(in) :: smatm, smatl
       type(matrices),intent(in) :: ham_
       logical,intent(in) :: do_scaling
+      real(mp),intent(in) :: accuracy_function, accuracy_penalty
       real(mp),intent(in),optional :: bounds_factor_low, bounds_factor_up
       type(foe_data),intent(inout) :: foe_obj
       integer,intent(inout) :: npl_min
@@ -2483,12 +2495,12 @@ module foe_common
     
                   if (func_name==FUNCTION_ERRORFUNCTION) then
                       call get_polynomial_degree(iproc, nproc, comm, 1, ncalc, FUNCTION_ERRORFUNCTION, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-5, 0, npl, cc_, &
+                           npl_min, npl_max, npl_stride, accuracy_function, accuracy_penalty, 0, npl, cc_, &
                            max_error, x_max_error, mean_error, anoise, &
                            ef=efarr, fscale=fscale_arr)
                   else if (func_name==FUNCTION_POLYNOMIAL) then
                       call get_polynomial_degree(iproc, nproc, comm, 1, ncalc, FUNCTION_POLYNOMIAL, foe_obj, &
-                           npl_min, npl_max, npl_stride, 1.d-8, 0, npl, cc_, &
+                           npl_min, npl_max, npl_stride, accuracy_function, accuracy_penalty, 0, npl, cc_, &
                            max_error, x_max_error, mean_error, anoise, &
                            ex=ex)
                   end if

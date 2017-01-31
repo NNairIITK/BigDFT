@@ -160,6 +160,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
   call f_routine(id='linear_scaling')
 
+  if (iproc==0) then
+      call yaml_cite('Mohr2014')
+      call yaml_cite('Mohr2015')
+  end if
+
   call allocate_local_arrays()
 
   ! extra states must be equal to number of empty states
