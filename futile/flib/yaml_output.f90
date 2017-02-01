@@ -2534,8 +2534,8 @@ contains
           call get_bib_filename(stream_out,filename)
           unitfile=100
           call f_open_file(unitfile,filename)
-          write(unitfile,*)'% This program used features described in the following reference papers.'
-          write(unitfile,*)'% Please consider citing these papers when using the results for scientific output.'
+          write(unitfile,'(a)')'% This program used features described in the following reference papers.'
+          write(unitfile,'(a)')'% Please consider citing these papers when using the results for scientific output.'
           call f_close(unitfile) !close the file to flush its present value
        end if
        if (paper .notin. streams(strm)%dict_references) then
