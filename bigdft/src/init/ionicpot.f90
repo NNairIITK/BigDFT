@@ -12,7 +12,14 @@
 subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,&
      & pot_ion,pkernel,psoffset)
-  use module_base
+  use dynamic_memory
+  use dictionaries
+  use wrapper_mpi
+  use f_utils
+  use module_defs
+  use module_base, only: bigdft_mpi
+  use numerics
+  use f_enums
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use multipole_preserving

@@ -11,7 +11,7 @@
 !>  Program splined_saddle: Methot determine the saddle point
 program splined_saddle
 
-  use module_base
+  use module_defs
   use bigdft_run
   implicit none
   character(len=*), parameter :: subname='BigDFT'
@@ -240,7 +240,7 @@ end module modulesplinedsaddle
 
 
 subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_bigdft)
-  use dictionaries
+ ! use dictionaries
     use module_base
     use module_types
     !use module_input_keys, only:DFT_VARIABLES, KPT_VARIABLES

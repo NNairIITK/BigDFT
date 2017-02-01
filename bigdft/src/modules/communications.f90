@@ -1542,8 +1542,12 @@ module communications
     
     
     subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
-       use module_base
+       use dynamic_memory
+       use dictionaries
+       use wrapper_mpi
+       use module_base, only: bigdft_mpi
        use module_types, only: orbitals_data, locreg_descriptors
+       use wrapper_linalg
        use locregs, only: allocate_wfd, check_overlap_cubic_periodic
        use yaml_output
        implicit none

@@ -196,7 +196,7 @@ module wrapper_MPI
      integer :: comm
   end type doc
 
-  private :: operator(//),f_err_throw ! To avoid an export from yaml_strings module
+  private :: operator(//),f_err_throw,operator(+) ! To avoid an export from yaml_strings module
 
 
 contains
