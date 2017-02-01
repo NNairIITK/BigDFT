@@ -8,7 +8,7 @@
 # places in the including makefile.
 # Also the EXTRA_DIST and the CLEANFILES variable have to be defined
 
-EXTRA_DIST += YAML_DATABASE
+EXTRA_DIST += $(YAML_DATABASE)
 DATABASE_SOURCES=$(YAML_DATABASE:.yaml=.c)
 CLEANFILES += $(DATABASE_SOURCES)
 $(DATABASE_SOURCES): $(YAML_DATABASE)
