@@ -12,6 +12,7 @@
 program splined_saddle
 
   use module_defs
+  !use dictionaries_base
   use dictionaries
   use module_base, only: bigdft_mpi
   use dynamic_memory
