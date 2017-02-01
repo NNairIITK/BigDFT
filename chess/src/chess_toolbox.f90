@@ -654,7 +654,7 @@ program chess_toolbox
                    !$omp parallel default(none) &
                    !$omp shared(ispin,smat_s,ntmb,denskernel,hamiltonian_mat,energy) &
                    !$omp private(itmb,jtmb,jjtmb)
-                   !$omp do reduction(+:energy)
+                   !$omp do reduction( + : energy)
                    do jtmb=1,smat_s%nfvctrp
                        jjtmb = smat_s%isfvctr + jtmb
                        do itmb=1,ntmb

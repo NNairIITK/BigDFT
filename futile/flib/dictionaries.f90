@@ -193,7 +193,7 @@ module dictionaries
    public :: f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
-   public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
+   public :: dictionaries_errors,TYPE_DICT,TYPE_LIST,dictionary_check_leak
 
 
 contains

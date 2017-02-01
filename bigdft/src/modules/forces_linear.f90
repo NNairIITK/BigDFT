@@ -933,7 +933,9 @@ module forces_linear
                denskern, at, offdiagarr, denskern_gathered, scalprod_new, supfun_per_atom, &
                is_supfun_per_atom, calculate_strten, vol, nscalprod_recv, scalprod_lookup, &
                fxyz_orb, Enl, strten, fsep)
-      use module_base
+      !use module_base
+      use dynamic_memory
+      use module_defs
       use module_types, only: atoms_data, orbitals_data
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed

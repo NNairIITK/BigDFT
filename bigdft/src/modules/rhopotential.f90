@@ -395,8 +395,12 @@ module rhopotential
 
     subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, aux, denskern_, ndimrho, rho, &
             rho_negative, print_results)
-      use module_base
+      use dynamic_memory
+      use wrapper_mpi
+      use wrapper_linalg
       use module_types
+      use module_defs
+      use module_base, only: bigdft_mpi
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
       use bigdft_matrices, only: get_modulo_array

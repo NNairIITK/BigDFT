@@ -493,9 +493,12 @@ end subroutine rhocore_forces
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      dpbox, &
      n1,n2,n3,n3p,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
-  use module_base
+  use dynamic_memory
   use module_types
   use yaml_output
+  use module_defs
+  use numerics
+  use f_utils
   use multipole_preserving
   use module_dpbox
   use bounds, only: ext_buffers

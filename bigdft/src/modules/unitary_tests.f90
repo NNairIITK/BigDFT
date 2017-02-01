@@ -218,7 +218,9 @@ module unitary_tests
 
     subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, &
                collcom_sr, denspot, denskern, aux, denskern_, check_sumrho)
-      use module_base
+      use dynamic_memory
+      use wrapper_mpi
+      use module_base, only: bigdft_mpi
       use module_types
       use yaml_output
       use locregs, only: check_whether_bounds_overlap

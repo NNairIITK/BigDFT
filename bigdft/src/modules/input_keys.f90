@@ -1010,6 +1010,7 @@ contains
     use public_keys
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
+    use dictionaries
     use PStypes, only: PS_input_dict
     use chess_base, only: chess_input_dict
     !use yaml_output
@@ -3414,7 +3415,6 @@ contains
   !> Read from all input files and build a dictionary
   recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use yaml_output
-    use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use wrapper_MPI, only: mpi_environment
     use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
     use yaml_strings, only: f_strcpy

@@ -6,8 +6,8 @@ module constraints
           integer                    ::  nconstraints              
           integer                    ::  algorithm                
           integer                    ::  diis_size     
-          REAL(KIND=8), DIMENSION(:,:), POINTER :: CONSTRAINTS_TYPE(:)
-          REAL(KIND=8), DIMENSION(:,:), POINTER :: COORDINATE_ATOMLIST(:,:)
+          integer, DIMENSION(:,:), POINTER :: CONSTRAINTS_TYPE(:)
+          integer, DIMENSION(:,:), POINTER :: COORDINATE_ATOMLIST(:,:)
           REAL(KIND=8), DIMENSION(:,:), POINTER :: TARG(:)
           REAL(KIND=8), DIMENSION(:,:), POINTER :: cc(:)
           REAL(KIND=8), DIMENSION(:,:), POINTER :: ffcv(:,:)

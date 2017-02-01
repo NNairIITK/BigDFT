@@ -292,8 +292,12 @@ module communications_init
     subroutine get_weights(iproc, nproc, orbs, lzd, i3s, n3p, i3start, i3end, j3start, j3end, &
                weightloc_c, weightloc_f, window_c, window_f, weightppp_c, weightppp_f, &
                weight_c_tot_check, weight_f_tot_check)
-      use module_base
+      use dynamic_memory
+      use dictionaries
       use module_types
+      use wrapper_mpi
+      use wrapper_linalg
+      use module_base, only: bigdft_mpi
       use yaml_output, only: yaml_map
       use locregs, only: get_extent_of_overlap
       implicit none
@@ -722,7 +726,8 @@ module communications_init
       weight_f_tot_check = sum(weightloc_f)
       if (nint(weight_f_tot_check)/=isize) then
           !write(*,'(a,2i12)') 'weight_f_tot_check, isize', nint(weight_f_tot_check), isize
-          call f_err_throw(yaml_toa(nint(weight_f_tot_check))+'weight_f_tot_check /= isize='+yaml_toa(isize))
+          call f_err_throw(trim(yaml_toa(nint(weight_f_tot_check)))//&
+                      'weight_f_tot_check /= isize='//trim(yaml_toa(isize)))
       end if
 
       if (nproc>1) then
@@ -1923,7 +1928,11 @@ module communications_init
                istartend_c, istartend_f, ii3min, ii3max, jj3min, index_in_global_c, index_in_global_f, &
                nvalp_c, nvalp_f,  nsendcounts_c, nsenddspls_c, nrecvcounts_c, nrecvdspls_c, &
                nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f)
-      use module_base
+      use dynamic_memory
+      use dictionaries
+      use wrapper_mpi
+      use module_base, only: bigdft_mpi
+ 
       use module_types
       implicit none
       
@@ -3011,7 +3020,13 @@ module communications_init
 
     subroutine get_weights_sumrho(iproc, nproc, orbs, lzd, nscatterarr, &
                weight_tot, weight_ideal, weights_per_slice, weights_per_zpoint)
-      use module_base
+      use dynamic_memory
+      use dictionaries
+      use wrapper_mpi
+      use f_utils
+      use module_base, only: bigdft_mpi
+ 
+ 
       use module_types
       use locregs, only: check_whether_bounds_overlap
       implicit none
@@ -3277,7 +3292,10 @@ module communications_init
 
     subroutine determine_num_orbs_per_gridpoint_sumrho(iproc, nproc, nptsp, lzd, orbs, &
                istartend, weight_tot, weights_per_zpoint, norb_per_gridpoint)
-      use module_base
+      use dynamic_memory
+      use f_utils
+      use wrapper_mpi
+      use module_base, only: bigdft_mpi
       use module_types
       use locregs, only: check_whether_bounds_overlap
       use yaml_output
@@ -3389,7 +3407,12 @@ module communications_init
     subroutine determine_communication_arrays_sumrho(iproc, nproc, nptsp, lzd, orbs, &
                istartend, nsendcounts, nsenddspls, nrecvcounts, &
                nrecvdspls, ndimpsi)
-      use module_base
+      use dynamic_memory
+      use dictionaries
+      use wrapper_mpi
+      use f_utils
+      use module_base, only: bigdft_mpi
+      use yaml_strings, only: yaml_toa 
       use module_types
       implicit none
     

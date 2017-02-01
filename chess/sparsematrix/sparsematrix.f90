@@ -2606,7 +2606,7 @@ module sparsematrix
       logical,intent(in) :: keep_full_result
       real(mp),intent(in) :: exp_power
       type(sparse_matrix),intent(in) :: smat_in, smat_out
-      type(matrices),intent(in) :: mat_in
+      type(matrices),intent(inout) :: mat_in
       type(matrices),intent(out) :: mat_out
       character(len=*),intent(in),optional :: algorithm
 
