@@ -1654,7 +1654,9 @@ module multipole
 
     !>calculate the multipoles of phi
     subroutine Qlm_phi(lmax,geocode,hgrids,acell,psi_ob,Qlm,integrate_in_sphere,centers)
-      use module_base
+      use module_defs
+      use dynamic_memory
+      use f_utils
       use locreg_operations
       use orbitalbasis
       use bounds, only: geocode_buffers
@@ -2509,7 +2511,9 @@ module multipole
 
 
   subroutine extract_matrix(smat, matrix_compr, neighbor, n, matrix)
-    use module_base
+    use module_defs
+    use dynamic_memory
+    use f_utils
     use sparsematrix_base,only: sparse_matrix, matrices
     use sparsematrix_init, only: matrixindex_in_compressed
     implicit none
@@ -5257,7 +5261,9 @@ end subroutine calculate_rpowerx_matrices
 
 
     subroutine calculate_weight_center(llr, glr, hgrids, phir, center_locreg, center_orb)
-      use module_base
+      use module_defs
+      use dynamic_memory
+      use f_utils
       use module_types, only: locreg_descriptors
       use bounds, only: geocode_buffers
       implicit none

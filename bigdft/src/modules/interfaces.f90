@@ -203,7 +203,7 @@ module module_interfaces
        type(energy_terms), intent(inout) :: energs
        real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
-       type(coulomb_operator), intent(in), optional :: pkernel
+       type(coulomb_operator), intent(inout), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        type(denspot_distribution),intent(in),optional :: dpbox
@@ -714,7 +714,8 @@ module module_interfaces
          implicit none
          character(len=*), intent(in) :: filename
          logical, intent(in) :: lbin
-         integer, intent(in) :: iorb,ispinor,unitfile
+         integer, intent(in) :: iorb,ispinor
+         integer, intent(inout) :: unitfile
          type(orbitals_data), intent(in) :: orbs
          integer, intent(out) :: iorb_out
          integer,intent(in),optional :: iorb_shift,iiorb
@@ -730,7 +731,7 @@ module module_interfaces
          logical, intent(in) :: lbin
          integer, intent(in) :: iorb,ispinor
          type(orbitals_data), intent(in) :: orbs
-         character(len=*) :: filename_out
+         character(len=*), intent(out) :: filename_out
          integer, intent(out) :: iorb_out
          integer,intent(in),optional :: iorb_shift,iiorb
         END SUBROUTINE filename_of_iorb
