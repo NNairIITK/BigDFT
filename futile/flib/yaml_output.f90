@@ -2548,7 +2548,7 @@ contains
           iter2=item .get. 'BIBTEX_REF'
           nullify(iter3)
           do while(iterating(iter3,on=iter2))
-             write(unitfile,*)trim(dict_value(iter3))
+             write(unitfile,'(a)')trim(dict_value(iter3))
           end do
           call f_close(unitfile) !close the file to flush its present value
        end if
