@@ -34,7 +34,7 @@ Mohr2014:
 Mohr2015:
   JOURNAL_REF: PCCP 17, 31360 (2015)
   BIBTEX_REF: |
-    @Article{C5CP00437C,
+    @Article{Mohr2015,
     author ={Mohr, Stephan and Ratcliff, Laura E. and Genovese, Luigi and Caliste, Damien and Boulanger, Paul and Goedecker, Stefan and Deutsch, Thierry},
     title  ={Accurate and efficient linear scaling DFT calculations with universal applicability},
     journal  ={Phys. Chem. Chem. Phys.},
@@ -65,4 +65,4 @@ Schaefer2015:
     doi = {10.1063/1.4905665},
     File    = {:Schaefer2015.pdf:PDF}
     }
-  DESCRIPTION: Geometry optimization procedure tailored for Electronic Structure Calculations
+  DESCRIPTION: Geometry optimizers tailored for electronic structure calculations

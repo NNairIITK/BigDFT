@@ -101,7 +101,7 @@
         integer :: nat, info
         real(gp) :: wd(1)
 
-        if(mhgpsst%iproc==0)call yaml_cite('Schaefer2014')
+        if(mhgpsst%iproc==0)call yaml_cite('Schaefer2015')
 
         nat = bigdft_nat(runObj)
        
