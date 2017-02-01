@@ -12,6 +12,9 @@
 program splined_saddle
 
   use module_defs
+  use dictionaries
+  use module_base, only: bigdft_mpi
+  use dynamic_memory
   use bigdft_run
   implicit none
   character(len=*), parameter :: subname='BigDFT'
