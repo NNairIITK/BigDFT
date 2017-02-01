@@ -33,3 +33,23 @@ Schaefer2014:
     doi                      = {10.1063/1.4878944}
     }
   DESCRIPTION: Minima Hopping guided Path Search Method, reference paper
+Schaefer2015:
+  JOURNAL_REF: J. Chem. Phys. 142, 034112 (2015)
+  BIBTEX_REF: |
+    @article{Schaefer2015,
+    title   = {{S}tabilized {Q}uasi-{N}ewton {O}ptimization of {N}oisy {P}otential {E}nergy {S}urfaces},
+    author  = {Schaefer, Bastian and Ghasemi, S. Alireza and Roy, Shantanu and Goedecker, Stefan},
+    year    = {2015},
+
+    month   = jan,
+
+    Journal  = {The Journal of Chemical Physics},
+    volume = {142},
+    number = {3},
+    pages   = {034112},
+
+    Arxivid = {arXiv:1412.0935},
+    doi = {10.1063/1.4905665},
+    File    = {:Schaefer2015.pdf:PDF}
+    }
+  DESCRIPTION: Geometry optimizers tailored for electronic structure calculations

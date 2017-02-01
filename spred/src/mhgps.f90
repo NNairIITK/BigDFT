@@ -206,7 +206,7 @@ program mhgps
 !        call findbonds('(MHGPS)',mhgpsst%iproc,uinp%mhgps_verbosity,bigdft_nat(runObj),rcov,&
 !        bigdft_get_rxyz_ptr(runObj),nbond,iconnect)
 !    endif
-    call allocate_finsad_workarrays(runObj,uinp,fsw)
+    call allocate_finsad_workarrays(mhgpsst,runObj,uinp,fsw)
 
     ifolderstart=mhgpsst%ifolder
     outer: do ifolder = ifolderstart,999
