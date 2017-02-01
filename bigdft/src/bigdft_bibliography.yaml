@@ -66,3 +66,20 @@ Schaefer2015:
     File    = {:Schaefer2015.pdf:PDF}
     }
   DESCRIPTION: Geometry optimizers tailored for electronic structure calculations
+Bitzek2006:
+  JOURNAL_REF: 'Phys. Rev. Lett. 97, 170201 (2006)'
+  BIBTEX_REF: | 
+    @article{Bitzek2006,
+    title = {Structural Relaxation Made Simple},
+    author = {Bitzek, Erik and Koskinen, Pekka and G\"ahler, Franz and Moseler, Michael and Gumbsch, Peter},
+    journal = {Phys. Rev. Lett.},
+    volume = {97},
+    issue = {17},
+    pages = {170201},
+    numpages = {4},
+    year = {2006},
+    month = {Oct},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevLett.97.170201}
+    }
+  DESCRIPTION: FIRE, a damped MD minimizer
