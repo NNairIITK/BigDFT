@@ -1,8 +1,3 @@
-#SPRED_input_variables_fetch.o: SPRED_input_variables_definition-inc.h
-#build the fortran include file with the stream of input variables into a local string
-#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
-#SPRED_input_variables_definition-inc.h: SPRED_input_variables_definition.yaml
-#	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 
 AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@ @LIB_FUTILE_CFLAGS@
 
