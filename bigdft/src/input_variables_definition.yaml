@@ -2315,6 +2315,7 @@ linear:
    K:  {nbasis: 1, rloc: 8.0}
    Sn: {nbasis: 4, rloc: 6.5}
    Fe: {nbasis: 13, rloc: 8.0}
+   Cu: {nbasis: 9, rloc: 7.0}
  ig_occupation:
    Fe:
      3s: 2.0
@@ -2323,6 +2324,10 @@ linear:
        up: 4.0
        down: 2.0
      4s: 2.0
+     4p: 0.0
+   Cu:
+     3d: 10.0
+     4s: 1.0
      4p: 0.0
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules

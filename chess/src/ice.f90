@@ -681,7 +681,7 @@ module ice
       real(kind=mp) :: evlow_old, evhigh_old, tt
       real(kind=mp),dimension(ovrlp_smat%nspin) :: eval_min, eval_max
       real(kind=mp) :: x_max_error_fake, max_error_fake, mean_error_fake
-      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total
+      real(kind=mp) :: tt_ovrlp, tt_ham, eval_multiplicator, eval_multiplicator_total, bounds_limit
       logical :: restart, calculate_SHS
       logical, dimension(2) :: emergency_stop
       real(kind=mp),dimension(2) :: allredarr
@@ -691,7 +691,7 @@ module ice
       integer :: irow, icol, iflag, ispin, isshift, ilshift, ilshift2, verbosity_, npl_min_fake
       logical :: overlap_calculated, evbounds_shrinked, degree_sufficient, reached_limit, npl_auto_
       real(kind=mp),parameter :: DEGREE_MULTIPLICATOR_MAX=20.d0
-      real(kind=mp) :: degree_multiplicator
+      real(kind=mp) :: degree_multiplicator, accuracy_function, accuracy_penalty
       integer, parameter :: SPARSE=1
       integer, parameter :: DENSE=2
       integer, parameter :: imode=SPARSE
@@ -736,7 +736,8 @@ module ice
       else
           charge_fake = f_malloc0(ovrlp_smat%nspin,id='charge_fake')
           call init_foe(iproc, nproc, ovrlp_smat%nspin, charge=charge_fake, &
-               evlow=0.5_mp, evhigh=1.5_mp, foe_obj=ice_obj_)
+               evlow=0.5_mp, evhigh=1.5_mp, foe_obj=ice_obj_, &
+               accuracy_function=1.e-8_mp, accuracy_penalty=1.e-5_mp)
           call f_free(charge_fake)
           ice_obj => ice_obj_
           !!!@ JUST FOR THE MOMENT.... ########################
@@ -796,8 +797,12 @@ module ice
       if (foe_data_get_int(ice_obj,"evbounds_isatur")>foe_data_get_int(ice_obj,"evbounds_nsatur") .and. &
           foe_data_get_int(ice_obj,"evboundsshrink_isatur")<=foe_data_get_int(ice_obj,"evboundsshrink_nsatur")) then
           do ispin=1,inv_ovrlp_smat%nspin
-              call foe_data_set_real(ice_obj,"evlow",1.d0/0.9d0*foe_data_get_real(ice_obj,"evlow",ispin),ispin)
-              call foe_data_set_real(ice_obj,"evhigh",0.9d0*foe_data_get_real(ice_obj,"evhigh",ispin),ispin)
+              ! Make sure that the lower bound is not larger than the upper bound
+              bounds_limit = 0.5_mp*(foe_data_get_real(ice_obj,"evlow",ispin)+foe_data_get_real(ice_obj,"evhigh",ispin))
+              tt = min(1.d0/0.9d0*foe_data_get_real(ice_obj,"evlow",ispin),bounds_limit-1.e-2_mp)
+              call foe_data_set_real(ice_obj,"evlow",tt,ispin)
+              tt = max(0.9d0*foe_data_get_real(ice_obj,"evhigh",ispin),bounds_limit+1.e-2_mp)
+              call foe_data_set_real(ice_obj,"evhigh",tt,ispin)
           end do
           evbounds_shrinked=.true.
       else
@@ -818,8 +823,10 @@ module ice
       !!write(*,*) 'IN MAIN, sum(ovrlp_mat_matrix_compr(1:ovrlp_smat)), sum(ovrlp_mat_matrix_compr(ovrlp_smat+1:2*ovrlp_smat))',&
       !!            sum(ovrlp_mat%matrix_compr(1:ovrlp_smat%nvctr)), &
       !!            sum(ovrlp_mat%matrix_compr(ovrlp_smat%nvctr+1:2*ovrlp_smat%nvctr))
+      accuracy_function = foe_data_get_real(ice_obj,"accuracy_function")
+      accuracy_penalty = foe_data_get_real(ice_obj,"accuracy_penalty")
       call get_bounds_and_polynomials(iproc, nproc, comm, 1, 1, NPL_MAX, NPL_STRIDE, &
-           ncalc, FUNCTION_POLYNOMIAL, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
+           ncalc, FUNCTION_POLYNOMIAL, accuracy_function, accuracy_penalty, .true., 1.0_mp/1.2_mp, 1.2_mp, verbosity_, &
            ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, ice_obj, npl_min_fake, &
            inv_ovrlp(1)%matrix_compr, chebyshev_polynomials, &
            npl, scale_factor, shift_value, hamscal_compr, &

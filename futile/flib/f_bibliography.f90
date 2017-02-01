@@ -15,7 +15,7 @@ module f_bibliography
   type(dictionary), pointer :: bibliography=>null()
 
   public :: f_bib_initialize,f_bib_finalize,f_bib_update,f_bib_item_exists
-  public :: f_bib_get_item
+  public :: f_bib_get_item,get_bib_filename
 
   contains
 
@@ -52,5 +52,21 @@ module f_bibliography
      dict = bibliography .get. item
 
    end function f_bib_get_item
+
+   pure subroutine get_bib_filename(stream_out,filename)
+     use yaml_strings
+     implicit none
+     character(len=*), intent(in) :: stream_out
+     character(len=*), intent(out) :: filename
+
+     if (trim(stream_out) == 'stdout') then
+        filename='citations.bib'
+     else
+        filename=stream_out
+        call rstrip(filename,'.yaml')
+        filename=trim(filename)//'.bib'
+     end if
+     
+   end subroutine get_bib_filename
 
 end module f_bibliography

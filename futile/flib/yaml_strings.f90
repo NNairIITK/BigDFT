@@ -731,7 +731,7 @@ contains
     integer :: ipos
     
     ipos=index(string,substring,back=.true.)
-    if (ipos > 0) string=string(1:ipos)
+    if (ipos > 0) string=string(1:ipos-1)
 
   end subroutine rstrip
 

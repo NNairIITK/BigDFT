@@ -503,6 +503,9 @@
      Load Balancing of calculations:
        Density:
          MPI tasks 0- 6                : 100%
+         MPI task  7:
+           64                                                                                
+                       %
        Kernel:
          MPI tasks 0- 6                : 100%
          MPI task 7                    :  73%
@@ -1176,7 +1179,6 @@
  }
   #================================================== FOE calculation for HOMO-LUMO analysis
  Check possibility to calculate the gap:
-   spin channel                        :  1
    charge for calculation              :  8.0
    ntmb                                :  6
    Calculation possible                :  Yes
@@ -1299,12 +1301,10 @@
      need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   spin channel up:
-     spin_channel                      :  1
-     HOMO energy                       : -0.2744702874124663
-     LUMO energy                       :  4.3214617951307807E-002
-     HOMO-LUMO gap (Ha)                :  0.3176849053637741
-     HOMO-LUMO gap (eV)                :  8.644646284426466
+   HOMO energy                         : -0.2744702874124663
+   LUMO energy                         :  4.3214617951307807E-002
+   HOMO-LUMO gap (Ha)                  :  0.3176849053637741
+   HOMO-LUMO gap (eV)                  :  8.644646284426466
  Total charge                          :  7.999979543332E+00
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
