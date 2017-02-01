@@ -571,7 +571,8 @@ module orthonormalization
       use yaml_output
       use communications_base, only: work_transpose, TRANSPOSE_POST, TRANSPOSE_FULL, TRANSPOSE_GATHER
       use communications, only: transpose_localized, untranspose_localized
-      use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, sparsematrix_malloc, &
+      use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
+                                   sparsematrix_malloc, sparsematrix_malloc0, &
                                    sparsematrix_malloc_ptr, DENSE_FULL, DENSE_MATMUL, SPARSE_FULL, SPARSEMM_SEQ, &
                                    assignment(=), SPARSE_TASKGROUP
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -667,7 +668,7 @@ module orthonormalization
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_aux, lagmat_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, lagmat, lagmat_)
     
-      lagmat_large = sparsematrix_malloc(linmat%l, iaction=SPARSE_TASKGROUP, id='lagmat_large')
+      lagmat_large = sparsematrix_malloc0(linmat%l, iaction=SPARSE_TASKGROUP, id='lagmat_large')
     
       ! Symmetrize the matrix. Directly use the large sparsity pattern as this one 
       ! is used later for the matrix vector multiplication.
