@@ -38,7 +38,7 @@ module chebyshev
  
     !> Again assuming all matrices have same sparsity, still some tidying to be done
     subroutine chebyshev_clean(iproc, nproc, npl, cc, kernel, ham_compr, &
-               calculate_SHS, workarr_compr, nsize_polynomial, ncalc, &
+               calculate_SHS, nsize_polynomial, ncalc, &
                fermi_new, penalty_ev_new, chebyshev_polynomials, emergency_stop, &
                invovrlp_compr)
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -52,7 +52,7 @@ module chebyshev
       type(sparse_matrix), intent(in) :: kernel
       real(kind=mp),dimension(kernel%nvctrp_tg),intent(in) :: ham_compr
       logical,intent(in) :: calculate_SHS
-      real(kind=mp),dimension(kernel%nvctrp_tg),intent(inout) :: workarr_compr
+      !real(kind=mp),dimension(kernel%nvctrp_tg),intent(inout) :: workarr_compr
       real(kind=mp),dimension(kernel%smmm%nvctrp,ncalc),intent(out) :: fermi_new
       real(kind=mp),dimension(kernel%smmm%nvctrp),intent(out) :: penalty_ev_new
       real(kind=mp),dimension(nsize_polynomial,npl),intent(out) :: chebyshev_polynomials
@@ -93,27 +93,27 @@ module chebyshev
       end if
         
       
-      if (calculate_SHS) then
-          if (.not.present(invovrlp_compr)) then
-              call f_err_throw('invovrlp_compr not present')
-          end if
-          matrix_new = f_malloc0(kernel%smmm%nvctrp,id='matrix')
-          if (kernel%smmm%nvctrp>0) then
-              call prepare_matrix(kernel, invovrlp_compr, matrix_new)
-              call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
-              call sparsemm_new(iproc, kernel, mat_seq, matrix_new(1), vectors_new(1,1))
-              call f_zero(matrix_new)
-              call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
-              call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
-          end if
-          call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
-               matrix_new, workarr_compr)
-      else
-          call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, workarr_compr(1), 1)
-      end if
+      !!if (calculate_SHS) then
+      !!    if (.not.present(invovrlp_compr)) then
+      !!        call f_err_throw('invovrlp_compr not present')
+      !!    end if
+      !!    matrix_new = f_malloc0(kernel%smmm%nvctrp,id='matrix')
+      !!    if (kernel%smmm%nvctrp>0) then
+      !!        call prepare_matrix(kernel, invovrlp_compr, matrix_new)
+      !!        call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
+      !!        call sparsemm_new(iproc, kernel, mat_seq, matrix_new(1), vectors_new(1,1))
+      !!        call f_zero(matrix_new)
+      !!        call sequential_acces_matrix_fast2(kernel, invovrlp_compr, mat_seq)
+      !!        call sparsemm_new(iproc, kernel, mat_seq, vectors_new(1,1), matrix_new(1))
+      !!    end if
+      !!    call compress_matrix_distributed_wrapper(iproc, nproc, kernel, SPARSE_MATMUL_LARGE, &
+      !!         matrix_new, ONESIDED_FULL, workarr_compr)
+      !!else
+      !!    call vcopy(kernel%nvctrp_tg, ham_compr(1), 1, workarr_compr(1), 1)
+      !!end if
       
       if (kernel%smmm%nvctrp>0) then
-          call sequential_acces_matrix_fast2(kernel, workarr_compr, mat_seq)
+          call sequential_acces_matrix_fast2(kernel, ham_compr, mat_seq)
       end if
 
       !call f_free(mat_compr)
@@ -223,10 +223,10 @@ module chebyshev
           end if
     
         
-          if (calculate_SHS .and. kernel%smmm%nfvctrp>0) then
-              !!call f_free(matrix)
-              call f_free(matrix_new)
-          end if
+          !!if (calculate_SHS .and. kernel%smmm%nfvctrp>0) then
+          !!    !!call f_free(matrix)
+          !!    call f_free(matrix_new)
+          !!end if
           if (kernel%smmm%nfvctrp>0) then
               call f_free(mat_seq)
               call f_free(vectors_new)
@@ -241,48 +241,6 @@ module chebyshev
     end subroutine chebyshev_clean
     
 
-    subroutine prepare_matrix(smat, invovrlp_compr, matrix)
-      use sparsematrix_init, only: matrixindex_in_compressed
-      use dynamic_memory
-      implicit none
-
-      ! Calling arguments
-      type(sparse_matrix),intent(in) :: smat
-      real(kind=mp),dimension(smat%nvctrp_tg),intent(in) :: invovrlp_compr
-      real(kind=mp),dimension(smat%smmm%nvctrp),intent(inout) :: matrix
-
-      ! Local variables
-      integer :: i, ii, iline, icolumn, jj
-
-      call f_routine(id='prepare_matrix')
-
-      if (.not.smat%smatmul_initialized) then
-          call f_err_throw('sparse matrix multiplication not initialized', &
-               err_name='SPARSEMATRIX_RUNTIME_ERROR')
-      end if
-
-      !$omp parallel &
-      !$omp default(none) &
-      !$omp shared(smat, matrix, invovrlp_compr) &
-      !$omp private(i, ii, iline, icolumn, jj)
-      !$omp do schedule(guided)
-      do i=1,smat%smmm%nvctrp
-          ii = smat%smmm%isvctr + i
-          iline = smat%smmm%line_and_column(1,i)
-          icolumn = smat%smmm%line_and_column(2,i)
-          jj=matrixindex_in_compressed(smat, icolumn, iline)
-          if (jj>0) then
-              matrix(i) = invovrlp_compr(jj-smat%isvctrp_tg)
-          else
-              matrix(i) = 0.d0
-          end if
-      end do
-      !$omp end do
-      !$omp end parallel
-
-      call f_release_routine()
-
-    end subroutine prepare_matrix
     
 
     ! Performs z = a*x + b*y

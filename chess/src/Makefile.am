@@ -26,14 +26,28 @@ else
 binaries_sources =
 endif
 
+
+# C objects
+c_level = chess_input_variables_fetch.c
+
+chess_input_variables_fetch.o: chess_input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
+chess_input_variables_definition-inc.h: chess_input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
 libCheSS_1_a_SOURCES = chebyshev.f90 \
 	  foe_base.f90 \
 	  foe_common.f90 \
 	  fermi_level.f90 \
 	  foe.f90 \
 	  ice.f90 \
+	  coeffs.f90 \
 	  matrix_operations.f90 \
-	  sparsematrix_highlevel.f90
+	  sparsematrix_highlevel.f90 \
+	  highlevel_wrappers.f90 \
+	  chess_base.f90 \
+	  $(c_level)
 
 # Module files.
 if CAPITALIZE
@@ -42,23 +56,35 @@ modules = CHEBYSHEV.@MODULE_EXT@ \
 	  FOE_COMMON.@MODULE_EXT@ \
 	  FERMI_LEVEL.@MODULE_EXT@ \
 	  FOE.@MODULE_EXT@ \
-          MODULE_FUNC.@MODULE_EXT@ \
+      MODULE_FUNC.@MODULE_EXT@ \
 	  ICE.@MODULE_EXT@ \
+	  COEFFS.@MODULE_EXT@ \
 	  MATRIX_OPERATIONS.@MODULE_EXT@ \
-	  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@
+	  SPARSEMATRIX_HIGHLEVEL.@MODULE_EXT@ \
+	  HIGHLEVEL_WRAPPERS.@MODULE_EXT@ \
+	  CHESS_BASE.@MODULE_EXT@
 else
 modules =  chebyshev.@MODULE_EXT@ \
 	  foe_base.@MODULE_EXT@ \
 	  foe_common.@MODULE_EXT@ \
 	  fermi_level.@MODULE_EXT@ \
 	  foe.@MODULE_EXT@ \
-          module_func.@MODULE_EXT@ \
+      module_func.@MODULE_EXT@ \
 	  ice.@MODULE_EXT@ \
+	  coeffs.@MODULE_EXT@ \
 	  matrix_operations.@MODULE_EXT@ \
-	  sparsematrix_highlevel.@MODULE_EXT@
+	  sparsematrix_highlevel.@MODULE_EXT@ \
+	  highlevel_wrappers.@MODULE_EXT@ \
+	  chess_base.@MODULE_EXT@
 endif
 
-subs_static_library = $(top_builddir)/sparsematrix/libsparsematrix.a
+EXTRA_DIST = \
+    chess_input_variables_definition.yaml \
+	configure.inc.in
+
+subs_static_library = $(top_builddir)/sparsematrix/libsparsematrix.a \
+                      $(top_builddir)/chesspexsi/libchesspexsi.a
+
 
 chess_toolbox_SOURCES = chess_toolbox.f90
 chess_toolbox_LDADD = $(chess_library) @LIB_FUTILE_LIBS@ @LINALG_LIBS@
@@ -118,6 +144,8 @@ ice.o: chebyshev.o foe_base.o foe_common.o fermi_level.o
 matrix_operations.o: ice.o foe_base.o
 foe.o: chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
 sparsematrix_highlevel.o: ice.o foe.o
+highlevel_wrappers.o: sparsematrix_highlevel.o
+coeffs.o: sparsematrix_highlevel.o
 chess_toolbox.o: $(libCheSS_1_a_OBJECTS)
 
 # Copy modules in a common include directory.

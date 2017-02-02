@@ -203,7 +203,7 @@ module module_interfaces
        type(energy_terms), intent(inout) :: energs
        real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
-       type(coulomb_operator), intent(in), optional :: pkernel
+       type(coulomb_operator), intent(inout), optional :: pkernel
        type(orbitals_data), intent(in), optional :: orbsocc
        real(wp), dimension(:), pointer, optional :: psirocc
        type(denspot_distribution),intent(in),optional :: dpbox
@@ -714,7 +714,8 @@ module module_interfaces
          implicit none
          character(len=*), intent(in) :: filename
          logical, intent(in) :: lbin
-         integer, intent(in) :: iorb,ispinor,unitfile
+         integer, intent(in) :: iorb,ispinor
+         integer, intent(inout) :: unitfile
          type(orbitals_data), intent(in) :: orbs
          integer, intent(out) :: iorb_out
          integer,intent(in),optional :: iorb_shift,iiorb
@@ -730,7 +731,7 @@ module module_interfaces
          logical, intent(in) :: lbin
          integer, intent(in) :: iorb,ispinor
          type(orbitals_data), intent(in) :: orbs
-         character(len=*) :: filename_out
+         character(len=*), intent(out) :: filename_out
          integer, intent(out) :: iorb_out
          integer,intent(in),optional :: iorb_shift,iiorb
         END SUBROUTINE filename_of_iorb
@@ -870,7 +871,7 @@ module module_interfaces
         calculate_pspandkin,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
         calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
-        pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
+        pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_DeltaE,pexsi_temperature, pexsi_tol_charge, pexsi_np_sym_fact,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel,hphi_pspandkin,eproj,ekin)
       use module_defs, only: gp,dp,wp
       use module_types
@@ -899,8 +900,8 @@ module module_interfaces
       type(work_mpiaccumulate),intent(inout) :: energs_work
       logical,intent(in) :: remove_coupling_terms
       real(kind=8), intent(in) :: factor, tel
-      integer,intent(in) :: pexsi_npoles
-      real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
+      integer,intent(in) :: pexsi_npoles, pexsi_np_sym_fact
+      real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_DeltaE,pexsi_temperature, pexsi_tol_charge
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -1029,7 +1030,7 @@ module module_interfaces
          integer, intent(in) :: iproc,nproc
          integer, intent(out) :: input_wf_format,lnpsidim_orbs,lnpsidim_comp
          type(f_enumerator), intent(inout) :: inputpsi
-         type(input_variables), intent(in) :: in
+         type(input_variables), intent(inout) :: in
          type(atoms_data), intent(inout) :: atoms
          real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
          logical, intent(in) :: OCLconv
@@ -1329,22 +1330,22 @@ module module_interfaces
           END SUBROUTINE orthogonalize
         end interface
 
-  interface
-     subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
-          coeff, denskern, denskern_, keep_uncompressed_)
-       !use module_defs, only: gp,dp,wp
-       use module_types
-       use sparsematrix_base, only: sparse_matrix
-       implicit none
-       integer,intent(in):: iproc, nproc
-       logical, intent(in) :: isKernel
-       type(orbitals_data),intent(in):: orbs, orbs_tmb
-       type(sparse_matrix), intent(in) :: denskern
-       real(kind=8),dimension(denskern%nfvctr,orbs%norb),intent(in):: coeff   !only use the first (occupied) orbitals
-       type(matrices), intent(out) :: denskern_
-       logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
-     END SUBROUTINE calculate_density_kernel
-  end interface
+  !!interface
+  !!   subroutine calculate_density_kernel(iproc, nproc, isKernel, norbp, isorb, norbu, norb, occup, &
+  !!         coeff, denskern, denskern_, keep_uncompressed_)
+  !!     !use module_defs, only: gp,dp,wp
+  !!     use module_types
+  !!     use sparsematrix_base, only: sparse_matrix
+  !!     implicit none
+  !!     integer,intent(in):: iproc, nproc, norbp, isorb, norbu, norb
+  !!     real(kind=8),dimension(norb),intent(in) :: occup
+  !!     logical, intent(in) :: isKernel
+  !!     type(sparse_matrix), intent(in) :: denskern
+  !!     real(kind=8),dimension(denskern%nfvctr,norb),intent(in):: coeff   !only use the first (occupied) orbitals
+  !!     type(matrices), intent(out) :: denskern_
+  !!     logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
+  !!   END SUBROUTINE calculate_density_kernel
+  !!end interface
 
   interface
      subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)

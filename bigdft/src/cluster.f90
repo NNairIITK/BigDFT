@@ -41,7 +41,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL, sparse_matrix_metadata_null
   use sparsematrix_init, only: init_matrix_taskgroups, &
                                sparse_matrix_metadata_init, write_sparsematrix_info
-  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed
+  use bigdft_matrices, only: check_local_matrix_extents, init_matrixindex_in_compressed_fortransposed, &
+                             init_bigdft_matrices
   use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
@@ -58,7 +59,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
-  type(input_variables), intent(in) :: in
+  type(input_variables), intent(inout) :: in !SM: I had to change this to inout due to the new CheSS parameters within input_variables, maybe to be changed again later...
   type(atoms_data), intent(inout) :: atoms
   type(GPU_pointers), intent(inout) :: GPU
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
@@ -135,9 +136,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !integer :: i1,i2,i3p,n1m,n2m,n3m !MM
 
   integer :: ishift, extra_states, i1, i2, i3, ii
-  integer :: ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s
-  integer :: ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m
-  integer :: ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l
+  integer :: ind_min_s, ind_mas_s
+  integer :: ind_min_m, ind_mas_m
+  integer :: ind_min_l, ind_mas_l
 
   !debug
   !real(kind=8) :: ddot
@@ -341,20 +342,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (associated(tmb%psi)) then
         !this is a tmb_null constructor
         tmb_old%lzd = local_zone_descriptors_null()
-        tmb_old%linmat%smmd = sparse_matrix_metadata_null()
-        tmb_old%linmat%s = sparse_matrix_null()
-        tmb_old%linmat%m = sparse_matrix_null()
-        tmb_old%linmat%l = sparse_matrix_null()
-        !!tmb_old%linmat%ks = sparse_matrix_null()
-        !!tmb_old%linmat%ks_e = sparse_matrix_null()
-        nullify(tmb_old%linmat%ks)
-        nullify(tmb_old%linmat%ks_e)
-        tmb_old%linmat%ovrlp_ = matrices_null()
-        tmb_old%linmat%ham_ = matrices_null()
-        tmb_old%linmat%kernel_ = matrices_null()
-        do i=1,size(tmb_old%linmat%ovrlppowers_)
-            tmb_old%linmat%ovrlppowers_(i) = matrices_null()
-        end do
+        !!tmb_old%linmat%smmd = sparse_matrix_metadata_null()
+        !!tmb_old%linmat%s = sparse_matrix_null()
+        !!tmb_old%linmat%m = sparse_matrix_null()
+        !!tmb_old%linmat%l = sparse_matrix_null()
+        !!!!tmb_old%linmat%ks = sparse_matrix_null()
+        !!!!tmb_old%linmat%ks_e = sparse_matrix_null()
+        !!nullify(tmb_old%linmat%ks)
+        !!nullify(tmb_old%linmat%ks_e)
+        !!tmb_old%linmat%ovrlp_ = matrices_null()
+        !!tmb_old%linmat%ham_ = matrices_null()
+        !!tmb_old%linmat%kernel_ = matrices_null()
+        !!do i=1,size(tmb_old%linmat%ovrlppowers_)
+        !!    tmb_old%linmat%ovrlppowers_(i) = matrices_null()
+        !!end do
+        tmb_old%linmat = linear_matrices_null()
         tmb_old%collcom = comms_linear_null()
         call copy_tmbs(iproc, tmb, tmb_old, subname)
         call destroy_DFT_wavefunction(tmb)
@@ -436,9 +438,16 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call init_foe_wrapper(iproc, nproc, in, KSwfn%orbs, 0.d0, tmb%foe_obj)
      ! Do the same for the object which handles the calculation of the inverse.
      charge_fake = f_malloc0(in%nspin,id='charge_fake')
-     call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, 0.d0, in%evbounds_nsatur, in%evboundsshrink_nsatur, &
-            0.5d0, 1.5d0, in%lin%fscale, in%lin%ef_interpol_det, in%lin%ef_interpol_chargediff, &
-            in%fscale_lowerbound, in%fscale_upperbound, 1.d0)
+     call init_foe(iproc, nproc, in%nspin, charge_fake, tmb%ice_obj, &
+          tmprtr=0.d0, evbounds_nsatur=in%cp%foe%evbounds_nsatur, &
+          evboundsshrink_nsatur=in%cp%foe%evboundsshrink_nsatur, &
+          evlow=0.5d0, evhigh=1.5d0, fscale=in%cp%foe%fscale, &
+          ef_interpol_det=in%cp%foe%ef_interpol_det, &
+          ef_interpol_chargediff=in%cp%foe%ef_interpol_chargediff, &
+          fscale_lowerbound=in%cp%foe%fscale_lowerbound, &
+          fscale_upperbound=in%cp%foe%fscale_upperbound, &
+          eval_multiplicator=1.d0, &
+          accuracy_function=in%cp%foe%accuracy_ice, accuracy_penalty=in%cp%foe%accuracy_penalty)
      call f_free(charge_fake)
 
      !!call f_free(locreg_centers)
@@ -446,86 +455,9 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 
-
-     call sparse_matrix_metadata_init(atoms%astruct%geocode, atoms%astruct%cell_dim, tmb%orbs%norb, &
-          atoms%astruct%nat, atoms%astruct%ntypes, atoms%astruct%units, &           
-          atoms%nzatom, atoms%nelpsp, atoms%astruct%atomnames, atoms%astruct%iatype, &
-          atoms%astruct%rxyz, tmb%orbs%onwhichatom, tmb%linmat%smmd)
-
-     ! Do not initialize the matrix multiplication to save memory. The multiplications
-     ! are always done with the tmb%linmat%l type.
-     call init_sparse_matrix_wrapper(iproc, nproc, &
-          in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%s)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
-
-     ! Do not initialize the matrix multiplication to save memory. The multiplications
-     ! are always done with the tmb%linmat%l type.
-     call init_sparse_matrix_wrapper(iproc, nproc, &
-          in%nspin, tmb%orbs, tmb%ham_descr%lzd, atoms%astruct, &
-          in%store_index, init_matmul=.false., imode=1, smat=tmb%linmat%m)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
-
-     ! check the extent of the kernel cutoff (must be at least shamop radius)
-     if (iproc==0) then
-         call yaml_comment('Sparse matrix initialization',hfill='-')
-     end if
-     call check_kernel_cutoff(iproc, tmb%orbs, atoms, in%hamapp_radius_incr, tmb%lzd)
-     call init_sparse_matrix_wrapper(iproc, nproc, &
-          in%nspin, tmb%orbs, tmb%lzd, atoms%astruct, &
-          in%store_index, init_matmul=.true., imode=2, smat=tmb%linmat%l, smat_ref=tmb%linmat%m)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
-          tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
-
-     iirow(1) = tmb%linmat%s%nfvctr
-     iirow(2) = 1
-     iicol(1) = tmb%linmat%s%nfvctr
-     iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, tmb%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%s, &
-          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
-          irow, icol)
-     iirow(1) = min(irow(1),iirow(1))
-     iirow(2) = max(irow(2),iirow(2))
-     iicol(1) = min(icol(1),iicol(1))
-     iicol(2) = max(icol(2),iicol(2))
-     !!write(*,*) 'after s: iirow', iirow
-     !!write(*,*) 'after s: iicol', iicol
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%m, &
-          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
-          irow, icol)
-     iirow(1) = min(irow(1),iirow(1))
-     iirow(2) = max(irow(2),iirow(2))
-     iicol(1) = min(icol(1),iicol(1))
-     iicol(2) = max(icol(2),iicol(2))
-     !!write(*,*) 'after m: iirow', iirow
-     !!write(*,*) 'after m: iicol', iicol
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, &
-          tmb%collcom_sr, tmb%linmat%smmd, tmb%linmat%l, &
-          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
-          irow, icol)
-     iirow(1) = min(irow(1),iirow(1))
-     iirow(2) = max(irow(2),iirow(2))
-     iicol(1) = min(icol(1),iicol(1))
-     iicol(2) = max(icol(2),iicol(2))
-     !!write(*,*) 'after l: iirow', iirow
-     !!write(*,*) 'after l: iicol', iicol
-
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%s, &
-          ind_min_s, ind_mas_s, ind_trans_min_s, ind_trans_max_s, &
-          iirow, iicol)
-     !!write(*,*) 'after s'
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%m, &
-          ind_min_m, ind_mas_m, ind_trans_min_m, ind_trans_max_m, &
-          iirow, iicol)
-     !!write(*,*) 'after m'
-     call init_matrix_taskgroups(iproc, nproc, bigdft_mpi%mpi_comm, in%enable_matrix_taskgroups, tmb%linmat%l, &
-          ind_min_l, ind_mas_l, ind_trans_min_l, ind_trans_max_l, &
-          iirow, iicol)
-     !!write(*,*) 'after l'
+     call init_bigdft_matrices(iproc, nproc, atoms, tmb%orbs, &
+          tmb%collcom, tmb%collcom_sr, tmb%ham_descr%collcom, &
+          tmb%lzd, tmb%ham_descr%lzd, in, tmb%linmat)
 
 
      if (iproc==0) then
@@ -625,14 +557,14 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (in%check_sumrho>0) then
          call check_communication_potential(iproc,nproc,denspot,tmb)
          call check_communication_sumrho(iproc, nproc, tmb%orbs, tmb%lzd, tmb%collcom_sr, &
-              denspot, tmb%linmat%l, tmb%linmat%kernel_, in%check_sumrho)
+              denspot, tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, in%check_sumrho)
      end if
 
      if (iproc==0) then
          call yaml_mapping_open('Checking Communications of Minimal Basis')
      end if
      call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%lzd, &
-          tmb%collcom,tmb%linmat%s,tmb%linmat%ovrlp_, &
+          tmb%collcom,tmb%linmat%s,tmb%linmat%auxs,tmb%linmat%ovrlp_, &
           tmb%npsidim_orbs,tmb%npsidim_comp,in%check_overlap)
      if (iproc==0) then
          call yaml_mapping_close()
@@ -642,7 +574,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          call yaml_mapping_open('Checking Communications of Enlarged Minimal Basis')
      end if
      call check_communications_locreg(iproc,nproc,tmb%orbs,in%nspin,tmb%ham_descr%lzd, &
-          tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%ham_, &
+          tmb%ham_descr%collcom,tmb%linmat%m,tmb%linmat%auxm,tmb%linmat%ham_, &
           tmb%ham_descr%npsidim_orbs,tmb%ham_descr%npsidim_comp,in%check_overlap)
      if (iproc ==0) then
          call yaml_mapping_close()

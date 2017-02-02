@@ -141,7 +141,7 @@ subroutine lst_penalty_free(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !BS: For computation of gradient see also personal notes in intel
     !notebook (paper version) from June 18th, 2014
     !
-    use module_base
+    use module_defs
     use bigdft_run
     use module_forces
     implicit none
@@ -288,7 +288,8 @@ subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
     !June 2014   : finished non-periodic version
     !January 2015: OpenMP parallelized
     !March 2015  : generalized to full periodicity
-    use module_base
+    use module_defs
+    use dictionaries
     use bigdft_run
     use module_forces
     implicit none

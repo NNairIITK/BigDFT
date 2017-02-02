@@ -674,7 +674,8 @@ module locregs_init
     subroutine num_segkeys_sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glob, hx, hy, hz, &
          locrad, locregCenter, &
          nsegglob, keygglob, keyvglob, nseg, nvctr)
-      use module_base
+      use module_defs
+      use dynamic_memory
       implicit none
       logical,intent(in) :: perx, pery, perz 
       integer, intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nsegglob
@@ -822,7 +823,8 @@ module locregs_init
          nl1, nu1, nl2, nu2, nl3, nu3, nseg, hx, hy, hz, &
          locrad, locregCenter, &
          nsegglob, keygglob, keyvglob, nvctr_loc, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
-      use module_base
+      use dynamic_memory
+      use dictionaries
       use sparsematrix_init, only: distribute_on_threads
       implicit none
       logical,intent(in) :: perx, pery, perz

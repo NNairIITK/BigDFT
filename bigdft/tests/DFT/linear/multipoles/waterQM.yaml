@@ -12,7 +12,6 @@
    disablesym: Yes
  perf:
    store_index: No
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    check_overlap: 1
    experimental_mode: Yes
@@ -47,8 +46,6 @@
    idsx: 4
    alphamix: 0.2
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    H:
      nbasis: 1
@@ -71,3 +68,27 @@
    - O: [2.06562106539457391E+00, 7.27619783005115761E-01, 6.76503749782279762E+00]
    - H: [3.07145313043265089E-01, 2.08503970823405854E-01, 6.73578314472255357E+00]
    - H: [2.15712775822406000E+00, 1.92204932680980578E+00, 8.15614355059263474E+00]
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

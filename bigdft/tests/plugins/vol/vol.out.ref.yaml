@@ -189,12 +189,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -205,16 +199,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -297,18 +287,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -558,12 +540,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -574,16 +550,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -666,18 +638,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -1213,12 +1177,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -1229,16 +1187,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -1321,18 +1275,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -1780,12 +1726,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -1796,16 +1736,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -1888,18 +1824,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -2394,12 +2322,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -2410,16 +2332,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -2502,18 +2420,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -3008,12 +2918,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -3024,16 +2928,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -3116,18 +3016,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -3622,12 +3514,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -3638,16 +3524,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -3730,18 +3612,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -4236,12 +4110,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -4252,16 +4120,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -4344,18 +4208,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential
@@ -4850,12 +4706,6 @@
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
-   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
-   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
-   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
-   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
-   ef_interpol_chargediff              : 1.0 #    FOE max charge difference for interpolation
    mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    check_sumrho                        : 1 #      Enables linear sumrho check
@@ -4866,16 +4716,12 @@
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
-   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-   evboundsshrink_nsatur               : 4 #      Maximal number of unsuccessful eigenvalue bounds shrinkings
    calculate_gap                       : No #     Linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     Linear scaling perform a Loewdin charge analysis at the end of the calculation
    coeff_weight_analysis               : No #     Linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    check_matrix_compression            : Yes #    Linear scaling perform a check of the matrix compression routines
    correction_co_contra                : Yes #    Linear scaling correction covariant / contravariant gradient
-   fscale_lowerbound                   : 5.e-3 #  Linear scaling lower bound for the error function decay length
-   fscale_upperbound                   : 5.e-2 #  Linear scaling upper bound for the error function decay length
    FOE_restart                         : 0 #      Restart method to be used for the FOE method
    imethod_overlap                     : 1 #      Method to calculate the overlap matrices (1=old, 2=new)
    enable_matrix_taskgroups            : True #   Enable the matrix taskgroups
@@ -4958,18 +4804,10 @@
    mixing_method                       : DEN #    Quantity to be mixed
    alpha_sd_coeff                      : 0.2 #    Initial step size for SD for direct minimization
    alpha_fit_coeff                     : No #     Update the SD step size by fitting a quadratic polynomial
-   eval_range_foe: [-0.5, 0.5] #                  Lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
-   fscale_foe                          : 2.e-2 #  Decay length of the error function
    coeff_scaling_factor                : 1.0 #    Factor to scale the gradient in direct minimization
    delta_pnrm                          : -1.0 #   Stop the kernel optimization if the density/potential difference has decreased by this 
     #                                              factor (deactivated if -1.0)
-   pexsi_npoles                        : 40 #     Number of poles used by PEXSI
-   pexsi_mumin                         : -1.0 #   Initial guess for the lower bound of the chemical potential used by PEXSI
-   pexsi_mumax                         : 1.0 #    Initial guess for the upper bound of the chemical potential used by PEXSI
-   pexsi_mu                            : 0.5 #    Initial guess for the  chemical potential used by PEXSI
-   pexsi_temperature                   : 1.e-3 #  Temperature used by PEXSI
-   pexsi_tol_charge                    : 1.e-3 #  Charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      Number of support functions per atom
    ao_confinement                      : 8.3e-3 # Prefactor for the input guess confining potential

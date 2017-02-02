@@ -17,9 +17,9 @@ module orthonormalization
 
     !> extract the overlap matrix from two compressed functions
     !this is a quick wrapper to be used whan memory allocation of work arrays is not to be optimized
-    subroutine overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,matrix,phi2)
+    subroutine overlap_matrix(phi1,nphi,lzd,orbs,collcom,smat,aux,matrix,phi2)
       use module_base
-      use module_types, only: orbitals_data,local_zone_descriptors
+      use module_types, only: orbitals_data,local_zone_descriptors, linmat_auxiliary
       use sparsematrix_base, only: sparse_matrix,matrices
       use transposed_operations, only: calculate_overlap_transposed
       use communications_base, only: TRANSPOSE_FULL,comms_linear
@@ -31,6 +31,7 @@ module orthonormalization
       type(local_zone_descriptors),intent(in) :: lzd
       real(wp),dimension(nphi),intent(in) :: phi1
       type(sparse_matrix),intent(in) :: smat
+      type(linmat_auxiliary),intent(in) :: aux
       type(matrices),intent(inout) :: matrix
       
       real(wp), dimension(nphi),intent(in), optional :: phi2
@@ -57,7 +58,7 @@ module orthonormalization
          sphi2t_f => phi1t_f
       end if
       call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, orbs, collcom, &
-           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, matrix)
+           phi1t_c, sphi2t_c, phi1t_f, sphi2t_f, smat, aux, matrix)
 
       call f_free_ptr(phi1t_c)
       call f_free_ptr(phi1t_f)
@@ -75,7 +76,8 @@ module orthonormalization
 
     !> Orthonormalized the localized orbitals
     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
-               orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, &
+               orbs, lzd, ovrlp, ovrlp_aux, inv_ovrlp_half, inv_ovrlp_half_aux, &
+               collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, &
                ice_obj)
       use module_base
       use module_types
@@ -99,6 +101,7 @@ module orthonormalization
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
       type(sparse_matrix),intent(in) :: ovrlp
+      type(linmat_auxiliary),intent(in) :: ovrlp_aux, inv_ovrlp_half_aux
       type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
@@ -143,7 +146,7 @@ module orthonormalization
       !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       ovrlp_%matrix_compr = sparsematrix_malloc_ptr(ovrlp, &
           iaction=SPARSE_TASKGROUP, id='ovrlp_%matrix_compr')
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_aux, ovrlp_)
       !!ii=0
       !!do ispin=1,ovrlp%nspin
       !!    do i=1,ovrlp%nvctr
@@ -202,10 +205,10 @@ module orthonormalization
     
       if (methTransformOverlap==-1) then
           ! this is only because overlap_power_minus_one_half_parallel still needs the entire array without taskgroups... to be improved
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
+      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_aux, inv_ovrlp_half_(1), &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       else
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
+      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_aux, inv_ovrlp_half_(1), &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
       end if
       !if (iproc==0) then
@@ -300,13 +303,13 @@ module orthonormalization
           end do
           if (iortho>0) then
               call gramschmidt_subset(iproc, nproc, verbosity, iorder, tmb%npsidim_orbs, &
-                   tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+                   tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, &
                    tmb%linmat%l, tmb%collcom, tmb%orthpar, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
           end if
           call orthonormalize_subset(iproc, nproc, verbosity, iorder, tmb%npsidim_orbs, &                                  
-               tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-               tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+               tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, &
+               tmb%linmat%l, tmb%linmat%auxl, tmb%collcom, tmb%orthpar, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
           if (finished) exit ortho_loop
           iortho=iortho+1
@@ -322,8 +325,8 @@ module orthonormalization
 
     !> Orthonormalize a subset of orbitals
     subroutine orthonormalize_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
-               orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
-               lphi, psit_c, psit_f, can_use_transposed)
+               orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, ovrlp_aux, inv_ovrlp_half, inv_ovrlp_half_aux, &
+               collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
       use module_base
       use module_types
       !use module_interfaces
@@ -347,6 +350,7 @@ module orthonormalization
       integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
       type(local_zone_descriptors),intent(in) :: lzd
       type(sparse_matrix),intent(in) :: ovrlp
+      type(linmat_auxiliary),intent(in) :: ovrlp_aux, inv_ovrlp_half_aux
       type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
@@ -415,7 +419,8 @@ module orthonormalization
       !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       ovrlp_%matrix_compr = sparsematrix_malloc_ptr(ovrlp, &
           iaction=SPARSE_TASKGROUP, id='ovrlp%matrix_compr')
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+           psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_aux, ovrlp_)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
     
@@ -529,7 +534,7 @@ module orthonormalization
       call vcopy(7*sum(collcom%nrecvcounts_f), psit_f(1), 1, psittemp_f(1), 1)
     
       !inv_ovrlp_half_%matrix_compr = inv_ovrlp_half%matrix_compr
-      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_(1), &
+      call build_linear_combination_transposed(collcom, inv_ovrlp_half, inv_ovrlp_half_aux, inv_ovrlp_half_(1), &
            psittemp_c, psittemp_f, .true., psit_c, psit_f, iproc)
     
     
@@ -557,7 +562,7 @@ module orthonormalization
     !> Can still tidy this up more when tmblarge is removed
     !! use sparsity of density kernel for all inverse quantities
     subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, ice_obj, &
-               correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
+               correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_aux, lagmat_, psit_c, psit_f, &
                hpsit_c, hpsit_f, &
                can_use_transposed, overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
                npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi)
@@ -566,7 +571,8 @@ module orthonormalization
       use yaml_output
       use communications_base, only: work_transpose, TRANSPOSE_POST, TRANSPOSE_FULL, TRANSPOSE_GATHER
       use communications, only: transpose_localized, untranspose_localized
-      use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, sparsematrix_malloc, &
+      use sparsematrix_base, only: matrices_null, allocate_matrices, deallocate_matrices, &
+                                   sparsematrix_malloc, sparsematrix_malloc0, &
                                    sparsematrix_malloc_ptr, DENSE_FULL, DENSE_MATMUL, SPARSE_FULL, SPARSEMM_SEQ, &
                                    assignment(=), SPARSE_TASKGROUP
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -592,6 +598,7 @@ module orthonormalization
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
       type(sparse_matrix),intent(in) :: lagmat
+      type(linmat_auxiliary),intent(in) :: lagmat_aux
       type(matrices),intent(out) :: lagmat_
       real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
@@ -658,10 +665,10 @@ module orthonormalization
       can_use_transposed=.true.
     
       ! Calculate <phi_alpha|g_beta>
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_aux, lagmat_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, lagmat, lagmat_)
     
-      lagmat_large = sparsematrix_malloc(linmat%l, iaction=SPARSE_TASKGROUP, id='lagmat_large')
+      lagmat_large = sparsematrix_malloc0(linmat%l, iaction=SPARSE_TASKGROUP, id='lagmat_large')
     
       ! Symmetrize the matrix. Directly use the large sparsity pattern as this one 
       ! is used later for the matrix vector multiplication.
@@ -706,7 +713,8 @@ module orthonormalization
       !!tmparr = sparsematrix_malloc(lagmat,iaction=SPARSE_FULL,id='tmparr')
       !!call vcopy(lagmat%nvctr, lagmat_%matrix_compr(1), 1, tmparr(1), 1)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, lagmat, lagmat_)
-      call build_linear_combination_transposed(collcom, lagmat, lagmat_, psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
+      call build_linear_combination_transposed(collcom, lagmat, lagmat_aux, lagmat_, &
+           psit_c, psit_f, .false., hpsit_c, hpsit_f, iproc)
       !!call vcopy(lagmat%nvctr, tmparr(1), 1, lagmat_%matrix_compr(1), 1)
       !!call f_free(tmparr)
     
@@ -726,7 +734,7 @@ module orthonormalization
       hpsit_tmp_c = f_malloc(collcom%ndimind_c,id='psit_tmp_c')
       hpsit_tmp_f = f_malloc(7*collcom%ndimind_f,id='psit_tmp_f')
       hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
-      call build_linear_combination_transposed(collcom, linmat%l, linmat%ovrlppowers_(3), &
+      call build_linear_combination_transposed(collcom, linmat%l, linmat%auxl, linmat%ovrlppowers_(3), &
            hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
     
       ! Start the untranspose process (will be gathered together in
@@ -1036,7 +1044,7 @@ module orthonormalization
 
 
     subroutine gramschmidt_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
-               orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
+               orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, ovrlp_aux, inv_ovrlp_half, collcom, orthpar, &
                lphi, psit_c, psit_f, can_use_transposed)
       use module_base
       use module_types
@@ -1058,6 +1066,7 @@ module orthonormalization
       integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
       type(local_zone_descriptors),intent(in) :: lzd
       type(sparse_matrix),intent(in) :: ovrlp
+      type(linmat_auxiliary),intent(in) :: ovrlp_aux
       type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
@@ -1120,7 +1129,7 @@ module orthonormalization
       !call allocate_matrices(ovrlp, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       ovrlp_%matrix_compr = sparsematrix_malloc_ptr(ovrlp, &
           iaction=SPARSE_TASKGROUP, id='ovrlp%matrix_compr')
-      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_)
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, psit_c, psit_f, psit_f, ovrlp, ovrlp_aux, ovrlp_)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       ! This can then be deleted if the transition to the new type has been completed.
       !ovrlp%matrix_compr=ovrlp_%matrix_compr
@@ -1235,7 +1244,7 @@ module orthonormalization
       !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='ovrlp_', mat=ovrlp_)
       !@WARNING CHECK THIS
       !!ovrlp_%matrix_compr = inv_ovrlp_half%matrix_compr
-      call build_linear_combination_transposed(collcom, ovrlp, ovrlp_, &
+      call build_linear_combination_transposed(collcom, ovrlp, ovrlp_aux, ovrlp_, &
            psittemp_c, psittemp_f, .false., psit_c, psit_f, iproc)
       !call deallocate_matrices(ovrlp_)
     

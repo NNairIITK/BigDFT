@@ -12,7 +12,9 @@
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_conf_noconf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
      nspinor,npot,psir,pot,epot,confdata,ibyyzz_r,psir_noconf,econf)
-  use module_base
+  use module_defs
+  use dynamic_memory
+  use dictionaries
   use locreg_operations, only: confpot_data
   implicit none
   integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot
@@ -173,7 +175,10 @@ END SUBROUTINE apply_potential_lr_conf_noconf
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
      nspinor,npot,psir,pot,epot,confdata,ibyyzz_r)
-  use module_base
+  use module_defs
+  use dynamic_memory
+  use dictionaries
+ 
   use locreg_operations, only: confpot_data
   implicit none
   integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot
@@ -328,7 +333,9 @@ END SUBROUTINE apply_potential_lr_conf
 !> Routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_conf_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot,confdata)
-  use module_base
+  use module_defs
+  use dynamic_memory
+  use dictionaries
   use locreg_operations, only: confpot_data
   implicit none
   integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot
@@ -814,7 +821,9 @@ END SUBROUTINE apply_potential_lr_conf_nobounds
 !>   routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_nobounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot)
-  use module_base
+  use module_defs
+  use dynamic_memory
+  use dictionaries
   use locreg_operations, only: confpot_data
   implicit none
   integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot
@@ -1011,7 +1020,9 @@ END SUBROUTINE apply_potential_lr_nobounds
 !>   routine for applying the local potential
 !! Support the adding of a confining potential and the localisation region of the potential
 subroutine apply_potential_lr_bounds(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,psir,pot,epot,ibyyzz_r)
-  use module_base
+  use module_defs
+  use dynamic_memory
+  use dictionaries
   use locreg_operations,  only: confpot_data
   implicit none
   integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot

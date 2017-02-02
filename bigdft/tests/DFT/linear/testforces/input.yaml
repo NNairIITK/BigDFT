@@ -4,44 +4,13 @@
    rmult: [5.0, 7.0]
    inputpsiid: linear
    disablesym: Yes
+ chess:
+   foe:
+     eval_range_foe: [-1.0,1.0]
  lin_kernel:
    delta_pnrm: -1.0
  perf:
    mixing_after_inputguess: 1 #to make the test pass...
- #perf:
- #  ef_interpol_det: 0.10E-19
- #  mixing_after_inputguess: 2
- #  correction_co_contra: no
- #  check_sumrho: 2
- #  check_overlap: 2
- #lin_general:
- #  nit: [10, 20]
- #  rpnrm_cv: [4.9999999999999998E-007, 4.9999999999999998E-008]
- #  conf_damping: 0.5
- #  calc_dipole: Yes
- #lin_basis:
- #  nit: 3
- #  idsx: [5, 0]
- #  gnrm_cv: 4.0000000000000003E-005
- #  fix_basis: 1.0E-008
- #lin_kernel:
- #  nit: [4, 6]
- #  rpnrm_cv: 1.0E-008
- #  fscale_foe: 5.0000000000000003E-002
- #lin_basis_params:
- #  O:
- #    ao_confinement: 1.1999999999999999E-003
- #    confinement: [1.1999999999999999E-003, 0.0]
- #    rloc: 6.0
- #    rloc_kernel: 8.0
- #    rloc_kernel_foe: 20.0
- #  H:
- #    nbasis: 1
- #    ao_confinement: 1.1999999999999999E-003
- #    confinement: [1.1999999999999999E-003, 0.0]
- #    rloc: 5.5
- #    rloc_kernel: 8.0
- #    rloc_kernel_foe: 20.0
  posinp:
    positions:
    - O: [2.065621065394574, 0.7276197830051158, 0.7650374978227975]

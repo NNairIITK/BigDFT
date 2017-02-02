@@ -594,6 +594,7 @@ subroutine connect(spredinputs,mhgpsst,fsw,uinp,runObj,outs,rcov,&
     integer :: iloop
     integer :: istat
 !    real(gp) :: scl
+    if(mhgpsst%iproc==0)call yaml_cite('Schaefer2014')
 
     connected=.false.
     premature_exit = .false.

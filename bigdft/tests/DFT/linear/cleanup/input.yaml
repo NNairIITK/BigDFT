@@ -11,7 +11,6 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
    foe_gap: Yes
    correction_co_contra: no
@@ -34,7 +33,6 @@
  lin_kernel:
    nit: [3, 4]
    rpnrm_cv: 1.0E-013
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    O:
      ao_confinement: 1.0E-004
@@ -58,3 +56,48 @@
      format: xyz
      source: posinp
    energy (Ha): -17.17977402367096
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+    
+    
+    
+    
+    
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+    
+    
+    
+    
+    
+     fscale: 5.0000000000000003E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

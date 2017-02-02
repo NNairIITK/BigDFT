@@ -9,7 +9,6 @@
    disablesym: Yes
  perf:
    linear: FUL
-   ef_interpol_det: 0.10E-19
    check_sumrho: 2
    check_overlap: 2
  lin_general:
@@ -26,7 +25,6 @@
  lin_kernel:
    nit: 12
    rpnrm_cv: 1.0E-013
-   fscale_foe: 5.0000000000000003E-002
  lin_basis_params:
    Si:
      ao_confinement: 1.0E-003
@@ -51,3 +49,27 @@
    properties:
      format: ascii
      source: posinp
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+     ef_interpol_det: 0.10E-19
+    
+    
+    
+    
+    
+    
+     fscale: 5.0000000000000003E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

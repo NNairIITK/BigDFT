@@ -54,6 +54,11 @@ subroutine pdsyevx()
   stop 'FAKE PDSYEGVX'
 END SUBROUTINE pdsyevx
 
+subroutine pdsyevd()
+  implicit none
+  stop 'FAKE PDSYEVD'
+END SUBROUTINE pdsyevd
+
 subroutine pdelset2()
   implicit none
   stop 'FAKE PDELSET2'
