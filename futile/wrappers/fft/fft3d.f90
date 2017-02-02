@@ -65,6 +65,11 @@ integer, parameter :: nfft_max=2097152
 integer, parameter :: n_factors = 7
 integer :: i_d,j_d
 
+integer, parameter :: MODE_IO=-1000
+integer, parameter :: MODE_IW=-1001
+integer, parameter :: MODE_WO=-1002
+integer, parameter :: MODE_WW=-1003
+
 !! @warning
 !!   some reasonable values of ncache: 
 !!   IBM/RS6000/590: 16*1024 ; IBM/RS6000/390: 3*1024 ; 
@@ -420,11 +425,11 @@ subroutine FFT_1d(n,nfft,zinout,isign,inzee,transpose,real_input)
   if (real_input) then
      call fft_1d_base(nfft,n,nfft,n,nfft,nfft*n,n,&
           ncache,ntrig,trig,after,now,before,ic,&
-          isign,inzee,transpose,iam,npr,zinout,zw)
+          isign,inzee,inzee,transpose,iam,npr,zinout,zw)
   else
      call fft_1d_base(nfft,n,nfft,n,nfft,nfft*n,n,&
           ncache,ntrig,trig,after,now,before,ic,&
-          isign,inzee,transpose,iam,npr,zinout,zw)
+          isign,inzee,inzee,transpose,iam,npr,zinout,zw)
   end if
 
   deallocate(zw)
@@ -435,6 +440,7 @@ end subroutine FFT_1d
 subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 
    use module_fft_sg
+   use f_precisions
    implicit none !real(kind=8) (a-h,o-z)
    !Arguments
    integer, intent(in) :: n1,n2,n3,nd1,nd2,nd3,i_sign
@@ -445,7 +451,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    real(kind=8), dimension(:), save, allocatable :: zw  
    real(kind=8), dimension(:,:), save, allocatable :: trig
    !local variables
-   integer :: iam,ic,mm,npr,ntrig,nfft
+   integer :: iam,ic,mm,npr,ntrig,nfft,outzee
    !$omp threadprivate(zw,trig)
    !$ integer :: omp_get_num_threads,omp_get_thread_num
 
@@ -467,7 +473,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    iam=0
 
    !$omp parallel default(none) &
-   !$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,ncache,ntrig,npr,nfft,mm) &
+   !$omp shared(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee,outzee,ncache,ntrig,npr,nfft,mm) &
    !$omp private(ic,before,after,now,iam)
    !$ npr=omp_get_num_threads()
    !$ iam=omp_get_thread_num()
@@ -475,15 +481,13 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    allocate(zw(ncache))
    allocate(trig(2,ntrig))
    !$omp end critical (allocate_critical_fft3d)
-   !$omp barrier !make sure that here everybody is ready
-
    call ctrig_sg(n3,ntrig,trig,after,before,now,i_sign,ic)
    nfft=nd1*n2
    mm=nd1*nd2
-
+   !$omp barrier !make sure that here everybody is ready
    call fft_1d_base(mm,nd3,mm,nd3,nfft,nd1*nd2*nd3,n3,&
         ncache,ntrig,trig,after,now,before,ic,&
-        i_sign,inzee,.true.,iam,npr,z,zw)
+        i_sign,inzee,outzee,.true.,iam,npr,z,zw)
 
    !$omp barrier
    if (n2 /= n3) then
@@ -493,7 +497,7 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    mm=nd3*nd1
    call fft_1d_base(mm,nd2,mm,nd2,nfft,nd1*nd2*nd3,n2,&
         ncache,ntrig,trig,after,now,before,ic,&
-        i_sign,inzee,.true.,iam,npr,z,zw)
+        i_sign,outzee,inzee,.true.,iam,npr,z,zw)
    !$omp barrier
    if (n1 /= n2) then
       call ctrig_sg(n1,ntrig,trig,after,before,now,i_sign,ic)
@@ -502,15 +506,15 @@ subroutine FFT_3d(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
    mm=nd2*nd3
    call fft_1d_base(mm,nd1,mm,nd1,nfft,nd1*nd2*nd3,n1,&
         ncache,ntrig,trig,after,now,before,ic,&
-        i_sign,inzee,.true.,iam,npr,z,zw)
+        i_sign,inzee,outzee,.true.,iam,npr,z,zw)
 
    !$omp critical (deallocate_critical_fft3d)
    deallocate(zw)
    deallocate(trig)
    !$omp end critical (deallocate_critical_fft3d)
    !$omp end parallel  
-
- END SUBROUTINE FFT_3D
+   inzee=outzee
+ end subroutine FFT_3d
 
 !!$ subroutine FFT_3d_rtoc(n1,n2,n3,nd1,nd2,nd3,z,i_sign,inzee)
 !!$
@@ -870,10 +874,123 @@ END SUBROUTINE zhalf_to_z
 !!$end subroutine fft_inorder
 
 
+subroutine fft_1d_internal(mode,n,ndat_in,ld_in,ndat_out,ld_out,ldw,&
+     nlines,nchuncks,&
+     ntrig,trig,after,now,before,ic,i_sign,&
+     inzee,transpose,iam,nthread,zi,zw,zo)
+  use module_fft_sg
+  use f_precisions
+  implicit none
+  logical, intent(in) :: transpose
+  integer, intent(in) :: mode
+  integer, intent(in) :: n,ndat_in,ld_in,ndat_out,ld_out,ldw,nlines,nchuncks
+  integer, intent(in) :: ntrig,ic
+  integer, intent(in) :: i_sign,iam,nthread
+  integer, intent(inout) :: inzee
+  integer, dimension(n_factors) :: after,now,before
+  real(f_double), dimension(2,ntrig), intent(in) :: trig
+  real(f_double), dimension(2,*), intent(in) :: zi
+  real(f_double), dimension(2,*), intent(out) :: zo
+  real(f_double), dimension(2,ldw,2), intent(inout) :: zw
+  !local variables
+  integer :: i,lotomp,ma,mb,nfft_th,jline,jline_transposed,jompa,jompb,inzet
+
+  lotomp=(nlines)/nthread+1
+  jompa=iam*lotomp+1
+  jompb=min((iam+1)*lotomp,nlines)
+  inzet=inzee
+  i=1
+  if (ic==1) then
+     nfft_th=jompb-jompa+1
+     jline=jompa
+     call fft_kernel(mode,transpose)
+  else
+     !from here onwards ic>1
+     do jline=jompa,jompb,nchuncks
+        ma=jline
+        mb=min(jline+(nchuncks-1),jompb)
+        nfft_th=mb-ma+1
+        i=1
+        select case(mode)
+        case(MODE_IO,MODE_IW)
+           call fft_kernel(MODE_IW,.false.)
+        case(MODE_WW,MODE_WO)
+           call fft_kernel(MODE_WW,.false.)
+        end select
+        do i=2,ic-1
+           call fft_kernel(MODE_WW,.false.)
+        end do
+        i=ic
+        select case(mode)
+        case(MODE_IO,MODE_WO)
+           call fft_kernel(MODE_WO,transpose)
+        case(MODE_WW,MODE_IW)
+           call fft_kernel(MODE_WW,transpose)
+        end select
+     end do
+  end if
+  if (iam==0) inzee=inzet !as it is a shared variable
+
+contains
+
+  subroutine fft_kernel(internal_mode,transposed)
+    implicit none
+    logical, intent(in) :: transposed
+    integer, intent(in) :: internal_mode
+
+    select case(internal_mode)
+    case(MODE_IO)
+       if (transposed) then
+          jline_transposed=(jline-1)*ld_out+1
+          call fftrot_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
+               zi(1,jline),zo(1,jline_transposed),&
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       else
+          call fftstp_sg(ndat_in,nfft_th,ld_in,ndat_out,ld_out,&
+               zi(1,jline),zo(1,jline),&
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+
+       end if
+    case(MODE_IW)
+       if (transposed) then
+          call fftrot_sg(ndat_in,nfft_th,ld_in,nchuncks,n,&
+               zi(1,jline),zw(1,1,inzet),&
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       else
+          call fftstp_sg(ndat_in,nfft_th,ld_in,nchuncks,n,&
+               zi(1,jline),zw(1,1,inzet), &
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       end if
+    case(MODE_WO)
+       if (transposed) then
+          jline_transposed=(jline-1)*ld_out+1
+          call fftrot_sg(nchuncks,nfft_th,n,ndat_out,ld_out,&
+               zw(1,1,inzet),zo(1,jline_transposed), &
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       else
+          call fftstp_sg(nchuncks,nfft_th,n,ndat_out,ld_out,&
+               zw(1,1,inzet),zo(1,jline), &
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       end if
+    case(MODE_WW)
+       if (transposed) then
+          call fftrot_sg(nchuncks,nfft_th,n,nchuncks,n,&
+               zw(1,1,inzet),zw(1,1,3-inzet), &
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       else
+          call fftstp_sg(nchuncks,nfft_th,n,nchuncks,n,&
+               zw(1,1,inzet),zw(1,1,3-inzet), &
+               ntrig,trig,after(i),now(i),before(i),i_sign)
+       end if
+       inzet=3-inzet
+    end select
+  end subroutine fft_kernel
+end subroutine fft_1d_internal
+
 
 subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
      ncache,ntrig,trig,after,now,before,ic,&
-     i_sign,inzee,transpose,iam,nthread,z,zw)
+     i_sign,inzee,outzee,transpose,iam,nthread,z,zw)
   use f_precisions
   use module_fft_sg, only: n_factors
   implicit none
@@ -881,7 +998,8 @@ subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
   integer, intent(in) :: ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n
   integer, intent(in) :: ncache,ntrig,ic
   integer, intent(in) :: i_sign,iam,nthread
-  integer, intent(inout) :: inzee
+  integer, intent(in) :: inzee
+  integer, intent(out) :: outzee
   integer, dimension(n_factors) :: after,now,before
   real(f_double), dimension(2,ntrig), intent(in) :: trig
   real(f_double), dimension(2,ninout,2), intent(inout) :: z
@@ -970,7 +1088,7 @@ subroutine fft_1d_base(ndat_in,ld_in,ndat_out,ld_out,nfft,ninout,n,&
      end do
   end if
   inzet=3-inzet
-  if (iam==0) inzee=inzet !as it is a shared variable
+  if (iam==0) outzee=inzet !as it is a shared variable
 
 end subroutine fft_1d_base
 
