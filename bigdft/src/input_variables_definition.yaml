@@ -50,7 +50,7 @@
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
                  These numbers determine the extension of the coarse and fine region respectively.
-     RANGE: [0., 100.]
+     RANGE: [0., 20.]
      default: [5., 8.]
    ixc:
      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
