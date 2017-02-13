@@ -139,7 +139,7 @@ libCheSS-1.so.@CHESS_MINOR_VERSION@: $(chess_dynamic_library)
 
 #dependencies
 $(modules): $(libCheSS_1_a_OBJECTS)
-foe_common.o: foe_base.o chebyshev.o fermi_level.o
+foe_common.o: foe_base.o chebyshev.o fermi_level.o chess_base.o
 ice.o: chebyshev.o foe_base.o foe_common.o fermi_level.o
 matrix_operations.o: ice.o foe_base.o
 foe.o: chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
