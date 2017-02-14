@@ -374,7 +374,7 @@
         fsw%fstretch_trans=0.0_gp
         fsw%rxyz_trans(:,:,0)=wpos
 
-        call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
+!!        call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
 
 
         !runObj%inputs%inputPsiId=0
@@ -575,8 +575,8 @@
             fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))=&
                           fsw%rxyz_trans(:,:,fsw%idx_trans(nhist-1))-&
                           fsw%dd_trans(:,:)
-            call fixfrag(mhgpsst,uinp,runObj,rcov,&
-                 fsw%rxyz_trans(1,1,fsw%idx_trans(nhist)))
+!!            call fixfrag(mhgpsst,uinp,runObj,rcov,&
+!!                 fsw%rxyz_trans(1,1,fsw%idx_trans(nhist)))
             !displ=displ+tt
      
             fsw%delta_trans=fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))-&
@@ -989,6 +989,13 @@ real(gp) :: alpha0int
     enddo minloop
 !    write(*,*) "No convergence in optcurv"
     if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) No convergence in optcurv.')
+    do iat=1,runObj%atoms%astruct%nat
+        do l=1,3
+!            dxyzin(l,iat)= fsw%rxyz_rot(l,iat,fsw%nhist_rot)
+            fout(l,iat)= fsw%fxyzraw_rot(l,iat,fsw%idx_rot(fsw%nhist_rot))
+        enddo
+    enddo
+    curv=curvp
 !stop 'no convergence in optcurv'
     return
     1000 continue

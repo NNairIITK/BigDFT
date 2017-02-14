@@ -799,14 +799,14 @@
      RANGE: [0., 1.]
      default: 1e-4
    steepthresh:
-     COMMENT: If fnrm < steepthresh, geopt method uses steepest descent
+     COMMENT: If fmax < steepthresh, geopt method uses steepest descent
      CONDITION:
        MASTER_KEY: method
        WHEN:
        - SBFGS
        - SQNM
      RANGE: [0., 1e10]
-     default: 0.5
+     default: 0.1
    trustr:
      COMMENT: Maximum displacement of single atom
      CONDITION:
