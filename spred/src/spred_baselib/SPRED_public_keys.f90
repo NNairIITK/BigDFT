@@ -18,6 +18,7 @@ module SPRED_public_keys
     character(len = *), parameter :: FP_ANGMOM = "angmom"
   character(len = *), parameter :: GLBL_VARIABLES = "global"
     character(len = *), parameter :: GLBL_NWRITE = "nwrite"
+    character(len = *), parameter :: GLBL_MDMIN = "mdmin"
 end module SPRED_public_keys
 
 !>module identifying constants that have to be used as enumerators

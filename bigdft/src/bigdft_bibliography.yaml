@@ -70,7 +70,7 @@ Bitzek2006:
   BIBTEX_REF: | 
     @article{Bitzek2006,
     title = {Structural Relaxation Made Simple},
-    author = {Bitzek, Erik and Koskinen, Pekka and G\"ahler, Franz and Moseler, Michael and Gumbsch, Peter},
+    author = {Bitzek, Erik and Koskinen, Pekka and G\\\"ahler, Franz and Moseler, Michael and Gumbsch, Peter},
     journal = {Phys. Rev. Lett.},
     volume = {97},
     issue = {17},

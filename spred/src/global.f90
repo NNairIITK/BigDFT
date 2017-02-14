@@ -26,7 +26,7 @@ program MINHOP
 !  type(input_variables), target :: inputs_opt, inputs_md
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
-  integer, parameter :: mdmin=2
+  integer :: mdmin !set by globalinput.yaml
   real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.05d0,beta_N=1.d0/1.05d0
   real(kind=8), parameter :: alpha_A=1.d0/1.05d0,alpha_R=1.05d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
@@ -85,6 +85,8 @@ program MINHOP
   iproc=bigdft_mpi%iproc+bigdft_mpi%igroup*bigdft_mpi%ngroup
    
   call SPRED_read_uinp('globalinput',spredinputs,bigdft_mpi)
+
+  mdmin=spredinputs%glbl_mdmin
 
   if(iproc==0)call yaml_cite('Goedecker2004')
   if (iproc==0) call print_logo_MH()
@@ -270,12 +272,12 @@ program MINHOP
   enddo 
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) number of posacc files that exist already ',nposacc)
 
-  call geopt(run_md, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
-!  call release_run_objects(runObj)
-  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf.',ncount_bigdft)
-  count_sdcg=count_sdcg+ncount_bigdft
+!  call geopt(run_md, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+!!  call release_run_objects(runObj)
+!  if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for approximate geo. rel of initial conf.',ncount_bigdft)
+!  count_sdcg=count_sdcg+ncount_bigdft
+!  ngeopt=ngeopt+1
 
-  ngeopt=ngeopt+1
 !  if (bigdft_mpi%iproc == 0) then 
 !     tt=dnrm2(3*natoms,ff,1)
 !     write(fn4,'(i4.4)') ngeopt
@@ -520,7 +522,7 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
 
   !for runs over the queing system with short run times quit after 1 accepted minimum
   if (accepted .ge. 1 .and. singlestep) exit hopping_loop
-  if (disable_hatrans .and. nposacc >= nposaccmax) exit hopping_loop
+!!  if (disable_hatrans .and. nposacc >= nposaccmax) exit hopping_loop
 
 5555 continue
 
@@ -712,7 +714,6 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
       nvisit=1
    else
       escape_old=escape_old+1.d0
-      ekinetic=ekinetic*beta_O
       if (bigdft_mpi%iproc == 0) then
         call yaml_mapping_open('(MH) Revisited:',flow=.true.)
         call yaml_map('(MH) number',kid)
@@ -722,6 +723,12 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
       endif
       ct_arr(kid)=ct_arr(kid)+1.d0
       nvisit=int(ct_arr(kid))
+! ordinary feedback
+      ekinetic=ekinetic*beta_O
+! enhanced feedback mechanism for ekinetic                                       
+!            ekinetic=ekinetic*beta_O*(1.d0+.4d0*log(1.d0*nvisit))
+! enhanced feedback mechanism for ediff                              
+!             ediff=ediff*alpha_R*(1.d0+.4d0*log(1.d0*nvisit))
    endif
 
 
@@ -773,8 +780,6 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
           !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           'posacc_'//fn6//trim(naming_id),&
           trim(comment),energy=e_pos,rxyz=pos)
-!!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-!!$          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
   endif
 
      if (bigdft_mpi%iproc == 0) then
@@ -783,7 +788,6 @@ call fingerprint(spredinputs,nid,bigdft_nat(run_opt),bigdft_get_cell(run_opt),rc
              !'poscur'//trim(bigdft_run_id_toa()),'',&
              'poscur'//trim(naming_id),'',&
              energy=e_pos,rxyz=pos)
-!!$       call write_atomic_file('poscur'//trim(bigdft_run_id_toa()),e_pos,pos,atoms%astruct%ixyz_int,atoms,'')
        call yaml_map('(MH) poscur.xyz for  RESTART written',.true.)
 
        write(2,'(1x,f10.0,1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a)')  &
@@ -919,6 +923,7 @@ contains
     type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3,natoms) :: gg,vxyz
     character(len=6) :: fn6
+    character(len=1) :: geocode
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
     real(kind=8) :: devcon,at1,at2,at3
     real(gp), dimension(:,:), pointer :: rxyz_run
@@ -933,13 +938,12 @@ contains
     rxyz_run => bigdft_get_rxyz_ptr(runObj)
 
   !! Either random velocity distribution 
-  !        call randdist(nat,rxyz,vxyz)
+          call randdist(natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
   !! or Gauss velocity distribution
   !! or exponential  velocity distribution
-  !        call expdist(nat,rxyz,vxyz)
+  !        call gausdist(natoms,bigdft_get_geocode(runObj),rxyz,vxyz)
   !! or localized velocities
-  !        call localdist(nat,rxyz,vxyz)
-    call randdist_g(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
+  !        call localdist(natoms,bigdft_get_geocode(runObj),rxyz,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
@@ -955,6 +959,7 @@ contains
     call soften(nsoften,vxyz, runObj,outs,iproc)
 
     call frozen_dof(bigdft_get_astruct_ptr(runObj),vxyz,ndfree,ndfroz)
+
   ! normalize velocities to target ekinetic
     call velnorm(natoms,(ekinetic*ndfree)/(ndfree+ndfroz),vxyz)
     call f_zero(gg)
@@ -1015,6 +1020,7 @@ contains
        !     istep,e_rxyz,nummax,nummin
        if (iproc == 0) then
 !          write(*,'(a,i5,1x,1pe17.10,2(1x,i2))') '# (MH) MD ',istep,e_rxyz,nummax,nummin
+           write(555,'(i4,3(2x,e12.5))') istep,outs%energy,rkin,rkin+outs%energy
           call yaml_mapping_open('(MH) MD',flow=.true.)
             call yaml_map('Step',istep)
             call yaml_map('E (Ha)',outs%energy)
@@ -1058,7 +1064,7 @@ contains
     end do md_loop
     if (istep >=200) then
        if (iproc == 0) call yaml_scalar('(MH) TOO MANY MD STEPS')
-       dt=2.d0*dt
+       !dt=2.d0*dt
     end if
     !save the value of count_md for the moment
     count_md=count_md+real(istep,gp)
@@ -1073,10 +1079,10 @@ contains
     !     write(66,'(a,2(1x,1pe11.4),1x,i5)')&
     !     'MD devcon ',devcon,devcon/ekinetic,istep
     if (devcon/ekinetic.lt.10.d-2) then
-       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt*1.05d0
+       if (iproc == 0) write(*,*) 'MD:old,new dt',dt,dt*1.05d0,devcon
        dt=dt*1.05d0
     else
-       !if (iproc == 0) write(66,*) 'MD:old,new dt',dt,dt/1.05d0
+       if (iproc == 0) write(*,*) 'MD:old,new dt',dt,dt/1.05d0,devcon
        dt=dt*(1.d0/1.05d0)
     endif
     
@@ -1095,22 +1101,34 @@ contains
     integer, intent(in) :: nsoften,iproc
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
-    real(kind=8), dimension(3*natoms) :: vxyz
+    real(kind=8), dimension(3,natoms) :: vxyz
     !Local variables
-    real(kind=8), dimension(3*natoms) :: pos0
-    real(kind=8) :: alpha,curv,curv0,eps_vxyz,etot0,fd2,res,sdf,svxyz
-    integer :: it
-    real(gp), dimension(:,:), pointer :: rxyz_run
+    real(kind=8), dimension(3,natoms) :: pos0,wpos
+    !real(kind=8), dimension(:,:), pointer :: pos0,wpos
+    real(kind=8) :: alpha,curv,curv0,eps_vxyz,etot0,fd2,res,sdf,svxyz,tt,t1,t2,ddot
+    integer :: it,iat
 
-!    eps_vxyz=1.d-1*natoms
+     !wpos = f_malloc_ptr((/ 3, natoms /),id='wpos')
+     !pos0 = f_malloc_ptr((/ 3, natoms /),id='pos0')
+
+
+    eps_vxyz=sqrt(1.d-2*natoms)
     alpha=runObj%inputs%betax
+    if(iproc == 0) call yaml_map('(MH)  eps_vxyz=',eps_vxyz)
 
-    rxyz_run => bigdft_get_rxyz_ptr(runObj)
+    ! scale velocity to generate dimer 
+
+    call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,vxyz,svxyz)
+    tt=eps_vxyz/sqrt(svxyz)
+    do iat=1,natoms
+       vxyz(1,iat)=vxyz(1,iat)*tt
+       vxyz(2,iat)=vxyz(2,iat)*tt
+       vxyz(3,iat)=vxyz(3,iat)*tt
+    enddo
 
     ! Save starting positions.
-    !allocate(wpos(3,nat),fxyz(3,nat))
-    call bigdft_get_rxyz(runObj,rxyz_add=pos0(1))
-    !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, pos0(1), 1)
+    call bigdft_get_rxyz(runObj,rxyz=pos0)
+    call dcopy(3*natoms,pos0,1,wpos,1)
 
     !runObj%inputs%inputPsiId=1
     call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
@@ -1118,59 +1136,25 @@ contains
     call bigdft_state(runObj,outs,infocode)
     etot0 = outs%energy
 
-    ! scale velocity to generate dimer 
 
-!    call atomic_dot(atoms,vxyz,vxyz,svxyz)
-    call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,vxyz,svxyz)
-!!$    svxyz=0.d0
-!!$    do i=1,3*natoms
-!!$       iat=(i-1)/3+1
-!!$       if (atoms%astruct%ifrztyp(iat) == 0) then
-!!$          svxyz=svxyz+vxyz(i)**2
-!!$       end if
-!!$    enddo
-    eps_vxyz=sqrt(svxyz)
-    if(iproc == 0) call yaml_map('(MH)  eps_vxyz=',eps_vxyz)
-    !if(iproc == 0) call yaml_map('(MH)  vxyz_test=',vxyz)
-    !stop
     do it=1,nsoften
+    if(iproc == 0) call yaml_map('(MH)  isoften=',it)
        
-       !call vcopy(3*natoms, pos0(1), 1, bigdft_get_rxyz_ptr(runObj), 1)
-       call bigdft_set_rxyz(runObj,rxyz_add=pos0(1))
-       call daxpy(3*natoms, 1.d0, vxyz(1), 1,rxyz_run, 1)
+       call atomic_axpy(bigdft_get_astruct_ptr(runObj),1.d0,vxyz,wpos)
+       call bigdft_set_rxyz(runObj,rxyz=wpos)
        call bigdft_state(runObj,outs,infocode)
-       fd2=2.d0*(outs%energy-etot0)/eps_vxyz**2
 
        call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,vxyz,svxyz)
+        if(iproc == 0) call yaml_map('(MH)  svxyz=',svxyz)
        call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,outs%fxyz,sdf)
-
-!!$       sdf=0.d0
-!!$       svxyz=0.d0
-!!$       do i=1,3*natoms
-!!$          iat=(i-1)/3+1
-!!$          if (atoms%astruct%ifrztyp(iat) == 0) then
-!!$             sdf=sdf+vxyz(i)*outs%fxyz(i - 3 * (iat - 1),iat)
-!!$             svxyz=svxyz+vxyz(i)*vxyz(i)
-!!$          end if
-!!$       end do
-!       call atomic_dot(atoms,vxyz,vxyz,svxyz)
-!       call atomic_dot(atoms,vxyz,fxyz,sdf)
+       !fd2=2.d0*(outs%energy-etot0)/eps_vxyz**2
+       fd2=2.d0*(outs%energy-etot0)/svxyz
 
        curv=-sdf/svxyz
        if (it == 1) curv0=curv
 
        call atomic_axpy(bigdft_get_astruct_ptr(runObj),curv,vxyz,outs%fxyz)
        call atomic_dot(bigdft_get_astruct_ptr(runObj),outs%fxyz,outs%fxyz,res)
-!!$       res=0.d0
-!!$       do i=1,3*natoms
-!!$          iat=(i-1)/3+1
-!!$          if (atoms%astruct%ifrztyp(iat) == 0) then
-!!$             outs%fxyz(i - 3 * (iat - 1),iat)=outs%fxyz(i - 3 * (iat - 1),iat)+curv*vxyz(i)
-!!$             res=res+outs%fxyz(i - 3 * (iat - 1),iat)**2
-!!$          end if
-!!$       end do
-!       call atomic_axpy_forces(atoms,fxyz,curv,vxyz,fxyz)
-!       call atomic_dot(atoms,fxyz,fxyz,res)
        res=sqrt(res)
 
        write(fn6,'(i6.6)') it
@@ -1178,8 +1162,6 @@ contains
        if (iproc == 0) &
             call bigdft_write_atomic_file(runObj,outs,'possoft_'//fn6,trim(comment))
        
-!!$            call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
-!!$            outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
       
        if(iproc==0) then
           call yaml_mapping_open('(MH) soften',flow=.true.)
@@ -1187,76 +1169,47 @@ contains
             call yaml_map('curv',curv,fmt='(f12.5)')
             call yaml_map('fd2',fd2,fmt='(f12.5)')
             call yaml_map('dE',outs%energy-etot0,fmt='(f12.5)')
+            call yaml_map('dE/natoms',(outs%energy-etot0)/natoms,fmt='(f12.5)')
             call yaml_map('res',res,fmt='(f12.5)')
             call yaml_map('(MH) eps_vxyz',eps_vxyz,fmt='(f12.5)')
           call yaml_mapping_close(advance='yes')
        end if
        if (curv.lt.0.d0 .or. fd2.lt.0.d0) then
+       !if (curv.lt.0.d0) then
           if(iproc==0) call yaml_comment('(MH) NEGATIVE CURVATURE')
           exit
        end if
-       if (outs%energy-etot0.lt.1.d-2) eps_vxyz=eps_vxyz*1.2d0
+       if (res <= curv*eps_vxyz*5.d-1) exit
+       if ((outs%energy-etot0)/natoms.lt.1.d-3) eps_vxyz=eps_vxyz*1.2d0
 
-!       do iat=1,natoms
-!          if (.not. atoms%lfrztyp(iat)) then
-!             if (atoms%astruct%geocode == 'P') then
-!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%astruct%cell_dim(1))
-!                wpos(3*(iat-1)+2)=modulo(wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2),atoms%astruct%cell_dim(2))
-!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%astruct%cell_dim(3))
-!             else if (atoms%astruct%geocode == 'S') then
-!                wpos(3*(iat-1)+1)=modulo(wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1),atoms%astruct%cell_dim(1))
-!                wpos(3*(iat-1)+2)=       wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-!                wpos(3*(iat-1)+3)=modulo(wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3),atoms%astruct%cell_dim(3))
-!             else if (atoms%astruct%geocode == 'F') then
-!                wpos(3*(iat-1)+1)=wpos(3*(iat-1)+1)+alpha*fxyz(3*(iat-1)+1)
-!                wpos(3*(iat-1)+2)=wpos(3*(iat-1)+2)+alpha*fxyz(3*(iat-1)+2)
-!                wpos(3*(iat-1)+3)=wpos(3*(iat-1)+3)+alpha*fxyz(3*(iat-1)+3)
-!             end if
-!
-!          end if
-!       end do
-!       call atomic_axpy_forces(atoms,wpos,alpha,fxyz,wpos)
-        call daxpy(3*natoms,alpha,outs%fxyz(1,1),1,rxyz_run,1)
-        !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, vxyz(1), 1)
-        call bigdft_get_rxyz(runObj,rxyz_add=vxyz(1))
-
-        call axpy(3*natoms, -1.d0, pos0(1), 1, vxyz(1), 1)
-       write(comment,'(a,1pe10.3)')'curv= ',curv
-       !is this writing really needed?
-       if (iproc == 0) &
-            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
-            trim(runObj%inputs%dir_output)//'posvxyz',&
-            trim(comment),rxyz=vxyz,forces=outs%fxyz)
-!!$            call write_atomic_file(trim(inputs_md%dir_output)//'posvxyz',0.d0,vxyz,atoms%astruct%ixyz_int,&
-!!$                 atoms,trim(comment),forces=outs%fxyz)
-
+       call atomic_axpy(bigdft_get_astruct_ptr(runObj),alpha,outs%fxyz(1,1),wpos)
+        do iat=1,natoms
+         vxyz(1,iat)=wpos(1,iat)-pos0(1,iat)
+         vxyz(2,iat)=wpos(2,iat)-pos0(2,iat)
+         vxyz(3,iat)=wpos(3,iat)-pos0(3,iat)
+        enddo
        call elim_moment(natoms,vxyz)
-       if (bigdft_get_geocode(runObj) == 'F') &
-            call elim_torque_reza(natoms,pos0,vxyz)
+       if (bigdft_get_geocode(runObj) == 'F')  call elim_torque_reza(natoms,pos0,vxyz)
 
        call atomic_dot(bigdft_get_astruct_ptr(runObj),vxyz,vxyz,svxyz)
-!!$       svxyz=0.d0
-!!$       do i=1,3*natoms
-!!$          iat=(i-1)/3+1
-!!$          if (atoms%astruct%ifrztyp(iat) == 0) then
-!!$             svxyz=svxyz+vxyz(i)*vxyz(i)
-!!$          end if
-!!$       end do
-!      call atomic_dot(atoms,vxyz,vxyz,svxyz)
-       if (res <= curv*eps_vxyz*5.d-1) exit
-       svxyz=eps_vxyz/dsqrt(svxyz)
 
-       do i=1,3*natoms
-          vxyz(i)=vxyz(i)*svxyz
-       end do
+      tt=eps_vxyz/sqrt(svxyz)
+      do iat=1,natoms
+         vxyz(1,iat)=vxyz(1,iat)*tt
+         vxyz(2,iat)=vxyz(2,iat)*tt
+         vxyz(3,iat)=vxyz(3,iat)*tt
+      enddo
+     call dcopy(3*natoms,pos0,1,wpos,1)
+    if(iproc == 0) call yaml_map('(MH)  eps_vxyz=',eps_vxyz)
 
     end do ! iter
     
     ! Put back initial coordinates.
-    call bigdft_set_rxyz(runObj,rxyz_add=pos0(1))
-    !call vcopy(3*natoms, pos0(1), 1, atoms%astruct%rxyz(1,1), 1)
+    call bigdft_set_rxyz(runObj,rxyz=pos0)
 
-    !        deallocate(wpos,fxyz)
+  !call f_free(wpos)
+  !call f_free(pos0)
+
   END SUBROUTINE soften
 
 end program MINHOP
@@ -1365,36 +1318,21 @@ subroutine velnorm(nat,ekinetic,vxyz)
 END SUBROUTINE velnorm
 
 
-!> create a random displacement vector without translational and angular moment
-subroutine randdist_g(idum,nat,geocode,rxyz,vxyz)
-  use BigDFT_API !,only: gp !module_base
-  use yaml_output
-  use f_random!, only: builtin_rand
-  implicit none
-  integer, intent(in) :: nat
-  integer, intent(inout) :: idum
-  real(gp), dimension(3*nat), intent(in) :: rxyz
-  real(gp), dimension(3*nat), intent(out) :: vxyz
-  character(len=1) :: geocode
-  !local variables
-  integer :: i
-  real(kind=4) :: tt
-  do i=1,3*nat
-     !call random_number(tt)
-     !add built-in random number generator
-     !tt=builtin_rand(idum)
-     call f_random_number(tt,seed=idum)
-     vxyz(i)=real(tt-.5,gp)*3.e-1_gp
-     !if (bigdft_mpi%iproc==0) print *,i,idum,vxyz(i)
-  end do
+      subroutine randdist(nat,geocode,rxyz,vxyz)
+! create a random displacement vector without translational and angular moment
+      implicit real*8 (a-h,o-z)
+      real ss
+      character(len=1) :: geocode
+      dimension vxyz(3*nat),rxyz(3*nat)
 
-  call elim_moment(nat,vxyz)
-  !if (bigdft_mpi%iproc==0) call yaml_map('After mom',vxyz,unit=6)
-  if (geocode == 'F') &
-     & call elim_torque_reza(nat,rxyz,vxyz)
-  !if (bigdft_mpi%iproc==0) call yaml_map('After torque',vxyz,unit=6)
+     do i=1,3*nat
+       call random_number(ss)
+       vxyz(i)=dble(ss-.5)
+     enddo
+    call elim_moment(nat,vxyz)
+    if (geocode == 'F')  call elim_torque_reza(nat,rxyz,vxyz)
 
-END SUBROUTINE randdist_g
+END SUBROUTINE randdist
 
 
 !>  generates 3*nat random numbers distributed according to  exp(-.5*vxyz**2)
@@ -1452,76 +1390,77 @@ END SUBROUTINE gausdist
 !END SUBROUTINE expdist
 
 
-subroutine localdist(nat,rxyz,vxyz)
-  use yaml_output
-  implicit real*8 (a-h,o-z)
-  real*4 ts
-  parameter(nbix=20)
-  dimension rxyz(3,nat), vxyz(3,nat),nbi(nbix)
-  parameter( bondlength=2.7d0)
-
-  nloop=0
-100 continue
-  nloop=nloop+1
-  if (nloop.gt.2) write(*,*) 'nloop=',nloop
-  if (nloop.gt.11) then
-    call yaml_scalar('(MH) ERROR LOCALDIST')
-    stop 'ERROR LOCALDIST'
-  endif
-  ! pick an atom iat randomly
-  call random_number(ts)
-  iat=min(nat,int(ts*nat+1.))
-  !       write(*,*) 'iat=',iat
-
-  ! find iat's neighbors
-  inb=0
-  do i=1,nat
-     dd=(rxyz(1,iat)-rxyz(1,i))**2+(rxyz(2,iat)-rxyz(2,i))**2+(rxyz(3,iat)-rxyz(3,i))**2
-     if (dd < bondlength**2 .and. i /= iat) then
-        inb=inb+1; if (inb.gt.nbix) stop 'enlarge size of nbi' ; nbi(inb)=i
-     endif
-  enddo
-  !        write(*,*) 'inb=',inb
-  if (inb < 2 ) goto 100
-
-  ! pick another atom jat that is a neighbor of iat
-  call random_number(ts)
-  j=min(inb,int(ts*inb+1.))
-  jat=nbi(j)
-  !       write(*,*) 'jat=',jat
-
-  ! Choose velocities for remaining atoms (i.e. not iat and jat )
-  ampl=2.d-1
-  do i=1,nat
-     call random_number(ts) ; ts=ts-.5
-     vxyz(1,i)=dble(ts)*ampl
-     call random_number(ts) ; ts=ts-.5
-     vxyz(2,i)=dble(ts)*ampl
-     call random_number(ts) ; ts=ts-.5
-     vxyz(3,i)=dble(ts)*ampl
-  enddo
-  ! Finally choose velocities for iat and jat 
-  ampl=2.d0
-  i=iat
-  call random_number(ts) ; ts=ts-.5
-  vxyz(1,i)=dble(ts)*ampl
-  call random_number(ts) ; ts=ts-.5
-  vxyz(2,i)=dble(ts)*ampl
-  call random_number(ts) ; ts=ts-.5
-  vxyz(3,i)=dble(ts)*ampl
-  i=jat
-  call random_number(ts) ; ts=ts-.5
-  vxyz(1,i)=dble(ts)*ampl
-  call random_number(ts) ; ts=ts-.5
-  vxyz(2,i)=dble(ts)*ampl
-  call random_number(ts) ; ts=ts-.5
-  vxyz(3,i)=dble(ts)*ampl
-
-  !        write(*,'(i3,3(1pe12.4))') iat,(rxyz(i,iat)+.5d0*vxyz(i,iat),i=1,3)
-  !        write(*,'(i3,3(1pe12.4))') jat,(rxyz(i,jat)+.5d0*vxyz(i,jat),i=1,3)
-
-  return
-END SUBROUTINE localdist
+!! subroutine localdist(nat,geocode,rxyz,vxyz)
+!!   use yaml_output
+!!   implicit real*8 (a-h,o-z)
+!!   real*4 ts  
+!!   character(len=1) :: geocode
+!!   parameter(nbix=20)
+!!   dimension rxyz(3,nat), vxyz(3,nat),nbi(nbix)
+!!   parameter( bondlength=2.7d0)
+!! 
+!!   nloop=0
+!! 100 continue
+!!   nloop=nloop+1
+!!   if (nloop.gt.2) write(*,*) 'nloop=',nloop
+!!   if (nloop.gt.11) then
+!!     call yaml_scalar('(MH) ERROR LOCALDIST')
+!!     stop 'ERROR LOCALDIST'
+!!   endif
+!!   ! pick an atom iat randomly
+!!   call random_number(ts)
+!!   iat=min(nat,int(ts*nat+1.))
+!!   !       write(*,*) 'iat=',iat
+!! 
+!!   ! find iat's neighbors
+!!   inb=0
+!!   do i=1,nat
+!!      dd=(rxyz(1,iat)-rxyz(1,i))**2+(rxyz(2,iat)-rxyz(2,i))**2+(rxyz(3,iat)-rxyz(3,i))**2
+!!      if (dd < bondlength**2 .and. i /= iat) then
+!!         inb=inb+1; if (inb.gt.nbix) stop 'enlarge size of nbi' ; nbi(inb)=i
+!!      endif
+!!   enddo
+!!   !        write(*,*) 'inb=',inb
+!!   if (inb < 2 ) goto 100
+!! 
+!!   ! pick another atom jat that is a neighbor of iat
+!!   call random_number(ts)
+!!   j=min(inb,int(ts*inb+1.))
+!!   jat=nbi(j)
+!!   !       write(*,*) 'jat=',jat
+!! 
+!!   ! Choose velocities for remaining atoms (i.e. not iat and jat )
+!!   ampl=2.d-1
+!!   do i=1,nat
+!!      call random_number(ts) ; ts=ts-.5
+!!      vxyz(1,i)=dble(ts)*ampl
+!!      call random_number(ts) ; ts=ts-.5
+!!      vxyz(2,i)=dble(ts)*ampl
+!!      call random_number(ts) ; ts=ts-.5
+!!      vxyz(3,i)=dble(ts)*ampl
+!!   enddo
+!!   ! Finally choose velocities for iat and jat 
+!!   ampl=2.d0
+!!   i=iat
+!!   call random_number(ts) ; ts=ts-.5
+!!   vxyz(1,i)=dble(ts)*ampl
+!!   call random_number(ts) ; ts=ts-.5
+!!   vxyz(2,i)=dble(ts)*ampl
+!!   call random_number(ts) ; ts=ts-.5
+!!   vxyz(3,i)=dble(ts)*ampl
+!!   i=jat
+!!   call random_number(ts) ; ts=ts-.5
+!!   vxyz(1,i)=dble(ts)*ampl
+!!   call random_number(ts) ; ts=ts-.5
+!!   vxyz(2,i)=dble(ts)*ampl
+!!   call random_number(ts) ; ts=ts-.5
+!!   vxyz(3,i)=dble(ts)*ampl
+!! 
+!!   !        write(*,'(i3,3(1pe12.4))') iat,(rxyz(i,iat)+.5d0*vxyz(i,iat),i=1,3)
+!!   !        write(*,'(i3,3(1pe12.4))') jat,(rxyz(i,jat)+.5d0*vxyz(i,jat),i=1,3)
+!! 
+!!   return
+!! END SUBROUTINE localdist
 
 
 subroutine torque(nat,rxyz,vxyz)
@@ -2533,7 +2472,7 @@ subroutine give_rcov(iproc,astruct,rcov)
 
   do iat=1,astruct%nat
     call covalent_radius(astruct%atomnames(astruct%iatype(iat)),rcov(iat))
-    if (iproc == 0) call yaml_map('(MH) RCOV '//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
+    !if (iproc == 0) call yaml_map('(MH) RCOV '//trim(astruct%atomnames(astruct%iatype(iat))),rcov(iat))
   end do
   !python metod
 !  it=atoms_iter(astruct)

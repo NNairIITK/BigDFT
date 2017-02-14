@@ -989,6 +989,13 @@ real(gp) :: alpha0int
     enddo minloop
 !    write(*,*) "No convergence in optcurv"
     if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) No convergence in optcurv.')
+    do iat=1,runObj%atoms%astruct%nat
+        do l=1,3
+!            dxyzin(l,iat)= fsw%rxyz_rot(l,iat,fsw%nhist_rot)
+            fout(l,iat)= fsw%fxyzraw_rot(l,iat,fsw%idx_rot(fsw%nhist_rot))
+        enddo
+    enddo
+    curv=curvp
 !stop 'no convergence in optcurv'
     return
     1000 continue
