@@ -840,6 +840,7 @@ end function lr_gauss
 !! f(x)=fac*exp(-pgauss*(x-x0)**2)
 subroutine discretize_gaussian(nrange,fac,pgauss,x0,hgrid,filename)
   use module_base
+  use multipole_preserving
   use gaussians
   !not yet use dynamic_memory !let's start
   implicit none

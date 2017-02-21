@@ -105,6 +105,8 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    real(gp) :: dnrm2
    type(f_tree) :: f_info
 
+   if(iproc==0)call yaml_cite('Schaefer2015')
+
    f_info=f_tree_new()
 
    !set parameters

@@ -94,7 +94,7 @@ libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c malloc_repad.c \
 	f_enums.f90 f_precisions.f90 \
 	f_utils.f90 f_refcnts.f90 f_trees.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
-	razero.f90 getadd.f90 time.f90 \
+	razero.f90 getadd.f90 time.f90 f_bibliography.f90 \
 	yaml_parser.c yaml_parse.f90 f_jmp.f90 \
 	f_input_file.f90 randomData.f90 \
 	f_ternary.f90 f_objects.f90 fpython.f90 f_environment.f90 f_arrays.f90\
@@ -146,6 +146,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_RANDOM.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
 	F_UTILS.@MODULE_EXT@ \
+	F_BIBLIOGRAPHY.@MODULE_EXT@ \
 	F_REFCNTS.@MODULE_EXT@ \
 	F_TREES.@MODULE_EXT@ \
 	F_INPUT_FILE.@MODULE_EXT@ \
@@ -172,6 +173,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
 	dynamic_memory_base.@MODULE_EXT@ \
 	f_random.@MODULE_EXT@ \
+	f_bibliography.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
 	f_utils.@MODULE_EXT@ \
 	f_input_file.@MODULE_EXT@ \
@@ -207,11 +209,12 @@ $(modules): $(libflib_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
 dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
-yaml_output.o : dictionaries.o f_utils.o f_enums.o $(YAML_INCLUDES)
+yaml_output.o : dictionaries.o f_utils.o f_enums.o f_bibliography.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o f_malloc.o
 
 f_enums.o: yaml_strings.o
+f_bibliography.o: dictionaries.o yaml_strings.o
 f_objects.o: f_precisions.o dictionaries.o yaml_output.o
 f_ternary.o: f_precisions.o yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)

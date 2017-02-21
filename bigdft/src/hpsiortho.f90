@@ -49,7 +49,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
   real(gp) :: compch_sph
-
+  call f_routine(id=subname)
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
   !if (wfn%paw%usepaw) whilepot = .false.
@@ -426,6 +426,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         call yaml_map('Hamiltonian Applied',.true.)
      end if
   end if
+
+  call f_release_routine()
 end subroutine psitohpsi
 
 
@@ -463,6 +465,8 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   !PAW variables:
   type(paw_objects),intent(inout)::paw
 
+  call f_routine(id='FullHamiltonianApplication')
+
   !put to zero hpsi array (now important since any of the pieces of the hamiltonian is accumulating)
   if (orbs%npsidim_orbs > 0) call f_zero(orbs%npsidim_orbs,hpsi(1))
 
@@ -499,7 +503,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   !     energs%eh=energs%epot-energs%eh-energs%evxc
 !!$  end if
 
-
+  call f_release_routine()
 END SUBROUTINE FullHamiltonianApplication
 
 
@@ -544,10 +548,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout),optional :: hpsi_noconf
   real(gp),intent(out),optional :: econf
   !local variables
-  character(len=*), parameter :: subname='HamiltonianApplication'
+  character(len=*), parameter :: subname='LocalHamiltonianApplication'
   logical :: exctX,op2p_flag, symmetric
   integer :: n3p,ispot,ipotmethod,ngroup,prc,isorb,jproc,ndim,norbp
-  integer :: igpu,i_stat,nsize,nspinor
+  integer :: igpu,gpudirect,i_stat,nsize,nspinor
   real(gp) :: evsic_tmp, ekin, epot,sfac
   real(f_double) :: tel,trm
   type(coulomb_operator) :: pkernelSIC
@@ -565,7 +569,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   real(wp), dimension(:), pointer :: hpsi_ptr
   real(gp) :: eSIC_DCi,fi
 
-  call f_routine(id='LocalHamiltonianApplication')
+  call f_routine(id=subname)
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
   !if (iproc==0 .and. verbose > 1) then
@@ -692,8 +696,16 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            else
               igpu=pkernel%igpu
            end if
-           call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
-           if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
+
+           gpudirect=0
+           !check that we did not deactivate gpudirect manually
+           if(igpu==1 .and. pkernel%use_gpu_direct) gpudirect=1
+
+           call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,gpudirect,symmetric)
+
+           !initialization deactivates gpudirect if not enough memory
+           if(gpudirect==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
+
            !allocate work array for the internal exctx calculation
            rp_ij = f_malloc(ndim,id='rp_ij')
            energs%eexctX=0.0_gp
@@ -844,6 +856,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
               call local_hamiltonian_ket(psi_it,Lzd%hgrids,ipotmethod,xc,&
                    pkernelSIC,wrk_lh,psir,vsicpsir,hpsi_ptr,pot,eSIC_DCi,SIC%alpha,epot,ekin)
               energs%ekin=energs%ekin+fi*ekin
+!!if(iproc==0)then
+!!write(*,'(a,3(x,es14.7))')'Ekin per orbital',fi,ekin,fi*ekin
+!!endif
               energs%epot=energs%epot+fi*epot
               energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
               !print *,'test',psi_it%iorb,sum(hpsi_ptr)
@@ -946,7 +961,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
   !real(kind=8), dimension(0:4) :: times
 
-  call f_routine(id='NonLocalHamiltonianApplication')
+  call f_routine(id=subname)
 
   eproj_sum=0.0_gp
 
@@ -1805,7 +1820,7 @@ subroutine free_full_potential(nproc,flag,xc,pot)
    real(wp), dimension(:), pointer :: pot
    !local variables
    logical :: odp
-
+   call f_routine(id='free_full_potential')
    odp = xc_exctXfac(xc) /= 0.0_gp
    if (nproc > 1 .or. odp .or. flag > 0 ) then
       !call f_free_ptr(pot)
@@ -1815,6 +1830,7 @@ subroutine free_full_potential(nproc,flag,xc,pot)
       nullify(pot)
    end if
 
+   call f_release_routine()
 END SUBROUTINE free_full_potential
 
 
@@ -1825,7 +1841,7 @@ subroutine total_energies(energs, iter, iproc)
   implicit none
   type(energy_terms), intent(inout) :: energs
   integer, intent(in) :: iter, iproc
-
+  call f_routine(id='total_energies')
   !band structure energy calculated with occupation numbers
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
@@ -1841,6 +1857,7 @@ subroutine total_energies(energs, iter, iproc)
      call energs_emit(energs%c_obj, iter, 0) ! 0 is for BIGDFT_E_KS in C.
      call timing(iproc,'energs_signals','OF')
   end if
+  call f_release_routine()
 end subroutine total_energies
 
 
@@ -1872,6 +1889,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
   real(gp) :: rzeroorbs,tt,garray(2)
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
+  call f_routine(id=subname)
   !calculate orbital polarisation directions
   if(wfn%orbs%nspinor==4) then
      mom_vec = f_malloc_ptr((/ 4, wfn%orbs%norb, min(nproc, 2) /),id='mom_vec')
@@ -1910,7 +1928,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
   tr_min=(scf_mode .hasattr. 'MIXING') .or. energs%eexctX /=0.0_gp
   if(wfn%paw%usepaw) then
     !PAW: spsi is used.
-    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,tr_min,&
+    call orthoconstraint(iproc,nproc,wfn%orbs,wfn%comms,wfn%SIC%alpha/=0.0_gp,tr_min,& 
          wfn%psit,wfn%hpsi,energs%trH,wfn%paw%spsi)
   else
     !NC:
@@ -2039,7 +2057,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
 
   !write the energy information
   if (iproc == 0) call write_energies(iter,energs,gnrm,gnrm_zero,' ',scf_mode)
-
+  call f_release_routine()
 END SUBROUTINE calculate_energy_and_gradient
 
 
@@ -2065,6 +2083,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !debug
 !!$   integer :: jorb,iat
    !end debug
+   call f_routine(id='hpsitopsi')
 
    if(wfn%paw%usepaw) then
      if ( .not. present(eproj_sum)) then
@@ -2197,7 +2216,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 
    !end if
    !END DEBUG
-
+  call f_release_routine()
 END SUBROUTINE hpsitopsi
 
 
@@ -2221,6 +2240,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    character(len=*), parameter :: subname='first_orthon'
    logical :: usepaw
 
+   call f_routine(id=subname)
    usepaw = .false.
    if(present(paw)) usepaw = paw%usepaw
    !!!  if(nspin==4) then
@@ -2277,6 +2297,7 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
       hpsi = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='hpsi')
    end if
 
+   call f_release_routine()
 END SUBROUTINE first_orthon
 
 
@@ -2294,6 +2315,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    logical :: keeppsit
    character(len=*), parameter :: subname='last_orthon'
 
+   call f_routine(id=subname)
    if (present(opt_keeppsit)) then
       keeppsit=opt_keeppsit
    else
@@ -2331,7 +2353,7 @@ subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
 
    !call eigensystem_info(iproc,nproc,wfn%Lzd%Glr%wfd%nvctr_c+7*wfn%Lzd%Glr%wfd%nvctr_f,&
    !     wfn%orbs,wfn%psi)
-
+   call f_release_routine()
 END SUBROUTINE last_orthon
 
 subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
@@ -2347,6 +2369,7 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   character(len=*), parameter :: subname='eigensystem_info'
   real(wp), dimension(:,:,:), pointer :: mom_vec
 
+  call f_routine(id=subname)
 
   !for a non-collinear treatment,
   !we add the calculation of the moments for printing their value
@@ -2376,10 +2399,12 @@ subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   if (orbs%nspinor ==4) then
      call f_free_ptr(mom_vec)
   end if
+  call f_release_routine()
 end subroutine eigensystem_info
 
 !> find the gap once the fermi level has been found
  subroutine orbs_get_gap(orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo,occup_lumo)
+   use module_base
    use module_defs, only: gp
    use module_types, only: orbitals_data
    use dictionaries, only: f_err_throw
@@ -2390,6 +2415,7 @@ end subroutine eigensystem_info
    !local variables
    integer :: ikpt,iorb,jorb
 
+   call f_routine(id='orbs_get_gap')
    homo=-1.e100_gp
    lumo=1.e100_gp
    occup_lumo=2.d0
@@ -2438,86 +2464,90 @@ end subroutine eigensystem_info
    !now verify that the gap has been found
    !if (lumo < homo) call f_err_throw('Error in determining homo-lumo gap',&
    !     err_name='BIGDFT_RUNTIME_ERROR')
-
+   call f_release_routine()
  end subroutine orbs_get_gap
 
 
-subroutine eFermi_nosmearing(iproc,orbs)
-   use module_base
-   use module_types
-   use yaml_output
-   implicit none
-   integer, intent(in) :: iproc
-   type(orbitals_data), intent(inout) :: orbs
-   !local variables
-   integer :: iu,id,n,nzeroorbs,ikpt,iorb
-   real(gp) :: charge
-   real(wp) :: eF
+!!subroutine eFermi_nosmearing(iproc,orbs)
+!!   use module_base
+!!   use module_types
+!!   use yaml_output
+!!   implicit none
+!!   integer, intent(in) :: iproc
+!!   type(orbitals_data), intent(inout) :: orbs
+!!   !local variables
+!!   integer :: iu,id,n,nzeroorbs,ikpt,iorb
+!!   real(gp) :: charge
+!!   real(wp) :: eF
+!!
+!!   call f_routine(id='eFermi_nosmearing')
+!!   !SM: I think iu and id should be initialized to these values, in case the
+!!   ! large if will not be executed.
+!!   iu=orbs%norbu
+!!   id=orbs%norbd
+!!   eF = 0._wp
+!!   do ikpt=1,orbs%nkpts
+!!      !number of zero orbitals for the given k-point
+!!      nzeroorbs=0
+!!      !overall charge of the system
+!!      charge=0.0_gp
+!!      do iorb=1,orbs%norb
+!!         if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
+!!            nzeroorbs=nzeroorbs+1
+!!         else
+!!            charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
+!!         end if
+!!      end do
+!!      if (nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
+!!         do iorb=1,orbs%norbu-1
+!!            if (orbs%eval((ikpt-1)*orbs%norb+iorb) > orbs%eval((ikpt-1)*orbs%norb+iorb+1)) &
+!!               &   write(*,*) 'wrong ordering of up EVs',iorb,iorb+1
+!!         end do
+!!         do iorb=1,orbs%norbd-1
+!!            if (orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu) > orbs%eval((ikpt-1)*orbs%norb+iorb+1+orbs%norbu))&
+!!               &   write(*,*) 'wrong ordering of dw EVs',iorb+orbs%norbu,iorb+1+orbs%norbu
+!!         enddo
+!!
+!!         iu=0
+!!         id=0
+!!         n=0
+!!         do while (real(n,gp) < charge)
+!!            if (orbs%eval((ikpt-1)*orbs%norb+iu+1) <= orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)) then
+!!               iu=iu+1
+!!               eF=orbs%eval((ikpt-1)*orbs%norb+iu+1)
+!!            else
+!!               id=id+1
+!!               eF=orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)
+!!            endif
+!!            n=n+1
+!!         enddo
+!!         if (iproc==0) then
+!!            !write(*,'(1x,a,1pe21.14,a,i4)') 'Suggested Homo energy level',eF,', Spin polarization',iu-id
+!!            call yaml_map('Suggested Fermi Level',ef,fmt='(1pe21.14)')
+!!            call yaml_map('Suggested Spin pol.',iu-id,fmt='(i4)')
+!!         end if
+!!         !write(*,*) 'up,down, up-down',iu,id,iu-id
+!!      end if
+!!   end do
+!!   orbs%efermi=eF
+!!   !assign the values for the occupation numbers
+!!   do iorb=1,iu
+!!      orbs%occup(iorb)=1.0_gp
+!!   end do
+!!   do iorb=iu+1,orbs%norbu
+!!      orbs%occup(iorb)=0.0_gp
+!!   end do
+!!   do iorb=1,id
+!!      orbs%occup(iorb+orbs%norbu)=1.0_gp
+!!   end do
+!!   do iorb=id+1,orbs%norbd
+!!      orbs%occup(iorb+orbs%norbu)=0.0_gp
+!!   end do
+!!
+!!   call f_release_routine()
+!!
+!!END SUBROUTINE eFermi_nosmearing
 
-   !SM: I think iu and id should be initialized to these values, in case the
-   ! large if will not be executed.
-   iu=orbs%norbu
-   id=orbs%norbd
-   eF = 0._wp
-   do ikpt=1,orbs%nkpts
-      !number of zero orbitals for the given k-point
-      nzeroorbs=0
-      !overall charge of the system
-      charge=0.0_gp
-      do iorb=1,orbs%norb
-         if (orbs%occup(iorb+(ikpt-1)*orbs%norb) == 0.0_gp) then
-            nzeroorbs=nzeroorbs+1
-         else
-            charge=charge+orbs%occup(iorb+(ikpt-1)*orbs%norb)
-         end if
-      end do
-      if (nzeroorbs /= 0 .and. orbs%norbd .gt.0) then
-         do iorb=1,orbs%norbu-1
-            if (orbs%eval((ikpt-1)*orbs%norb+iorb) > orbs%eval((ikpt-1)*orbs%norb+iorb+1)) &
-               &   write(*,*) 'wrong ordering of up EVs',iorb,iorb+1
-         end do
-         do iorb=1,orbs%norbd-1
-            if (orbs%eval((ikpt-1)*orbs%norb+iorb+orbs%norbu) > orbs%eval((ikpt-1)*orbs%norb+iorb+1+orbs%norbu))&
-               &   write(*,*) 'wrong ordering of dw EVs',iorb+orbs%norbu,iorb+1+orbs%norbu
-         enddo
-
-         iu=0
-         id=0
-         n=0
-         do while (real(n,gp) < charge)
-            if (orbs%eval((ikpt-1)*orbs%norb+iu+1) <= orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)) then
-               iu=iu+1
-               eF=orbs%eval((ikpt-1)*orbs%norb+iu+1)
-            else
-               id=id+1
-               eF=orbs%eval((ikpt-1)*orbs%norb+id+1+orbs%norbu)
-            endif
-            n=n+1
-         enddo
-         if (iproc==0) then
-            !write(*,'(1x,a,1pe21.14,a,i4)') 'Suggested Homo energy level',eF,', Spin polarization',iu-id
-            call yaml_map('Suggested Fermi Level',ef,fmt='(1pe21.14)')
-            call yaml_map('Suggested Spin pol.',iu-id,fmt='(i4)')
-         end if
-         !write(*,*) 'up,down, up-down',iu,id,iu-id
-      end if
-   end do
-   orbs%efermi=eF
-   !assign the values for the occupation numbers
-   do iorb=1,iu
-      orbs%occup(iorb)=1.0_gp
-   end do
-   do iorb=iu+1,orbs%norbu
-      orbs%occup(iorb)=0.0_gp
-   end do
-   do iorb=1,id
-      orbs%occup(iorb+orbs%norbu)=1.0_gp
-   end do
-   do iorb=id+1,orbs%norbd
-      orbs%occup(iorb+orbs%norbu)=0.0_gp
-   end do
-
-END SUBROUTINE eFermi_nosmearing
 
 
 !>   Calculate magnetic moments
@@ -2537,6 +2567,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
    real(wp) :: m00,m11,m13,m24,m14,m23
    !real(wp), dimension(:,:,:), allocatable :: mom_vec
 
+   call f_routine(id=subname)
    ndim=2
    if (nproc==1) ndim=1
 
@@ -2578,7 +2609,7 @@ subroutine calc_moments(iproc,nproc,norb,norb_par,nvctr,nspinor,psi,mom_vec)
       end if
 
    end if
-
+   call f_release_routine()
 END SUBROUTINE calc_moments
 
 
@@ -2605,6 +2636,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    character(len = 25) :: filename
    logical :: abort
 
+   call f_routine(id=subname)
    if(bigdft_mpi%iproc==0) call yaml_mapping_open('Communication checks')
 
    !allocate the "wavefunction" and fill it, and also the workspace
@@ -2791,6 +2823,7 @@ subroutine check_communications(iproc,nproc,orbs,lzd,comms)
 
    if(bigdft_mpi%iproc==0) call yaml_mapping_close()
 
+   call f_release_routine()
 END SUBROUTINE check_communications
 
 

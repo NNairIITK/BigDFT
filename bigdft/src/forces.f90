@@ -158,7 +158,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,ob,nlpsp,rxy
         call local_hamiltonian_stress_linear(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, &
              tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%ham_descr%npsidim_orbs, &
              tmb%ham_descr%psi, &!tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
-             tmb%ham_descr%collcom, tmb%linmat%m, tmb%linmat%ham_, tmb%linmat%l, tmb%linmat%kernel_, strtens(1,3))
+             tmb%ham_descr%collcom, tmb%linmat%m, tmb%linmat%auxm, tmb%linmat%ham_, tmb%linmat%l, tmb%linmat%kernel_, strtens(1,3))
      end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
@@ -493,10 +493,13 @@ end subroutine rhocore_forces
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      dpbox, &
      n1,n2,n3,n3p,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
-  use module_base
+  use dynamic_memory
   use module_types
   use yaml_output
-  use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use module_defs
+  use numerics
+  use f_utils
+  use multipole_preserving
   use module_dpbox
   use bounds, only: ext_buffers
   implicit none

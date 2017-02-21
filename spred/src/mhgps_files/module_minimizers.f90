@@ -164,6 +164,9 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
     real(gp) :: dnrm2
     intrinsic :: int
 
+
+     if(mhgpsst%iproc==0)call yaml_cite('Schaefer2015')
+
      if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity > 0) write(*,'(a)')  &
       '#(MHGPS) COUNT  IT  GEOPT_METHOD  ENERGY                 '//&
       'DIFF       FMAX       FNRM      FRAC*FLUC FLUC      ADD. INFO'

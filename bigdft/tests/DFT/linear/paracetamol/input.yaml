@@ -11,7 +11,6 @@
    disablesym: Yes
  perf:
    mixing_after_inputguess: 2
-   evbounds_nsatur: 100
    correction_co_contra: no
    check_sumrho: 2
    check_overlap: 2
@@ -32,8 +31,6 @@
    alphamix: 0.2
    rpnrm_cv: 1.0000000000000001E-009
    linear_method: FOE
-   eval_range_foe: [-2.3, 2.7]
-   fscale_foe: 2.9999999999999999E-002
  lin_basis_params:
    C:
      ao_confinement: 5.9999999999999998E-002
@@ -86,3 +83,27 @@
    properties:
      format: xyz
      source: posinp
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+    
+     evbounds_nsatur: 100
+    
+    
+    
+     eval_range_foe: [-2.3, 2.7]
+     fscale: 2.9999999999999999E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

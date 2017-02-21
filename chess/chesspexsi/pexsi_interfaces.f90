@@ -73,6 +73,8 @@ use, intrinsic :: iso_c_binding
   public :: f_ppexsi_dft_driver
   public :: f_ppexsi_retrieve_real_symmetric_dft_matrix
   public :: f_ppexsi_plan_finalize
+  public :: f_ppexsi_symbolic_factorize_real_symmetric_matrix
+  public :: f_ppexsi_selinv_real_symmetric_matrix
   
   interface  
     subroutine f_ppexsi_set_default_options(&
@@ -182,6 +184,40 @@ use, intrinsic :: iso_c_binding
       integer(c_intptr_t), intent(in), value :: plan
       integer(c_int), intent(out)            :: info
     end subroutine 
+
+
+    subroutine f_ppexsi_symbolic_factorize_real_symmetric_matrix(&
+        plan,&
+        options,&
+        info) &
+        bind(C, Name="PPEXSISymbolicFactorizeRealSymmetricMatrix")
+      use, intrinsic :: iso_c_binding
+      use pexsi_base, only: f_ppexsi_options
+      implicit none
+      integer(c_intptr_t), intent(in), value :: plan
+      type( f_ppexsi_options ), value, intent(in) :: options
+      integer(c_int), intent(out)            :: info
+    end subroutine
+
+
+    subroutine f_ppexsi_selinv_real_symmetric_matrix(&
+        plan,&
+        options,&
+        AnzvalLocal,&
+        AinvnzvalLocal,&
+        info) &
+        bind(C, Name="PPEXSISelInvRealSymmetricMatrix")
+      use, intrinsic :: iso_c_binding
+      use pexsi_base, only: f_ppexsi_options
+      implicit none
+      integer(c_intptr_t), intent(in), value :: plan
+      type( f_ppexsi_options ), value, intent(in) :: options
+      real(c_double), intent(in)  :: AnzvalLocal(*)
+      real(c_double), intent(out) :: AinvnzvalLocal(*)
+      integer(c_int), intent(out)            :: info
+    end subroutine
+
+
   end interface
 
 end module pexsi_interfaces

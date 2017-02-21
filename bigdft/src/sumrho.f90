@@ -238,7 +238,6 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
         sprho_comp = f_malloc((/ rhodsc%sp_size, nspin /),id='sprho_comp')
         dprho_comp = f_malloc((/ rhodsc%dp_size, nspin /),id='dprho_comp')
         call compress_rho(rho_p,dpbox%ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
-
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
         call mpiallred(sprho_comp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
@@ -927,14 +926,15 @@ END SUBROUTINE symmetrise_density
 
 !> Compress the electronic density
 subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
-   use module_base
-   use module_types
+  use module_defs
+  use f_precisions
+  use module_types
    implicit none
    type(rho_descriptors),intent(in) :: rhodsc
    integer,intent(in) :: nspin,ndimgrid
    real(gp),dimension(ndimgrid,nspin),intent(in) :: rho_p                 !< the partial rho array of the current proc
    real(gp),dimension(rhodsc%dp_size,nspin),intent(out) :: dprho_comp     !< compressed arrays of rho in double 
-   real(kind=4),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp !< compressed arrays of rho in single 
+   real(f_simple),dimension(rhodsc%sp_size,nspin),intent(out) :: sprho_comp !< compressed arrays of rho in single 
    integer :: irho,jrho,iseg,ispin
 
    do ispin=1,nspin
@@ -943,7 +943,7 @@ subroutine compress_rho(rho_p,ndimgrid,nspin,rhodsc,sprho_comp,dprho_comp)
       do iseg=1,rhodsc%n_csegs
          jrho=rhodsc%cseg_b(iseg)
          do irho=rhodsc%spkey(iseg,1),rhodsc%spkey(iseg,2)
-            sprho_comp(jrho,ispin)=real(rho_p(irho,ispin),kind=4)
+            sprho_comp(jrho,ispin)=f_simplify(rho_p(irho,ispin))!real(rho_p(irho,ispin),f_simple)
             jrho=jrho+1
          enddo
       enddo

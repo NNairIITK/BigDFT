@@ -526,8 +526,8 @@
 !!  read(99,*) lin%DIISHistMin, lin%DIISHistMax, lin%alphaDIIS, lin%alphaSD
 !!  read(99,*) lin%nItPrecond
 !!  read(99,*) lin%locregShape
-!!  read(99,*) lin%blocksize_pdsyev, lin%blocksize_pdgemm
-!!  read(99,*) lin%nproc_pdsyev, lin%nproc_pdgemm
+!!  read(99,*) cp%lapack%blocksize_pdsyev, cp%lapack%blocksize_pdgemm
+!!  read(99,*) cp%lapack%nproc_pdsyev, cp%lapack%nproc_pdgemm
 !!  read(99,*) lin%methTransformOverlap, lin%nItOrtho
 !!  read(99,*) lin%correctionOrthoconstraint
 !!  !read(99,*) lin%nItCoeff, lin%convCritCoeff
@@ -720,10 +720,10 @@
 !!!write(*,'(4x,a)') '| blocksize | blocksize | max proc | max proc | memory for |'
 !!!write(*,'(4x,a)') '|  pdsyev   |  pdgemm   |  pdsyev  |  pdgemm  | overlap IG |'
 !!!write(*,'(4x,a,a,i0,4x,a,a,i0,4x,a,a,i0,3x,a,a,i0,3x,a,a,i0,4x,a)') '|',repeat(' ', &
-!!!    6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),&
-!!!    lin%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(lin%blocksize_pdgemm)+1)+1.d-10))),lin%blocksize_pdgemm,&
-!!!    '|',repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm,'|',&
-!!!    repeat(' ', 6-ceiling(log10(dble(abs(lin%nproc_pdgemm)+1)+1.d-10))),lin%nproc_pdgemm, '|',&
+!!!    6-ceiling(log10(dble(abs(cp%lapack%blocksize_pdgemm)+1)+1.d-10))),&
+!!!    cp%lapack%blocksize_pdsyev,'|',repeat(' ', 6-ceiling(log10(dble(abs(cp%lapack%blocksize_pdgemm)+1)+1.d-10))),cp%lapack%blocksize_pdgemm,&
+!!!    '|',repeat(' ', 6-ceiling(log10(dble(abs(cp%lapack%nproc_pdgemm)+1)+1.d-10))),cp%lapack%nproc_pdgemm,'|',&
+!!!    repeat(' ', 6-ceiling(log10(dble(abs(cp%lapack%nproc_pdgemm)+1)+1.d-10))),cp%lapack%nproc_pdgemm, '|',&
 !!!    repeat(' ', 8-ceiling(log10(dble(abs(lin%memoryForCommunOverlapIG)+1)+1.d-10))),lin%memoryForCommunOverlapIG, '|'
 !!!write(*,'(1x,a,a)') 'lin%locregShape:',lin%locregShape
 !!!write(*,'(1x,a,2i6)') 'nit low accur, nit high accur', &
@@ -931,31 +931,31 @@ integer:: norbTarget, nprocIG, ierr
   nprocIG=ceiling(dble(lin%orbs%norb)/dble(norbTarget))
   nprocIG=min(nprocIG,nproc)
 
-  if( nprocIG/=nproc .and. ((lin%methTransformOverlap==0 .and. (lin%blocksize_pdsyev>0 .or. lin%blocksize_pdgemm>0)) .or. &
-      (lin%methTransformOverlap==1 .and. lin%blocksize_pdgemm>0)) ) then
+  if( nprocIG/=nproc .and. ((lin%methTransformOverlap==0 .and. (cp%lapack%blocksize_pdsyev>0 .or. cp%lapack%blocksize_pdgemm>0)) .or. &
+      (lin%methTransformOverlap==1 .and. cp%lapack%blocksize_pdgemm>0)) ) then
       if(iproc==0) then
           write(*,'(1x,a)') 'ERROR: You want to use some routines from scalapack. This is only possible if all processes are &
                      &involved in these calls, which is not the case here.'
           write(*,'(1x,a)') 'To avoid this problem you have several possibilities:'
           write(*,'(3x,a,i0,a)') "-set 'lin%norbsperProcIG' to a value not greater than ",floor(dble(lin%orbs%norb)/dble(nproc)), &
               ' (recommended; probably only little influence on performance)'
-          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==1': set 'lin%blocksize_pdgemm' to a negative value &
+          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==1': set 'cp%lapack%blocksize_pdgemm' to a negative value &
               &(may heavily affect performance)"
-          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==0': set 'lin%blocksize_pdsyev' and 'lin%blocksize_pdsyev' &
+          write(*,'(3x,a)') "-if you use 'lin%methTransformOverlap==0': set 'cp%lapack%blocksize_pdsyev' and 'cp%lapack%blocksize_pdsyev' &
               &to negative values (may very heavily affect performance)"
       end if
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
 
-  if(lin%nproc_pdsyev>nproc) then
-      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdsyev can not be larger than nproc'
+  if(cp%lapack%nproc_pdsyev>nproc) then
+      if(iproc==0) write(*,'(1x,a)') 'ERROR: cp%lapack%nproc_pdsyev can not be larger than nproc'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
 
-  if(lin%nproc_pdgemm>nproc) then
-      if(iproc==0) write(*,'(1x,a)') 'ERROR: lin%nproc_pdgemm can not be larger than nproc'
+  if(cp%lapack%nproc_pdgemm>nproc) then
+      if(iproc==0) write(*,'(1x,a)') 'ERROR: cp%lapack%nproc_pdgemm can not be larger than nproc'
       call mpi_barrier(mpi_comm_world, ierr)
       stop
   end if
@@ -4190,10 +4190,10 @@ subroutine copy_linearInputParameters_to_linearParameters(ntypes, nlr, input, li
   lin%alphaSD = input%lin%alphaSD
   lin%nItPrecond = input%lin%nItPrecond
   lin%locregShape = input%lin%locregShape
-  lin%blocksize_pdsyev = input%lin%blocksize_pdsyev
-  lin%blocksize_pdgemm = input%lin%blocksize_pdgemm
-  lin%nproc_pdsyev = input%lin%nproc_pdsyev
-  lin%nproc_pdgemm = input%lin%nproc_pdgemm
+  cp%lapack%blocksize_pdsyev = input%cp%lapack%blocksize_pdsyev
+  cp%lapack%blocksize_pdgemm = input%cp%lapack%blocksize_pdgemm
+  cp%lapack%nproc_pdsyev = input%cp%lapack%nproc_pdsyev
+  cp%lapack%nproc_pdgemm = input%cp%lapack%nproc_pdgemm
   lin%methTransformOverlap = input%lin%methTransformOverlap
   lin%nItOrtho = input%lin%nItOrtho
   lin%correctionOrthoconstraint = input%lin%correctionOrthoconstraint

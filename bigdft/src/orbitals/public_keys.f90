@@ -58,9 +58,12 @@ module public_keys
   character(len = *), parameter :: OCCUPANCY_CONTROL = "occupancy_control"
   character(len = *), parameter :: OCCUPANCY_CONTROL_ITERMAX= "itermax_occ_ctrl"
   character(len = *), parameter :: OCCUPANCY_CONTROL_NREPMAX= "nrepmax_occ_ctrl"
+  character(len = *), parameter :: ALPHA_HARTREE_FOCK= "alpha_hf"
   character(len = *), parameter :: RESET_DIIS_HISTORY = "reset_DIIS_history"
 
   character(len = *), parameter :: PSOLVER = "psolver"
+
+  character(len = *), parameter :: CHESS = "chess"
 
   character(len = *), parameter :: OUTPUT_VARIABLES = "output"
   character(len = *), parameter :: ATOMIC_DENSITY_MATRIX = "atomic_density_matrix" 
@@ -195,12 +198,12 @@ module public_keys
   character(len = *), parameter :: STORE_INDEX = "store_index"
   character(len = *), parameter :: VERBOSITY = "verbosity"
   character(len = *), parameter :: PSP_ONFLY = "psp_onfly"
-  character(len = *), parameter :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
-  character(len = *), parameter :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"
-  character(len = *), parameter :: MAXPROC_PDSYEV = "maxproc_pdsyev"
-  character(len = *), parameter :: MAXPROC_PDGEMM = "maxproc_pdgemm"
-  character(len = *), parameter :: EF_INTERPOL_DET = "ef_interpol_det"
-  character(len = *), parameter :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
+!!  character(len = *), parameter :: PDSYEV_BLOCKSIZE = "pdsyev_blocksize"
+!!  character(len = *), parameter :: PDGEMM_BLOCKSIZE = "pdgemm_blocksize"
+!!  character(len = *), parameter :: MAXPROC_PDSYEV = "maxproc_pdsyev"
+!!  character(len = *), parameter :: MAXPROC_PDGEMM = "maxproc_pdgemm"
+!!  character(len = *), parameter :: EF_INTERPOL_DET = "ef_interpol_det"
+!!  character(len = *), parameter :: EF_INTERPOL_CHARGEDIFF = "ef_interpol_chargediff"
   character(len = *), parameter :: MIXING_AFTER_INPUTGUESS = "mixing_after_inputguess"
   character(len = *), parameter :: ITERATIVE_ORTHOGONALIZATION = "iterative_orthogonalization"
   character(len = *), parameter :: MULTIPOLE_PRESERVING = "multipole_preserving"
@@ -213,8 +216,8 @@ module public_keys
   character(len = *), parameter :: CALCULATE_KS_RESIDUE = "calculate_KS_residue"
   character(len = *), parameter :: INTERMEDIATE_FORCES = "intermediate_forces"
   character(len = *), parameter :: KAPPA_CONV = "kappa_conv"
-  character(len = *), parameter :: EVBOUNDS_NSATUR = "evbounds_nsatur"
-  character(len = *), parameter :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
+!!  character(len = *), parameter :: EVBOUNDS_NSATUR = "evbounds_nsatur"
+!!  character(len = *), parameter :: EVBOUNDSSHRINK_NSATUR = "evboundsshrink_nsatur"
   character(len = *), parameter :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: COEFF_WEIGHT_ANALYSIS = "coeff_weight_analysis"
@@ -272,8 +275,8 @@ module public_keys
   character(len=*), parameter :: FIX_BASIS       ='fix_basis'
   character(len=*), parameter :: CORRECTION_ORTHOCONSTRAINT='correction_orthoconstraint'
   character(len=*), parameter :: ORTHOGONALIZE_AO = 'orthogonalize_ao'
-  character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
-  character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
+!!  character(len=*), parameter :: FSCALE_LOWERBOUND="fscale_lowerbound"
+!!  character(len=*), parameter :: FSCALE_UPPERBOUND="fscale_upperbound"
   character(len=*), parameter :: EXTRA_STATES="extra_states"
   character(len=*), parameter :: FRAGMENT_NO="Fragment No. "
   character(len=*), parameter :: MAX_INVERSION_ERROR = "max_inversion_error"
@@ -291,8 +294,10 @@ module public_keys
   character(len=*), parameter :: PEXSI_MUMIN='pexsi_mumin'
   character(len=*), parameter :: PEXSI_MUMAX='pexsi_mumax'
   character(len=*), parameter :: PEXSI_MU='pexsi_mu'
+  character(len=*), parameter :: PEXSI_DELTAE='pexsi_DeltaE'
   character(len=*), parameter :: PEXSI_TEMPERATURE='pexsi_temperature'
   character(len=*), parameter :: PEXSI_TOL_CHARGE='pexsi_tol_charge'
+  character(len=*), parameter :: PEXSI_NP_SYM_FACT='pexsi_np_sym_fact'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units'
@@ -474,12 +479,12 @@ module public_enums
   integer, parameter, public :: SCF_KIND_GENERALIZED_DIRMIN = -1
   integer, parameter, public :: SCF_KIND_DIRECT_MINIMIZATION = 0
 
-  !> Function to determine the occupation numbers
-  integer, parameter, public :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
-  integer, parameter, public :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
-  integer, parameter, public :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
-  integer, parameter, public :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
-  integer, parameter, public :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
+  !!!> Function to determine the occupation numbers
+  !!integer, parameter, public :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
+  !!integer, parameter, public :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
+  !!integer, parameter, public :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
+  !!integer, parameter, public :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
+  !!integer, parameter, public :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
 
   !> Target function for the optimization of the basis functions (linear scaling version)
   integer, parameter, public :: TARGET_FUNCTION_IS_TRACE=0

@@ -555,7 +555,8 @@ END SUBROUTINE shell_name
 subroutine global_analysis(orbs,wf,occopt,filename)
    use module_base
    use module_types
-   use public_enums
+   !use public_enums
+   use fermi_level, only: SMEARING_DIST_FERMI
    implicit none
    type(orbitals_data), intent(in) :: orbs
    real(gp), intent(in) :: wf

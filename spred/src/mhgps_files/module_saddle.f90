@@ -84,19 +84,25 @@
 
     contains
     !=====================================================================
-    subroutine allocate_finsad_workarrays(runObj,uinp,fsw)
+    subroutine allocate_finsad_workarrays(mhgpsst,runObj,uinp,fsw)
         use module_base
         use dynamic_memory
         use bigdft_run
         use module_userinput
+        use module_mhgps_state
+        use yaml_output
         implicit none
         !parameters
+        type(mhgps_state), intent(in) :: mhgpsst
         type(run_objects), intent(in)          :: runObj
         type(findsad_work), intent(out) :: fsw
         type(userinput), intent(in)            :: uinp
         !internal
         integer :: nat, info
         real(gp) :: wd(1)
+
+        if(mhgpsst%iproc==0)call yaml_cite('Schaefer2015')
+
         nat = bigdft_nat(runObj)
        
         fsw%iconnect = f_malloc((/ 1.to.2, 1.to.1000/),id='iconnect')

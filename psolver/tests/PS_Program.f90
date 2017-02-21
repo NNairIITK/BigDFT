@@ -69,7 +69,7 @@ program PSolver_Program
   real(f_double), dimension(3) :: angdeg
   type(dictionary), pointer :: dict
   real(kind=8) :: hx,hy,hz,hgrid,offset
-  real(kind=8) :: ehartree,eexcu,diff_par,e1
+  real(kind=8) :: ehartree,eexcu,diff_par,e1,ehartree_exp
   integer :: n01,n02,n03
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,i3sd,ncomp
   integer :: n_cell,ixc,i3s
@@ -82,8 +82,8 @@ program PSolver_Program
   type(f_multipoles) :: multipoles
   type(box_iterator) :: bit
   external :: gather_timings  
+  logical, parameter :: wrtfiles=.false.
   nullify(rhocore_fake)
-
 
   !mode = "charged_thin_wire"
   !mode="cylindrical_capacitor"
@@ -189,45 +189,54 @@ program PSolver_Program
 !!$       density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma)
 
   call test_functions_new2(mesh,acell,a_gauss,karray%mu,density,potential)
-
   !calculate the expected hartree energy
-  ehartree=0.5_dp*f_dot(potential,density)*mesh%volume_element
+  ehartree_exp=0.5_dp*f_dot(potential,density)*mesh%volume_element
 
   call f_multipoles_create(multipoles,lmax=2)
   bit=box_iter(mesh,centered=.true.)
   call field_multipoles(bit,density,1,multipoles)
 
   if (iproc==0) then
-     call yaml_map('monopole',get_monopole(multipoles))
-     call yaml_map('dipole',get_dipole(multipoles))
+     call yaml_map('Expected Eh',ehartree_exp)
+     call yaml_map('monopole',get_monopole(multipoles),fmt='(1pe15.7)')
+     call yaml_map('dipole',get_dipole(multipoles),fmt='(1pe15.7)')
+  end if
+  call f_multipoles_free(multipoles)
+
+  call f_multipoles_create(multipoles,lmax=0)
+  call field_multipoles(bit,potential,1,multipoles)
+  offset=get_monopole(multipoles)
+  if (iproc==0) then
+     call yaml_map('Offset (potential monopole)',offset)
   end if
   call f_multipoles_free(multipoles)
 
   call f_memcpy(src=density,dest=rhopot)
 
-  i2=n02/2
-  do i3=1,n03
+  if (wrtfiles) then
+   i2=n02/2
+   do i3=1,n03
      do i1=1,n01
         j1=n01/2+1-abs(n01/2+1-i1)
         j2=n02/2+1-abs(n02/2+1-i2)
         j3=n03/2+1-abs(n03/2+1-i3)
         write(110,'(2(1x,I8),2(1x,e22.15))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3)               
      end do
-  end do
+   end do
+  end if
 
-
-  !offset, used only for the periodic solver case
-  offset=0.0_gp!potential(1,1,1)!-pot_ion(1,1,1)
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-           offset=offset+potential(i1,i2,i3)
-        end do
-     end do
-  end do
-  offset=offset*hx*hy*hz*sqrt(detg) ! /// to be fixed ///
-  !write(*,*) 'offset = ',offset
-  if (iproc==0) call yaml_map('offset',offset)
+!!$  !offset, used only for the periodic solver case
+!!$  offset=0.0_gp!potential(1,1,1)!-pot_ion(1,1,1)
+!!$  do i3=1,n03
+!!$     do i2=1,n02
+!!$        do i1=1,n01
+!!$           offset=offset+potential(i1,i2,i3)
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  offset=offset*hx*hy*hz*sqrt(detg) ! /// to be fixed ///
+!!$  !write(*,*) 'offset = ',offset
+!!$  if (iproc==0) call yaml_map('Offset (potential monopole)',offset)
   call PS_set_options(karray,potential_integral=offset)
 
   ncomp=n03  
@@ -240,7 +249,6 @@ program PSolver_Program
   i3s=i3sd
 
   !apply the Poisson Solver (case with distributed potential)
-  eexcu=0.0_gp
   call Electrostatic_Solver(karray,density(1,1,i3sd),ehartree=ehartree)
 
   call PS_gather(density,karray)
@@ -248,8 +256,9 @@ program PSolver_Program
   eexcu=sum(density)*hx*hy*hx*sqrt(detg)
   if (iproc==0) call yaml_map('potential integral',eexcu)
 
-  i3=n03/2
-  do i2=1,n02
+  if (wrtfiles) then
+   i3=n03/2
+   do i2=1,n02
      do i1=1,n01
         !j1=n01/2+1-abs(n01/2+1-i1)
         !j2=n02/2+1-abs(n02/2+1-i2)
@@ -260,10 +269,10 @@ program PSolver_Program
         !     rhopot(i1,i2,i3),potential(i1,i2,i3), &
         !     density(i1,i2,i3)
      end do
-  end do
+   end do
 
-  i2=n02/2
-  do i3=1,n03
+   i2=n02/2
+   do i3=1,n03
      !do i2=1,n02
      do i1=1,n01
         !j1=n01/2+1-abs(n01/2+1-i1)
@@ -272,25 +281,18 @@ program PSolver_Program
         write(112,'(2(1x,i6),3(1x,1pe25.16e3))')i1,i3,rhopot(i1,i2,i3),potential(i1,i2,i3),density(i1,i2,i3)
      end do
      !end do
-  end do
+   end do
+  end if
   
   call f_timing_stop(mpi_comm=karray%mpi_env%mpi_comm,nproc=karray%mpi_env%nproc,gather_routine=gather_timings)
   call pkernel_free(karray)
-  !comparison (each process compare its own part)
-  !call compare(n01,n02,ncomp,potential(1,1,i3sd),density(1,1,i3sd),&
-  !     i1_max,i2_max,i3_max,max_diff)
-  call compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,diff_par)
 
-!!$  !extract the max
-!!$  if (nproc > 1) then
-!!$     call mpiallred(sendbuf=max_diff,recvbuf=diff_par,count=1,op=MPI_MAX)
-!!$  else
-!!$  diff_par=max_diff
-!!$  end if
+  call compare(n01,n02,n03,potential,density,i1_max,i2_max,i3_max,diff_par)
   
   if (iproc == 0) then
-     call yaml_mapping_open('Parallel calculation')
+     call yaml_mapping_open('Report on comparison')
      call yaml_map('Ehartree',ehartree)
+     call yaml_map('Ehartree diff',ehartree-ehartree_exp)
      call yaml_map('Max diff at',[i1_max,i2_max,i3_max])
      call yaml_map('Max diff',diff_par)
      call yaml_map('Result',density(i1_max,i2_max,i3_max))
@@ -331,7 +333,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
   !local variables
   integer :: i1,i2,i3,ifx,ify,ifz,unit
-  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,a2,derf,factor,r,r2,r0,erfc_yy,erf_yy
+  real(kind=8) :: x,x1,x2,x3,y,z,length,denval,a2,derf,factor,r,r2,r0
   real(kind=8) :: fx,fx1,fx2,fy,fy1,fy2,fz,fz1,fz2,a,ax,ay,az,bx,by,bz,tt,potion_fac
   real(kind=8) :: monopole
   real(kind=8), dimension(3) :: dipole
@@ -407,15 +409,16 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
    
      ! !original version
 
-     !plot of the functions used
-     do i1=1,n03
+     if (wrtfiles) then
+      !plot of the functions used
+      do i1=1,n03
         x = hx*real(i1-n01/2-1,kind=8)!valid if hy=hz
         y = hz*real(i1-n03/2-1,kind=8) 
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(y,az,bz,fz,fz1,fz2,ifz)
         write(20,'(1x,I8,4(1x,e22.15))') i1,fx,fx2,fz,fz2
-     end do
-
+      end do
+     end if
      !Initialization of density and potential
      denval=0.d0 !value for keeping the density positive
      do i3=1,n03
@@ -474,6 +477,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
 
      
+    if (wrtfiles) then
      i2=n02/2
      do i3=1,n03
         do i1=1,n01
@@ -483,7 +487,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            write(unit,'(2(1x,I8),2(1x,e22.15))') i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
-
+    end if
 !plane capacitor oriented along the y direction
 !!     do i2=1,n02
 !!        if (i2==n02/4) then
@@ -538,8 +542,9 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      density(:,:,:) = 0.d0!1d-20 !added
 
-     !plot of the functions used
-     do i1=1,n02
+     if (wrtfiles) then
+      !plot of the functions used
+      do i1=1,n02
         x = hx*real(i1-n02/2-1,kind=8)!valid if hy=hz
         y = hy*real(i1-n02/2-1,kind=8) 
         z = hz*real(i1-n02/2-1,kind=8)
@@ -547,8 +552,8 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
         call functions(y,ay,by,fy,fy1,fy2,ify)
         call functions(z,az,bz,fz,fz1,fz2,ifz)
         write(20,'(1x,I8,6(1x,e22.15))') i1,fx,fx2,fy,fy2,fz,fz2
-     end do
-
+      end do
+     end if
      !Initialisation of density and potential
      !Normalisation
      do i3=1,n03
@@ -597,6 +602,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
 
 
+    if (wrtfiles) then
      i2=n02/2
      do i3=1,n03
         do i1=1,n01
@@ -608,7 +614,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
                 i1,i3,z,density(i1,i2,i3),potential(i1,i2,i3)
         end do
      end do
-
+    end if
 
      if (ixc==0) denval=0.d0
 
@@ -643,16 +649,17 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
          end do
       end do
 
-      i2=n02/2
-      do i3=1,n03
+      if (wrtfiles) then
+       i2=n02/2
+       do i3=1,n03
          do i1=1,n01
             !j1=n01/2+1-abs(n01/2+1-i1)
             !j2=n02/2+1-abs(n02/2+1-i2)
             !j3=n03/2+1-abs(n03/2+1-i3)
             write(200,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
          end do
-      end do
-
+       end do
+      end if
    
 ! !plane capacitor oriented along the y direction
 ! !!     do i2=1,n02
@@ -680,61 +687,61 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
       denval=0.d0
 
 
-  else if (trim(geocode) == 'H' .or. trim(geocode) == 'F') then
-
-     !hgrid=max(hx,hy,hz)
-
-     a2 = a_gauss**2
-     !mu0 = 1.e0_dp
-
-     !Normalization
-     !factor = a_gauss*sqrt(pi)/2.0_dp
-     factor = 2.0_dp-a_gauss*dexp(a2*mu0**2/4.0_dp)*sqrt(pi)*mu0*derfc(mu0*a_gauss/2.0_dp)
-     !gaussian function
-     do i3=1,n03
-        x3 = hz*real(i3-n03/2,kind=8)
-        do i2=1,n02
-           x2 = hy*real(i2-n02/2,kind=8)
-           do i1=1,n01
-              x1 = hx*real(i1-n01/2,kind=8)
-              !r2 = x1*x1+x2*x2+x3*x3
-              !triclinic lattice:
-              r2 = x1*x1+x2*x2+x3*x3
-              !density(i1,i2,i3) = factor*exp(-r2/a2)
-              r = sqrt(r2)
-              !Potential from a gaussian
-              if (r == 0.d0) then
-                 potential(i1,i2,i3) = 1.0_dp
-              else
-                 call derf_local(erf_yy,r/a_gauss-a_gauss*mu0/2.0_dp)
-                 erfc_yy=1.0_dp-erf_yy
-                 potential(i1,i2,i3) = -2.0_dp+erfc_yy 
-                 !potential(i1,i2,i3) = -2+derfc(r/a_gauss-a_gauss*mu0/2.0_dp)
-                 call derf_local(erf_yy,r/a_gauss+a_gauss*mu0/2.0_dp)
-                 erfc_yy=1.0_dp-erf_yy
-                 potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*erfc_yy
-                 !potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*derfc(r/a_gauss+a_gauss*mu0/2.0_dp)
-                 potential(i1,i2,i3) = potential(i1,i2,i3)*a_gauss*dexp(-mu0*r)*sqrt(pi)/(-2*r*factor*dexp(-a2*mu0**2/4.0_dp))
-              end if
-              !density(i1,i2,i3) = exp(-r2/a2)/4.0_dp/factor**2 + 0.1_dp**2/(4*pi)*potential(i1,i2,i3)
-              density(i1,i2,i3) = safe_exp(-r2/a2)/factor/(a2*pi)
-           end do
-        end do
-     end do
-
-     i2=n02/2
-     do i3=1,n03
-        do i1=1,n01
-           !j1=n01/2+1-abs(n01/2+1-i1)
-           !j2=n02/2+1-abs(n02/2+1-i2)
-           !j3=n03/2+1-abs(n03/2+1-i3)
-           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
-        end do
-     end do
-
-        
-     denval=0.d0
-
+!!!>  else if (trim(geocode) == 'H' .or. trim(geocode) == 'F') then
+!!!>
+!!!>     !hgrid=max(hx,hy,hz)
+!!!>
+!!!>     a2 = a_gauss**2
+!!!>     !mu0 = 1.e0_dp
+!!!>
+!!!>     !Normalization
+!!!>     !factor = a_gauss*sqrt(pi)/2.0_dp
+!!!>     factor = 2.0_dp-a_gauss*dexp(a2*mu0**2/4.0_dp)*sqrt(pi)*mu0*derfc(mu0*a_gauss/2.0_dp)
+!!!>     !gaussian function
+!!!>     do i3=1,n03
+!!!>        x3 = hz*real(i3-n03/2,kind=8)
+!!!>        do i2=1,n02
+!!!>           x2 = hy*real(i2-n02/2,kind=8)
+!!!>           do i1=1,n01
+!!!>              x1 = hx*real(i1-n01/2,kind=8)
+!!!>              !r2 = x1*x1+x2*x2+x3*x3
+!!!>              !triclinic lattice:
+!!!>              r2 = x1*x1+x2*x2+x3*x3
+!!!>              !density(i1,i2,i3) = factor*exp(-r2/a2)
+!!!>              r = sqrt(r2)
+!!!>              !Potential from a gaussian
+!!!>              if (r == 0.d0) then
+!!!>                 potential(i1,i2,i3) = 1.0_dp
+!!!>              else
+!!!>                 call derf_local(erf_yy,r/a_gauss-a_gauss*mu0/2.0_dp)
+!!!>                 erfc_yy=1.0_dp-erf_yy
+!!!>                 potential(i1,i2,i3) = -2.0_dp+erfc_yy 
+!!!>                 !potential(i1,i2,i3) = -2+derfc(r/a_gauss-a_gauss*mu0/2.0_dp)
+!!!>                 call derf_local(erf_yy,r/a_gauss+a_gauss*mu0/2.0_dp)
+!!!>                 erfc_yy=1.0_dp-erf_yy
+!!!>                 potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*erfc_yy
+!!!>                 !potential(i1,i2,i3) = potential(i1,i2,i3)+dexp(2.0_dp*r*mu0)*derfc(r/a_gauss+a_gauss*mu0/2.0_dp)
+!!!>                 potential(i1,i2,i3) = potential(i1,i2,i3)*a_gauss*dexp(-mu0*r)*sqrt(pi)/(-2*r*factor*dexp(-a2*mu0**2/4.0_dp))
+!!!>              end if
+!!!>              !density(i1,i2,i3) = exp(-r2/a2)/4.0_dp/factor**2 + 0.1_dp**2/(4*pi)*potential(i1,i2,i3)
+!!!>              density(i1,i2,i3) = safe_exp(-r2/a2)/factor/(a2*pi)
+!!!>           end do
+!!!>        end do
+!!!>     end do
+!!!>
+!!!>     i2=n02/2
+!!!>     do i3=1,n03
+!!!>        do i1=1,n01
+!!!>           !j1=n01/2+1-abs(n01/2+1-i1)
+!!!>           !j2=n02/2+1-abs(n02/2+1-i2)
+!!!>           !j3=n03/2+1-abs(n03/2+1-i3)
+!!!>           write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
+!!!>        end do
+!!!>     end do
+!!!>
+!!!>        
+!!!>     denval=0.d0
+!!!>
 
   else if (trim(geocode) == 'W') then
      !parameters for the test functions
@@ -761,15 +768,16 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
      factor = 2.0d0
 
 
-     !plot of the functions used
-     do i1=1,min(n01,n03)
+     if (wrtfiles) then
+      !plot of the functions used
+      do i1=1,min(n01,n03)
         x = hx*real(i1-n01/2-1,kind=8)!isolated
         z = hz*real(i1-n03/2-1,kind=8)!periodic
         call functions(x,ax,bx,fx,fx1,fx2,ifx)
         call functions(z,az,bz,fz,fz1,fz2,ifz)
         write(20,*) i1,fx,fx2,fz,fz2
-     end do
-
+      end do
+     end if
 
      !Initialization of density and potential
    
@@ -945,6 +953,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
 
      
 
+     if (wrtfiles) then
      i2=n02/2
      do i3=1,n03
         do i1=1,n01
@@ -954,7 +963,7 @@ subroutine test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
            write(unit,*) i1,i3,density(i1,i2,i3),potential(i1,i2,i3)               
         end do
      end do
-
+     end if
 
 
      if (ixc==0) denval=0.d0

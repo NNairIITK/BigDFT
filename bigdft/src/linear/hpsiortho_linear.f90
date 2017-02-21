@@ -33,6 +33,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use public_enums
   use orthonormalization, only: orthoconstraintNonorthogonal
   use locreg_operations
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
 
   ! Calling arguments
@@ -146,7 +147,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           tmb%can_use_transposed=.true.
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-               tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+               tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
       end if
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
@@ -161,7 +162,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       !call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%m, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+           tmb%linmat%m, tmb%linmat%auxm, tmb%linmat%ham_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       !call vcopy(tmb%linmat%m%nvctr, tmparr(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
       !call f_free(tmparr)
 
@@ -179,7 +180,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
       tmb%can_use_transposed=.true.
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if
 
@@ -211,7 +212,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, tmb%ice_obj, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
-       tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+       tmb%linmat%m, tmb%linmat%auxm, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, tmb%ham_descr%can_use_transposed, &
        overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
        tmb%npsidim_orbs, tmb%lzd, hpsi_noprecond, wt_philarge, wt_hphi)
@@ -338,8 +339,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
      !only correct energy not gradient for now
      !can give tmb%orbs twice as ksorbs is only used for recalculating the kernel
      stop 'MAKE SURE THAN calculate_kernel_and_energy IS CALLED APPRORIATELY:'
-     call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,cdft%weight_matrix, &
-          tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+     call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,cdft%weight_matrix, &
+          tmb%linmat%kernel_,cdft%weight_matrix_,trkw,tmb%coeff, &
+          tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, tmb%orbs%occup, .false.)
      !cdft%charge is always constant (as is lagmult in this loop) so could in theory be ignored as in optimize_coeffs
      trH = trH + cdft%lag_mult*(trkw - cdft%charge)
      if (iproc==0) print*,'trH,trH+V(trkw-N),V(trkw-N)',trH-cdft%lag_mult*(trkw - cdft%charge),&
@@ -682,6 +684,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
 
   ! Calling arguments
@@ -734,7 +737,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
        matname='grad_ovrlp_', mat=grad_ovrlp_)
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
-       hpsit_f, hpsit_f, tmb%linmat%m, grad_ovrlp_)
+       hpsit_f, hpsit_f, tmb%linmat%m, tmb%linmat%auxm, grad_ovrlp_)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, grad_ovrlp_)
   !! This can then be deleted if the transition to the new type has been completed.
   !grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
@@ -786,9 +789,9 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   !grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call extract_taskgroup_inplace(grad_ovrlp, grad_ovrlp_)
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
+  call calculate_kernel_and_energy(iproc,nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
-       ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+       ksres_sum,tmb%coeff,tmb%orbs%norbp, tmb%orbs%isorb, tmb%orbs%norbu, tmb%orbs%norb, tmb%orbs%occup, .false.)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, grad_ovrlp, grad_ovrlp_)
   call deallocate_matrices(grad_ovrlp_)
@@ -892,7 +895,8 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_ortho
           call iterative_orthonormalization(iproc, nproc, 1, order_taylor, at, tmb%linmat%s%nspin, sf_per_type, tmb)
       else
           call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-               tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+               tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%l, tmb%linmat%auxl, &
+               tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
                tmb%can_use_transposed, ice_obj=tmb%ice_obj)
        end if
       if (iproc == 0) then
@@ -1093,7 +1097,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
 
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+               tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           ! copy correct kernel back
           do ispin=1,tmb%linmat%l%nspin
               !call vcopy(tmb%linmat%l%nvctr*tmb%linmat%l%nspin, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
@@ -1106,7 +1110,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
           !!call vcopy(tmb%linmat%m%nvctr, tmb%linmat%ham_%matrix_compr(1), 1, tmparr(1), 1)
           !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+               tmb%linmat%l, tmb%linmat%auxl, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
           !!call vcopy(tmb%linmat%m%nvctr, tmparr(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
           !!call f_free(tmparr)
       end if

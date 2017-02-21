@@ -13,7 +13,6 @@
  perf:
    projrad: 8.0
    store_index: No
-   ef_interpol_chargediff: 1.0
    iterative_orthogonalization: yes
    check_sumrho: 1
    check_overlap: 1
@@ -50,8 +49,6 @@
    idsx: 4
    alphamix: 0.02
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0E-002
  lin_basis_params:
    O:
      ao_confinement: -1.0
@@ -101,3 +98,27 @@
    properties:
      format: xyz
      source: tt
+ chess:
+   lapack:
+    
+    
+    
+    
+   foe:
+    
+     ef_interpol_chargediff: 1.0
+    
+    
+    
+    
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0E-002
+   pexsi:
+    
+    
+    
+    
+    
+    
+    
+    

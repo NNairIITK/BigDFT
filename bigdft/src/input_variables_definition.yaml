@@ -50,7 +50,7 @@
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
                  These numbers determine the extension of the coarse and fine region respectively.
-     RANGE: [0., 100.]
+     RANGE: [0., 20.]
      default: [5., 8.]
    ixc:
      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
@@ -458,6 +458,12 @@
    nrepmax_occ_ctrl:
      COMMENT: Number of re-diagonalizations of occupancy control scheme.
      default: 1
+   alpha_hf:
+     COMMENT: Part of the exact exchange contribution for hybrid functionals
+     DESCRIPTION: |
+       By default .25 for PBE0, and .2 for B3LYP
+     RANGE: [0.0,1.0]
+     default: -1.0
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out
@@ -467,6 +473,10 @@
      The atomic species or the atoms written as Atom No are specified, followed by a list
      of the shells for which the density matrix can be plotted
     default: None
+  #potentials:
+  #  format: CUBE
+  #  frequence: iteration, SCF
+    
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
@@ -695,7 +705,7 @@
        This is the stepsize for the geometry optimization.
 
        This stepsize is system dependent and it has therefore to be determined for each system.
-       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest than
+       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest then
        a better value for {betax} in the last line of the data/geopt.mon file. Whether the stepsize is correct
        can also be seen from the data/geopt.mon output of the SDCG method.
 
@@ -703,6 +713,9 @@
        where it is around 8).
        In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but
        nevertheless one should try to find reasonable values also in this case.
+   
+       SQNM: For many systems 1 is a good stepsize. Some systems can be minimized more efficiently with
+       a larger stepsize.
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -1374,26 +1387,6 @@
    mp_isf:
      COMMENT: (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole preserving
      default: 16
-   pdsyev_blocksize:
-     COMMENT: SCALAPACK linear scaling blocksize
-     default: -8
-   pdgemm_blocksize:
-     COMMENT: SCALAPACK linear scaling blocksize
-     default: -8
-   maxproc_pdsyev:
-     COMMENT: SCALAPACK linear scaling max num procs
-     default: 4
-   maxproc_pdgemm:
-     COMMENT: SCALAPACK linear scaling max num procs
-     default: 4
-   ef_interpol_det:
-     COMMENT: FOE max determinant of cubic interpolation matrix
-     RANGE: [0., 1.]
-     default: 1.e-12
-   ef_interpol_chargediff:
-     COMMENT: FOE max charge difference for interpolation
-     RANGE: [0., 1000.]
-     default: 1.0
    mixing_after_inputguess:
      COMMENT: Mixing step after linear input guess
      EXCLUSIVE:
@@ -1441,12 +1434,6 @@
    kappa_conv:
      COMMENT: Exit kappa for extended input guess (experimental mode)
      default: 0.1
-   evbounds_nsatur:
-     COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
-     default: 3
-   evboundsshrink_nsatur:
-     COMMENT: Maximal number of unsuccessful eigenvalue bounds shrinkings
-     default: 4
    calculate_gap:
      COMMENT: Linear scaling calculate the HOMO LUMO gap
      default: No
@@ -1462,14 +1449,6 @@
    correction_co_contra:
      COMMENT: Linear scaling correction covariant / contravariant gradient
      default: Yes
-   fscale_lowerbound:
-     COMMENT: Linear scaling lower bound for the error function decay length
-     RANGE: [1.e-4,1.e-2]
-     default: 5.e-3
-   fscale_upperbound:
-     COMMENT: Linear scaling upper bound for the error function decay length
-     default: 5.e-2
-     RANGE: [1.e-2,1.0]
    FOE_restart:
      COMMENT: Restart method to be used for the FOE method
      EXCLUSVE:
@@ -1937,20 +1916,6 @@
          Update the SD step size by fitting a quadratic polynomial to the energy
          along the direction of the gradient during direct mininimization.
        default: No
-     eval_range_foe:
-       COMMENT: Lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
-       DESCRIPTION: |
-         Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
-         This spectrum will be adjusted automatically if not chosen appropriately.
-       RANGE: [-10.0,10.0]
-       default: [-0.5,0.5]
-     fscale_foe:
-       COMMENT: Decay length of the error function
-       DESCRIPTION: |
-         Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
-         This value will be adjusted automatically if not chosen appropriately.
-       RANGE: [1.e-3,5.e-2]
-       default: 2.e-2
      coeff_scaling_factor:
        COMMENT: Factor to scale the gradient in direct minimization
        DESCRIPTION: |
@@ -1965,38 +1930,6 @@
          The feature is deactivated for a value of -1.0
        default: -1.0
        RANGE: [-1.0,1.0]
-     pexsi_npoles:
-       COMMENT: Number of poles used by PEXSI
-       DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
-       default: 40
-       RANGE: [20,200]
-     pexsi_mumin:
-       COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
-       DESCRIPTION: |
-         Initial guesss for the lower bound of the chemical potential (in hartree?)
-         used by PEXSI, will be adjusted automatically later.
-       default: -1.0
-       RANGE: [-5.0,5.0]
-     pexsi_mumax:
-       COMMENT: Initial guess for the upper bound of the chemical potential used by PEXSI
-       DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
-       default: 1.0
-       RANGE: [-5.0,5.0]
-     pexsi_mu:
-       COMMENT: Initial guess for the  chemical potential used by PEXSI
-       DESCRIPTION: initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
-       default: 0.5
-       RANGE: [-5.0,5.0]
-     pexsi_temperature:
-       COMMENT: Temperature used by PEXSI
-       DESCRIPTION: temperature (in atomic units?) used by PEXSI
-       default: 1.e-3
-       RANGE: [0.0,1.0]
-     pexsi_tol_charge:
-       COMMENT: Charge tolerance used PEXSI
-       DESCRIPTION: tolerance on the number of electrons used by PEXSI
-       default: 1.e-3
-       RANGE: [1.e-10,1.0]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
@@ -2052,6 +1985,92 @@
                     Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
        default: 14.0
+ ## chess:
+ ##   ef_interpol_det:
+ ##     COMMENT: FOE max determinant of cubic interpolation matrix
+ ##     RANGE: [0., 1.]
+ ##     default: 1.e-12
+ ##   ef_interpol_chargediff:
+ ##     COMMENT: FOE max charge difference for interpolation
+ ##     RANGE: [0., 1000.]
+ ##     default: 1.0
+ ##   blocksize_pdsyev:
+ ##     COMMENT: SCALAPACK linear scaling blocksize
+ ##     default: -8
+ ##   pdgemm_blocksize:
+ ##     COMMENT: SCALAPACK linear scaling blocksize
+ ##     default: -8
+ ##   maxproc_pdsyev:
+ ##     COMMENT: SCALAPACK linear scaling max num procs
+ ##     default: 4
+ ##   maxproc_pdgemm:
+ ##     COMMENT: SCALAPACK linear scaling max num procs
+ ##     default: 4
+ ##   evbounds_nsatur:
+ ##     COMMENT: Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+ ##     default: 3
+ ##   evboundsshrink_nsatur:
+ ##     COMMENT: Maximal number of unsuccessful eigenvalue bounds shrinkings
+ ##     default: 4
+ ##   fscale_lowerbound:
+ ##     COMMENT: Linear scaling lower bound for the error function decay length
+ ##     RANGE: [1.e-4,1.e-2]
+ ##     default: 5.e-3
+ ##   fscale_upperbound:
+ ##     COMMENT: Linear scaling upper bound for the error function decay length
+ ##     default: 5.e-2
+ ##     RANGE: [1.e-2,1.0]
+ ##   eval_range_foe:
+ ##     COMMENT: Lower and upper bound of the eigenvalue spectrum, will be adjusted automatically if chosen unproperly
+ ##     DESCRIPTION: |
+ ##       Indicates the lower and upper bound of the eigenvalue spectrum which is used for the Fermi Operator Expansion.
+ ##       This spectrum will be adjusted automatically if not chosen appropriately.
+ ##     RANGE: [-10.0,10.0]
+ ##     default: [-0.5,0.5]
+ ##   fscale:
+ ##     COMMENT: Decay length of the error function
+ ##     DESCRIPTION: |
+ ##       Indicates the decay length of the error function which is used by the Fermi Operator Expasion to construct the density kernel.
+ ##       This value will be adjusted automatically if not chosen appropriately.
+ ##     RANGE: [1.e-3,5.e-2]
+ ##     default: 2.e-2
+ ##   pexsi_npoles:
+ ##     COMMENT: Number of poles used by PEXSI
+ ##     DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+ ##     default: 40
+ ##     RANGE: [20,200]
+ ##   pexsi_mumin:
+ ##     COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
+ ##     DESCRIPTION: |
+ ##       Initial guesss for the lower bound of the chemical potential (in hartree)
+ ##       used by PEXSI, will be adjusted automatically later.
+ ##     default: -1.0
+ ##     RANGE: [-5.0,5.0]
+ ##   pexsi_mumax:
+ ##     COMMENT: Initial guess for the upper bound of the chemical potential used by PEXSI
+ ##     DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree) used by PEXSI, will be adjusted automatically later
+ ##     default: 1.0
+ ##     RANGE: [-5.0,5.0]
+ ##   pexsi_mu:
+ ##     COMMENT: Initial guess for the  chemical potential used by PEXSI
+ ##     DESCRIPTION: initial guesss for the chemical potential (in hartree) used by PEXSI, will be adjusted automatically later
+ ##     default: 0.5
+ ##     RANGE: [-5.0,5.0]
+ ##   pexsi_temperature:
+ ##     COMMENT: Temperature used by PEXSI
+ ##     DESCRIPTION: temperature (in atomic units) used by PEXSI
+ ##     default: 1.e-3
+ ##     RANGE: [0.0,1.0]
+ ##   pexsi_tol_charge:
+ ##     COMMENT: Charge tolerance used PEXSI
+ ##     DESCRIPTION: tolerance on the number of electrons used by PEXSI
+ ##     default: 1.e-3
+ ##     RANGE: [1.e-10,1.0]
+ ##   pexsi_np_sym_fact:
+ ##     COMMENT: Number of tasks for the symbolic factorization used by PEXSI
+ ##     DESCRIPTION: Number of tasks used for the symbolic factorization within PEXSI. Too large values can apparently decrease the performance
+ ##     default: 16
+ ##     RANGE: [1,10000]
 --- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 linear_accurate:
   COMMENT: Appropriate input parameters for a high accuracy linear scaling calculation
@@ -2061,8 +2080,10 @@ linear_accurate:
     hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
+  chess:
+    foe:
+      ef_interpol_chargediff: 1.0
   perf:
-    ef_interpol_chargediff: 1.0
     experimental_mode: Yes
     correction_co_contra: Yes
     #check_sumrho: 1
@@ -2114,8 +2135,10 @@ linear_moderate:
     hgrids: 0.3
     ixc: PBE
     inputpsiid: linear
+  chess:
+    foe:
+      ef_interpol_chargediff: 1.0
   perf:
-    ef_interpol_chargediff: 1.0
     experimental_mode: Yes
     correction_co_contra: Yes
   lin_general:
@@ -2226,8 +2249,12 @@ linear:
    hgrids: 0.50
    disablesym: Yes
    inputpsiid: linear
+ chess:
+   foe:
+     ef_interpol_chargediff: 1.0
+     eval_range_foe: [-1.0, 1.0]
+     fscale: 5.0e-2
  perf:
-   ef_interpol_chargediff: 1.0
    check_sumrho: 1
    check_overlap: 1
    experimental_mode: Yes
@@ -2269,8 +2296,6 @@ linear:
    rpnrm_cv: 1.0e-8
    alphamix: 0.1
    linear_method: FOE
-   eval_range_foe: [-1.0, 1.0]
-   fscale_foe: 5.0e-2
    delta_pnrm: 0.1
  lin_basis_params:
    ao_confinement: -1.0
@@ -2290,6 +2315,7 @@ linear:
    K:  {nbasis: 1, rloc: 8.0}
    Sn: {nbasis: 4, rloc: 6.5}
    Fe: {nbasis: 13, rloc: 8.0}
+   Cu: {nbasis: 9, rloc: 7.0}
  ig_occupation:
    Fe:
      3s: 2.0
@@ -2298,6 +2324,10 @@ linear:
        up: 4.0
        down: 2.0
      4s: 2.0
+     4p: 0.0
+   Cu:
+     3d: 10.0
+     4s: 1.0
      4p: 0.0
 md:
   COMMENT: Molecular dynamics input parameters for H2O molecules

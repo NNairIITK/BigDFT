@@ -443,7 +443,7 @@ HIDE_SCOPE_NAMES       = YES
 # will put a list of the files that are included by a file in the documentation
 # of that file.
 
-SHOW_INCLUDE_FILES     = NO
+SHOW_INCLUDE_FILES     = YES
 
 # If the FORCE_LOCAL_INCLUDES tag is set to YES then Doxygen
 # will list include files with double quotes in the documentation
@@ -555,7 +555,7 @@ SHOW_USED_FILES        = YES
 # This will remove the Files entry from the Quick Index and from the
 # Folder Tree View (if specified). The default is YES.
 
-SHOW_FILES             = NO
+SHOW_FILES             = YES
 
 # Set the SHOW_NAMESPACES tag to NO to disable the generation of the
 # Namespaces page.
@@ -662,9 +662,17 @@ WARN_LOGFILE           = doxygen.warnings
 # INPUT                  = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README \
 #                          @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
 #                          @abs_top_srcdir@/flib @abs_top_srcdir@/src/modules @abs_top_srcdir@/PSolver @abs_top_srcdir@/tests @abs_top_srcdir@/src/external.f90
- INPUT                 = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README \
-                         @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL @abs_top_srcdir@/KNOWN_PROBLEMS \
-                         @abs_top_srcdir@/flib @abs_top_srcdir@/PSolver
+INPUT                 = @abs_top_srcdir@/README @abs_top_srcdir@/doc/README \
+                        @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS \
+                        @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
+                        @abs_top_srcdir@/src/modules/bigdft_run.f90 \
+                        @abs_top_srcdir@/src/BigDFT.f90 \
+                        @abs_top_srcdir@/src/cluster.f90 \
+                        @abs_top_srcdir@/src/external.f90 \ 
+                        @abs_top_srcdir@/src/linear/getLocBasis.f90 \
+                        @abs_top_srcdir@/src/linear/linearScaling.f90
+                        
+
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding, which is
@@ -710,7 +718,7 @@ EXCLUDE_SYMLINKS       = NO
 # against the file with absolute path, so to exclude all test directories
 # for example use the pattern */test/*
 
-EXCLUDE_PATTERNS       = bindings OpenCL CUDA cudafortran unused *fake* *-inc.f90
+EXCLUDE_PATTERNS       = #bindings OpenCL CUDA cudafortran unused *fake* *-inc.f90
 
 # The EXCLUDE_SYMBOLS tag can be used to specify one or more symbol names
 # (namespaces, classes, functions, etc.) that should be excluded from the
@@ -724,7 +732,7 @@ EXCLUDE_SYMBOLS        =
 # directories that contain example code fragments that are included (see
 # the \include command).
 
-EXAMPLE_PATH           = @abs_top_srcdir@/flib/tests
+EXAMPLE_PATH           = @abs_top_srcdir@/bigdft/tests
 
 # If the value of the EXAMPLE_PATH tag contains directories, you can use the
 # EXAMPLE_PATTERNS tag to specify one or more wildcard pattern (like *.cpp
@@ -803,7 +811,7 @@ SOURCE_BROWSER         = YES
 # Setting the INLINE_SOURCES tag to YES will include the body
 # of functions and classes directly in the documentation.
 
-INLINE_SOURCES         = YES
+INLINE_SOURCES         = NO
 
 # Setting the STRIP_CODE_COMMENTS tag to YES (the default) will instruct
 # doxygen to hide any special comment blocks from generated source code
@@ -1469,18 +1477,6 @@ GENERATE_XML           = NO
 
 XML_OUTPUT             = xml
 
-# The XML_SCHEMA tag can be used to specify an XML schema,
-# which can be used by a validating XML parser to check the
-# syntax of the XML files.
-
-XML_SCHEMA             =
-
-# The XML_DTD tag can be used to specify an XML DTD,
-# which can be used by a validating XML parser to check the
-# syntax of the XML files.
-
-XML_DTD                =
-
 # If the XML_PROGRAMLISTING tag is set to YES Doxygen will
 # dump the program listings (including syntax highlighting
 # and cross-referencing information) to the XML output. Note that
@@ -1768,7 +1764,7 @@ TEMPLATE_RELATIONS     = NO
 # file showing the direct and indirect include dependencies of the file with
 # other documented files.
 
-INCLUDE_GRAPH          = NO
+INCLUDE_GRAPH          = YES
 
 # If the ENABLE_PREPROCESSING, SEARCH_INCLUDES, INCLUDED_BY_GRAPH, and
 # HAVE_DOT tags are set to YES then doxygen will generate a graph for each
@@ -1783,7 +1779,7 @@ INCLUDED_BY_GRAPH      = NO
 # the time of a run. So in most cases it will be better to enable call graphs
 # for selected functions only using the \callgraph command.
 
-CALL_GRAPH             = NO
+CALL_GRAPH             = YES
 
 # If the CALLER_GRAPH and HAVE_DOT tags are set to YES then
 # doxygen will generate a caller dependency graph for every global function
@@ -1791,7 +1787,7 @@ CALL_GRAPH             = NO
 # the time of a run. So in most cases it will be better to enable caller
 # graphs for selected functions only using the \callergraph command.
 
-CALLER_GRAPH           = NO
+CALLER_GRAPH           = YES
 
 # If the GRAPHICAL_HIERARCHY and HAVE_DOT tags are set to YES then doxygen
 # will generate a graphical hierarchy of all classes instead of a textual one.

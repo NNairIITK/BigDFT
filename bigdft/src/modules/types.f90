@@ -184,6 +184,10 @@ module module_types
   !  integer :: evbounds_isatur, evboundsshrink_isatur, evbounds_nsatur, evboundsshrink_nsatur !< variables to check whether the eigenvalue bounds might be too big
   !end type foe_data
 
+  type,public :: linmat_auxiliary
+      integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed !< lookup arrays for transposed operations
+      integer :: offset_matrixindex_in_compressed_fortransposed
+  end type linmat_auxiliary
   
   type,public :: linear_matrices
       type(sparse_matrix) :: s !< small: sparsity pattern given by support function cutoff
@@ -194,6 +198,9 @@ module module_types
       type(sparse_matrix_metadata) :: smmd !< metadata of the sparse matrices
       type(matrices) :: ham_, ovrlp_, kernel_
       type(matrices),dimension(3) :: ovrlppowers_
+      type(linmat_auxiliary) :: auxs
+      type(linmat_auxiliary) :: auxm
+      type(linmat_auxiliary) :: auxl
   end type linear_matrices
 
   type,public :: work_mpiaccumulate
@@ -595,6 +602,8 @@ module module_types
  public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
  public :: nullify_orbitals_data
  public :: SIC_data,orthon_data,input_variables,evaltoocc
+ public :: linear_matrices_null, linmat_auxiliary_null, deallocate_linmat_auxiliary
+ public :: deallocate_linear_matrices
 
 
 
@@ -1242,9 +1251,10 @@ contains
   subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt,norbu,norbd)
     !use module_base
     use yaml_output
-    use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
+    !use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
     use public_enums
     use abi_interfaces_numeric, only: abi_derf_ab
+    use fermi_level, only: eval_to_occ
     implicit none
     logical, intent(in) :: filewrite
     integer, intent(in) :: iproc, nproc
@@ -1262,44 +1272,44 @@ contains
     real(gp) :: ef,electrons,dlectrons,factor,arg,argu,argd,corr,cutoffu,cutoffd,diff,full,res,resu,resd
     real(gp) :: a, x, xu, xd, f, df, tt
     !integer :: ierr
-    type(fermi_aux) :: ft
+    !type(fermi_aux) :: ft
 
 
-    exitfermi=.false.
-    !if (iproc.lt.1)  write(1000+iproc,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd,occopt
+    !!!exitfermi=.false.
+    !!!!if (iproc.lt.1)  write(1000+iproc,*)  'ENTER Fermilevel',orbs%norbu,orbs%norbd,occopt
 
-    orbs%eTS=0.0_gp
+    !!!orbs%eTS=0.0_gp
 
-    a = 0.d0
-    select case (occopt)
-    case  (SMEARING_DIST_ERF  )
-    case  (SMEARING_DIST_FERMI)
-    case  (SMEARING_DIST_COLD1) !Marzari's cold smearing  with a=-.5634 (bumb minimization)
-       a=-.5634d0
-    case  (SMEARING_DIST_COLD2) !Marzari's cold smearing  with a=-.8165 (monotonic tail)
-       a=-.8165d0
-    case  (SMEARING_DIST_METPX) !Methfessel and Paxton (same as COLD with a=0)
-       a=0.d0
-    case default
-       call f_err_throw('Unrecognized smearing scheme',err_name='BIGDFT_RUNTIME_ERROR')
-       !if(iproc==0) print *, 'unrecognized occopt=', occopt
-       !stop
-       return
-    end select
+    !!!a = 0.d0
+    !!!select case (occopt)
+    !!!case  (SMEARING_DIST_ERF  )
+    !!!case  (SMEARING_DIST_FERMI)
+    !!!case  (SMEARING_DIST_COLD1) !Marzari's cold smearing  with a=-.5634 (bumb minimization)
+    !!!   a=-.5634d0
+    !!!case  (SMEARING_DIST_COLD2) !Marzari's cold smearing  with a=-.8165 (monotonic tail)
+    !!!   a=-.8165d0
+    !!!case  (SMEARING_DIST_METPX) !Methfessel and Paxton (same as COLD with a=0)
+    !!!   a=0.d0
+    !!!case default
+    !!!   call f_err_throw('Unrecognized smearing scheme',err_name='BIGDFT_RUNTIME_ERROR')
+    !!!   !if(iproc==0) print *, 'unrecognized occopt=', occopt
+    !!!   !stop
+    !!!   return
+    !!!end select
 
-    if (orbs%norbd==0) then
-       full=2.d0   ! maximum occupation for closed shell  orbital
-    else
-       full=1.d0   ! maximum occupation for spin polarized orbital
-    endif
+    !!!if (orbs%norbd==0) then
+    !!!   full=2.d0   ! maximum occupation for closed shell  orbital
+    !!!else
+    !!!   full=1.d0   ! maximum occupation for spin polarized orbital
+    !!!endif
 
-    if (orbs%nkpts.ne.1 .and. filewrite) then
-       call f_err_throw('Fermilevel: CANNOT write input.occ with more than one k-point',&
-            err_name='BIGDFT_RUNTIME_ERROR')
-       return
-       !if (iproc == 0) print *,'Fermilevel: CANNOT write input.occ with more than one k-point'
-       !stop
-    end if
+    !!!if (orbs%nkpts.ne.1 .and. filewrite) then
+    !!!   call f_err_throw('Fermilevel: CANNOT write input.occ with more than one k-point',&
+    !!!        err_name='BIGDFT_RUNTIME_ERROR')
+    !!!   return
+    !!!   !if (iproc == 0) print *,'Fermilevel: CANNOT write input.occ with more than one k-point'
+    !!!   !stop
+    !!!end if
    
     newnorbu=orbs%norbu
     if (present(norbu)) newnorbu=min(norbu,newnorbu)
@@ -1317,182 +1327,187 @@ contains
     end do
     !melec=nint(charge)
     !if (iproc == 0) write(1000+iproc,*) 'charge,wf',charge,melec,wf0
-    call init_fermi_level(charge/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
+    !call init_fermi_level(charge/full, 0.d0, ft, ef_interpol_det=1.d-12, verbosity=1)
 
     ! Send all eigenvalues to all procs (presumably not necessary)
     call broadcast_kpt_objects(nproc, orbs%nkpts, orbs%norb, &
          &   orbs%eval, orbs%ikptproc)
 
-    if (wf0 > 0.0_gp) then
-       ii=0
-       if (orbs%efermi == UNINITIALIZED(orbs%efermi)) then
-          !last value as a guess
-          orbs%efermi = orbs%eval(orbs%norbu)
-          ! Take initial value at gamma point.
-          do iorb = 1, orbs%norbu
-             if (orbs%occup(iorb) < 1.0_gp) then
-                orbs%efermi = orbs%eval(iorb)
-                exit
-             end if
-          end do
-       end if
-       ef=orbs%efermi
+    call eval_to_occ(iproc, nproc, orbs%norbu, orbs%norbd, orbs%norb, &
+         orbs%nkpts, orbs%kwgts, orbs%eval, orbs%occup, filewrite, &
+         orbs%efermi == UNINITIALIZED(orbs%efermi), wf0, occopt, orbs%efermi, orbs%eTS, &
+         newnorbu, newnorbd)
 
-       ! electrons is N_electons = sum f_i * Wieght_i
-       ! dlectrons is dN_electrons/dEf =dN_electrons/darg * darg/dEf= sum df_i/darg /(-wf) , darg/dEf=-1/wf
-       !  f:= occupation # for band i ,  df:=df/darg
-       wf=wf0
-       loop_fermi: do ii=1,100
-          !write(1000+iproc,*) 'iteration',ii,' -------------------------------- '
-          factor=1.d0/(sqrt(pi)*wf)
-          if (ii == 100 .and. iproc == 0) call yaml_warning('Fermilevel could not have been adjusted in the available iterations')
-          electrons=0.d0
-          dlectrons=0.d0
-          do ikpt=1,orbs%nkpts
-             do iorb=1,orbs%norbd+orbs%norbu
-                arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
-                if (occopt == SMEARING_DIST_ERF) then
-                   call abi_derf_ab(res,arg)
-                   f =.5d0*(1.d0-res)
-                   df=-safe_exp(-arg**2)/sqrtpi
-                else if (occopt == SMEARING_DIST_FERMI) then
-                   f =1.d0/(1.d0+safe_exp(arg))
-                   df=-1.d0/(2.d0+safe_exp(arg)+safe_exp(-arg))
-                else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
-                     &  occopt == SMEARING_DIST_METPX ) then
-                   x= -arg
-                   call abi_derf_ab(res,x)
-                   f =.5d0*(1.d0+res +safe_exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
-                   df=-safe_exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
-                else
-                   f  = 0.d0
-                   df = 0.d0
-                end if 
-                if (iorb > orbs%norbu+newnorbd .or. (iorb <= orbs%norbu .and. iorb > newnorbu)) then
-                   f  = 0.d0
-                   df = 0.d0
-                end if
-                !call yaml_map('arg,f,orbs%kwgts(ikpt)',(/arg,f,orbs%kwgts(ikpt)/))
-                electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
-                dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darg ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
-                !if(iproc==0) write(1000,*) iorb,arg,   f , df,dlectrons
-             enddo
-          enddo
-          !call yaml_map('ef',ef)
-          !call yaml_map('electrons',electrons)
+    !!if (wf0 > 0.0_gp) then
+    !!   ii=0
+    !!   if (orbs%efermi == UNINITIALIZED(orbs%efermi)) then
+    !!      !last value as a guess
+    !!      orbs%efermi = orbs%eval(orbs%norbu)
+    !!      ! Take initial value at gamma point.
+    !!      do iorb = 1, orbs%norbu
+    !!         if (orbs%occup(iorb) < 1.0_gp) then
+    !!            orbs%efermi = orbs%eval(iorb)
+    !!            exit
+    !!         end if
+    !!      end do
+    !!   end if
+    !!   ef=orbs%efermi
 
-          dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
-          diff=-charge/full+electrons
-          !if (iproc.lt.1) write(1000+iproc,*) diff,full,melec,real(melec,gp)
-          !         if (iproc.lt.1) flush(1000+iproc)
-          !if (iproc.lt.1) write(1000+iproc,*) diff,1.d-11*sqrt(electrons),wf
-          !if (iproc.lt.1) flush(1000+iproc)
-          !Exit criterion satiesfied, Nevertheles do one mor update of fermi level
-          if (abs(diff) < 1.d-11*sqrt(electrons) .and. wf == wf0 ) exitfermi=.true.     ! Assume noise grows as sqrt(electrons)
+    !!   ! electrons is N_electons = sum f_i * Wieght_i
+    !!   ! dlectrons is dN_electrons/dEf =dN_electrons/darg * darg/dEf= sum df_i/darg /(-wf) , darg/dEf=-1/wf
+    !!   !  f:= occupation # for band i ,  df:=df/darg
+    !!   wf=wf0
+    !!   loop_fermi: do ii=1,100
+    !!      !write(1000+iproc,*) 'iteration',ii,' -------------------------------- '
+    !!      factor=1.d0/(sqrt(pi)*wf)
+    !!      if (ii == 100 .and. iproc == 0) call yaml_warning('Fermilevel could not have been adjusted in the available iterations')
+    !!      electrons=0.d0
+    !!      dlectrons=0.d0
+    !!      do ikpt=1,orbs%nkpts
+    !!         do iorb=1,orbs%norbd+orbs%norbu
+    !!            arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf
+    !!            if (occopt == SMEARING_DIST_ERF) then
+    !!               call abi_derf_ab(res,arg)
+    !!               f =.5d0*(1.d0-res)
+    !!               df=-safe_exp(-arg**2)/sqrtpi
+    !!            else if (occopt == SMEARING_DIST_FERMI) then
+    !!               f =1.d0/(1.d0+safe_exp(arg))
+    !!               df=-1.d0/(2.d0+safe_exp(arg)+safe_exp(-arg))
+    !!            else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
+    !!                 &  occopt == SMEARING_DIST_METPX ) then
+    !!               x= -arg
+    !!               call abi_derf_ab(res,x)
+    !!               f =.5d0*(1.d0+res +safe_exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+    !!               df=-safe_exp(-x**2) * (a*x**3 -x**2 -1.5d0*a*x +1.5d0) /sqrtpi   ! df:=df/darg=-df/dx
+    !!            else
+    !!               f  = 0.d0
+    !!               df = 0.d0
+    !!            end if 
+    !!            if (iorb > orbs%norbu+newnorbd .or. (iorb <= orbs%norbu .and. iorb > newnorbu)) then
+    !!               f  = 0.d0
+    !!               df = 0.d0
+    !!            end if
+    !!            !call yaml_map('arg,f,orbs%kwgts(ikpt)',(/arg,f,orbs%kwgts(ikpt)/))
+    !!            electrons=electrons+ f  * orbs%kwgts(ikpt)  ! electrons := N_e(Ef+corr.)
+    !!            dlectrons=dlectrons+ df * orbs%kwgts(ikpt)  ! delectrons:= dN_e/darg ( Well! later we need dN_e/dEf=-1/wf*dN_e/darg
+    !!            !if(iproc==0) write(1000,*) iorb,arg,   f , df,dlectrons
+    !!         enddo
+    !!      enddo
+    !!      !call yaml_map('ef',ef)
+    !!      !call yaml_map('electrons',electrons)
 
-          !alternative solution to avoid division by so high value
-          !if (dlectrons == 0.d0) dlectrons=1.d-100  !line to be added
-          if (dlectrons == 0.d0) then
-             !always enter into first case below
-             corr=0.d0
-             if (diff > 0.d0) corr=1.d0*wf
-             if (diff < 0.d0) corr=-1.d0*wf
-             if (ii <= 50 .and. wf < 0.1d0) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature
-          else
-             corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
-             if (abs(corr).gt.wf) then   !for such a large correction the linear approximation is not any more valid
-                if (corr > 0.d0) corr=1.d0*wf
-                if (corr < 0.d0*wf) corr=-1.d0*wf
-                if (ii <= 50 .and. wf < 0.1d0) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature
-             else
-                wf=max(wf0,.5d0*wf)
-             endif
-          end if
-          ef=ef-corr  ! Ef=Ef_guess+corr.
-          !if (iproc.lt.1) write(1000+iproc,'(i5,5(1pe17.8))') ii,electrons,ef,dlectrons,abs(dlectrons),corr
-          !         if (iproc.lt.1) flush(1000+iproc)
-          !call determine_fermi_level(ft, electrons, ef,info_fermi)
-          !if (info_fermi /= 0) then
-          !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
-          !        err_name='BIGDFT_RUNTIME_ERROR')
-          !end if
-          !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
-          if (exitfermi) exit loop_fermi
-       end do loop_fermi
+    !!      dlectrons=dlectrons/(-wf)  ! df/dEf=df/darg * -1/wf
+    !!      diff=-charge/full+electrons
+    !!      !if (iproc.lt.1) write(1000+iproc,*) diff,full,melec,real(melec,gp)
+    !!      !         if (iproc.lt.1) flush(1000+iproc)
+    !!      !if (iproc.lt.1) write(1000+iproc,*) diff,1.d-11*sqrt(electrons),wf
+    !!      !if (iproc.lt.1) flush(1000+iproc)
+    !!      !Exit criterion satiesfied, Nevertheles do one mor update of fermi level
+    !!      if (abs(diff) < 1.d-11*sqrt(electrons) .and. wf == wf0 ) exitfermi=.true.     ! Assume noise grows as sqrt(electrons)
 
-       do ikpt=1,orbs%nkpts
-          argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf0
-          argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf0
-          if (occopt == SMEARING_DIST_ERF) then
-             !error function
-             call abi_derf_ab(resu,argu)
-             call abi_derf_ab(resd,argd)
-             cutoffu=.5d0*(1.d0-resu)
-             cutoffd=.5d0*(1.d0-resd)
-          else if (occopt == SMEARING_DIST_FERMI) then
-             !Fermi function
-             cutoffu=1.d0/(1.d0+safe_exp(argu))
-             cutoffd=1.d0/(1.d0+safe_exp(argd))
-          else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
-               &  occopt == SMEARING_DIST_METPX ) then
-             !Marzari's relation with different a
-             xu=-argu
-             xd=-argd
-             call abi_derf_ab(resu,xu)
-             call abi_derf_ab(resd,xd)
-             cutoffu=.5d0*(1.d0+resu +safe_exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
-             cutoffd=.5d0*(1.d0+resd +safe_exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
-          end if
-       enddo
+    !!      !alternative solution to avoid division by so high value
+    !!      !if (dlectrons == 0.d0) dlectrons=1.d-100  !line to be added
+    !!      if (dlectrons == 0.d0) then
+    !!         !always enter into first case below
+    !!         corr=0.d0
+    !!         if (diff > 0.d0) corr=1.d0*wf
+    !!         if (diff < 0.d0) corr=-1.d0*wf
+    !!         if (ii <= 50 .and. wf < 0.1d0) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature
+    !!      else
+    !!         corr=diff/abs(dlectrons) ! for case of no-monotonic func. abs is needed
+    !!         if (abs(corr).gt.wf) then   !for such a large correction the linear approximation is not any more valid
+    !!            if (corr > 0.d0) corr=1.d0*wf
+    !!            if (corr < 0.d0*wf) corr=-1.d0*wf
+    !!            if (ii <= 50 .and. wf < 0.1d0) wf=2.d0*wf  ! speed up search of approximate Fermi level by using higher Temperature
+    !!         else
+    !!            wf=max(wf0,.5d0*wf)
+    !!         endif
+    !!      end if
+    !!      ef=ef-corr  ! Ef=Ef_guess+corr.
+    !!      !if (iproc.lt.1) write(1000+iproc,'(i5,5(1pe17.8))') ii,electrons,ef,dlectrons,abs(dlectrons),corr
+    !!      !         if (iproc.lt.1) flush(1000+iproc)
+    !!      !call determine_fermi_level(ft, electrons, ef,info_fermi)
+    !!      !if (info_fermi /= 0) then
+    !!      !   call f_err_throw('Difficulties in guessing the new Fermi energy, info='//trim(yaml_toa(info_fermi)),&
+    !!      !        err_name='BIGDFT_RUNTIME_ERROR')
+    !!      !end if
+    !!      !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr) !debug
+    !!      if (exitfermi) exit loop_fermi
+    !!   end do loop_fermi
 
-       if ((cutoffu > 1.d-12 .or. cutoffd > 1.d-12) .and. iproc == 0) then
-          call yaml_warning('Occupation numbers do not fill all available levels' // &
-               ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
-               ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
-       end if
-       !if (iproc.lt.1) write(1000+iproc,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
-       !      if (iproc.lt.1) flush(1000+iproc)
-       orbs%efermi=ef
+    !!   do ikpt=1,orbs%nkpts
+    !!      argu=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu)-ef)/wf0
+    !!      argd=(orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+orbs%norbd)-ef)/wf0
+    !!      if (occopt == SMEARING_DIST_ERF) then
+    !!         !error function
+    !!         call abi_derf_ab(resu,argu)
+    !!         call abi_derf_ab(resd,argd)
+    !!         cutoffu=.5d0*(1.d0-resu)
+    !!         cutoffd=.5d0*(1.d0-resd)
+    !!      else if (occopt == SMEARING_DIST_FERMI) then
+    !!         !Fermi function
+    !!         cutoffu=1.d0/(1.d0+safe_exp(argu))
+    !!         cutoffd=1.d0/(1.d0+safe_exp(argd))
+    !!      else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
+    !!           &  occopt == SMEARING_DIST_METPX ) then
+    !!         !Marzari's relation with different a
+    !!         xu=-argu
+    !!         xd=-argd
+    !!         call abi_derf_ab(resu,xu)
+    !!         call abi_derf_ab(resd,xd)
+    !!         cutoffu=.5d0*(1.d0+resu +safe_exp(-xu**2)*(-a*xu**2 + .5d0*a+xu)/sqrtpi)
+    !!         cutoffd=.5d0*(1.d0+resd +safe_exp(-xd**2)*(-a*xd**2 + .5d0*a+xd)/sqrtpi)
+    !!      end if
+    !!   enddo
 
-       !update the occupation number
-       do ikpt=1,orbs%nkpts
-          do iorb=1,orbs%norbu + orbs%norbd
-             arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0
-             if (occopt == SMEARING_DIST_ERF) then
-                call abi_derf_ab(res,arg)
-                f=.5d0*(1.d0-res)
-             else if (occopt == SMEARING_DIST_FERMI) then
-                f=1.d0/(1.d0+exp(arg))
-             else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
-                  &  occopt == SMEARING_DIST_METPX ) then
-                x=-arg
-                call abi_derf_ab(res,x)
-                f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
-             end if
-             orbs%occup((ikpt-1)*orbs%norb+iorb)=full* f
-             !if(iproc==0) print*,  orbs%eval((ikpt-1)*orbs%norb+iorb), orbs%occup((ikpt-1)*orbs%norb+iorb)
-          end do
-       end do
+    !!   if ((cutoffu > 1.d-12 .or. cutoffd > 1.d-12) .and. iproc == 0) then
+    !!      call yaml_warning('Occupation numbers do not fill all available levels' // &
+    !!           ' lastu=' // trim(yaml_toa(cutoffu,fmt='(1pe8.1)')) // &
+    !!           ' lastd=' // trim(yaml_toa(cutoffd,fmt='(1pe8.1)')))
+    !!   end if
+    !!   !if (iproc.lt.1) write(1000+iproc,'(1x,a,1pe21.14,2(1x,e8.1))') 'Fermi level, Fermi distribution cut off at:  ',ef,cutoffu,cutoffd
+    !!   !      if (iproc.lt.1) flush(1000+iproc)
+    !!   orbs%efermi=ef
 
-       !update electronic entropy S; eTS=T_ele*S is the electronic entropy term the negative of which is added to energy: Free energy = energy-T*S
-       orbs%eTS=0.0_gp
-       do ikpt=1,orbs%nkpts
-          do iorb=1,orbs%norbu + orbs%norbd
-             if (occopt == SMEARING_DIST_ERF) then
-                !error function
-                orbs%eTS=orbs%eTS+full*wf0/(2._gp*sqrt(pi))*&
-                     safe_exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0)**2)
-             else if (occopt == SMEARING_DIST_FERMI) then
-                !Fermi function
-                tt=orbs%occup((ikpt-1)*orbs%norb+iorb)
-                orbs%eTS=orbs%eTS-full*wf0*(tt*log(tt) + (1._gp-tt)*log(1._gp-tt))
-             else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
-                  &  occopt == SMEARING_DIST_METPX ) then
-                !cold
-                orbs%eTS=orbs%eTS+0._gp  ! to be completed if needed
-             end if
-          end do
-       end do
+    !!   !update the occupation number
+    !!   do ikpt=1,orbs%nkpts
+    !!      do iorb=1,orbs%norbu + orbs%norbd
+    !!         arg=(orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0
+    !!         if (occopt == SMEARING_DIST_ERF) then
+    !!            call abi_derf_ab(res,arg)
+    !!            f=.5d0*(1.d0-res)
+    !!         else if (occopt == SMEARING_DIST_FERMI) then
+    !!            f=1.d0/(1.d0+exp(arg))
+    !!         else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
+    !!              &  occopt == SMEARING_DIST_METPX ) then
+    !!            x=-arg
+    !!            call abi_derf_ab(res,x)
+    !!            f =.5d0*(1.d0+res +exp(-x**2)*(-a*x**2 + .5d0*a+x)/sqrtpi)
+    !!         end if
+    !!         orbs%occup((ikpt-1)*orbs%norb+iorb)=full* f
+    !!         !if(iproc==0) print*,  orbs%eval((ikpt-1)*orbs%norb+iorb), orbs%occup((ikpt-1)*orbs%norb+iorb)
+    !!      end do
+    !!   end do
+
+    !!   !update electronic entropy S; eTS=T_ele*S is the electronic entropy term the negative of which is added to energy: Free energy = energy-T*S
+    !!   orbs%eTS=0.0_gp
+    !!   do ikpt=1,orbs%nkpts
+    !!      do iorb=1,orbs%norbu + orbs%norbd
+    !!         if (occopt == SMEARING_DIST_ERF) then
+    !!            !error function
+    !!            orbs%eTS=orbs%eTS+full*wf0/(2._gp*sqrt(pi))*&
+    !!                 safe_exp(-((orbs%eval((ikpt-1)*orbs%norb+iorb)-ef)/wf0)**2)
+    !!         else if (occopt == SMEARING_DIST_FERMI) then
+    !!            !Fermi function
+    !!            tt=orbs%occup((ikpt-1)*orbs%norb+iorb)
+    !!            orbs%eTS=orbs%eTS-full*wf0*(tt*log(tt) + (1._gp-tt)*log(1._gp-tt))
+    !!         else if (occopt == SMEARING_DIST_COLD1 .or. occopt == SMEARING_DIST_COLD2 .or. &
+    !!              &  occopt == SMEARING_DIST_METPX ) then
+    !!            !cold
+    !!            orbs%eTS=orbs%eTS+0._gp  ! to be completed if needed
+    !!         end if
+    !!      end do
+    !!   end do
        ! Sanity check on sum of occup.
        chargef=0.0_gp
        do ikpt=1,orbs%nkpts
@@ -1511,23 +1526,92 @@ contains
           call f_err_throw('Failed to determine correctly the occupation number, expected='//yaml_toa(charge)// &
                ', found='//yaml_toa(chargef),err_name='BIGDFT_RUNTIME_ERROR')
        end if
-    else if(full==1.0_gp) then
-       call eFermi_nosmearing(iproc,orbs)
-       ! no entropic term when electronc temprature is zero
-    end if
+    !!else if(full==1.0_gp) then
+    !!   call eFermi_nosmearing(iproc,orbs)
+    !!   ! no entropic term when electronc temprature is zero
+    !!end if
 
-    !write on file the results if needed
-    if (filewrite) then
-       open(unit=11,file='input.occ',status='unknown')
-       write(11,*)orbs%norbu,orbs%norbd
-       do iorb=1,orbs%norb
-          write(11,'(i5,e19.12,f10.6)')iorb,orbs%occup((ikpt-1)*orbs%norb+iorb) &
-               &   ,orbs%eval ((ikpt-1)*orbs%norb+iorb)
-       end do
-       close(unit=11)
-    end if
+    !!!write on file the results if needed
+    !!if (filewrite) then
+    !!   open(unit=11,file='input.occ',status='unknown')
+    !!   write(11,*)orbs%norbu,orbs%norbd
+    !!   do iorb=1,orbs%norb
+    !!      write(11,'(i5,e19.12,f10.6)')iorb,orbs%occup((ikpt-1)*orbs%norb+iorb) &
+    !!           &   ,orbs%eval ((ikpt-1)*orbs%norb+iorb)
+    !!   end do
+    !!   close(unit=11)
+    !!end if
 
   END SUBROUTINE evaltoocc
+
+  function linmat_auxiliary_null() result (aux)
+    implicit none
+    type(linmat_auxiliary) :: aux
+    nullify(aux%matrixindex_in_compressed_fortransposed)
+    aux%offset_matrixindex_in_compressed_fortransposed = 0
+  end function linmat_auxiliary_null
+
+  function linear_matrices_null() result(linmat)
+    use sparsematrix_memory, only: sparse_matrix_metadata_null, sparse_matrix_null, matrices_null
+    implicit none
+    type(linear_matrices) :: linmat
+    integer :: i
+    linmat%smmd = sparse_matrix_metadata_null()
+    linmat%s = sparse_matrix_null()
+    linmat%m = sparse_matrix_null()
+    linmat%l = sparse_matrix_null()
+    nullify(linmat%ks)
+    nullify(linmat%ks_e)
+    linmat%ovrlp_ = matrices_null()
+    linmat%ham_ = matrices_null()
+    linmat%kernel_ = matrices_null()
+    do i=1,size(linmat%ovrlppowers_)
+        linmat%ovrlppowers_(i) = matrices_null()
+    end do
+    linmat%auxs = linmat_auxiliary_null()
+    linmat%auxs = linmat_auxiliary_null()
+    linmat%auxs = linmat_auxiliary_null()
+  end function linear_matrices_null
+
+  subroutine deallocate_linmat_auxiliary(aux)
+    implicit none
+    type(linmat_auxiliary),intent(inout) :: aux
+    call f_free_ptr(aux%matrixindex_in_compressed_fortransposed)
+  end subroutine deallocate_linmat_auxiliary
+
+  subroutine deallocate_linear_matrices(linmat)
+    use sparsematrix_memory, only: deallocate_sparse_matrix_metadata, &
+                                   deallocate_sparse_matrix, &
+                                   deallocate_matrices
+    implicit none
+    type(linear_matrices),intent(inout) :: linmat
+    integer :: i, ispin
+    call deallocate_sparse_matrix_metadata(linmat%smmd)
+    call deallocate_sparse_matrix(linmat%s)
+    call deallocate_sparse_matrix(linmat%m)
+    call deallocate_sparse_matrix(linmat%l)
+    call deallocate_matrices(linmat%ovrlp_)
+    call deallocate_matrices(linmat%ham_)
+    call deallocate_matrices(linmat%kernel_)
+    do i=1,size(linmat%ovrlppowers_)
+        call deallocate_matrices(linmat%ovrlppowers_(i))
+    end do
+    if (associated(linmat%ks)) then
+        do ispin=lbound(linmat%ks,1),ubound(linmat%ks,1)
+            call deallocate_sparse_matrix(linmat%ks(ispin))
+        end do
+        deallocate(linmat%ks)
+    end if
+    if (associated(linmat%ks_e)) then
+        do ispin=lbound(linmat%ks_e,1),ubound(linmat%ks_e,1)
+            call deallocate_sparse_matrix(linmat%ks_e(ispin))
+        end do
+        deallocate(linmat%ks_e)
+    end if
+    call deallocate_linmat_auxiliary(linmat%auxs)
+    call deallocate_linmat_auxiliary(linmat%auxm)
+    call deallocate_linmat_auxiliary(linmat%auxl)
+  end subroutine deallocate_linear_matrices
 
 
 end module module_types

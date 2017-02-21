@@ -10,8 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 module box
 
-  use f_precisions
-  use PSbase
+  use f_precisions, gp=>f_double
 
   private
 
@@ -46,9 +45,9 @@ module box
      !> Sub-box to iterate over the points (ex. around atoms)
      !! start and end points for each direction
      integer, dimension(2,3) :: nbox 
-     real(dp), dimension(3) :: oxyz !<origin of the coordinate system
-     real(dp), dimension(3) :: rxyz !<coordinates of the grid point
-     real(dp), dimension(3) :: tmp !< size 3 array buffer to avoid the creation of temporary arrays
+     real(gp), dimension(3) :: oxyz !<origin of the coordinate system
+     real(gp), dimension(3) :: rxyz !<coordinates of the grid point
+     real(gp), dimension(3) :: tmp !< size 3 array buffer to avoid the creation of temporary arrays
      logical :: whole !<to assess if we run over the entire box or not (no check over the internal point)
      !>reference mesh from which it starts
      type(cell), pointer :: mesh
@@ -67,9 +66,27 @@ module box
   end interface square
 
   public :: cell_r,cell_periodic_dims,distance,closest_r,square,cell_new,box_iter,box_next_point
-  public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp
+  public :: cell_geocode,box_next_x,box_next_y,box_next_z,dotp,cell_null
 
 contains
+
+  !> Nullify the cell type
+  pure function cell_null() result(me)
+   implicit none
+   type(cell) :: me
+   me%orthorhombic=.true.
+   me%bc=0
+   me%ndims=0
+   me%hgrids=0.0_gp
+   me%angrad=0.0_gp
+   !derived data
+   me%ndim=0
+   me%volume_element=0.0_gp
+   me%habc=0.0_gp
+   me%gd=0.0_gp
+   me%gu=0.0_gp
+   me%detgd=0.0_gp
+  end function cell_null
 
   !> Nullify the iterator dpbox type
   pure subroutine nullify_box_iterator(boxit)
@@ -85,8 +102,8 @@ contains
     boxit%ibox=0
     boxit%ibox(1)=-1
     boxit%nbox=-1 
-    boxit%oxyz=-1.0_dp
-    boxit%rxyz=-1.0_dp
+    boxit%oxyz=-1.0_gp
+    boxit%rxyz=-1.0_gp
     nullify(boxit%mesh)
     boxit%whole=.false.
   end subroutine nullify_box_iterator
@@ -101,7 +118,7 @@ contains
 !!$    integer, dimension(2,3), intent(in), optional :: nbox
 !!$    !> real coordinates of the origin in the reference frame of the 
 !!$    !box (the first point has the 000 coordinate)
-!!$    real(dp), dimension(3), intent(in), optional :: origin
+!!$    real(gp), dimension(3), intent(in), optional :: origin
 !!$    type(box_iterator) :: boxit
 !!$
 !!$  end function box_iter_c
@@ -119,10 +136,10 @@ contains
     integer, intent(in), optional :: n3p
     !> Box of start and end points which have to be considered
     integer, dimension(2,3), intent(in), optional :: nbox
-    real(dp), intent(in), optional :: cutoff !< determine the box around the origin
+    real(gp), intent(in), optional :: cutoff !< determine the box around the origin
     !> real coordinates of the origin in the reference frame of the 
     !! box (the first point has the 000 coordinate)
-    real(dp), dimension(3), intent(in), optional :: origin
+    real(gp), dimension(3), intent(in), optional :: origin
 
     type(box_iterator) :: boxit
     
@@ -134,7 +151,7 @@ contains
     call f_zero(boxit%oxyz)
     if (present(origin)) boxit%oxyz=origin
     if (present(centered)) then
-       if (centered) boxit%oxyz=0.5_dp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
+       if (centered) boxit%oxyz=0.5_gp*real(boxit%mesh%ndims)*boxit%mesh%hgrids
     end if
 
     if(present(nbox)) then
@@ -476,7 +493,6 @@ contains
 
   end subroutine internal_point
 
-
   function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
     use numerics, only: onehalf,pi
     use wrapper_linalg, only: det_3x3
@@ -798,7 +814,7 @@ contains
 end module box
 
 subroutine dotp_external_ortho(v1,v2,dotp)  
-  use PSbase, only: gp
+  use f_precisions, only: gp=>f_double
   implicit none
   real(gp), dimension(3), intent(in) :: v1,v2
   real(gp), intent(out) :: dotp

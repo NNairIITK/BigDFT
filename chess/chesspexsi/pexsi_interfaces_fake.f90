@@ -73,6 +73,8 @@ public :: f_ppexsi_load_real_symmetric_hs_matrix
 public :: f_ppexsi_dft_driver
 public :: f_ppexsi_retrieve_real_symmetric_dft_matrix
 public :: f_ppexsi_plan_finalize
+public :: f_ppexsi_symbolic_factorize_real_symmetric_matrix
+public :: f_ppexsi_selinv_real_symmetric_matrix
 
 contains
 
@@ -177,6 +179,40 @@ contains
     integer(c_int), intent(out)            :: info
     call error_message()
   end subroutine 
+  
+
+  subroutine f_ppexsi_symbolic_factorize_real_symmetric_matrix(&
+      plan,&
+      options,&
+      info) &
+      bind(C)
+    use, intrinsic :: iso_c_binding
+    use pexsi_base, only: f_ppexsi_options
+    implicit none
+    integer(c_intptr_t), intent(in), value :: plan
+    type( f_ppexsi_options ), value, intent(in) :: options
+    integer(c_int), intent(out)            :: info
+    call error_message()
+  end subroutine
+
+
+  subroutine f_ppexsi_selinv_real_symmetric_matrix(&
+      plan,&
+      options,&
+      AnzvalLocal,&
+      AinvnzvalLocal,&
+      info) &
+      bind(C)
+    use, intrinsic :: iso_c_binding
+    use pexsi_base, only: f_ppexsi_options
+    implicit none
+    integer(c_intptr_t), intent(in), value :: plan
+    type( f_ppexsi_options ), value, intent(in) :: options
+    real(c_double), intent(in)  :: AnzvalLocal(*)
+    real(c_double), intent(out) :: AinvnzvalLocal(*)
+    integer(c_int), intent(out)            :: info
+    call error_message()
+  end subroutine
 
 
   subroutine f_ppexsi_plan_finalize(&
@@ -192,7 +228,7 @@ contains
 
 
   subroutine error_message()
-    use module_base
+    use futile
     implicit none
     call f_err_throw('It seems that you did not link properly with the PEXSI library',err_name='BIGDFT_RUNTIME_ERROR')
   end subroutine error_message

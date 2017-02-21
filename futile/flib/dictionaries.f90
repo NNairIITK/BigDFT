@@ -193,7 +193,7 @@ module dictionaries
    public :: f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
-   public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
+   public :: dictionaries_errors,TYPE_DICT,TYPE_LIST,dictionary_check_leak
 
 
 contains
@@ -1129,23 +1129,16 @@ contains
      type(dictionary), pointer :: subd
 
      !if the dictionary starts with a master tree, eliminate it and put the child
+     if (.not. associated(subd)) then
+        nullify(dict%child)
+        return
+     end if
      if (.not. associated(subd%parent) .and. associated(subd%child)) then
         call put_child(dict,subd%child)
         nullify(subd%child)
         call dict_free(subd)
         return
      end if
-     !here the treatment of the scalar dictionary can be 
-     !inserted (left commented for the moment)
-!!$     if (associated(subd)) then
-!!$        !if the dictionary is a scalar free it
-!!$        if (dict_len(subd) == 0 .and. dict_size(subd) == 0 .and. &
-!!$             len_trim(dict_key(subd))==0) then 
-!!$           call set(dict,dict_value(subd))
-!!$           call dict_free(subd)
-!!$           return
-!!$        end if
-!!$     end if
 
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      
@@ -1376,13 +1369,16 @@ contains
      type(dictionary), pointer :: dict_tmp
 
      !initialize dictionary
-     call dict_init(dict_tmp)
+     nullify(dict_tmp)
+
 
      n_st=size(dicts)
      do i_st=1,n_st
         if (associated(dicts(i_st)%dict)) then
+           if (.not. associated(dict_tmp)) call dict_init(dict_tmp)
            call add(dict_tmp,dicts(i_st)%dict)
         else if (len_trim(dicts(i_st)%val) > 0) then
+           if (.not. associated(dict_tmp)) call dict_init(dict_tmp)
            call add(dict_tmp,dicts(i_st)%val)
         end if
      end do

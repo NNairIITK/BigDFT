@@ -101,7 +101,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
      end if
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
      !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if   
 
@@ -193,7 +193,8 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use sparsematrix, only: compress_matrix, uncompress_matrix, &
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix2
-   use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral
+  use coeffs, only: calculate_kernel_and_energy
   implicit none
   type(sparse_matrix), intent(in) :: weight_matrix
   type(matrices), intent(inout) :: weight_matrix_
@@ -250,8 +251,9 @@ print*,iorb,ilr,ncount
  
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
-  call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
-           tmb%linmat%kernel_,weight_matrix_,trkw,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+  call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,weight_matrix, &
+           tmb%linmat%kernel_,weight_matrix_,trkw,tmb%coeff, &
+           tmb%orbs%norbp,tmb%orbs%isorb,tmb%orbs%norbu, tmb%orbs%norb,tmb%orbs%occup,.false.)
   !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
        weight_matrix, weight_matrix_)
@@ -270,8 +272,9 @@ print*,iorb,ilr,ncount
           ref_frags,.true.,.true.,meth_overlap)
      !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
      call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
-     call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
-           tmb%linmat%kernel_,weight_matrix_,trkw_new,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+     call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,weight_matrix, &
+           tmb%linmat%kernel_,weight_matrix_,trkw_new,tmb%coeff, &
+           tmb%orbs%norbp,tmb%orbs%isorb,tmb%orbs%norbu, tmb%orbs%norb,tmb%orbs%occup,.false.)
      !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
      call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
           weight_matrix, weight_matrix_)
@@ -286,8 +289,9 @@ print*,iorb,ilr,ncount
              ref_frags,.true.,.true.,meth_overlap)
         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
         call extract_taskgroup_inplace(weight_matrix, weight_matrix_)
-        call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%linmat%l,weight_matrix, &
-              tmb%linmat%kernel_,weight_matrix_,trkw_old,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
+        call calculate_kernel_and_energy(bigdft_mpi%iproc,bigdft_mpi%nproc,bigdft_mpi%mpi_comm,tmb%linmat%l,weight_matrix, &
+              tmb%linmat%kernel_,weight_matrix_,trkw_old,tmb%coeff, &
+              tmb%orbs%norbp,tmb%orbs%isorb,tmb%orbs%norbu, tmb%orbs%norb,tmb%orbs%occup,.false.)
         !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_)
         call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
              weight_matrix, weight_matrix_)
@@ -465,7 +469,7 @@ real(kind=8) :: ddot
      end if
 
      call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+          tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%auxs, tmb%linmat%ovrlp_)
      !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
   end if   
 
@@ -641,7 +645,8 @@ call f_free_ptr(tmb%linmat%ovrlp_%matrix)
   call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
        tmb%linmat%m, weight_matrix_)
   call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-       tmb%linmat%m, weight_matrix_, hpsittmp_c, hpsittmp_f, .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc)
+       tmb%linmat%m, tmb%linmat%auxm, weight_matrix_, hpsittmp_c, hpsittmp_f, &
+       .true., psitlarge_c, psitlarge_f, bigdft_mpi%iproc)
 !print*,'2',ddot(tmb%ham_descr%collcom%ndimind_c, psitlarge_c(1), 1, psitlarge_c(1), 1),ddot(7*tmb%ham_descr%collcom%ndimind_f, psitlarge_f(1), 1, psitlarge_f(1), 1)
   call f_free_ptr(hpsittmp_c)
   call f_free_ptr(hpsittmp_f)
@@ -754,7 +759,7 @@ subroutine calculate_weight_matrix_using_density(iproc,nproc,cdft,tmb,at,input,G
        matname='weight_', mat=weight_)
 
   call calculate_overlap_transposed(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%collcom, &
-       tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, weight_)
+       tmb%ham_descr%psit_c,hpsit_c,tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%auxm, weight_)
   call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc,bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
        tmb%linmat%m, weight_)
   ! This can then be deleted if the transition to the new type has been completed.

@@ -223,10 +223,12 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
            nkptsproj = max(nkptsproj, 2)
         end if
      end do
+  !else if (orbs%norbp == 0) then
+  !   nkptsproj=0 !no projectors to fill without on-the-fly
   end if
   nl%nprojel=nkptsproj*nl%nprojel
 
-  !print *,'iproc,nkptsproj',iproc,nkptsproj,nlpspd%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
+  !print *,'iproc,nkptsproj',bigdft_mpi%iproc,nkptsproj,nl%nprojel,orbs%iskpts,orbs%iskpts+orbs%nkptsp
 
   call f_release_routine()
 

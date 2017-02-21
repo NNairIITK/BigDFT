@@ -678,8 +678,10 @@ module IObox
     subroutine dump_field(filename,geocode,ndims,hgrids,nspin,rho,&
          rxyz,iatype,nzatom,nelpsp,ixyz0)
       use dynamic_memory
+      use dictionaries, only: f_err_throw
       use f_utils
       use IOboxETSF, only: write_etsf_density
+      use yaml_strings
       implicit none
       !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
       integer, intent(in) :: nspin
@@ -730,7 +732,15 @@ module IObox
       end if
 
       ixyz0_=-1
-      if (present(ixyz0)) ixyz0_=ixyz0
+      if (present(ixyz0)) then
+         if (any(ixyz0 < 1) .or. any(ixyz0 > ndims)) then
+            call f_err_throw('The values of ixyz0='+yaml_toa(ixyz0)+&
+                 ' should be within the size of the box (1 to'+&
+                 yaml_toa(ndims)+')') !,&
+                   !err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         ixyz0_=ixyz0
+      end if
 
       call f_zero(ns)
 

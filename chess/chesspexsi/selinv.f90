@@ -1,8 +1,8 @@
-module pexsi
+module selinv
 
     private
 
-    public :: pexsi_driver
+    public :: selinv_wrapper
 
     contains
 
@@ -50,40 +50,35 @@ module pexsi
       !> @file f_driver_ksdft.f90
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
-      subroutine pexsi_driver(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, &
-                 mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
-                 kernel, energy)
-      use module_base
+      subroutine selinv_driver(iproc, nproc, comm, nfvctr, nvctr, row_ind, col_ptr, mat_s, np_sym_fact, inv_ovrlp)
+      !use module_base
       use pexsi_base, only: f_ppexsi_options
       use pexsi_interfaces
       use yaml_output
       use iso_c_binding
+      !use sparsematrix_base
+      use wrapper_mpi
+      !use time_profiling
+      use dynamic_memory
+      use futile
+      use time_profiling
+      use sparsematrix_timing
       implicit none
       !include 'mpif.h'
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, comm
       integer,intent(in) :: nfvctr !< number of row/columns
       integer,intent(in) :: nvctr ! number of non-zero entries
+      integer,intent(in) :: np_sym_fact !< number of procs to be used for the symbolic factorization
       integer,dimension(nvctr),intent(in) :: row_ind !< row_ind from the CCS format
       integer,dimension(nfvctr),intent(in) :: col_ptr !< col_ptr from the CCS format
-      real(kind=8),dimension(nvctr),intent(in) :: mat_h, mat_s
-      real(kind=8),intent(in) :: charge
-      integer,intent(in) :: npoles
-      real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
-      real(kind=8),dimension(nvctr),intent(out) :: kernel
-      real(kind=8),intent(out) :: energy
+      real(kind=8),dimension(nvctr),intent(in) :: mat_s
+      real(kind=8),dimension(nvctr),intent(out) :: inv_ovrlp
       
       integer(c_int) :: nrows, nnz, nnzLocal, numColLocal
       integer(c_int), allocatable, dimension(:) ::  colptrLocal, rowindLocal
-      real(c_double), allocatable, dimension(:) ::  &
-        HnzvalLocal, SnzvalLocal
-      real(c_double), allocatable, dimension(:) ::  &
-        DMnzvalLocal, EDMnzvalLocal, FDMnzvalLocal
-      real(c_double) :: numElectronExact, muPEXSI, numElectronPEXSI, &
-        muMinInertia, muMaxInertia
-      integer(c_int) :: numTotalInertiaIter, numTotalPEXSIIter
-      real(c_double) :: totalEnergyH, totalEnergyS, totalFreeEnergy
+      real(c_double), allocatable, dimension(:) ::  HnzvalLocal, SnzvalLocal, invSnzvalLocal
       
       integer(c_int):: nprow, npcol, npSymbFact, outputFileIndex, ic
       integer :: ierr, ii
@@ -107,21 +102,8 @@ module pexsi
       
       call f_routine(id='pexsi_driver')
 
-      if (iproc==0) call yaml_comment('PEXSI calculation of kernel',hfill='~')
+      if (iproc==0) call yaml_comment('SelInv calculation of inverse',hfill='~')
       
-      !call mpi_init( ierr )
-      !call mpi_comm_rank( MPI_COMM_WORLD, iproc, ierr )
-      !call mpi_comm_size( MPI_COMM_WORLD, nproc, ierr )
-      
-      !if (nproc/=1) then
-      !    !call f_err_throw('pexsi not yet ready in parallel')
-      !    call yaml_warning('pexsi not yet ready in parallel')
-      !end if
-      
-      !Hfile            = "lap2dr.matrix"
-      !Sfile            = "lap2dr.matrix"
-      !Hfile            = "hamiltonian_sparse_PEXSI.bin"
-      !Sfile            = "overlap_sparse_PEXSI.bin"
 
       ! Determine the number of processes used.
       ! Ideal number of processes per pole:
@@ -144,9 +126,6 @@ module pexsi
       end if
       
       
-          !!! Only use 4 processors in this example
-          !!nprow = int(2,kind=c_int)
-          !!npcol = int(2,kind=c_int)
           
           ! Split the processors to read matrix
           if( iproc < maxproc ) then
@@ -155,27 +134,22 @@ module pexsi
             isProcRead = 0
           endif
           
-          call mpi_comm_split( bigdft_mpi%mpi_comm, isProcRead, iproc, readComm, ierr )
+          call mpi_comm_split( comm, isProcRead, iproc, readComm, ierr )
           
       if (iproc<maxproc) then
           
-          !if( isProcRead == 1 ) then
-            !call f_read_distsparsematrix_formatted_head( &
-            !  trim(Hfile)//char(0),&
-            !  nrows,&
-            !  nnz,&
-            !  nnzLocal,&
-            !  numColLocal,&
-            !  readComm )
 
-            call distribute_matrix(iproc, maxproc, nfvctr, nvctr, col_ptr, row_ind, mat_h, mat_s, &
-                 nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
+            call f_timing(TCAT_PEXSI_DISTRIBUTE,'ON')
+            call distribute_matrix(iproc, maxproc, nfvctr, nvctr, col_ptr, row_ind, mat_s, &
+                 nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_s_local)
+            call f_timing(TCAT_PEXSI_DISTRIBUTE,'OF')
             !Because they are C integers..?
             nrows = int(nfvctr,kind=c_int)
             nnz = int(nvctr,kind=c_int)
             nnzLocal = int(nvctr_local,kind=c_int)
             numColLocal = int(nfvctr_local,kind=c_int)
 
+            call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
             nfvctr_local_min = nfvctr_local
             nfvctr_local_max = nfvctr_local
             call mpiallred(nfvctr_local_min,count=1,op=mpi_min,comm=readComm)
@@ -186,6 +160,7 @@ module pexsi
             call mpiallred(nvctr_local_min,count=1,op=mpi_min,comm=readComm)
             call mpiallred(nvctr_local_max,count=1,op=mpi_max,comm=readComm)
             nvctr_local_avg = real(nvctr,kind=8)/real(maxproc,kind=8)
+            call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
           
             if(iproc== 0) then
               call yaml_mapping_open('Dimensions of the matrices')
@@ -201,50 +176,14 @@ module pexsi
               call yaml_mapping_close()
               call yaml_mapping_close()
             endif
-            !write(*,*) 'OLD: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nrows, nnz, nnzLocal, numColLocal
-
-
-            !write(*,*) 'NEW: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nfvctr, nvctr, nnzLocal, numColLocal
-            !write(*,*) 'NEW: col_ptr_local',col_ptr_local 
-            !write(*,*) 'NEW: row_ind_local',row_ind_local
-            !write(*,*) 'NEW: mat_h_local',mat_h_local
-            !if (iproc==0) write(*,*) 'NEW:  mat_s', mat_s
-            !write(*,*) 'NEW: iproc, mat_s_local', iproc, mat_s_local
           
             ! Allocate memory
-            allocate( colptrLocal( numColLocal + 1 ) )
-            allocate( rowindLocal( nnzLocal ) )
-            allocate( HnzvalLocal( nnzLocal ) )
-            allocate( SnzvalLocal( nnzLocal ) )
-            allocate( DMnzvalLocal( nnzLocal ) )
-            allocate( EDMnzvalLocal( nnzLocal ) )
-            allocate( FDMnzvalLocal( nnzLocal ) )
+            colptrLocal = f_malloc(numColLocal+1,id='colptrLocal')
+            rowindLocal = f_malloc(nnzLocal,id='rowindLocal')
+            HnzvalLocal = f_malloc(nnzLocal,id='HnzvalLocal')
+            SnzvalLocal = f_malloc(nnzLocal,id='SnzvalLocal')
+            invSnzvalLocal = f_malloc(nnzLocal,id='invSnzvalLocal')
           
-            !call f_read_distsparsematrix_formatted (&
-            !  trim(Hfile)//char(0),&
-            !  nfvctr,&
-            !  nvctr,&
-            !  nnzLocal,&
-            !  numColLocal,&
-            !  colptrLocal,&
-            !  rowindLocal,&
-            !  HnzvalLocal,&
-            !  readComm )
-
-          
-            !call f_read_distsparsematrix_formatted (&
-            !  trim(Sfile)//char(0),&
-            !  nfvctr,&
-            !  nvctr,&
-            !  nnzLocal,&
-            !  numColLocal,&
-            !  colptrLocal,&
-            !  rowindLocal,&
-            !  SnzvalLocal,&
-            !  readComm )
-
-            !write(*,*) 'OLD: colptrLocal',colptrLocal
-            !write(*,*) 'OLD: rowindLocal',rowindLocal
 
             do i=1,nfvctr_local+1
                 ic = int(i,kind=c_int)
@@ -253,7 +192,6 @@ module pexsi
             do i=1,nvctr_local
                 ic = int(i,kind=c_int)
                 rowIndLocal(ic) = int(row_ind_local(i),kind=c_int)
-                HnzvalLocal(ic) = real(mat_h_local(i),kind=c_double)
                 SnzvalLocal(ic) = real(mat_s_local(i),kind=c_double)
             end do
 
@@ -262,11 +200,11 @@ module pexsi
           
           !endif
           
-          ! Step 1. Initialize PEXSI 
+          ! Step 1. Initialize
           
-          ! Set the outputFileIndex to be the pole index.
-          ! The first processor for each pole outputs information
           
+          call f_timing(TCAT_PEXSI_INIT,'ON')
+
           if( mod( iproc, nprow * npcol ) .eq. 0 ) then
             outputFileIndex = iproc / (nprow * npcol);
           else
@@ -288,16 +226,13 @@ module pexsi
           
           call f_ppexsi_set_default_options(&
             options )
+          options%npSymbFact = int(np_sym_fact,kind=c_int)
+          if (iproc==0) then
+              call yaml_mapping_open('Selected Inversion parameters')
+              call yaml_map('Procs for symbolic factorization',options%npSymbFact)
+              call yamL_mapping_close()
+          end if
           
-          numElectronExact = real(charge,kind=c_double)
-          options%muMin0   = real(mumin,kind=c_double)
-          options%muMax0   = real(mumax,kind=c_double)
-          options%mu0      = real(mu,kind=c_double)
-          options%deltaE   = real(20d0 ,kind=c_double)
-          options%numPole  = int(npoles,kind=c_int)
-          options%temperature = real(temperature,kind=c_double)
-          options%muPEXSISafeGuard = real(0.2d0,kind=c_double)
-          options%numElectronPEXSITolerance = real(tol_charge,kind=c_double)
           
           call f_ppexsi_load_real_symmetric_hs_matrix(&
                 plan,&       
@@ -312,9 +247,7 @@ module pexsi
                 int(0,kind=c_int),&
                 SnzvalLocal,&
                 info ) 
-          !write(*,*) 'after f_ppexsi_load_real_symmetric_hs_matrix, info',iproc, info
-          !call mpi_finalize(ierr)
-          !stop
+          call f_timing(TCAT_PEXSI_INIT,'OF')
           
           if( info .ne. 0 ) then
             call mpi_finalize( ierr )
@@ -322,83 +255,62 @@ module pexsi
           endif
           
           
-          !if( iproc == 0 ) then
-          !  write(*,*)  "Finish setting up the matrix."
-          !endif
-          
-          ! Step 2. PEXSI Solve
-        
-          !call mpi_finalize(ierr)
-          !stop
-          call f_ppexsi_dft_driver(&
-            plan,&
+            
+          call f_timing(TCAT_PEXSI_FACTORIZATION,'ON')
+          call f_ppexsi_symbolic_factorize_real_symmetric_matrix(&                                              
+            plan,&                                                                                              
             options,&
-            numElectronExact,&
-            muPEXSI,&
-            numElectronPEXSI,&
-            muMinInertia,&
-            muMaxInertia,&
-            numTotalInertiaIter,&
-            numTotalPEXSIIter,&
-            info)
-
-          !write(*,*) 'after f_ppexsi_dft_driver, iproc', iproc
+            info)                                                                                               
           
+          call f_timing(TCAT_PEXSI_FACTORIZATION,'OF')
+          if( info .ne. 0 ) then                                                                                
+              call mpi_finalize( ierr )                                                                         
+              call exit(info)
+          endif
+            
+            
+            
+          call f_timing(TCAT_PEXSI_INVERSE,'ON')
+          call f_ppexsi_selinv_real_symmetric_matrix(&                                                          
+            plan,& 
+            options,&
+            SnzvalLocal,&
+            invSnzvalLocal,&                                                                                    
+            info)                                                                                               
+          call f_timing(TCAT_PEXSI_INVERSE,'OF')
+                                                                                                                
           if( info .ne. 0 ) then
-            call mpi_finalize( ierr )
-            call exit(info)
-          endif
+              call mpi_finalize( ierr )
+              call exit(info)                                                                                   
+          endif                                                                                                 
           
-          
-          !if( iproc == 0 ) then
-          !  write(*,*)  "Finish DFT driver."
-          !endif
-          
-          if( isProcRead == 1 ) then
-            call f_ppexsi_retrieve_real_symmetric_dft_matrix(&
-              plan,&
-              DMnzvalLocal,&
-              EDMnzvalLocal,&
-              FDMnzvalLocal,&
-              totalEnergyH,&
-              totalEnergyS,&
-              totalFreeEnergy,&
-              info)
-          
-            if( iproc == 0 ) then
-                call yaml_mapping_open('Energies from PEXSI')
-                call yaml_map('Total energy (H*DM)',totalEnergyH)
-                call yaml_map('Total energy (S*EDM)',totalEnergyS)
-                call yaml_map('Total free energy',totalFreeEnergy)
-                call yaml_mapping_close()
-            endif
-          endif
-          
-          energy = totalEnergyH
+            
           
           
           ! Step 3. Clean up */
           
+          call f_timing(TCAT_PEXSI_FINALIZE,'ON')
           call f_ppexsi_plan_finalize( plan, info )
+          call f_timing(TCAT_PEXSI_FINALIZE,'OF')
           
           
-          ! Gather the local copies of the kernel
-          call f_zero(kernel)
+          ! Gather the local copies of the inverse
+          call f_zero(inv_ovrlp)
           do i=1,nvctr_local
               !write(*,*) 'iproc, i, isvctr_local+i-1', iproc, i, isvctr_local+i-1
-              kernel(isvctr_local+i-1) = DMnzvalLocal(i)
+              inv_ovrlp(isvctr_local+i-1) = invSnzvalLocal(i)
           end do
-          call mpiallred(kernel,mpi_sum,comm=readComm)
+          call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
+          call mpiallred(inv_ovrlp,mpi_sum,comm=readComm)
+          call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
-          !call mpi_finalize( ierr )
           
           if( isProcRead == 1 ) then
-            deallocate( colptrLocal )
-            deallocate( rowindLocal )
-            deallocate( HnzvalLocal )
-            deallocate( DMnzvalLocal )
-            deallocate( EDMnzvalLocal )
-            deallocate( FDMnzvalLocal )
+            call f_free(colptrLocal)
+            call f_free(rowindLocal)
+            call f_free(HnzvalLocal)
+            call f_free(SnzvalLocal)
+            call f_free(invSnzvalLocal)
           endif
 
         call f_free_ptr(col_ptr_local)
@@ -410,20 +322,23 @@ module pexsi
 
           call mpi_comm_free( readComm, ierr )
 
-      call mpibcast(energy, root=0, comm=bigdft_mpi%mpi_comm) 
-      call mpibcast(kernel, root=0, comm=bigdft_mpi%mpi_comm) 
+      call f_timing(TCAT_PEXSI_COMMUNICATE,'ON')
+      call mpibcast(inv_ovrlp, root=0, comm=comm) 
+      call f_timing(TCAT_PEXSI_COMMUNICATE,'OF')
 
-      if (iproc==0) call yaml_comment('PEXSI calculation of kernel finished',hfill='~')
+      if (iproc==0) call yaml_comment('SelInv calculation of inverse finished',hfill='~')
       
       call f_release_routine()
       
-      end subroutine pexsi_driver
+      end subroutine selinv_driver
 
 
 
-      subroutine distribute_matrix(iproc, nproc, nfvctr, nvctr, col_ptr, row_ind, mat_H, mat_S, &
-                 nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
-        use module_base
+      subroutine distribute_matrix(iproc, nproc, nfvctr, nvctr, col_ptr, row_ind, mat_S, &
+                 nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_s_local)
+        !use module_base
+        use dynamic_memory
+        use wrapper_mpi
         implicit none
 
         ! Calling arguments
@@ -433,14 +348,12 @@ module pexsi
         integer,intent(in) :: nvctr !< number of nonzero elements (global)
         integer,dimension(nfvctr),intent(in) :: col_ptr !< col_ptr from the CCS format
         integer,dimension(nvctr),intent(in) :: row_ind !< row_ind from the CCS format
-        real(kind=8),dimension(nvctr),intent(in) :: mat_h !< values of H
         real(kind=8),dimension(nvctr),intent(in) :: mat_s !< values of S
         integer,intent(out) :: nfvctr_local !< number of columns (local)
         integer,intent(out) :: nvctr_local !< number of nonzero elements (local)
         integer,intent(out) :: isvctr_local !< global index of the first local non-zero element for each MPI task
         integer,dimension(:),pointer,intent(out) :: col_ptr_local !< local part of col_ptr
         integer,dimension(:),pointer,intent(out) :: row_ind_local !< local part of row_ind
-        real(kind=8),dimension(:),pointer,intent(out) :: mat_h_local !< local entries of H
         real(kind=8),dimension(:),pointer,intent(out) :: mat_s_local !< local entries of S
 
         ! Local variables
@@ -470,7 +383,6 @@ module pexsi
 
         col_ptr_local = f_malloc_ptr(nfvctr_local+1,id='col_ptr_local')
         row_ind_local = f_malloc_ptr(nvctr_local,id='row_ind_local')
-        mat_h_local = f_malloc_ptr(nvctr_local,id='mat_h_local')
         mat_s_local = f_malloc_ptr(nvctr_local,id='mat_s_local')
 
         ! Local copy of col_ptr, with respect to the first local element
@@ -482,7 +394,6 @@ module pexsi
         ii = col_ptr_tmp(iproc*ncol+1)-1
         do i=1,nvctr_local
             row_ind_local(i) = row_ind(ii+i)
-            mat_h_local(i) = mat_h(ii+i)
             mat_s_local(i) = mat_s(ii+i)
         end do
 
@@ -530,4 +441,48 @@ module pexsi
    !!   end subroutine distribute_matrix
 
 
-end module pexsi
+    subroutine selinv_wrapper(iproc, nproc, comm, smats, smatl, ovrlp, np_sym_fact, inv_ovrlp)
+      use futile
+      use sparsematrix_base
+      use sparsematrix, only: transform_sparse_matrix
+      use sparsematrix_init, only: sparsebigdft_to_ccs
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm, np_sym_fact
+      type(sparse_matrix),intent(in) :: smats, smatl
+      type(matrices),intent(in) :: ovrlp
+      type(matrices),intent(out) :: inv_ovrlp
+    
+      ! Local variables
+      integer,dimension(:),allocatable :: row_ind, col_ptr
+      real(mp),dimension(:),allocatable :: ovrlp_large
+    
+      call f_routine(id='selinv_wrapper')
+    
+      !call write_pexsi_matrices(iproc, nproc, smatm, smats, ham%matrix_compr, ovrlp%matrix_compr)
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'ON')
+      row_ind = f_malloc(smatl%nvctr,id='row_ind')
+      col_ptr = f_malloc(smatl%nfvctr,id='col_ptr')
+      call sparsebigdft_to_ccs(smatl%nfvctr, smatl%nvctr, smatl%nseg, smatl%keyg, row_ind, col_ptr)
+      ! At the moment not working for nspin>1
+      ovrlp_large = sparsematrix_malloc(smatl, iaction=SPARSE_FULL, id='ovrlp_large')
+      if (smats%ntaskgroup/=1 .or. smatl%ntaskgroup/=1) then
+          call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='SPARSEMATRIX_RUNTIME_ERROR')
+      end if
+      call transform_sparse_matrix(iproc, smats, smatl, SPARSE_FULL, 'small_to_large', &
+           smat_in=ovrlp%matrix_compr, lmat_out=ovrlp_large)
+      call f_timing(TCAT_SMAT_TRANSFORMATION,'OF')
+      call selinv_driver(iproc, nproc, comm, smatl%nfvctr, smatl%nvctr, row_ind, col_ptr, &
+           ovrlp_large, np_sym_fact, inv_ovrlp%matrix_compr)
+    
+      call f_free(ovrlp_large)
+      call f_free(row_ind)
+      call f_free(col_ptr)
+    
+      call f_release_routine()
+    
+    end subroutine selinv_wrapper
+
+
+end module selinv

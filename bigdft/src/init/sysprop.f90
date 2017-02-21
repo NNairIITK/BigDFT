@@ -31,12 +31,13 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use locreg_operations
   use locregs_init, only: initLocregs
   use orbitalbasis
+  use chess_base, only: chess_init
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
   integer, intent(out) :: input_wf_format, lnpsidim_orbs, lnpsidim_comp
   type(f_enumerator), intent(inout) :: inputpsi
-  type(input_variables), intent(in) :: in 
+  type(input_variables), intent(inout) :: in !SM: I had to change this to inout due to the new CheSS parameters within input_variables, maybe to be changed again later...
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
   logical, intent(in) :: OCLconv
@@ -103,8 +104,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       end do
   end if
 
+  ! Initialize the object holding the CheSS parameters
+  call chess_init(in%chess_dict, in%cp)
+
   if (present(denspot)) then
-     call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
+     call initialize_DFT_local_fields(denspot, in%ixc, in%nspin, in%alpha_hartree_fock)
 
      !here the initialization of dpbox can be set up
      call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &
