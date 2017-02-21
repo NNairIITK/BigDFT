@@ -663,17 +663,11 @@ WARN_LOGFILE           = doxygen.warnings
 #                          @abs_top_srcdir@/AUTHORS @abs_top_srcdir@/NEWS @abs_top_srcdir@/COPYING @abs_top_srcdir@/INSTALL \
 #                          @abs_top_srcdir@/flib @abs_top_srcdir@/src/modules @abs_top_srcdir@/PSolver @abs_top_srcdir@/tests @abs_top_srcdir@/src/external.f90
 INPUT                 = @abs_top_srcdir@/README \
-                        @abs_top_srcdir@/doc/README \
                         @abs_top_srcdir@/AUTHORS \
                         @abs_top_srcdir@/NEWS \
                         @abs_top_srcdir@/COPYING \
                         @abs_top_srcdir@/INSTALL \
-                        @abs_top_srcdir@/src/modules/bigdft_run.f90 \
-                        @abs_top_srcdir@/src/BigDFT.f90 \
-                        @abs_top_srcdir@/src/cluster.f90 \
-                        @abs_top_srcdir@/src/external.f90 \ 
-                        @abs_top_srcdir@/src/linear/getLocBasis.f90 \
-                        @abs_top_srcdir@/src/linear/linearScaling.f90
+                        @abs_top_srcdir@/src
                         
 
 

@@ -4,7 +4,6 @@ EXTRA_DIST = \
 
 CLEANFILES = *.aux *.toc *.log *.xml
 
-#doc_DATA=$(doxygen-doc)
 
 if BUILD_DEVDOC
 insdevdocs = install-devdoc
@@ -29,13 +28,14 @@ doxygen-doc: Doxygen/html
 
 Doxygen/html: Doxygen.stamp web.stamp
 
-Doxygen.stamp: $(builddir)/Doxyfile
+Doxygen.stamp: $(top_builddir)/config/Doxyfile
 	\rm -rf Doxygen;\
-	doxygen $(builddir)/Doxyfile; \
+	doxygen $(top_builddir)/config/Doxyfile; \
 	touch Doxygen.stamp
 
 web.stamp: Doxygen.stamp
 	touch web.stamp
+
 
 clean-local:
 	rm -rf Doxygen lcov* *.aux *.log  *.toc Doxygen *.stamp doxygen.warnings

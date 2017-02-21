@@ -127,7 +127,10 @@ dnl AC_SUBST(LIB_PSOLVER_PKG)
 dnl LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIB_FUTILE_LIBS"
 dnl AC_SUBST(LIB_PSOLVER_DEPS)
 
-AX_DOC()
+
+dnl default installation directories
+docdir="${docdir}"
+AC_SUBST(docdir)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
@@ -135,8 +138,8 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 psolver.pc
+config/Doxyfile
 doc/Makefile
-doc/Doxyfile
 src/configure.inc
 src/Makefile
 tests/Makefile
