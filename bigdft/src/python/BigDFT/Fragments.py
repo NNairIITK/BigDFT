@@ -7,7 +7,7 @@ class XYZfile():
         self.units=units
         self.fac=1.0
         if units == 'angstroem': self.fac=AU_to_A
-    def append(self,array,basename='',names=None):
+    def append(self,array,basename='',names=None,attributes=None):
         "Add lines to the file position list"
         nm=basename
         for i,r in enumerate(array):
@@ -15,6 +15,7 @@ class XYZfile():
             line=str(nm)
             for t in r:
                 line+=' '+str(self.fac*t)
+            if attributes is not None: line+=' '+str(attributes[i])
             self.lines.append(line+'\n')
     def dump(self,position='w'):
         "Dump the file as it is now ready for writing"
@@ -275,10 +276,10 @@ class System():
     def xyz(self,filename=None,units='atomic'):
         import numpy as np
         f=XYZfile(filename,units)
-        for frag in self.fragments:
+        for i,frag in enumerate(self.fragments):
             names=[ frag.element(at) for at in frag.atoms]
             posarr=[ np.ravel(r) for r in frag.positions]
-            f.append(posarr,names=names)
+            f.append(posarr,names=names,attributes=[{'frag': [frag.id, i+1]}]*len(frag))
         f.dump()
     def dict(self,filename=None):
         atoms=[]
@@ -312,7 +313,8 @@ class System():
         try:
             import wahba
             roto,translation,J=wahba.rigid_transform_3D(frag1.positions,frag2.positions)
-        except:
+        except Exception,e:
+            print 'Error',e
             roto,translation,J=(None,None,1.0e10)
         return roto,translation,J
     def decompose(self,reference_fragments):

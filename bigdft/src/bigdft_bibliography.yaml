@@ -82,3 +82,23 @@ Bitzek2006:
     doi = {10.1103/PhysRevLett.97.170201}
     }
   DESCRIPTION: FIRE, a damped MD minimizer
+Ratcliff2015:
+  DESCRIPTION: Fragment approach in BigDFT
+  JOURNAL_REF: J. Chem. Phys. 142, 234105 (2015)
+  BIBTEX_REF: |
+    @article{Ratcliff2015,
+    author = {Laura E. Ratcliff and Luigi Genovese and Stephan Mohr and Thierry Deutsch},
+    title = {Fragment approach to constrained density functional theory calculations using Daubechies wavelets},
+    journal = {The Journal of Chemical Physics},
+    volume = {142},
+    number = {23},
+    pages = {234105},
+    year = {2015},
+    doi = {10.1063/1.4922378},
+    URL = { 
+            http://dx.doi.org/10.1063/1.4922378
+    },
+    eprint = { 
+            http://dx.doi.org/10.1063/1.4922378
+    }
+    }
