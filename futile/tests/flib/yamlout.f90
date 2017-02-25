@@ -94,6 +94,7 @@ subroutine test_yaml_output1()
     call yaml_map('bounds',(/0.762,  1.181/))
     call yaml_map('exp accur',(/1.32E-14,1.51E-14,1.73E-14/),fmt='(es9.2)')
    call yaml_mapping_close()
+   !call yaml_newline() !this is enough for the bug to hide
    call yaml_map('correction orthoconstraint',.true.)
    call yaml_map('Preconditioning',.true.)
    call yaml_map('rel D',-1.2345678)

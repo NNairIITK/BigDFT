@@ -5,6 +5,8 @@ pybigdft_PYTHON= \
 	DoS.py \
 	BZ.py \
 	Logfiles.py \
+        Fragments.py \
+        wahba.py \
 	Calculators.py
 
 pybigdftdir= $(pythondir)/BigDFT

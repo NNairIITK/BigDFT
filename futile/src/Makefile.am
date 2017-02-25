@@ -1,3 +1,4 @@
+
 # To be installed:
 dynlibdir        = $(libdir)
 lib_LIBRARIES    = libfutile-1.a
