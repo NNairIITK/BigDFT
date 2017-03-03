@@ -111,6 +111,22 @@ def clean_logfile(logfile_lines,to_remove):
     print 'Difference: ',list(set(to_remove) - set(removed) )
   return cleaned_logfile
 
+def dump(data,filename=None,raw=False,tar=None):
+    todump=str(data) if raw else yaml.dump(data)
+    if filename:
+        if tar:
+            import tarfile
+            from cStringIO import StringIO
+            f=tarfile.TarInfo(filename)
+            f.size=len(str(todump))
+            tar.addfile(f,StringIO(str(todump)))
+        else:
+            f=open(filename,'w')
+            f.write(todump)
+    else:
+        import sys
+        sys,stdout.write(todump)
+
 class YamlDB(dict):
     """Yaml Database, read from a file or a stream
     Attributes:

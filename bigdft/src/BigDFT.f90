@@ -11,13 +11,15 @@
 program BigDFT
   use module_base
   use bigdft_run
+  use public_keys, only: SKIP_RUN
   implicit none 
   !input variables
   type(run_objects) :: runObj
   !output variables
-  type(state_properties) :: outs
+  logical :: skip
   integer :: ierr
   character(len=60) :: posinp_id
+  type(state_properties) :: outs
   type(dictionary), pointer :: run,options
 
   call f_lib_initialize()
@@ -39,6 +41,14 @@ program BigDFT
      !     do while(valid_dataset(runObj,on=run))
      
      call run_objects_init(runObj,run)
+
+     skip=.false.
+     skip=run .get. SKIP_RUN
+     if (skip) then
+        run => dict_next(run)
+        cycle
+     end if
+
      call init_state_properties(outs,bigdft_nat(runObj))
      call bigdft_get_run_properties(run, posinp_id = posinp_id)
 

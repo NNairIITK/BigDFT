@@ -1232,14 +1232,15 @@ contains
 
   !> Read all input files and create the objects to run BigDFT
   recursive subroutine run_objects_init(runObj,run_dict,source)
-    use module_base, only: bigdft_mpi,dict_init
+    use module_base, only: bigdft_mpi
     use module_types
     use module_input_dicts, only: create_log_file
     use module_input_keys, only: user_dict_from_files
     use yaml_output
     use dynamic_memory
+    use dictionaries
     use module_f_objects
-    use public_keys, only: PY_HOOKS, PLUGINS
+    use public_keys, only: PY_HOOKS, PLUGINS, SKIP_RUN
     implicit none
     !> Object for BigDFT run. Has to be initialized by this routine in order to
     !! call bigdft main routine.
@@ -1259,7 +1260,7 @@ contains
     !! which are provided by the informations given by run_dict
     type(run_objects), intent(in), optional :: source
     !local variables
-    logical :: dict_from_files
+    logical :: dict_from_files,skip
     integer :: i, ierr
     character(len=max_field_length) :: radical, posinp_id
     type(signal_ctx) :: sig
@@ -1280,7 +1281,12 @@ contains
        !stop
        !here the control of the logfile can be inserted, driven by run_dict and
        ! not anymore by user_inputs
-       call create_log_file(run_dict,dict_from_files)
+       call create_log_file(run_dict,dict_from_files,skip)
+       if (skip) then
+          call set(run_dict//SKIP_RUN,.true.)
+          return
+       end if
+
        if (dict_from_files) then
           ! Generate input dictionary.
           call dict_copy(runObj%user_inputs, run_dict)
@@ -1490,7 +1496,7 @@ contains
     !! on exit, it contains in the key "BigDFT", a list of the
     !! dictionaries of each of the run that the local instance of BigDFT
     !! code has to execute.
-    !! if this argument is not present, the code is only initialized
+    !! if this argument is not present, the code environment is only initialized
     !! in its normal mode: no taskgroups and default values of radical and posinp
     type(dictionary), pointer, optional :: options
     logical, intent(in), optional :: with_taskgroups
