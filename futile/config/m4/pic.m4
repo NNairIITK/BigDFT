@@ -144,7 +144,7 @@ AC_DEFUN([AX_FLAG_PIC],
   }
   dnl first test the name of the compiler
   AC_MSG_CHECKING([for compiler basename of $FC])
-  test_compiler_id $FC
+  test_compiler_id "$FC"
   AC_MSG_RESULT([$compiler_basename])
   dnl then retrieve from the database the presumed option for pic compilation
   test_compiler_options $compiler_basename
@@ -185,7 +185,7 @@ int api_func()
   }
   dnl first test the name of the compiler
   AC_MSG_CHECKING([for compiler basename of $CC])
-  test_compiler_id $CC
+  test_compiler_id "$CC"
   AC_MSG_RESULT([$compiler_basename])
   dnl then retrieve from the database the presumed option for pic compilation
   test_compiler_options $compiler_basename
