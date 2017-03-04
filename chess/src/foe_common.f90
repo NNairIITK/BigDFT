@@ -944,12 +944,11 @@ module foe_common
 
         call f_routine(id='retransform_ext')
 
-
         ! Check the arguments
         select case (onesided_action)
         case (ONESIDED_POST,ONESIDED_GATHER)
-            if (.not.present(windowsx)) call f_err_throw('windowsx not present')
             if (nproc>1) then
+               if (.not.present(windowsx)) call f_err_throw('windowsx not present')
                 if (size(windowsx)/=smat%ntaskgroup) then
                     call f_err_throw('size(windowsx)='//trim(yaml_toa(size(windowsx))) //&
                          &' /= smat%ntaskgroup='//trim(yaml_toa(smat%ntaskgroup)))
