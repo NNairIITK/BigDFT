@@ -1264,6 +1264,7 @@ module module_input_dicts
   public :: occupation_data_file_merge_to_dict
   public :: dict_set_run_properties,dict_get_run_properties,dict_run_new,bigdft_options
   public :: set_dict_run_file,create_log_file,dict_run_validate,read_input_dict_from_files
+  public :: final_positions_filename
 
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
@@ -1677,8 +1678,8 @@ contains
     logical :: log_to_disk,skip_tmp,exists
     integer :: lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
-    character(len = max_field_length) :: writing_directory, run_name
-    character(len=500) :: logfilename,path
+    character(len = max_field_length) :: writing_directory, run_name,posinp_id
+    character(len=500) :: logfilename,path,filename
     integer :: iproc_node, nproc_node
 
     ! Get user input writing_directory.
@@ -1711,9 +1712,10 @@ contains
 
     if(present(skip)) skip=.false.
     if (log_to_disk .and. skip_tmp .and. present(skip)) then
-       call dict_get_run_properties(dict, naming_id = run_name)
+       call dict_get_run_properties(dict, naming_id = run_name, posinp_id = posinp_id)
        logfilename = "log"//trim(run_name)//".yaml"
        call f_file_exists(trim(writing_directory)//trim(logfilename),skip)
+       if (skip) call final_file_exists(posinp_id,skip)          
        if (skip) return
     end if
 
@@ -1783,6 +1785,49 @@ contains
     if (USE_FILES .in. dict) dict_from_files = dict // USE_FILES
 
   END SUBROUTINE create_log_file
+
+  pure subroutine final_positions_filename(singlepoint,id,filename)
+    use yaml_strings
+    implicit none
+    logical, intent(in) :: singlepoint
+    character(len=*), intent(in) :: id
+    character(len=*), intent(out) :: filename
+    if (singlepoint) then
+       call f_strcpy(src='forces_'+id,dest=filename)
+    else
+       call f_strcpy(src='final_'+id,dest=filename)
+    end if
+  end subroutine final_positions_filename
+
+  !> get the information about the final file position
+  subroutine final_file_exists(id,exists)
+    use f_utils
+    use yaml_strings
+    use yaml_output, only: yaml_map
+    implicit none
+    character(len=*), intent(in) :: id
+    logical, intent(out) :: exists
+    !local variables
+    integer, parameter :: next=4
+    character(len=5), dimension(next), parameter :: exts=['xyz  ','yaml ','ascii','int  ']
+    integer :: iext
+    character(len=128) :: filename
+
+    exists=.false.
+    do iext=1,next
+       !search if the file witnessing the successful end exists
+       !try both single point or not
+       call final_positions_filename(.false.,id,filename)
+       call f_file_exists(filename+'.'+exts(iext),exists)
+       if (exists) exit
+       call final_positions_filename(.true.,id,filename)
+       call f_file_exists(filename+'.'+exts(iext),exists)
+       if (exists) exit
+    end do
+    if (exists) call yaml_map('<BigDFT> Run already performed, found final file',&
+           filename+'.'+exts(iext),unit=6)
+
+  end subroutine final_file_exists
 
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse

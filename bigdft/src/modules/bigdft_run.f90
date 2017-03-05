@@ -19,7 +19,8 @@ module bigdft_run
   use f_utils
   use f_enums, f_str => str
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
-       bigdft_get_run_properties => dict_get_run_properties
+       bigdft_get_run_properties => dict_get_run_properties,&
+       final_positions_filename
   use public_enums
 
   private
@@ -1260,12 +1261,12 @@ contains
     !! which are provided by the informations given by run_dict
     type(run_objects), intent(in), optional :: source
     !local variables
-    logical :: dict_from_files,skip
+    logical :: dict_from_files,skip,exists
     integer :: i, ierr
     character(len=max_field_length) :: radical, posinp_id
     type(signal_ctx) :: sig
     type(dictionary), pointer :: iter
-    character(len = 256) :: mess
+    character(len = 256) :: mess,filename
 
     call f_routine(id='run_objects_init')
 
@@ -1283,8 +1284,8 @@ contains
        ! not anymore by user_inputs
        call create_log_file(run_dict,dict_from_files,skip)
        if (skip) then
-          call set(run_dict//SKIP_RUN,.true.)
-          return
+             call set(run_dict//SKIP_RUN,.true.)
+             return
        end if
 
        if (dict_from_files) then
@@ -2094,12 +2095,14 @@ contains
     end if
 
     if (runObj%inputs%ncount_cluster_x > 1) then
-       call f_strcpy(src='final_'+id,dest=filename)
+       !call f_strcpy(src='final_'+id,dest=filename)
+       call final_positions_filename(.false.,id,filename)
        call bigdft_write_atomic_file(runObj,outs,filename,&
             'FINAL CONFIGURATION',cwd_path=.true.)
 
     else
-       call f_strcpy(src='forces_'+id,dest=filename)
+       !call f_strcpy(src='forces_'+id,dest=filename)
+       call final_positions_filename(.true.,id,filename)
        call bigdft_write_atomic_file(runObj,outs,filename,&
             'Geometry + metaData forces',cwd_path=.true.)
 

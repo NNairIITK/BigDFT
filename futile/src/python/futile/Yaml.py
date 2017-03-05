@@ -117,8 +117,10 @@ def dump(data,filename=None,raw=False,tar=None):
         if tar:
             import tarfile
             from cStringIO import StringIO
+            import time
             f=tarfile.TarInfo(filename)
             f.size=len(str(todump))
+            f.mtime=time.time()
             tar.addfile(f,StringIO(str(todump)))
         else:
             f=open(filename,'w')

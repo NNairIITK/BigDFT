@@ -108,6 +108,10 @@ module dictionaries
       module procedure list_container_if_key_exists
    end interface
 
+   interface dict_get
+      module procedure dict_get_l
+   end interface dict_get
+
    interface dict_iter
       module procedure dict_iter, dict_iter_lc
    end interface
@@ -131,6 +135,7 @@ module dictionaries
    !> Handle exceptions
    public :: dict_len,dict_size,dict_key,dict_item,dict_value,dict_next,dict_next_build,find_key
    public :: dict_new,list_new,dict_iter,has_key,dict_keys,dict_islist,dict_isdict,dict_isscalar
+   public :: dict_get
    !> Public elements of dictionary_base
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)
@@ -1346,6 +1351,17 @@ contains
      elem%dict=>val
    end function item_dict
    
+   !> dictionary getter, inspired from get method of python dict class
+   function dict_get_l(dict,key,default) result(val)
+     implicit none
+     type(dictionary), pointer :: dict
+     character(len=*), intent(in) :: key
+     logical, intent(in) :: default
+     logical :: val
+     val=default
+     val=dict .get. key
+   end function dict_get_l
+
    !> Internal procedure for .get. operator interface
    function list_container_if_key_exists(dict,key) result(list)
      implicit none

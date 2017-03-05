@@ -778,7 +778,7 @@ contains
     character(len=128) :: filename,stream_out
     strm=stream_id(unit=unit)
     if (associated(streams(strm)%dict_references)) then
-       call get_stream_filename(unit,stream_out)
+       call get_stream_filename(streams(strm)%unit,stream_out)
        call get_bib_filename(stream_out,filename)
        call yaml_newline(unit=unit)
        call yaml_comment('This program used features described in the following reference papers.',hfill='-',unit=unit)
@@ -2530,9 +2530,10 @@ contains
        call get_stream(unt,strm,istat)
        if (.not. associated(streams(strm)%dict_references)) then
           call dict_init(streams(strm)%dict_references)
-          call get_stream_filename(unt,stream_out)
+          call get_stream_filename(streams(strm)%unit,stream_out)
           call get_bib_filename(stream_out,filename)
           unitfile=100
+
           call f_open_file(unitfile,filename)
           write(unitfile,'(a)')'% This program used features described in the following reference papers.'
           write(unitfile,'(a)')'% Please consider citing these papers when using the results for scientific output.'
@@ -2540,7 +2541,7 @@ contains
        end if
        if (paper .notin. streams(strm)%dict_references) then
           call add(streams(strm)%dict_references,paper)
-          call get_stream_filename(unt,stream_out)
+          call get_stream_filename(streams(strm)%unit,stream_out)
           call get_bib_filename(stream_out,filename)
           unitfile=100
           call f_open_file(unitfile,filename,position='append')
