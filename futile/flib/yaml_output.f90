@@ -1338,7 +1338,7 @@ contains
           icut=len_trim(mapvalue)-istr+1
           !print *,'icut',istr,icut,mapvalue(istr:istr+icut-1),cut,istr+icut-1,len_trim(mapvalue)
           msg_lgt=0
-         if (idbg==1000) exit cut_line !to avoid infinite loops
+         if (idbg==1000 .or. istr> len(mapvalue)) exit cut_line !to avoid infinite loops
        end do cut_line
        if (.not.streams(strm)%flowrite) call yaml_mapping_close(unit=unt)
     end if

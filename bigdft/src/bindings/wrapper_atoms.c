@@ -136,7 +136,7 @@ BigDFT_Atoms* bigdft_atoms_new_from_fortran(f90_atoms_data_pointer at)
   bigdft_atoms_init(atoms);
 #endif
   atoms->data = at;
-  FC_FUNC_(atoms_get, ATOMS_get)(F_TYPE(atoms->data), &atoms->astruct, &atoms->sym);
+  FC_FUNC_(atoms_get, ATOMS_GET)(F_TYPE(atoms->data), &atoms->astruct, &atoms->sym);
   bigdft_atoms_copy_from_fortran(atoms);
 
   return atoms;

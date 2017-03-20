@@ -1299,25 +1299,16 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
  call fourier_dim(l1,n1)
  if (n1 /= m1) then
-    !print *,'the FFT in the x direction is not allowed'
-    !print *,'n01 dimension',n01
-    !stop
     call f_err_throw('The FFT in the x direction is not allowed, n01 dimension '//n01)
  end if
 
  call fourier_dim(l2,n2)
  if (n2 /= m2) then
-    !print *,'the FFT in the z direction is not allowed'
-    !print *,'n03 dimension',n03
-    !stop
     call f_err_throw('The FFT in the z direction is not allowed, n03 dimension '//n03)
  end if
  
  call fourier_dim(l3,n3)
  if (n3 /= m3) then
-    !print *,'the FFT in the y direction is not allowed'
-    !print *,'n02 dimension',n02
-    !stop
     call f_err_throw('The FFT in the y direction is not allowed, n02 dimension '//n02)
  end if
 
@@ -1329,11 +1320,8 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
 
  !enlarge the md2 dimension to be compatible with MPI_ALLTOALL communication
  do while(nproc*(md2/nproc) < n2)
-    !151 if (nproc*(md2/nproc) < n2) then
     md2=md2+1
  end do
-!    goto 151
- !endif
  
  if (enlarge_md2) md2=(md2/nproc+1)*nproc
 
@@ -1345,10 +1333,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  
  !enlarge the md2 dimension to be compatible with MPI_ALLTOALL communication
  do while(modulo(nd3,nproc) /= 0)
-!250 if (modulo(nd3,nproc) /= 0) then
     nd3=nd3+1
-!    goto 250
-! endif
  end do
 
 END SUBROUTINE P_FFT_dimensions

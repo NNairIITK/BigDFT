@@ -1,4 +1,5 @@
 AU_to_A=0.52917721092
+Debye_to_AU = 0.393430307
 
 class XYZfile():
     def __init__(self,filename=None,units='atomic'):
@@ -143,6 +144,17 @@ class Fragment():
     def centroid(self):
         import numpy
         return numpy.ravel(numpy.mean(self.positions, axis=0))
+    def center_of_charge(self,zion):
+        cc=0.0
+        qtot=0.0
+        for at in self.atoms:
+            netcharge=at.get('q0')[0]
+            sym=self.element(at)
+            zcharge=zion[sym]
+            elcharge=zcharge-netcharge
+            cc+=elcharge*self.rxyz(at)
+            qtot+=elcharge
+        return cc/qtot
     def transform(self,R=None,t=None):
         "Apply a rototranslation of the fragment positions"
         import wahba as w,numpy as np

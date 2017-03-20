@@ -111,6 +111,14 @@ def clean_logfile(logfile_lines,to_remove):
     print 'Difference: ',list(set(to_remove) - set(removed) )
   return cleaned_logfile
 
+def load(file=None,stream=None):
+    strm=stream if stream else open(file,'r')
+    try:
+        ld=yaml.load(strm,Loader=yaml.CLoader)
+    except:
+        ld=yaml.load_all(strm,Loader=yaml.CLoader)
+    return ld
+
 def dump(data,filename=None,raw=False,tar=None):
     todump=str(data) if raw else yaml.dump(data)
     if filename:

@@ -38,39 +38,11 @@ module lanczos_base
    contains
 
    subroutine LB_allocate_for_chebychev( )
-      !not associated at initialisation
-      !if(associated(LB_alpha_cheb )) then
-      !   call  LB_de_allocate_for_cheb ( )
-      !endif
-
-      if(LB_norbp.gt.0) then
-         LB_alpha_cheb = f_malloc_ptr((/ 1.to.LB_norbp, 0.to. 3*LB_nsteps /),id='LB_alpha_cheb')
-      else
-         LB_alpha_cheb = f_malloc_ptr((/ 1.to.LB_norbp+1, 0.to. 3*LB_nsteps /),id='LB_alpha_cheb')
-      endif
-
-
-      !    allocate(LB_alpha(0: 3*LB_nsteps+ndebug ) , stat=i_stat)
-      !    call memocc(i_stat,LB_alpha,'LB_alpha',subname)
-
-      !    allocate(LB_beta(0: 1+ndebug ) , stat=i_stat)
-      !    call memocc(i_stat,LB_beta,'LB_beta',subname)
-
-      !    allocate(omega( 0:1,  0:1    +ndebug  )  , stat=i_stat)
-      !    call memocc(i_stat,omega,'omega',subname)
-
-
-      !    allocate(evect( 0:1,  0:1   +ndebug )   , stat=i_stat)
-      !    call memocc(i_stat,evect,'evect',subname)
-
-      !    allocate(LB_eval(0: 1+ndebug )   , stat=i_stat)
-      !    call memocc(i_stat,LB_eval,'LB_eval',subname)
-
-      !    allocate(diagwork( 0:1*(3+1)+ndebug   )  , stat=i_stat)
-      !    call memocc(i_stat,diagwork,'diagwork',subname)
-
-      !    allocate(oldalpha (0: 1 +ndebug )        , stat=i_stat  )
-      !    call memocc(i_stat,oldalpha,'oldalpha',subname)
+     !if(LB_norbp.gt.0) then
+         LB_alpha_cheb = f_malloc_ptr((/ 1.to.max(LB_norbp,1), 0.to. 3*LB_nsteps /),id='LB_alpha_cheb')
+     ! else
+     !    LB_alpha_cheb = f_malloc_ptr((/ 1.to.LB_norbp+1, 0.to. 3*LB_nsteps /),id='LB_alpha_cheb')
+     ! endif
 
    END SUBROUTINE LB_allocate_for_chebychev
 

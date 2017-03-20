@@ -42,6 +42,8 @@ program BigDFT
      !     do while(valid_dataset(runObj,on=run))
      
      call run_objects_init(runObj,run)
+     !skip this run if after initialisation if told to be so
+     !in the SKIP_RUN key
      if (dict_get(run,SKIP_RUN,.false.)) cycle
 
      call init_state_properties(outs,bigdft_nat(runObj))

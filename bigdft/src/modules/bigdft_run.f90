@@ -1395,36 +1395,12 @@ contains
     ! Create sections if any.
     call set_section_objects(runObj)
 
-!!$    !init and update the restart objects
-!!$    if (associated(runObj%rst)) then
-!!$       call f_unref(runObj%rst%refcnt,count=count)
-!!$       if (count==0) then
-!!$          call free_QM_restart_objects(runObj%rst)
-!!$       else
-!!$          nullify(runObj%rst)
-!!$       end if
-!!$    else
-!!$       allocate(runObj%rst)
-!!$    end if
-!!$    call nullify_QM_restart_objects(runObj%rst)
     if(.not. associated(runObj%rst)) then
        allocate(runObj%rst)
        call nullify_QM_restart_objects(runObj%rst)
     end if
     call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
          runObj%rst)
-!!$    if (associated(runObj%mm_rst)) then
-!!$       call f_unref(runObj%mm_rst%refcnt,count=count)
-!!$       if (count==0) then
-!!$          call free_MM_restart_objects(runObj%mm_rst)
-!!$       else
-!!$          nullify(runObj%mm_rst)
-!!$       end if
-!!$    else
-!!$       allocate(runObj%mm_rst)
-!!$    end if
-!!$    !call free_MM_restart_objects(runObj%mm_rst)
-!!$    call nullify_MM_restart_objects(runObj%mm_rst)
     if (.not. associated(runObj%mm_rst)) then
        allocate(runObj%mm_rst)
        call nullify_MM_restart_objects(runObj%mm_rst)
