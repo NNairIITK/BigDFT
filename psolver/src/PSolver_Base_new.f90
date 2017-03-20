@@ -60,7 +60,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
           kernel%grid%nd1,kernel%grid%nd2,kernel%grid%nd3,&
           kernel%grid%md1,kernel%grid%md2,kernel%grid%md3,&
           kernel%kernel,zf,&
-          kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
+          kernel%grid%scal,kernel%mesh,offset,strten)
      call f_timing(TCAT_PSOLV_COMPUT,'ON')
 
     if (updaterho) then
@@ -288,13 +288,14 @@ end subroutine finalize_hartree_results
 !> Parallel version of Poisson Solver
 !! General version, for each boundary condition
 subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,geocode,ncplx,&
-     n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,hx,hy,hz,offset,strten)
+     n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,mesh,offset,strten)
   use Poisson_Solver, only: dp, gp, TCAT_PSOLV_COMMUN,TCAT_PSOLV_COMPUT
   use wrapper_mpi
   !use memory_profiling
   use time_profiling, only: f_timing
   use dynamic_memory
   use dictionaries ! for f_err_throw
+  use box
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -303,7 +304,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
   integer, intent(in) :: ncplx
   integer, intent(in) :: planes_comm,inplane_comm,iproc_inplane
-  real(gp), intent(in) :: scal,hx,hy,hz,offset
+  real(gp), intent(in) :: scal,offset
+  type(cell), intent(in) :: mesh
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
   real(dp), dimension(6), intent(out) :: strten !< non-symmetric components of Ha stress tensor
@@ -703,7 +705,7 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
 
             if (geocode == 'P') then
               call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread),&
-                   i3,hx,hy,hz,offset,scal,strten_omp)
+                   i3,mesh%hgrids(1),mesh%hgrids(2),mesh%hgrids(3),offset,scal,strten_omp)
              else
                 !write(*,*) 'pot(1,1,j3) = ', pot(1,1,j3)
                 call multkernel(nd1,nd2,n1,n2,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread))

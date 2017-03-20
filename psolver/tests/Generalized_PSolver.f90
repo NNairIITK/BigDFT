@@ -400,7 +400,9 @@ program GPS_3D
    else if (Fgrid) then
     pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsf,hgridsf)
    else
-    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/beta,alpha,gamma/))
+      !pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/beta,alpha,gamma/))
+      pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,&
+           alpha_bc=alpha,beta_ac=beta,gamma_ab=gamma)
    end if
 
   call dict_free(dict_input)

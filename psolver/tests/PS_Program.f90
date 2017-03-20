@@ -167,7 +167,9 @@ program PSolver_Program
   !call timing(nproc,'time.prc','IN')
  
   karray=pkernel_init(iproc,nproc,dict,&
-       geocode,ndims,(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
+       geocode,ndims,(/hx,hy,hz/),&
+       alpha_bc=beta,beta_ac=alpha,gamma_ab=gamma)
+
   call pkernel_set(karray,verbose=.true.)
 
   !Allocations

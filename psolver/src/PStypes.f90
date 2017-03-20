@@ -491,13 +491,14 @@ contains
 
   !> Initialization of the Poisson kernel
   !! @ingroup PSOLVER
-  function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
+  function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,alpha_bc,beta_ac,gamma_ab,mpi_env) result(kernel)
     use yaml_output
     use dictionaries
     use numerics
     use wrapper_MPI
     use f_enums
     use psolver_environment
+    use box, only: cell_new
     use f_input_file, only: input_file_dump
     implicit none
     integer, intent(in) :: iproc      !< Proc Id
@@ -506,34 +507,44 @@ contains
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     integer, dimension(3), intent(in) :: ndims
     real(gp), dimension(3), intent(in) :: hgrids
-    real(gp), dimension(3), intent(in), optional :: angrad
+    !real(gp), dimension(3), intent(in), optional :: angrad
+    real(gp), intent(in), optional :: alpha_bc,beta_ac,gamma_ab
     type(mpi_environment), intent(in), optional :: mpi_env
     type(coulomb_operator) :: kernel
     !local variables
     integer :: nthreads,group_size,taskgroup_size
-!    real(gp), dimension(3) :: angrad_new
+    real(gp), dimension(3) :: angrad
     !$ integer :: omp_get_max_threads
 
     !nullification
     kernel=pkernel_null()
 
+    angrad=onehalf*pi
+    if (present(alpha_bc)) angrad(1)=alpha_bc
+    if (present(beta_ac)) angrad(2)=beta_ac
+    if (present(gamma_ab)) angrad(3)=gamma_ab
+
+    !mesh initialization
+    kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
+
+    !these parts should be removed
     !geocode and ISF family
     kernel%geocode=geocode
     !dimensions and grid spacings
     kernel%ndims=ndims
     kernel%hgrids=hgrids
 
-    if (present(angrad)) then
+!!    if (present(angrad)) then
 !       ! TO BE CLARIFIED WHY ARE INVERTED!!!
 !       angrad_new(1)=angrad(2)
 !       angrad_new(2)=angrad(1)
 !       angrad_new(3)=angrad(3)
 !       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
-       kernel%angrad=angrad
-    else
+       kernel%angrad=[angrad(2),angrad(1),angrad(3)]
+!!    else
 !       kernel%mesh=cell_new(geocode,ndims,hgrids)
-       kernel%angrad=onehalf* [ pi, pi, pi ]
-    end if
+!!       kernel%angrad=onehalf* [ pi, pi, pi ]
+!!    end if
 
     !new treatment for the kernel input variables
     kernel%method=PS_VAC_ENUM

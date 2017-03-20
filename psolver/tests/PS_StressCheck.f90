@@ -306,8 +306,9 @@ program PS_StressCheck
   
 
   karray=pkernel_init(iproc,nproc,dict,&
-       geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/beta,alpha,gamma/))
-!  call dict_free(input)
+       geocode,(/n01,n02,n03/),(/hx,hy,hz/),&
+       alpha_bc=beta,beta_ac=alpha,gamma_ab=gamma)
+
   call pkernel_set(karray,verbose=.true.)
 
   !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
@@ -496,7 +497,8 @@ program PS_StressCheck
      !call timing(0,'             ','IN')
 
      karray=pkernel_init(0,1,dict,&
-          geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
+          geocode,(/n01,n02,n03/),(/hx,hy,hz/),&
+          alpha_bc=alpha,beta_ac=beta,gamma_ab=gamma)
      call dict_free(dict)
 
      call pkernel_set(karray,verbose=.true.)
