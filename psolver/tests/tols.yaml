@@ -97,15 +97,16 @@ PS_Check:
   itermax: 150.0
 PS_StressCheck:
   Ehartree: 9.1e-13
-  Max diff: 1.8e-15
+  Max diff: 3.6e-15
   offset: 1.3e-11
   potential integral: 8.0e-12
   stress analytical x: 1.2e-14
   stress analytical y: 3.04e-14
   stress analytical z: 3.25e-14
-  stress analytical: 1.6e-14
+  stress analytical: 1.61e-14
   stress psolver trace: 1.47e-15
   stress psolver x: 1.0e-14
+  stress psolver y: 5.5e-16
   stress psolver z: 1.0e-14
   Keys to ignore:
     - Max diff at

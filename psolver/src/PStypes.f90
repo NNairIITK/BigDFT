@@ -534,17 +534,7 @@ contains
     kernel%ndims=ndims
     kernel%hgrids=hgrids
 
-!!    if (present(angrad)) then
-!       ! TO BE CLARIFIED WHY ARE INVERTED!!!
-!       angrad_new(1)=angrad(2)
-!       angrad_new(2)=angrad(1)
-!       angrad_new(3)=angrad(3)
-!       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
-       kernel%angrad=[angrad(2),angrad(1),angrad(3)]
-!!    else
-!       kernel%mesh=cell_new(geocode,ndims,hgrids)
-!!       kernel%angrad=onehalf* [ pi, pi, pi ]
-!!    end if
+    kernel%angrad=[angrad(2),angrad(1),angrad(3)]
 
     !new treatment for the kernel input variables
     kernel%method=PS_VAC_ENUM

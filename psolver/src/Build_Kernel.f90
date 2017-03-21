@@ -230,7 +230,8 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
  
               
               if (ker/=0._dp) then
-                 karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
+                 !karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
+                 karray(i1,i2,i3)=fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
               else
                  karray(i1,i2,i3)=0._dp
               end if
