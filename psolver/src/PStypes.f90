@@ -190,7 +190,7 @@ module PStypes
      type(cell) :: mesh !< structure which includes all cell informations 
      integer, dimension(3) :: ndims   !< dimension of the box of the density
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+     !real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
      type(cavity_data) :: cavity !< description of the cavity for the dielectric medium
      type(PSolver_options) :: opt !<Datatype controlling the operations of the solver
      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
@@ -362,7 +362,6 @@ contains
     k%mesh=cell_null()
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
     nullify(k%kernel)
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
@@ -519,13 +518,8 @@ contains
     !nullification
     kernel=pkernel_null()
 
-    angrad=onehalf*pi
-    if (present(alpha_bc)) angrad(1)=alpha_bc
-    if (present(beta_ac)) angrad(2)=beta_ac
-    if (present(gamma_ab)) angrad(3)=gamma_ab
-
     !mesh initialization
-    kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
+    kernel%mesh=cell_new(geocode,ndims,hgrids,alpha_bc,beta_ac,gamma_ab)
 
     !these parts should be removed
     !geocode and ISF family
@@ -533,8 +527,6 @@ contains
     !dimensions and grid spacings
     kernel%ndims=ndims
     kernel%hgrids=hgrids
-
-    kernel%angrad=[angrad(2),angrad(1),angrad(3)]
 
     !new treatment for the kernel input variables
     kernel%method=PS_VAC_ENUM

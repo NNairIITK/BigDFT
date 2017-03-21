@@ -395,8 +395,8 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   end if
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
-  energs%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
-  energs%eVextra=e_static*product(kernel%hgrids)
+  energs%hartree=ehartreeLOC*0.5_dp*kernel%mesh%volume_element!product(kernel%hgrids)
+  energs%eVextra=e_static*kernel%mesh%volume_element!product(kernel%hgrids)
   energs%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
        kernel%cavity%betaV*kernel%IntVol
 

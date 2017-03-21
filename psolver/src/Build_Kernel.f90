@@ -13,8 +13,9 @@
 !! in an interpolating scaling functions basis.
 !! @warning 
 !!  Beware of the fact that the nonperiodic direction is y!
-subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,mu0_screening,alpha, &
-           beta,gamma,n3pr2,n3pr1)
+subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,iproc,nproc,&
+     !,mu0_screening,alpha,beta,gamma,
+     n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use memory_profiling
   use dynamic_memory
@@ -28,7 +29,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
   integer, intent(in) :: n3pr1,n3pr2
   real(dp), intent(in) :: h1,h2,h3         !< Mesh steps in the three dimensions
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< output array
-  real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
+  !real(dp), intent(in) :: mu0_screening,alpha,beta,gamma
   !Local variables 
   character(len=*), parameter :: subname='Periodic_Kernel'
   real(dp), parameter :: pi=3.14159265358979323846_dp
@@ -61,88 +62,23 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
           itype_scf,n1,n2,n3
      stop
   end if
-
-!!$  ngfft(1)=nker1
-!!$  ngfft(2)=nker2
-!!$  ngfft(3)=nker3
-!!$  
-!!$  !In order to speed the routine, precompute the components of g+q
-!!$  !Also check if the booked space was large enough...
-!!$  allocate(gq(3,max(n1,n2,n3)))
-!!$  do ii=1,3
-!!$     id(ii)=ngfft(ii)/2+2
-!!$     do ing=1,ngfft(ii)
-!!$        ig=ing-(ing/id(ii))*ngfft(ii)-1
-!!$        gq(ii,ing)=ig!+qphon(ii)
-!!$     end do
-!!$  end do
  
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
-
+!!$  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
+!!$
   iout=1 !turn the switch on
 
-  rprimd(1,1) = h1*n1
-  rprimd(2,1) = 0.0d0
-  rprimd(3,1) = 0.0d0
-
-  rprimd(1,2) = h2*n3*dcos(alpha)
-  rprimd(2,2) = h2*n3*dsin(alpha)
-  rprimd(3,2) = 0.0d0
-
-  rprimd(1,3) = n2*h3*dcos(beta)
-  rprimd(2,3) = n2*h3*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha)
-  rprimd(3,3) = n2*h3*sqrt(detg)/dsin(alpha)
-
-!!$  write(*,*) '\n'
-!!$  write(*,*) 'ABINIT metric computation ----------------------------------------------------' 
-!!$  call metric(gmet,gprimd,iout,rmet,rprimd,ucvol)
-!!$  write(*,*) '------------------------------------------------------------------------------'
-
-!!$  write(*,*) 'nker1, nker2, nker3 = ', nker1,nker2,nker3
-   
-  !triclinic cell
-  !covariant metric
-  ! gd(1,1) = 1.0_dp
-  ! gd(1,2) = dcos(alpha)
-  ! gd(1,3) = dcos(beta)
-  ! gd(2,2) = 1.0_dp
-  ! gd(2,3) = dcos(gamma)
-  ! gd(3,3) = 1.0_dp
-  
-  ! gd(2,1) = gd(1,2)
-  ! gd(3,1) = gd(1,3)
-  ! gd(3,2) = gd(2,3)
-  
-  !
-  !contravariant metric
-  ! gu(1,1) = (dsin(gamma)**2)/detg
-  ! gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
-  ! gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
-  ! gu(2,2) = (dsin(beta)**2)/detg
-  ! gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
-  ! gu(3,3) = (dsin(alpha)**2)/detg
-  ! !
-  ! gu(2,1) = gu(1,2)
-  ! gu(3,1) = gu(1,3)
-  ! gu(3,2) = gu(2,3)
-
- 
-!!$  write(*,*) 'Reciprocal space metric'
-!!$  write(*,*) '-----------------------'
+!!$  rprimd(1,1) = h1*n1
+!!$  rprimd(2,1) = 0.0d0
+!!$  rprimd(3,1) = 0.0d0
 !!$
-!!$  write(*,*) 'gmet(1,1) = ', gmet(1,1)
-!!$  write(*,*) 'gmet(1,2) = ', gmet(1,2)
-!!$  write(*,*) 'gmet(1,3) = ', gmet(1,3)
-!!$  write(*,*) 'gmet(2,1) = ', gmet(2,1)
-!!$  write(*,*) 'gmet(2,2) = ', gmet(2,2)
-!!$  write(*,*) 'gmet(2,3) = ', gmet(2,3)
-!!$  write(*,*) 'gmet(3,1) = ', gmet(3,1)
-!!$  write(*,*) 'gmet(3,2) = ', gmet(3,2)
-!!$  write(*,*) 'gmet(3,3) = ', gmet(3,3)
-  
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+!!$  rprimd(1,2) = h2*n3*dcos(alpha)
+!!$  rprimd(2,2) = h2*n3*dsin(alpha)
+!!$  rprimd(3,2) = 0.0d0
+!!$
+!!$  rprimd(1,3) = n2*h3*dcos(beta)
+!!$  rprimd(2,3) = n2*h3*(-dcos(alpha)*dcos(beta)+dcos(gamma))/dsin(alpha)
+!!$  rprimd(3,3) = n2*h3*sqrt(detg)/dsin(alpha)
+!!$
 
   !acerioni
   id1=int(n1/2)+2
@@ -190,7 +126,7 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
            do i1=1,nker1
               p1=real(i1-1,dp)/real(n1,dp)
               !beware of the exchanged dimension
-              ker = pi*((p1/h1)**2+(p2/h3)**2+mu3)+mu0_screening**2/16.0_dp/datan(1.0_dp)
+!              ker = pi*((p1/h1)**2+(p2/h3)**2+mu3)+mu0_screening**2/16.0_dp/datan(1.0_dp)
               
 !!$              !triclinic cell
 !!$              !acerioni
@@ -229,12 +165,12 @@ subroutine Periodic_Kernel(n1,n2,n3,nker1,nker2,nker3,h1,h2,h3,itype_scf,karray,
 !!$              if (i3 == nker3/2) write(16,*) i1,i2,gs,ker
  
               
-              if (ker/=0._dp) then
+!              if (ker/=0._dp) then
                  !karray(i1,i2,i3)=1._dp/ker*fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
                  karray(i1,i2,i3)=fourISFx(i1-1)*fourISFy(i2-1)*fourISFz(j3-1)
-              else
-                 karray(i1,i2,i3)=0._dp
-              end if
+!              else
+!                 karray(i1,i2,i3)=0._dp
+!              end if
               !write(1717,*) i1,i2,i3,karray(i1,i2,i3)
            end do
         end do
@@ -342,12 +278,14 @@ END SUBROUTINE fourtrans
 !! @warning Beware of the fact that the nonperiodic direction is y!
 !! SYNOPSIS
 subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,nker2,nker3,&
-     h1,h2,h3,itype_scf,karray,mu0_screening,alpha)!,beta,gamma)!,n3pr2,n3pr1)
+     mesh,itype_scf,karray,mu0_screening)!,alpha)!,beta,gamma)!,n3pr2,n3pr1)
   use Poisson_Solver, only: dp
   use wrapper_mpi
   use dynamic_memory
   use f_utils, only: f_zero
   use module_fft_sg, only: p_index
+  use box
+  use numerics, only: twopi
   implicit none
   include 'perfdata.inc'
   
@@ -359,9 +297,9 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   integer, intent(in) :: iproc             !< Process Id
   integer, intent(in) :: nproc             !< Number of processes
   integer, intent(in) :: mpi_comm,inplane_comm!n3pr1,n3pr2
-  real(dp), intent(in) :: h1,h2,h3         !< Mesh steps in the three dimensions
+  type(cell), intent(in) :: mesh
   real(dp), dimension(nker1,nker2,nker3/nproc), intent(out) :: karray !< Output array
-  real(dp), intent(in) :: mu0_screening,alpha!,beta,gamma
+  real(dp), intent(in) :: mu0_screening!,alpha!,beta,gamma
   
   !Local variables 
   character(len=*), parameter :: subname='Surfaces_Kernel'
@@ -377,7 +315,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   real(dp), dimension(:,:,:,:), allocatable :: kernel_mpi
   real(dp), dimension(:,:), allocatable :: cossinarr,btrig
   integer, dimension(:), allocatable :: after,now,before
-  
+  real(dp) :: h1,h2,h3
+  real(dp), dimension(3) :: p
   real(dp) :: pi,dx,mu1,ponx,pony
   real(dp) :: a,b,c,d,feR,foR,foI,fR,cp,sp,pion,x,value !n(c) ,diff, feI
   integer :: n_scf,ncache,imu,ierr,ntrig
@@ -386,8 +325,8 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   integer :: j2,ind1,ind2,jnd1,ic,inzee,nfft,ipolyord,jp2
 
   !metric for monoclinic lattices
-  real(dp), dimension(2,2) :: gus
-  real(dp) :: oneodetg
+!  real(dp), dimension(2,2) :: gus
+!  real(dp) :: oneodetg
 
   !coefficients for the polynomial interpolation
   real(dp), dimension(9,8) :: cpol
@@ -457,6 +396,10 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   cpol(8,8)=cpol(2,8)
   cpol(9,8)=cpol(1,8)
 
+  h1=mesh%hgrids(1)
+  h2=mesh%hgrids(3)
+  h3=mesh%hgrids(2)
+
   !write(*,*) ' '
   !write(*,*) 'mu0_screening = ', mu0_screening
 
@@ -506,50 +449,15 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
   !constants
   pi=4._dp*datan(1._dp)
 
-  !monoclinic cell
-  oneodetg = 1.0_dp/dsin(alpha)**2
-
-  call f_zero(gus)
-  gus(1,1)=oneodetg
-  gus(2,1)=-cos(alpha)*oneodetg
-  gus(1,2)=-cos(alpha)*oneodetg
-  gus(2,2)=oneodetg
-
-!!$  gus(1,1)=1.0_dp
-!!$  gus(2,1)=cos(alpha)
-!!$  gus(1,2)=cos(alpha)
-!!$  gus(2,2)=1.0_dp
-
-
-  !
-!!$  !contravariant metric
-!!$  gu(1,1) = 1.0_dp/detg
-!!$  gu(1,2) = -dcos(alpha)/detg
-!!$  gu(1,3) = 0.0_dp
-!!$  gu(2,2) = 1.0_dp/detg
-!!$  gu(2,3) = 0.0_dp
-!!$  gu(3,3) = 1.0_dp
-!!$  !
-!!$  gu(2,1) = gu(1,2)
-!!$  gu(3,1) = gu(1,3)
-!!$  gu(3,2) = gu(2,3)
-!!$  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!$  !monoclinic cell
+!!$  oneodetg = 1.0_dp/dsin(alpha)**2
 !!$
-!!$  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
-  !
-!!$  !contravariant metric
-!!$  gu(1,1) = (dsin(gamma)**2)/detg
-!!$  gu(1,2) = (dcos(beta)*dcos(gamma)-dcos(alpha))/detg
-!!$  gu(1,3) = (dcos(alpha)*dcos(gamma)-dcos(beta))/detg
-!!$  gu(2,2) = (dsin(beta)**2)/detg
-!!$  gu(2,3) = (dcos(alpha)*dcos(beta)-dcos(gamma))/detg
-!!$  gu(3,3) = (dsin(alpha)**2)/detg
-!!$  !
-!!$  gu(2,1) = gu(1,2)
-!!$  gu(3,1) = gu(1,3)
-!!$  gu(3,2) = gu(2,3)
+!!$  call f_zero(gus)
+!!$  gus(1,1)=oneodetg
+!!$  gus(2,1)=-cos(alpha)*oneodetg
+!!$  gus(1,2)=-cos(alpha)*oneodetg
+!!$  gus(2,2)=oneodetg
 
-  !print *,'METRIC',gu
 
   !arrays for the halFFT
   call ctrig_sg(n3/2,ntrig,btrig,after,before,now,1,ic)
@@ -670,10 +578,13 @@ subroutine Surfaces_Kernel(iproc,nproc,mpi_comm,inplane_comm,n1,n2,n3,m3,nker1,n
         !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)*h3
         !old:
         !mu1=2._dp*pi*sqrt((ponx/h1)**2+(pony/h2)**2)
-        !new:
-        mu1 = 2._dp*pi*sqrt(gus(1,1)*(ponx/h1)**2+gus(2,2)*(pony/h2)**2+2.0_dp*gus(1,2)*(ponx/h1)*(pony/h2))
-        mu1 = h3*sqrt(mu1**2+mu0_screening**2)
+!!$        !new:
+!!$        mu1 = 2._dp*pi*sqrt(gus(1,1)*(ponx/h1)**2+gus(2,2)*(pony/h2)**2+2.0_dp*gus(1,2)*(ponx/h1)*(pony/h2))
+!!$        mu1 = h3*sqrt(mu1**2+mu0_screening**2)
         !acerioni
+        !new3:
+        p=[ponx/h1,mu0_screening/twopi,pony/h2]
+        mu1=h3*twopi*sqrt(square(mesh,p))
 
         call calculates_green_opt(n_range,n_scf,itype_scf,ipolyord,x_scf,y_scf,&
              cpol(1,ipolyord),mu1,dx,kernel_scf)

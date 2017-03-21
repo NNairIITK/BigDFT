@@ -201,7 +201,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   character(len=*), parameter :: subname='createKernel'
   integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,i_stat
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
-  real(kind=8) :: alphat,betat,gammat,mu0t
+  real(kind=8) :: mu0t
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
@@ -217,9 +217,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   dump=wrtmsg .and. kernel%mpi_env%iproc+kernel%mpi_env%igroup==0
 
   mu0t=kernel%mu
-  alphat=kernel%angrad(1)
-  betat=kernel%angrad(2)
-  gammat=kernel%angrad(3)
 
   if (dump) then
      if (mu0t==0.0_gp) then
@@ -286,7 +283,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
      call Periodic_Kernel(n1,n2,n3,nd1,nd2,nd3,&
           kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),&
-          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,mu0t,alphat,betat,gammat,n3pr2,n3pr1)
+          kernel%itype_scf,kernel%kernel,kernel%mpi_env%iproc,kernelnproc,&
+          !mu0t,alphat,betat,gammat,&
+          n3pr2,n3pr1)
 
      nlimd=n2
      nlimk=n3/2+1
@@ -306,7 +305,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
           m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,&
-          kernel%igpu,.false.,non_ortho=kernel%angrad(1)/= onehalf*pi)
+          kernel%igpu,.false.,non_ortho=.not. kernel%mesh%orthorhombic)
 
 
      if (kernel%igpu > 0) then
@@ -358,8 +357,8 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      call Surfaces_Kernel(kernel%mpi_env%iproc,kernelnproc,&
           kernel%mpi_env%mpi_comm,kernel%inplane_mpi%mpi_comm,&
           n1,n2,n3,m3,nd1,nd2,nd3,&
-          kernel%hgrids(1),kernel%hgrids(3),kernel%hgrids(2),&
-          kernel%itype_scf,kernel%kernel,mu0t,alphat)!,betat,gammat)!,n3pr2,n3pr1)
+          kernel%mesh,&
+          kernel%itype_scf,kernel%kernel,mu0t)!,alphat)!,betat,gammat)!,n3pr2,n3pr1)
 
      !last plane calculated for the density and the kernel
      nlimd=n2

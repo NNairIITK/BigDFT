@@ -26,7 +26,7 @@ module f_blas
   end interface f_axpy
 
   interface f_dot
-     module procedure f_dot_d1,f_dot_d3
+     module procedure f_dot_d1,f_dot_d3,f_dot_d4d3
   end interface f_dot
 
 
@@ -165,6 +165,35 @@ module f_blas
       c=dot(n,x(1,1,1),incx,y(1,1,1),incy)
 
     end function f_dot_d3
+
+    function f_dot_d4d3(x,y,stride_x,stride_y) result(c)
+      use dictionaries, only: f_err_throw
+      implicit none
+      real(f_double), dimension(:,:,:,:), intent(in) :: x
+      real(f_double), dimension(:,:,:), intent(in) :: y
+      real(f_double) :: c
+      integer, intent(in), optional :: stride_x,stride_y
+      !local variables
+      integer :: n,incx,incy
+
+      n=size(x)
+      if (n/=size(y)) then
+         call f_err_throw('Error in dot, the size of the x and y array do not coincide')!,&
+         !err_name=ERROR_LINALG) to be defined for BLAS and LAPACK routines
+         return
+      end if
+
+      if (n==0) return
+      incx=1
+      if (present(stride_x)) incx=stride_x
+      incy=1
+      if (present(stride_y)) incy=stride_y
+
+      !here we also have to insert the broker for the GPU acceleration
+      c=dot(n,x(1,1,1,1),incx,y(1,1,1),incy)
+
+    end function f_dot_d4d3
+
     
 
 end module f_blas

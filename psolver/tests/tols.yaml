@@ -43,6 +43,9 @@ Keys to ignore:
   - Walltime since initialization
   - Root process Hostname
   - processes
+  - volume element
+  - box size
+  - hgrids
 Patterns to ignore:
   - llocations
   - MB
@@ -65,9 +68,11 @@ GPS_PCG: &PCGref
   dipole: 5.35e-09
   normr: 3.52e-09
   offset: 2.18e-10
+  Contravariant Metric: 1.4e-15
 GPS_PI:
   offset: 2.6e-10
   dipole: 4.35e-09
+  Contravariant Metric: 1.4e-15
 GPS_mPB:
   offset: 2.81e-10
   Some values: 2.57e-06
@@ -78,6 +83,7 @@ GPS_mPB:
   Computed Hartree energy: 6.5e-6
   Diff of expected-computed Hartree energy: 6.5e-6
   Integral of the density in the nonvacuum region: 7.7e-11
+  Contravariant Metric: 1.4e-15
 Generalized_PSolver: #old values for reference
   itermax: 150.0
   dipole: 4.e-9
