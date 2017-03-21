@@ -514,17 +514,17 @@ subroutine test_functions_new2(mesh,acell,a_gauss,mu0,density,potential)
   select case(trim(cell_geocode(mesh)))
   case('P')
      !parameters for the test functions
-     do i=1,3
-        funcs(i)=f_function_new(f_shrink_gaussian,&
-             length=acell)
-        !funcs(i)=f_function_new(f_exp_cosine,&
-        !     length=acell,frequency=2.0_dp)
-     end do
-!!$     funcs(1)=f_function_new(f_exp_cosine,&
-!!$          length=acell,frequency=2.0_dp)
-!!$     funcs(2)=f_function_new(f_shrink_gaussian,&
-!!$          length=acell)
-!!$     funcs(3)=funcs(1)
+!!$     do i=1,3
+!!$        funcs(i)=f_function_new(f_shrink_gaussian,&
+!!$             length=acell)
+!!$        !funcs(i)=f_function_new(f_exp_cosine,&
+!!$        !     length=acell,frequency=2.0_dp)
+!!$     end do
+     funcs(1)=f_function_new(f_exp_cosine,&
+          length=acell,frequency=2.0_dp)
+     funcs(2)=f_function_new(f_shrink_gaussian,&
+          length=acell)
+     funcs(3)=funcs(1)
      factor=1.0_dp
      separable=.true.
   case('S')

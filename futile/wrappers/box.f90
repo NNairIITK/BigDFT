@@ -562,6 +562,23 @@ contains
           mesh%habc(1,1)=aa; mesh%habc(2,1)=0.0_gp; mesh%habc(3,1)=cc
           mesh%habc(1,2)=-0.5_gp*aa ; mesh%habc(2,2)=sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,2)=cc
           mesh%habc(1,3)=-0.5_gp*aa ; mesh%habc(2,3)=-sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,3)=cc
+          !Set the covariant metric
+          mesh%gd(1,1) = 1.0_gp
+          mesh%gd(1,2) = cos(mesh%angrad(3)) !gamma_ab
+          mesh%gd(1,3) = cos(mesh%angrad(2)) !beta_ac
+          mesh%gd(2,2) = 1.0_gp
+          mesh%gd(2,3) = cos(mesh%angrad(1)) !alpha_bc
+          mesh%gd(3,3) = 1.0_gp 
+          !Set the determinant of the covariant metric
+          mesh%detgd = 1.0_gp - cos(mesh%angrad(1))**2 - cos(mesh%angrad(2))**2 - cos(mesh%angrad(3))**2 +&
+               2.0_gp*cos(mesh%angrad(1))*cos(mesh%angrad(2))*cos(mesh%angrad(3))
+          !Set the contravariant metric
+          mesh%gu(1,1) = (sin(mesh%angrad(1))**2)/mesh%detgd
+          mesh%gu(1,2) = (cos(mesh%angrad(2))*cos(mesh%angrad(1))-cos(mesh%angrad(3)))/mesh%detgd
+          mesh%gu(1,3) = (cos(mesh%angrad(3))*cos(mesh%angrad(1))-cos(mesh%angrad(2)))/mesh%detgd
+          mesh%gu(2,2) = (sin(mesh%angrad(2))**2)/mesh%detgd
+          mesh%gu(2,3) = (cos(mesh%angrad(3))*cos(mesh%angrad(2))-cos(mesh%angrad(1)))/mesh%detgd
+          mesh%gu(3,3) = (sin(mesh%angrad(3))**2)/mesh%detgd
        else if (geocode == 'P') then
           mesh%habc=0.0_gp
           mesh%habc(1,1)=1.0_gp
@@ -651,7 +668,9 @@ contains
        end do
     end do
 
-    !here we should verify that the the inverse metric times the metrix is the identity
+    !here we should verify that the the inverse metric times the metric is the identity
+
+
 
   end function cell_new
 
