@@ -514,10 +514,17 @@ subroutine test_functions_new2(mesh,acell,a_gauss,mu0,density,potential)
   select case(trim(cell_geocode(mesh)))
   case('P')
      !parameters for the test functions
-     do i=1,3
-        funcs(i)=f_function_new(f_shrink_gaussian,&
-             length=acell)
-     end do
+!!$     do i=1,3
+!!$        funcs(i)=f_function_new(f_shrink_gaussian,&
+!!$             length=acell)
+!!$        !funcs(i)=f_function_new(f_exp_cosine,&
+!!$        !     length=acell,frequency=2.0_dp)
+!!$     end do
+     funcs(1)=f_function_new(f_exp_cosine,&
+          length=acell,frequency=2.0_dp)
+     funcs(2)=f_function_new(f_shrink_gaussian,&
+          length=acell)
+     funcs(3)=funcs(1)
      factor=1.0_dp
      separable=.true.
   case('S')
@@ -679,12 +686,15 @@ subroutine separable_3d_laplacian(mesh,funcs,factor,f)
      do while(box_next_z(bit))
         fz=eval(funcs(3),bit%rxyz(3))
         fz2=diff(funcs(3),bit%rxyz(3),order=2)
+        !print *,'z',bit%k,fz,fz2
         do while(box_next_y(bit))
            fy=eval(funcs(2),bit%rxyz(2))
            fy2=diff(funcs(2),bit%rxyz(2),order=2)
+           !print *,'y',bit%j,fy,fy2
            do while(box_next_x(bit))
               fx=eval(funcs(1),bit%rxyz(1))
               fx2=diff(funcs(1),bit%rxyz(1),order=2)
+              !print *,'x',bit%i,fx,fx2
               f(bit%i,bit%j,bit%k) = factor*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
            end do
         end do

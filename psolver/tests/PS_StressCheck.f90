@@ -163,7 +163,7 @@ program PS_StressCheck
   !grid for the free BC case
   hgrid=max(hx,hy,hz)
 
-  mesh=cell_new(geocode,ndims,hgrids,angrad) 
+  mesh=cell_new(geocode,ndims,hgrids,alpha_bc=alpha,beta_ac=beta,gamma_ab=gamma)
    if (iproc==0) then
     call yaml_map('Angles',[alpha,beta,gamma]*180.0_dp*oneopi)
     call yaml_map('Contravariant Metric',mesh%gu)
@@ -226,13 +226,8 @@ program PS_StressCheck
    hgrids=(/hx,hy,hz/)
    !grid for the free BC case
    hgrid=max(hx,hy,hz)
-   mesh=cell_new(geocode,ndims,hgrids,angrad) 
+   !mesh=cell_new(geocode,ndims,hgrids,angrad) 
 
-   if (iproc==0) then
-    call yaml_map('box size',acell_var)
-    call yaml_map('hgrids',hgrids)
-    call yaml_map('volume element',mesh%volume_element)
-   end if
 
   select case(geocode)
   
@@ -306,8 +301,18 @@ program PS_StressCheck
   
 
   karray=pkernel_init(iproc,nproc,dict,&
-       geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/beta,alpha,gamma/))
-!  call dict_free(input)
+       geocode,(/n01,n02,n03/),(/hx,hy,hz/),&
+       alpha_bc=beta,beta_ac=alpha,gamma_ab=gamma)
+
+  mesh=karray%mesh
+
+   if (iproc==0) then
+    call yaml_map('box size',acell_var)
+    call yaml_map('hgrids',hgrids)
+    call yaml_map('volume element',mesh%volume_element)
+   end if
+
+
   call pkernel_set(karray,verbose=.true.)
 
   !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
@@ -496,7 +501,8 @@ program PS_StressCheck
      !call timing(0,'             ','IN')
 
      karray=pkernel_init(0,1,dict,&
-          geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
+          geocode,(/n01,n02,n03/),(/hx,hy,hz/),&
+          alpha_bc=alpha,beta_ac=beta,gamma_ab=gamma)
      call dict_free(dict)
 
      call pkernel_set(karray,verbose=.true.)

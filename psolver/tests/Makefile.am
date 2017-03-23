@@ -104,8 +104,8 @@ define F_REGTEST_INSTRUCTIONS
     # broken - $(run_parallel) ./PS_Program -n [57,48,63] -g F > PS_Basics.out.yaml
     - $(run_parallel) ./PS_Program -n [64,64,64] -g P
     - $(run_parallel) ./PS_Program -n [32,64,48] -g S
-    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [89,90,90]
-    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [60,90,90]
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [90,89,90]
+    - $(run_parallel) ./PS_Program -n [32,64,48] -g S -d [90,60,90]
     # broken - $(run_parallel) ./PS_Program -n [32,64,48] -g W >> PS_Basics.out.yaml
 - PS_Check:
    runs:

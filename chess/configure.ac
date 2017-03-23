@@ -139,11 +139,15 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 chess.pc
+chess_environment.sh
+chessvars.sh
 doc/Makefile
 doc/Doxyfile
 sparsematrix/Makefile
 src/configure.inc
 src/Makefile
+src/python/Makefile
+src/python/CheSS/Makefile
 chesspexsi/Makefile
 tests/Makefile
 tests/sparsematrix/Makefile

@@ -24,6 +24,7 @@ program GPS_3D
    use numerics
    use psolver_environment, only: rigid_cavity_arrays,rigid_cavity_forces,vacuum_eps
    use FDder
+   use f_blas, only: f_dot
    implicit none
    
    !now these parameters have to be specified from the command line
@@ -165,7 +166,7 @@ program GPS_3D
    angrad(3) = angdeg(3)/180.0_f_double*pi
 !   detg = 1.0d0 - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0d0*dcos(alpha)*dcos(beta)*dcos(gamma)
   
-   mesh=cell_new(geocode,ndims,hgrids,angrad) 
+   mesh=cell_new(geocode,ndims,hgrids,alpha_bc=angrad(1),beta_ac=angrad(2),gamma_ab=angrad(3)) 
 
    call mpiinit()
    iproc=mpirank()
@@ -405,8 +406,12 @@ program GPS_3D
    else if (Fgrid) then
     pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndimsf,hgridsf)
    else
-    pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/beta,alpha,gamma/))
+      !pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,angrad=(/beta,alpha,gamma/))
+      pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids,&
+           alpha_bc=alpha,beta_ac=beta,gamma_ab=gamma)
    end if
+
+   einit=0.5_dp*f_dot(rhopot,potential)*pkernel%mesh%volume_element
 
   call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
@@ -566,7 +571,7 @@ program GPS_3D
   hy=acell/real(n02,kind=8)
   hz=acell/real(n03,kind=8)
   hgrids=(/hx,hy,hz/)
-  mesh=cell_new(geocode,ndims,hgrids,angrad) 
+  mesh=cell_new(geocode,ndims,hgrids,alpha_bc=angrad(1),beta_ac=angrad(2),gamma_ab=angrad(3))
 
   eps=f_malloc([n01,n02,n03],id='eps')
   dlogeps=f_malloc([3,n01,n02,n03],id='dlogeps')

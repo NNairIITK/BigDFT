@@ -35,8 +35,11 @@ BUILTIN={
     'magnetization': {PATH:[[ "Ground State Optimization", -1, "Total magnetization"],
                             ["Ground State Optimization",-1,"Hamiltonian Optimization",-1,"Subspace Optimization","Total magnetization"]],
                       PRINT: "Total magnetization of the system"},
+    'support_functions': {PATH: [["Gross support functions moments",'Multipole coefficients','values']]},
+    'electrostatic_multipoles': {PATH: [['Multipole coefficients','values']]},
     'symmetry': {PATH: [ ['Atomic System Properties','Space group']], 
                  PRINT: "Symmetry group", GLOBAL: True}}
+
 
 def get_log(f):
     "Transform a logfile into a python dictionary"

@@ -707,6 +707,7 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   character(len=40) :: comment
   type(f_tree) :: info
 
+
   !n(c) character(len=*), parameter :: subname='fire'
 
 !Fire parameters:
@@ -720,6 +721,8 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   character(len = *), parameter :: ATT_ALPHA = "alpha (FIRE)"
   character(len = *), parameter :: ATT_DT = "dt (FIRE)"
   type(atoms_iterator) :: itAt
+
+  call yaml_cite("Bitzek2006")
 
   fluct=0.0_gp
   check=0

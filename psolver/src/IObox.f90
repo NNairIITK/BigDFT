@@ -16,6 +16,7 @@ module IObox
   integer, parameter :: UNKNOWN=0
   integer, parameter :: CUBE=1
   integer, parameter :: ETSF=2
+  integer, parameter :: POT=3
 
   private
 
@@ -104,27 +105,46 @@ module IObox
       integer, intent(out) :: isuffix
       integer :: fformat
       !local variables
-      integer :: ipos
+      integer :: ipos,iext
+      character(len=8), dimension(4), parameter :: &
+           exts=['.cube   ','.etsf   ','.etsf.nc','.pot    ']
 
       ! Format = 1 -> cube (default)
       ! Format = 2 -> ETSF
       ! ...
       fformat = UNKNOWN
-      isuffix = index(filename, ".cube", back = .true.)
+      identify: do iext=1,size(exts)
+         isuffix = index(filename, trim(exts(iext)), back = .true.)
+         if (isuffix >0) exit identify
+      end do identify
       if (isuffix > 0) then
          isuffix = isuffix - 1
-         fformat = CUBE
+         select case(iext)
+         case(1)
+            fformat=CUBE
+         case(2,3)
+            fformat=ETSF
+         case(4)
+            fformat=POT
+         end select
       else
-         isuffix = index(filename, ".etsf", back = .true.)
-         if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
-         if (isuffix > 0) then
-            isuffix = isuffix - 1
-            fformat = ETSF
-         else
-            isuffix = len(filename)
-            fformat=UNKNOWN
-         end if
+         isuffix = len(filename)
       end if
+
+!!$      isuffix = index(filename, ".cube", back = .true.)
+!!$      if (isuffix > 0) then
+!!$         fformat = CUBE
+!!$      else
+!!$         isuffix = index(filename, ".etsf", back = .true.)
+!!$         if (isuffix <= 0) isuffix = index(filename, ".etsf.nc", back = .true.)
+!!$         if (isuffix > 0) fformat = ETSF
+!!$      end if
+!!$      if (isuffix > 0) then
+!!$         isuffix = isuffix - 1
+!!$      else
+!!$         isuffix = len(filename)
+!!$      end if
+
       !fallback to CUBE format if there is no other extension for the file
       if (fformat == UNKNOWN) then
          !eliminate slashes

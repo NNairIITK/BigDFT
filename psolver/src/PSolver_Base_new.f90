@@ -60,7 +60,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
           kernel%grid%nd1,kernel%grid%nd2,kernel%grid%nd3,&
           kernel%grid%md1,kernel%grid%md2,kernel%grid%md3,&
           kernel%kernel,zf,&
-          kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
+          kernel%grid%scal,kernel%mu**2,kernel%mesh,offset,strten)
      call f_timing(TCAT_PSOLV_COMPUT,'ON')
 
     if (updaterho) then
@@ -288,13 +288,14 @@ end subroutine finalize_hartree_results
 !> Parallel version of Poisson Solver
 !! General version, for each boundary condition
 subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,geocode,ncplx,&
-     n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,hx,hy,hz,offset,strten)
+     n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,pot,zf,scal,mu0_square,mesh,offset,strten)
   use Poisson_Solver, only: dp, gp, TCAT_PSOLV_COMMUN,TCAT_PSOLV_COMPUT
   use wrapper_mpi
   !use memory_profiling
   use time_profiling, only: f_timing
   use dynamic_memory
   use dictionaries ! for f_err_throw
+  use box
   implicit none
   !to be preprocessed
   include 'perfdata.inc'
@@ -303,7 +304,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
   integer, intent(in) :: ncplx
   integer, intent(in) :: planes_comm,inplane_comm,iproc_inplane
-  real(gp), intent(in) :: scal,hx,hy,hz,offset
+  real(gp), intent(in) :: scal,offset,mu0_square
+  type(cell), intent(in) :: mesh
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
   real(dp), dimension(ncplx,md1,md3,md2/nproc), intent(inout) :: zf
   real(dp), dimension(6), intent(out) :: strten !< non-symmetric components of Ha stress tensor
@@ -702,8 +704,10 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             if (n3pr1>1) j1start=(n1p/n3pr1)*iproc_inplane
 
             if (geocode == 'P') then
-              call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread),&
-                   i3,hx,hy,hz,offset,scal,strten_omp)
+               !call P_multkernel(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread),&
+               !    i3,mesh%hgrids(1),mesh%hgrids(2),mesh%hgrids(3),offset,scal,strten_omp)
+              call P_multkernel_NO(nd1,nd2,n1,n2,n3,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread),&
+                   i3,mesh,offset,scal,mu0_square,strten_omp)
              else
                 !write(*,*) 'pot(1,1,j3) = ', pot(1,1,j3)
                 call multkernel(nd1,nd2,n1,n2,lot,nfft,j+j1start,pot(1,1,j3),zw(1,1,inzee,ithread))
@@ -2412,3 +2416,135 @@ END SUBROUTINE unscramble_pack
 !!$  !call system_clock(ncount1,ncount_rate,ncount_max)
 !!$  !write(*,*) 'TIMING:PS ', real(ncount1-ncount0)/real(ncount_rate)
 !!$END SUBROUTINE G_PoissonSolver
+
+
+!> (Based on suitable modifications of S.Goedecker routines)
+!! Multiply with the kernel taking into account its symmetry
+!! Conceived to be used into convolution loops
+!!
+!! SYNOPSIS
+!!   @param  pot:      Kernel, symmetric and real, half the length
+!!   @param  zw:       Work array (input/output)
+!!   @param  n1,n2:    logical dimension of the FFT transform, reference for zw
+!!   @param  nd1,nd2:  Dimensions of POT
+!!   @param  jS, nfft: starting point of the plane and number of remaining lines
+!!   @param  offset  : Offset to be defined for periodic BC (usually 0)
+!!   @param  strten  : Components of the Hartree stress tensor order: (11,22,33,23,13,12) !
+!!
+!! @author
+!!     Copyright (C) Stefan Goedecker, Cornell University, Ithaca, USA, 1994
+!!     Copyright (C) Stefan Goedecker, MPI Stuttgart, Germany, 1999
+!!     Copyright (C) 2002 Stefan Goedecker, CEA Grenoble
+!!     Copyright (C) 2009 Luigi Genovese, ESRF Grenoble
+!!     This file is distributed under the terms of the
+!!      GNU General Public License, see http://www.gnu.org/copyleft/gpl.txt .
+!! Author:S
+!!    S. Goedecker, L. Genovese
+subroutine P_multkernel_NO(nd1,nd2,n1,n2,n3,lot,nfft,jS,pot,zw,j3,mesh,offset,scal,mu0_square,strten)
+  use Poisson_Solver, only: dp, gp
+  use numerics, only: pi,oneofourpi
+  use box
+  implicit none
+  !Argments
+  integer, intent(in) :: nd1,nd2,n1,n2,n3,lot,nfft,jS,j3
+  real(dp), intent(in) :: offset,scal,mu0_square
+  real(kind=8), dimension(nd1,nd2), intent(in) :: pot
+  real(kind=8), dimension(2,lot,n2), intent(inout) :: zw
+  real(dp), dimension(6), intent(inout) :: strten
+  type(cell), intent(in) :: mesh
+  !Local variables
+  integer :: i1,j1,i2,j2
+  real(gp) :: rhog2,g2,L1,L2,L3,ker
+  real(dp), dimension(3) :: pxyz
+
+  !acerioni --- triclinic cell ::: can the problem be here?!
+  !write (*,*) 'P_multkernel) nfft = ', nfft
+  !Body
+  !running recip space coordinates
+  L3=real(n3,dp)*mesh%hgrids(2) !beware to the exchange 2->3
+  L2=real(n2,dp)*mesh%hgrids(3) !beware to the exchange 3->2
+  L1=real(n1,dp)*mesh%hgrids(1)
+  pxyz(2)=p(j3,n3)/L3
+
+  !j3=1 case (it might contain the zero component)
+  if (j3==1) then
+     if (jS==1) then
+        !zero fourier component (no strten contribution)
+        i2=1
+        zw(1,1,1)=offset/mesh%volume_element
+        zw(2,1,1)=0.d0
+        !running recip space coordinates
+        pxyz(3)=0.0_dp
+        do i1=2,nfft
+           call internal_loop()
+        end do
+        do i2=2,n2
+           !running recip space coordinate
+           pxyz(3)=p(i2,n2)/L2
+           do i1=1,nfft
+              call internal_loop()
+           end do
+        end do
+     else
+        !generic case
+        do i2=1,n2
+           !running recip space coordinate
+           pxyz(3)=p(i2,n2)/L2
+           do i1=1,nfft
+              call internal_loop()
+           end do
+        end do
+     end if
+  else
+     !generic case
+     do i2=1,n2
+        !running recip space coordinate
+        pxyz(3)=p(i2,n2)/L2
+        do i1=1,nfft
+           call internal_loop()
+        end do
+     end do
+  end if
+
+  contains
+
+    !>impulse coordinate, from 0,...,n/2+1,-n/2+1,...-1
+    pure function p(i,n)
+      implicit none
+      integer, intent(in) :: i,n
+      integer :: p
+      p=i-(i/(n/2+2))*n-1
+    end function p
+    
+    subroutine internal_loop()
+      implicit none
+      j1=i1+jS-1
+      !running recip space coordinate
+      pxyz(1)=p(j1,n1)/L1
+      !square of modulus of recip space coordinate
+      g2=square(mesh,pxyz)
+
+      !density squared over modulus
+      rhog2=(zw(1,i1,i2)**2+zw(2,i1,i2)**2)/g2
+      rhog2=rhog2/pi*scal**2
+      if (j3 /= n3/2+1 .and. j3 /= 1) rhog2=2.0_dp*rhog2 !to consider the fact that we only treat half of the box  (to be reviewed for NO)
+      !stress tensor components (to be reviewed for NO)
+      strten(1)=strten(1)+(pxyz(1)**2/g2-0.5_dp)*rhog2
+      strten(3)=strten(3)+(pxyz(3)**2/g2-0.5_dp)*rhog2
+      strten(2)=strten(2)+(pxyz(2)**2/g2-0.5_dp)*rhog2
+      strten(5)=strten(5)+(pxyz(1)*pxyz(3)/g2)*rhog2
+      strten(6)=strten(6)+(pxyz(1)*pxyz(2)/g2)*rhog2
+      strten(4)=strten(4)+(pxyz(3)*pxyz(2)/g2)*rhog2
+
+      !then multiply the density for the kernel in Fourier space
+      ker=pi*g2+mu0_square*oneofourpi
+
+      !with these values the indices are always in the first quadrant
+      j1=j1+(j1/(n1/2+2))*(n1+2-2*j1)
+      j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)
+
+      zw(1,i1,i2)=zw(1,i1,i2)/ker*pot(j1,j2)
+      zw(2,i1,i2)=zw(2,i1,i2)/ker*pot(j1,j2)
+    end subroutine internal_loop
+
+END SUBROUTINE P_multkernel_NO

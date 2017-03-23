@@ -11,7 +11,8 @@ dynlibdir = $(libdir)
 check_PROGRAMS = yaml_test hooks yaml_argparse f_allocations test_plugin
 noinst_LIBRARIES = libpong.a
 
-AM_FCFLAGS = -I../../flib -I../../src @FC_PIC_FLAG@
+
+AM_FCFLAGS = -I../../flib -I../../src -I../../wrappers @FC_PIC_FLAG@
 AM_LDFLAGS = -L$(top_builddir)/src
 #LIBS += -lflib -lrt @LIB_YAML_LIBS@
 

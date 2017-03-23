@@ -773,13 +773,16 @@ module sparsematrix
                   err_name='SPARSEMATRIX_MANIPULATION_ERROR')
      end if
 
-     if (present(windowsx)) then
-         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
-              matrix_local, onesided_action, matrix_compr, windowsx)
-     else
-         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
-              matrix_local, onesided_action, matrix_compr)
-     end if
+     !not needed as the interfaces are explicit
+!!$     if (present(windowsx)) then
+!!$         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+!!$              matrix_local, onesided_action, matrix_compr, windowsx)
+!!$     else
+!!$         call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+!!$              matrix_local, onesided_action, matrix_compr)
+!!$     end if
+     call compress_matrix_distributed_core(iproc, nproc, smat, SPARSE_MATMUL_SMALL, &
+          matrix_local, onesided_action, matrix_compr, windowsx=windowsx)
 
      if (layout==SPARSE_MATMUL_LARGE) then
          if (onesided_action==ONESIDED_FULL) then
@@ -956,8 +959,8 @@ module sparsematrix
      ! Check the arguments
      select case (onesided_action)
      case (ONESIDED_POST,ONESIDED_GATHER)
-         if (.not.present(windowsx)) call f_err_throw('windowsx not present')
          if (nproc>1) then
+            if (.not.present(windowsx)) call f_err_throw('windowsx not present')
              if (size(windowsx)/=smat%ntaskgroup) then
                  call f_err_throw('size(windowsx)='//trim(yaml_toa(size(windowsx))) //&
                       &' /= smat%ntaskgroup='//trim(yaml_toa(smat%ntaskgroup)))

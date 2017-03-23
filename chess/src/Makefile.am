@@ -26,6 +26,7 @@ else
 binaries_sources =
 endif
 
+SUBDIRS=python
 
 # C objects
 c_level = chess_input_variables_fetch.c
@@ -128,7 +129,7 @@ tmp-libCheSS/extract.stamp: $(subs_static_library)
 	done ; \
 	touch extract.stamp
 
-libCheSS-1.a: $(libCheSS_1_a_OBJECTS) tmp-libCheSS/extract.stamp
+libCheSS-1.a: $(libCheSS_1_a_OBJECTS) tmp-libCheSS/extract.stamp insmod
 	$(AR) $(ARFLAGS) $@ $(libCheSS_1_a_OBJECTS) tmp-libCheSS/*.o
 	$(RANLIB) $@
 
@@ -139,7 +140,7 @@ libCheSS-1.so.@CHESS_MINOR_VERSION@: $(chess_dynamic_library)
 
 #dependencies
 $(modules): $(libCheSS_1_a_OBJECTS)
-foe_common.o: foe_base.o chebyshev.o fermi_level.o
+foe_common.o: foe_base.o chebyshev.o fermi_level.o chess_base.o
 ice.o: chebyshev.o foe_base.o foe_common.o fermi_level.o
 matrix_operations.o: ice.o foe_base.o
 foe.o: chebyshev.o foe_base.o foe_common.o fermi_level.o matrix_operations.o
@@ -149,9 +150,6 @@ coeffs.o: sparsematrix_highlevel.o
 chess_toolbox.o: $(libCheSS_1_a_OBJECTS)
 
 # Copy modules in a common include directory.
-all: all-am insmod
-install: install-am insmod
-check: check-am insmod
 insmod: $(modules)
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \

@@ -62,7 +62,43 @@ Schaefer2015:
     pages   = {034112},
 
     Arxivid = {arXiv:1412.0935},
-    doi = {10.1063/1.4905665},
-    File    = {:Schaefer2015.pdf:PDF}
+    doi = {10.1063/1.4905665}
     }
   DESCRIPTION: Geometry optimizers tailored for electronic structure calculations
+Bitzek2006:
+  JOURNAL_REF: 'Phys. Rev. Lett. 97, 170201 (2006)'
+  BIBTEX_REF: | 
+    @article{Bitzek2006,
+    title = {Structural Relaxation Made Simple},
+    author = {Bitzek, Erik and Koskinen, Pekka and G\\\"ahler, Franz and Moseler, Michael and Gumbsch, Peter},
+    journal = {Phys. Rev. Lett.},
+    volume = {97},
+    issue = {17},
+    pages = {170201},
+    numpages = {4},
+    year = {2006},
+    month = {Oct},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevLett.97.170201}
+    }
+  DESCRIPTION: FIRE, a damped MD minimizer
+Ratcliff2015:
+  DESCRIPTION: Fragment approach in BigDFT
+  JOURNAL_REF: J. Chem. Phys. 142, 234105 (2015)
+  BIBTEX_REF: |
+    @article{Ratcliff2015,
+    author = {Laura E. Ratcliff and Luigi Genovese and Stephan Mohr and Thierry Deutsch},
+    title = {Fragment approach to constrained density functional theory calculations using Daubechies wavelets},
+    journal = {The Journal of Chemical Physics},
+    volume = {142},
+    number = {23},
+    pages = {234105},
+    year = {2015},
+    doi = {10.1063/1.4922378},
+    URL = { 
+            http://dx.doi.org/10.1063/1.4922378
+    },
+    eprint = { 
+            http://dx.doi.org/10.1063/1.4922378
+    }
+    }

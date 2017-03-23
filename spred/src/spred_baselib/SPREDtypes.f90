@@ -30,6 +30,7 @@ module SPREDtypes
 
     !>global input variables
     integer :: glbl_nwrite
+    integer :: glbl_mdmin
   end type SPRED_inputs
 
   public :: SPRED_read_uinp
@@ -292,6 +293,8 @@ contains
        select case (trim(dict_key(val)))
        case(GLBL_NWRITE)
           inputs%glbl_nwrite=val
+       case(GLBL_MDMIN)
+          inputs%glbl_mdmin=val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

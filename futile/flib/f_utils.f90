@@ -113,7 +113,7 @@ module f_utils
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
-  public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
+  public :: f_iostream_get_line,f_iostream_release,f_time,f_pause,f_move_file
   public :: f_progress_bar_new,update_progress_bar,f_tty,f_humantime,f_system
   public :: assignment(=),f_none,f_assert
 
@@ -513,6 +513,19 @@ contains
     end if
     
   end subroutine f_delete_file
+
+  subroutine f_move_file(src,dest)
+    implicit none
+    character(len=*), intent(in) :: src,dest
+    !local variables
+    integer(f_integer) :: ierr
+    
+    call movefile(trim(src),int(len_trim(src),f_integer),&
+         trim(dest),int(len_trim(dest),f_integer),ierr)
+    if (ierr /= 0) call f_err_throw('Error in moving file='//&
+         trim(src)//' into='//trim(dest)//', iostat='//trim(yaml_toa(ierr)),&
+         err_id=INPUT_OUTPUT_ERROR)
+  end subroutine f_move_file
 
   !> get process id
   function f_getpid()

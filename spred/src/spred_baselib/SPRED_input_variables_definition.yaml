@@ -63,3 +63,6 @@
    nwrite:
      COMMENT: rewriting frequency of poslows, enarr, idarr, ... 
      default: 1
+   mdmin:
+     COMMENT: stop MD after mdmin minima and maxima along the MD trajectory
+     default: 2

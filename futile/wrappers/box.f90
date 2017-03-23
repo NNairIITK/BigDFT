@@ -23,7 +23,7 @@ module box
      integer, dimension(3) :: bc
      integer, dimension(3) :: ndims
      real(gp), dimension(3) :: hgrids
-     real(gp), dimension(3) :: angrad !<angles between the dimensions in radiant
+     real(gp), dimension(3) :: angrad !<angles between the dimensions in radiant (alpha_bc,beta_ac,gamma_bc)
      !derived data
      integer(f_long) :: ndim !< product of the dimension, long integer to avoid overflow
      real(gp) :: volume_element
@@ -493,50 +493,137 @@ contains
 
   end subroutine internal_point
 
-  function cell_new(geocode,ndims,hgrids,angrad) result(mesh)
+  function cell_new(geocode,ndims,hgrids,alpha_bc,beta_ac,gamma_ab,abc) result(mesh)
     use numerics, only: onehalf,pi
     use wrapper_linalg, only: det_3x3
     use f_utils, only: f_assert
+    use dictionaries, only: f_err_throw
     implicit none
     character(len=1), intent(in) :: geocode
     integer, dimension(3), intent(in) :: ndims
     real(gp), dimension(3), intent(in) :: hgrids
-    real(gp), dimension(3), intent(in), optional :: angrad
+    !real(gp), dimension(3), intent(in), optional :: angrad
+    real(gp), intent(in), optional :: alpha_bc,beta_ac,gamma_ab
+    !> arrays of the unit vectors of the cell. Normalized, in fortran order a_i=abc(i,1), b_i=abc(i,2)
+    real(gp), dimension(3,3), intent(in), optional :: abc
     type(cell) :: mesh
     !local variables
     real(gp) :: aa,cc,a2,cosang
     integer :: i,j
 
-    mesh%bc=FREE
-    if (geocode /= 'F') mesh%bc(1)=PERIODIC
-    if (geocode == 'P') mesh%bc(2)=PERIODIC
-    if (geocode /= 'F') mesh%bc(3)=PERIODIC
+
+    select case(geocode)
+    case('P')
+       mesh%bc=PERIODIC
+    case('S')
+       mesh%bc=PERIODIC
+       mesh%bc(2)=FREE
+    case('F')
+       mesh%bc=FREE
+    case('W')
+       mesh%bc=FREE
+       mesh%bc(3)=PERIODIC
+    case default
+       call f_err_throw('Invalid specification of the variable "geocode"')
+    end select
     mesh%ndims=ndims
     mesh%hgrids=hgrids
     mesh%ndim=product(int(ndims,f_long))
-    if (present(angrad)) then
-       mesh%angrad=angrad
+
+    !default orthorhombic
+    mesh%angrad=onehalf*pi
+
+    if (present(alpha_bc)) mesh%angrad(1)=alpha_bc
+    if (present(beta_ac)) mesh%angrad(2)=beta_ac
+    if (present(gamma_ab)) mesh%angrad(3)=gamma_ab
+
+    call f_assert(all(mesh%angrad > 0.0_gp),'Error, Cell new, some of the angles are not positive')
+
+    if (geocode == 'S') then
+       call f_assert(mesh%angrad(1)-onehalf*pi,id='Alpha angle invalid')
+       call f_assert(mesh%angrad(3)-onehalf*pi,id='Gamma angle invalid')
+    end if
+
+    mesh%orthorhombic=all(mesh%angrad==onehalf*pi)
+
+    if ((geocode == 'F' .or. geocode== 'W') .and. (.not. mesh%orthorhombic)) &
+         call f_err_throw('For geocode="F","W" the cell must be orthorhombic')
+
+    if (.not. mesh%orthorhombic) then
        !some consistency check on the angles should be performed
        !1) sum(angrad) < twopi
-       !2) all(angrad) > 0.0_gp
-       if (all(angrad==angrad(1)) .and. angrad(1) /= onehalf*pi) then
+       if (all(mesh%angrad==mesh%angrad(1))) then
           !Treat the case of equal angles (except all right angles) :
           !generates trigonal symmetry wrt third axis
-          cosang=cos(angrad(1))
+          cosang=cos(mesh%angrad(1))
           a2=2.0_gp/3.0_gp*(1.0_gp-cosang)
           aa=sqrt(a2)
           cc=sqrt(1.0_gp-a2)
           mesh%habc(1,1)=aa; mesh%habc(2,1)=0.0_gp; mesh%habc(3,1)=cc
           mesh%habc(1,2)=-0.5_gp*aa ; mesh%habc(2,2)=sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,2)=cc
           mesh%habc(1,3)=-0.5_gp*aa ; mesh%habc(2,3)=-sqrt(3.0_gp)*0.5_gp*aa ; mesh%habc(3,3)=cc
-       else
-          mesh%habc(:,:)=0.0_gp
+          !Set the covariant metric
+          mesh%gd(1,1) = 1.0_gp
+          mesh%gd(1,2) = cos(mesh%angrad(3)) !gamma_ab
+          mesh%gd(1,3) = cos(mesh%angrad(2)) !beta_ac
+          mesh%gd(2,2) = 1.0_gp
+          mesh%gd(2,3) = cos(mesh%angrad(1)) !alpha_bc
+          mesh%gd(3,3) = 1.0_gp 
+          !Set the determinant of the covariant metric
+          mesh%detgd = 1.0_gp - cos(mesh%angrad(1))**2 - cos(mesh%angrad(2))**2 - cos(mesh%angrad(3))**2 +&
+               2.0_gp*cos(mesh%angrad(1))*cos(mesh%angrad(2))*cos(mesh%angrad(3))
+          !Set the contravariant metric
+          mesh%gu(1,1) = (sin(mesh%angrad(1))**2)/mesh%detgd
+          mesh%gu(1,2) = (cos(mesh%angrad(2))*cos(mesh%angrad(1))-cos(mesh%angrad(3)))/mesh%detgd
+          mesh%gu(1,3) = (cos(mesh%angrad(3))*cos(mesh%angrad(1))-cos(mesh%angrad(2)))/mesh%detgd
+          mesh%gu(2,2) = (sin(mesh%angrad(2))**2)/mesh%detgd
+          mesh%gu(2,3) = (cos(mesh%angrad(3))*cos(mesh%angrad(2))-cos(mesh%angrad(1)))/mesh%detgd
+          mesh%gu(3,3) = (sin(mesh%angrad(3))**2)/mesh%detgd
+       else if (geocode == 'P') then
+          mesh%habc=0.0_gp
           mesh%habc(1,1)=1.0_gp
-          mesh%habc(1,2)=cos(angrad(3))
-          mesh%habc(2,2)=sin(angrad(3))
-          mesh%habc(1,3)=cos(angrad(2))
-          mesh%habc(2,3)=(cos(angrad(1))-mesh%habc(1,2)*mesh%habc(1,3))/mesh%habc(2,2)
+          mesh%habc(1,2)=cos(mesh%angrad(3))
+          mesh%habc(2,2)=sin(mesh%angrad(3))
+          mesh%habc(1,3)=cos(mesh%angrad(2))
+          mesh%habc(2,3)=(cos(mesh%angrad(1))-mesh%habc(1,2)*mesh%habc(1,3))/mesh%habc(2,2)
           mesh%habc(3,3)=sqrt(1.0_gp-mesh%habc(1,3)**2-mesh%habc(2,3)**2)
+          !Set the covariant metric
+          mesh%gd(1,1) = 1.0_gp
+          mesh%gd(1,2) = cos(mesh%angrad(3)) !gamma_ab
+          mesh%gd(1,3) = cos(mesh%angrad(2)) !beta_ac
+          mesh%gd(2,2) = 1.0_gp
+          mesh%gd(2,3) = cos(mesh%angrad(1)) !alpha_bc
+          mesh%gd(3,3) = 1.0_gp 
+          !Set the determinant of the covariant metric
+          mesh%detgd = 1.0_gp - cos(mesh%angrad(1))**2 - cos(mesh%angrad(2))**2 - cos(mesh%angrad(3))**2 +&
+               2.0_gp*cos(mesh%angrad(1))*cos(mesh%angrad(2))*cos(mesh%angrad(3))
+          !Set the contravariant metric
+          mesh%gu(1,1) = (sin(mesh%angrad(1))**2)/mesh%detgd
+          mesh%gu(1,2) = (cos(mesh%angrad(2))*cos(mesh%angrad(1))-cos(mesh%angrad(3)))/mesh%detgd
+          mesh%gu(1,3) = (cos(mesh%angrad(3))*cos(mesh%angrad(1))-cos(mesh%angrad(2)))/mesh%detgd
+          mesh%gu(2,2) = (sin(mesh%angrad(2))**2)/mesh%detgd
+          mesh%gu(2,3) = (cos(mesh%angrad(3))*cos(mesh%angrad(2))-cos(mesh%angrad(1)))/mesh%detgd
+          mesh%gu(3,3) = (sin(mesh%angrad(3))**2)/mesh%detgd
+       else !only Surfaces is possible here
+          mesh%habc=0.0_gp
+          mesh%habc(1,1)=1.0_gp
+          mesh%habc(2,2)=1.0_gp
+          mesh%habc(1,3)=cos(mesh%angrad(2))
+          mesh%habc(3,3)=sin(mesh%angrad(2))
+          !Set the covariant metric
+          mesh%gd=0.0_gp
+          mesh%gd(1,1) = 1.0_gp
+          mesh%gd(1,3) = cos(mesh%angrad(2)) !beta_ac
+          mesh%gd(2,2) = 1.0_gp
+          mesh%gd(3,3) = 1.0_gp 
+          !Set the determinant of the covariant metric
+          mesh%detgd = sin(mesh%angrad(2))**2 
+          !Set the contravariant metric
+          mesh%gu=0.0_gp
+          mesh%gu(1,1) = 1.0_gp/mesh%detgd
+          mesh%gu(1,3) = -cos(mesh%angrad(2))/mesh%detgd
+          mesh%gu(2,2) = 1.0_gp!/mesh%detgd
+          mesh%gu(3,3) = 1.0_gp/mesh%detgd
        end if
        !Rescale habc using hgrid
        mesh%habc(:,1)=hgrids*mesh%habc(:,1)
@@ -545,36 +632,11 @@ contains
        !the volume element
        !Compute unit cell volume
        mesh%volume_element=det_3x3(mesh%habc)
-       !Set the covariant metric
-       mesh%gd(1,1) = 1.0_gp
-       mesh%gd(1,2) = dcos(angrad(1))
-       mesh%gd(1,3) = dcos(angrad(2))
-       mesh%gd(2,2) = 1.0_gp
-       mesh%gd(2,3) = dcos(angrad(3))
-       mesh%gd(3,3) = 1.0_gp 
-       mesh%gd(2,1) = mesh%gd(1,2)
-       mesh%gd(3,1) = mesh%gd(1,3)
-       mesh%gd(3,2) = mesh%gd(2,3)
-       !Set the determinant of the covariant metric
-       mesh%detgd = 1.0_gp - dcos(angrad(1))**2 - dcos(angrad(2))**2 - dcos(angrad(3))**2 +&
-                   2.0_gp*dcos(angrad(1))*dcos(angrad(2))*dcos(angrad(3))
-       !Set the contravariant metric
-       mesh%gu(1,1) = (dsin(angrad(3))**2)/mesh%detgd
-       mesh%gu(1,2) = (dcos(angrad(2))*dcos(angrad(3))-dcos(angrad(1)))/mesh%detgd
-       mesh%gu(1,3) = (dcos(angrad(1))*dcos(angrad(3))-dcos(angrad(2)))/mesh%detgd
-       mesh%gu(2,2) = (dsin(angrad(2))**2)/mesh%detgd
-       mesh%gu(2,3) = (dcos(angrad(1))*dcos(angrad(2))-dcos(angrad(3)))/mesh%detgd
-       mesh%gu(3,3) = (dsin(angrad(1))**2)/mesh%detgd
-       mesh%gu(2,1) = mesh%gu(1,2)
-       mesh%gu(3,1) = mesh%gu(1,3)
-       mesh%gu(3,2) = mesh%gu(2,3)
-       do i=1,3
-        do j=1,3
-         if (abs(mesh%gd(i,j)).lt.1.0d-15) mesh%gd(i,j)=0.0_gp
-         if (abs(mesh%gu(i,j)).lt.1.0d-15) mesh%gu(i,j)=0.0_gp
-        end do
-       end do
     else
+       mesh%habc=0.0_gp
+       do i=1,3
+          mesh%habc(i,i)=hgrids(i)
+       end do
        mesh%angrad=onehalf*pi
        mesh%volume_element=product(mesh%hgrids)
        mesh%gd(1,1) = 1.0_gp
@@ -583,27 +645,32 @@ contains
        mesh%gd(2,2) = 1.0_gp
        mesh%gd(2,3) = 0.0_gp
        mesh%gd(3,3) = 1.0_gp 
-       mesh%gd(2,1) = mesh%gd(1,2)
-       mesh%gd(3,1) = mesh%gd(1,3)
-       mesh%gd(3,2) = mesh%gd(2,3)
        mesh%detgd = 1.0_gp 
        !Set the contravariant metric
-       mesh%gu(1,1) = 1.0_gp/mesh%detgd
+       mesh%gu(1,1) = 1.0_gp
        mesh%gu(1,2) = 0.0_gp
        mesh%gu(1,3) = 0.0_gp
-       mesh%gu(2,2) = 1.0_gp/mesh%detgd
+       mesh%gu(2,2) = 1.0_gp
        mesh%gu(2,3) = 0.0_gp 
-       mesh%gu(3,3) = 1.0_gp/mesh%detgd
-       mesh%gu(2,1) = mesh%gu(1,2)
-       mesh%gu(3,1) = mesh%gu(1,3)
-       mesh%gu(3,2) = mesh%gu(2,3)
+       mesh%gu(3,3) = 1.0_gp
     end if
-    mesh%orthorhombic=all(mesh%angrad==onehalf*pi)
+    mesh%gd(2,1) = mesh%gd(1,2)
+    mesh%gd(3,1) = mesh%gd(1,3)
+    mesh%gd(3,2) = mesh%gd(2,3)
 
-    if (geocode == 'S') then
-       call f_assert(mesh%angrad(1)-onehalf*pi,id='Alpha angle invalid')
-       call f_assert(mesh%angrad(3)-onehalf*pi,id='Gamma angle invalid')
-    end if
+    mesh%gu(2,1) = mesh%gu(1,2)
+    mesh%gu(3,1) = mesh%gu(1,3)
+    mesh%gu(3,2) = mesh%gu(2,3)
+    do i=1,3
+       do j=1,3
+          if (abs(mesh%gd(i,j)).lt.1.0d-15) mesh%gd(i,j)=0.0_gp
+          if (abs(mesh%gu(i,j)).lt.1.0d-15) mesh%gu(i,j)=0.0_gp
+       end do
+    end do
+
+    !here we should verify that the the inverse metric times the metric is the identity
+
+
 
   end function cell_new
 

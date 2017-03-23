@@ -111,6 +111,32 @@ def clean_logfile(logfile_lines,to_remove):
     print 'Difference: ',list(set(to_remove) - set(removed) )
   return cleaned_logfile
 
+def load(file=None,stream=None):
+    strm=stream if stream else open(file,'r')
+    try:
+        ld=yaml.load(strm,Loader=yaml.CLoader)
+    except:
+        ld=yaml.load_all(strm,Loader=yaml.CLoader)
+    return ld
+
+def dump(data,filename=None,raw=False,tar=None):
+    todump=str(data) if raw else yaml.dump(data)
+    if filename:
+        if tar:
+            import tarfile
+            from cStringIO import StringIO
+            import time
+            f=tarfile.TarInfo(filename)
+            f.size=len(str(todump))
+            f.mtime=time.time()
+            tar.addfile(f,StringIO(str(todump)))
+        else:
+            f=open(filename,'w')
+            f.write(todump)
+    else:
+        import sys
+        sys,stdout.write(todump)
+
 class YamlDB(dict):
     """Yaml Database, read from a file or a stream
     Attributes:

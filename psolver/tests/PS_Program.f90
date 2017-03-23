@@ -23,7 +23,6 @@ program PSolver_Program
   use f_blas
   use IObox
   implicit none
-  !include 'mpif.h'
   !Order of interpolating scaling function
   !integer, parameter :: itype_scf=8
   character(len=*), parameter :: subname='Poisson_Solver'
@@ -72,17 +71,17 @@ program PSolver_Program
   real(kind=8) :: ehartree,eexcu,diff_par,e1,ehartree_exp
   integer :: n01,n02,n03
   integer :: i1,i2,i3,j1,j2,j3,i1_max,i2_max,i3_max,iproc,nproc,i3sd,ncomp
-  integer :: n_cell,ixc,i3s
+  integer :: n_cell,ixc,i3s,unit
   !integer :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
   !triclinic lattice
-  real(kind=8) :: alpha,beta,gamma,detg
+  real(kind=8) :: alpha,beta,gamma
   real(kind=8), dimension(:,:,:,:), pointer :: rhocore_fake
   type(dictionary), pointer :: options,input
-  type(cell) :: mesh
   type(f_multipoles) :: multipoles
   type(box_iterator) :: bit
   external :: gather_timings  
-  logical, parameter :: wrtfiles=.false.
+  real(dp), parameter :: tol=1.e-8
+  logical, parameter :: wrtfiles=.true. !.false.
   nullify(rhocore_fake)
 
   !mode = "charged_thin_wire"
@@ -122,8 +121,6 @@ program PSolver_Program
   !alpha = 1.0_dp*datan(1.0_dp)
   !beta  = 1.0_dp*datan(1.0_dp)
   !gamma = 1.0_dp*datan(1.0_dp)
-
-  detg = 1.0_dp - dcos(alpha)**2 - dcos(beta)**2 - dcos(gamma)**2 + 2.0_dp*dcos(alpha)*dcos(beta)*dcos(gamma)
 
   !perform also the comparison with the serial case
   !code for the Poisson Solver in the parallel case
@@ -167,7 +164,9 @@ program PSolver_Program
   !call timing(nproc,'time.prc','IN')
  
   karray=pkernel_init(iproc,nproc,dict,&
-       geocode,ndims,(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
+       geocode,ndims,(/hx,hy,hz/),&
+       alpha_bc=alpha,beta_ac=beta,gamma_ab=gamma)
+
   call pkernel_set(karray,verbose=.true.)
 
   !Allocations
@@ -181,19 +180,12 @@ program PSolver_Program
 
   if (iproc==0) call yaml_map('ixc',ixc)
 
-  !note the inversion of angles for compatibility with the 
-  !old function
-  mesh=cell_new(geocode,ndims,(/hx,hy,hz/),angrad=(/beta,alpha,gamma/))
-
-!!$  call test_functions(geocode,ixc,n01,n02,n03,acell,a_gauss,hx,hy,hz,&
-!!$       density,potential,rhopot,pot_ion,0.0_dp,beta,alpha,gamma)
-
-  call test_functions_new2(mesh,acell,a_gauss,karray%mu,density,potential)
+  call test_functions_new2(karray%mesh,acell,a_gauss,karray%mu,density,potential)
   !calculate the expected hartree energy
-  ehartree_exp=0.5_dp*f_dot(potential,density)*mesh%volume_element
+  ehartree_exp=0.5_dp*f_dot(potential,density)*karray%mesh%volume_element
 
   call f_multipoles_create(multipoles,lmax=2)
-  bit=box_iter(mesh,centered=.true.)
+  bit=box_iter(karray%mesh,centered=.true.)
   call field_multipoles(bit,density,1,multipoles)
 
   if (iproc==0) then
@@ -253,7 +245,7 @@ program PSolver_Program
 
   call PS_gather(density,karray)
   !this has to be corrected with the volume element of mesh
-  eexcu=sum(density)*hx*hy*hx*sqrt(detg)
+  eexcu=sum(density)*karray%mesh%volume_element
   if (iproc==0) call yaml_map('potential integral',eexcu)
 
   if (wrtfiles) then
@@ -294,7 +286,12 @@ program PSolver_Program
      call yaml_map('Ehartree',ehartree)
      call yaml_map('Ehartree diff',ehartree-ehartree_exp)
      call yaml_map('Max diff at',[i1_max,i2_max,i3_max])
-     call yaml_map('Max diff',diff_par)
+     call yaml_get_default_stream(unit)
+!     if (f_tty(unit) .and. abs(diff_par) > tol) then
+!        call yaml_map('Max diff',yaml_blink(trim(yaml_toa(diff_par))))
+!     else
+        call yaml_map('Max diff',diff_par)
+!     end if
      call yaml_map('Result',density(i1_max,i2_max,i3_max))
      call yaml_map('Original',potential(i1_max,i2_max,i3_max))
      call yaml_mapping_close()

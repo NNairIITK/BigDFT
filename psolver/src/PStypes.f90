@@ -195,7 +195,7 @@ module PStypes
      type(cell) :: mesh !< structure which includes all cell informations 
      integer, dimension(3) :: ndims   !< dimension of the box of the density
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-     real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+     !real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
      type(cavity_data) :: cavity !< description of the cavity for the dielectric medium
      type(PSolver_options) :: opt !<Datatype controlling the operations of the solver
      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
@@ -375,7 +375,6 @@ contains
     k%mesh=cell_null()
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
     nullify(k%kernel)
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
@@ -502,13 +501,14 @@ contains
   end subroutine pkernel_free
 
   !> Initialization of the Poisson kernel
-  function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
+  function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,alpha_bc,beta_ac,gamma_ab,mpi_env) result(kernel)
     use yaml_output
     use dictionaries
     use numerics
     use wrapper_MPI
     use f_enums
     use psolver_environment
+    use box, only: cell_new
     use f_input_file, only: input_file_dump
     implicit none
     integer, intent(in) :: iproc      !< Proc Id
@@ -517,34 +517,27 @@ contains
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     integer, dimension(3), intent(in) :: ndims
     real(gp), dimension(3), intent(in) :: hgrids
-    real(gp), dimension(3), intent(in), optional :: angrad
+    !real(gp), dimension(3), intent(in), optional :: angrad
+    real(gp), intent(in), optional :: alpha_bc,beta_ac,gamma_ab
     type(mpi_environment), intent(in), optional :: mpi_env
     type(coulomb_operator) :: kernel
     !local variables
     integer :: nthreads,group_size,taskgroup_size
-!    real(gp), dimension(3) :: angrad_new
+    real(gp), dimension(3) :: angrad
     !$ integer :: omp_get_max_threads
 
     !nullification
     kernel=pkernel_null()
 
+    !mesh initialization
+    kernel%mesh=cell_new(geocode,ndims,hgrids,alpha_bc,beta_ac,gamma_ab)
+
+    !these parts should be removed
     !geocode and ISF family
     kernel%geocode=geocode
     !dimensions and grid spacings
     kernel%ndims=ndims
     kernel%hgrids=hgrids
-
-    if (present(angrad)) then
-!       ! TO BE CLARIFIED WHY ARE INVERTED!!!
-!       angrad_new(1)=angrad(2)
-!       angrad_new(2)=angrad(1)
-!       angrad_new(3)=angrad(3)
-!       kernel%mesh=cell_new(geocode,ndims,hgrids,angrad)
-       kernel%angrad=angrad
-    else
-!       kernel%mesh=cell_new(geocode,ndims,hgrids)
-       kernel%angrad=onehalf* [ pi, pi, pi ]
-    end if
 
     !new treatment for the kernel input variables
     kernel%method=PS_VAC_ENUM

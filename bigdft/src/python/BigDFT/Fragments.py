@@ -1,4 +1,5 @@
 AU_to_A=0.52917721092
+Debye_to_AU = 0.393430307
 
 class XYZfile():
     def __init__(self,filename=None,units='atomic'):
@@ -7,7 +8,7 @@ class XYZfile():
         self.units=units
         self.fac=1.0
         if units == 'angstroem': self.fac=AU_to_A
-    def append(self,array,basename='',names=None):
+    def append(self,array,basename='',names=None,attributes=None):
         "Add lines to the file position list"
         nm=basename
         for i,r in enumerate(array):
@@ -15,6 +16,7 @@ class XYZfile():
             line=str(nm)
             for t in r:
                 line+=' '+str(self.fac*t)
+            if attributes is not None: line+=' '+str(attributes[i])
             self.lines.append(line+'\n')
     def dump(self,position='w'):
         "Dump the file as it is now ready for writing"
@@ -106,11 +108,11 @@ class Fragment():
         "Transform the fragment information into a dictionary ready to be put as external potential"
         lat=[]
         for at in self.atoms:
-            dat={}
+            dat=at.copy()
             dat['r']=list(at[self.__torxyz(at)])
             dat['sym']=self.element(at)
             for k in self.protected_keys:
-                if k in at: dat[k]=at[k].tolist()
+                if k in at: dat[k]=list(at[k]) #.tolist()
             lat.append(dat)
         return lat
     def append(self,atom=None,sym=None,positions=None):
@@ -142,6 +144,17 @@ class Fragment():
     def centroid(self):
         import numpy
         return numpy.ravel(numpy.mean(self.positions, axis=0))
+    def center_of_charge(self,zion):
+        cc=0.0
+        qtot=0.0
+        for at in self.atoms:
+            netcharge=at.get('q0')[0]
+            sym=self.element(at)
+            zcharge=zion[sym]
+            elcharge=zcharge-netcharge
+            cc+=elcharge*self.rxyz(at)
+            qtot+=elcharge
+        return cc/qtot
     def transform(self,R=None,t=None):
         "Apply a rototranslation of the fragment positions"
         import wahba as w,numpy as np
@@ -222,12 +235,20 @@ class System():
     def __init__(self,mp_dict=None,xyz=None,nat_reference=None,units='AU',transformations=None,reference_fragments=None):
         self.fragments=[]
         self.CMs=[]
-        self.units=units
+        self._get_units(units)
         if xyz is not None: self.fill_from_xyz(xyz,nat_reference)
         if mp_dict is not None: self.fill_from_mp_dict(mp_dict,nat_reference)
         if transformations is not None: self.recompose(transformations,reference_fragments)
     def __len__(self):
         return sum([len(frag) for frag in self.fragments])
+    def _get_units(self,unt):
+        self.units=unt
+        if unt=='angstroem':
+            self.units='A'
+        elif unt=='atomic' or unt=='bohr':
+            self.units='AU'
+    def _bigdft_units(self):
+        return 'angstroem' if self.units=='A' else 'atomic'
     def fill_from_xyz(self,file,nat_reference):
         "Import the fragment information from a xyz file"
         fil=open(file,'r')
@@ -242,10 +263,7 @@ class System():
                     nat-=nt
                     if len(pos)==2:
                         unt=pos[1]
-                        if unt=='angstroem':
-                            self.units='A'
-                        elif unt=='atomic' or unt=='bohr':
-                            self.units='AU'
+                        self._get_units(unt)
                     if frag is not None: self.append(frag)
                     frag=Fragment(units=self.units)
                     iat=0
@@ -275,19 +293,19 @@ class System():
     def xyz(self,filename=None,units='atomic'):
         import numpy as np
         f=XYZfile(filename,units)
-        for frag in self.fragments:
+        for i,frag in enumerate(self.fragments):
             names=[ frag.element(at) for at in frag.atoms]
             posarr=[ np.ravel(r) for r in frag.positions]
-            f.append(posarr,names=names)
+            f.append(posarr,names=names,attributes=[{'frag': [frag.id, i+1]}]*len(frag))
         f.dump()
     def dict(self,filename=None):
         atoms=[]
         for f in self.fragments:
             atoms+=f.dict()
-        if self.units != 'A': 
-            print 'Dictionary version not available if the system is given in AU'
-            raise Exception
-        dc={'units': 'angstroem','global monopole': float(self.Q()), 'values': atoms}
+        #if self.units != 'A': 
+        #    print 'Dictionary version not available if the system is given in AU'
+        #    raise Exception
+        dc={'units': self._bigdft_units(),'global monopole': float(self.Q()), 'values': atoms}
         return dc
     def append(self,frag):
         "Append a fragment to the System class"
@@ -312,7 +330,8 @@ class System():
         try:
             import wahba
             roto,translation,J=wahba.rigid_transform_3D(frag1.positions,frag2.positions)
-        except:
+        except Exception,e:
+            print 'Error',e
             roto,translation,J=(None,None,1.0e10)
         return roto,translation,J
     def decompose(self,reference_fragments):
