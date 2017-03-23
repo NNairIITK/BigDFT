@@ -2,9 +2,9 @@
 !!    Define the module for Poisson Solver
 !!
 !! @author
-!!    Luigi Genovese (February 2007)
-!!    PSolverNC added by Anders Bergman, March 2008
-!!    Copyright (C) 2002-2013 BigDFT group
+!!    Luigi Genovese (February 2007)<br/>
+!!    PSolverNC added by Anders Bergman, March 2008<br/>
+!!    Copyright (C) 2002-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -53,7 +53,6 @@
 !!    the XC part in the PSolver routine
 !!    Search for
 !!
-!! @ingroup PSOLVER
 module Poisson_Solver
    use dictionaries, only: f_err_throw
    use f_utils
@@ -80,14 +79,14 @@ module Poisson_Solver
    integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
 
-   !timing categories
+   ! Timing categories
    integer, public, save :: TCAT_PSOLV_COMPUT=TIMING_UNINITIALIZED
    integer, public, save :: TCAT_PSOLV_COMMUN=TIMING_UNINITIALIZED
    integer, public, save :: TCAT_PSOLV_KERNEL=TIMING_UNINITIALIZED
 
    include 'configure.inc'
 
-   !intialization of the timings
+   ! Intialization of the timings
    public :: PS_initialize_timing_categories,coulomb_operator,PSolver_energies
    ! Calculate the allocation dimensions
    public :: PS_dim4allocation,PSolver_logo,ps_soft_PCM_forces
@@ -103,7 +102,6 @@ module Poisson_Solver
    !! Doxygen will duplicate the documentation for the arguments
    type doc
       character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-                                  !! @ingroup RESERVED
       !> Indicates the distribution of the data of the input/output array:
       !!    - 'G' global data. Each process has the whole array of the density
       !!          which will be overwritten with the whole array of the potential.
@@ -113,14 +111,13 @@ module Poisson_Solver
       !!          gradient, needed for XC part, and for the White-Bird correction, which
       !!          may lead up to 8 planes more on each side. Due to this fact, the information
       !!          between the processors may overlap.
-      !!          @ingroup RESERVED
       character(len=1) :: datacode
    end type doc
 
 contains
 
-  !> switch on the timing categories for the Poisson Solver
-  !! shuold be called if the time_profiling module has to be used for profiling the routines
+  !> Switch on the timing categories for the Poisson Solver
+  !! should be called if the time_profiling module has to be used for profiling the routines
   subroutine PS_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use wrapper_mpi, only: comm => tgrp_mpi_name, mpi_initialize_timing_categories
@@ -161,7 +158,10 @@ contains
     call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
       call yaml_map('Root process Hostname',mpihostname())
   end subroutine PSolver_logo
-  
+ 
+
   include 'PSolver_Main.f90'
+
   include 'createKernel.f90'
+
 end module Poisson_Solver

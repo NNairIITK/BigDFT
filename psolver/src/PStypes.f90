@@ -2,12 +2,14 @@
 !!    Modulefile for the definition of the basic structures
 !!
 !! @author
-!!    G. Fisicaro, L. Genovese (September 2015)
-!!    Copyright (C) 2002-2015 BigDFT group 
+!!    G. Fisicaro, L. Genovese (September 2015)<br/>
+!!    Copyright (C) 2002-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+!> Define the fortran types and the related routines to handle it.
 module PStypes
   use f_enums
   use wrapper_MPI
@@ -17,6 +19,7 @@ module PStypes
   use f_input_file, only: ATTRS
   use box
   use dictionaries
+
   implicit none
 
   private
@@ -62,8 +65,8 @@ module PStypes
   integer, parameter :: RADII_BONDI_ID = 2
   integer, parameter :: RADII_UFF_ID = 3
   
-  !>Defines the internal information for application of the FFT between the kernel and the 
-  !!density
+
+  !> Defines the internal information for application of the FFT between the kernel and the density
   type, public :: FFT_metadata
      integer :: m1,m2,m3 !<original real dimension, with m2 in z direction and and m3 in y direction
      integer :: n1,n2,n3 !<dimension of the FFT operation, taking into account the zero padding if needed
@@ -76,9 +79,10 @@ module PStypes
      real(dp) :: scal !<factor to rescale the solver such that the FFT is unitary, divided by 4pi
   end type FFT_metadata
 
-  !> define the work arrays needed for the treatment of the 
-  !!Poisson Equation. Not all of them are allocated, the actual memory usage 
-  !!depends on the treatment
+
+  !> Define the work arrays needed for the treatment of the 
+  !! Poisson Equation. Not all of them are allocated, the actual memory usage 
+  !! depends on the treatment.
   type, public :: PS_workarrays
      integer :: nat !< dimensions of the atomic based cavity. Zero if unused
      !>positions of the atoms of the cavity in the simulation box
@@ -124,7 +128,8 @@ module PStypes
      integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU, eexctX_GPU, reduc_GPU, ehart_GPU
   end type PS_workarrays
 
-  !>Datatype defining the mode for the running of the Poisson solver
+
+  !> Datatype defining the mode for the running of the Poisson solver
   type, public :: PSolver_options
      !> @copydoc poisson_solver::doc::datacode
      character(len=1) :: datacode
@@ -211,28 +216,30 @@ module PStypes
      integer :: stay_on_gpu
      integer :: keepzf
      !parameters for the iterative methods
-     !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
+     !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number 
+     !! of points at left and right of the x0 where we want to calculate the derivative.
      integer :: nord
      !> default set of radii for the rigid cavity
      integer :: radii_set
      !> dictionary of the atom species radii defined by the user
      type(dictionary), pointer :: radii_dict
-     integer :: max_iter !< maximum number of convergence iterations
-     real(dp) :: minres !< convergence criterion for the iteration
-     real(dp) :: PI_eta !<parameter for the update of PI iteration
-     integer :: max_iter_PB !< max conv iterations for PB treatment
-     real(dp) :: minres_PB !<convergence criterion for PB residue
-     real(dp) :: PB_eta !< mixing scheme for PB
-     real(dp) :: IntVol !< Volume integral needed for the non-electrostatic energy contributions
-     real(dp) :: IntSur !< Surface integral needed for the non-electrostatic energy contributions
+     integer :: max_iter    !< maximum number of convergence iterations
+     real(dp) :: minres     !< Convergence criterion for the iteration
+     real(dp) :: PI_eta     !< Parameter for the update of PI iteration
+     integer :: max_iter_PB !< Max conv iterations for PB treatment
+     real(dp) :: minres_PB  !< Convergence criterion for PB residue
+     real(dp) :: PB_eta     !< Mixing scheme for PB
+     real(dp) :: IntVol     !< Volume integral needed for the non-electrostatic energy contributions
+     real(dp) :: IntSur     !< Surface integral needed for the non-electrostatic energy contributions
      
-     integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
-     integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
-     integer, dimension(:), pointer :: rhocounts !<array needed to gather the information of the poisson solver on multiple gpus
-     integer, dimension(:), pointer :: rhodispls !<array needed to gather the information of the poisson solver on multiple gpus
+     integer, dimension(:), pointer :: counts    !< Array needed to gather the information of the Poisson solver
+     integer, dimension(:), pointer :: displs    !< Array needed to gather the information of the Poisson solver
+     integer, dimension(:), pointer :: rhocounts !< Array needed to gather the information of the Poisson solver on multiple gpus
+     integer, dimension(:), pointer :: rhodispls !< Array needed to gather the information of the Poisson solver on multiple gpus
   end type coulomb_operator
 
-  !> define the energy terms for the Poisson Operator and Generalized applications
+
+  !> Define the energy terms for the Poisson Operator and Generalized applications
   type, public :: PSolver_energies
      !> hartree energy, defined as the @f$\int \rho(\mathbf{r}) V(\mathbf{r}) \mathrm d r @f$, with @f$\rho@f$ being the 
      !! input density and @f$V@f$ the potential defined by this density
@@ -250,13 +257,19 @@ module PStypes
      real(gp), dimension(6) :: strten
   end type PSolver_energies
 
+
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
   public :: ps_allocate_lowlevel_workarrays,PSolver_options_null,PS_input_dict
   public :: release_PS_potential,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
   public :: ps_soft_PCM_forces,pkernel_get_radius
 
+  !To specify properly to doxygen (test)
+  private :: free_PS_workarrays, PS_fill_variables, PS_input_fill
+
+
 contains
+
 
   pure function PSolver_energies_null() result(e)
     implicit none
@@ -392,7 +405,7 @@ contains
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
     use dictionaries, only: f_err_throw
     use f_utils, only: f_zero
-  implicit none
+    implicit none
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
     integer :: i_stat
     type(PS_workarrays), intent(inout) :: w
@@ -459,7 +472,6 @@ contains
   end subroutine release_PS_potential
 
   !> Free memory used by the kernel operation
-  !! @ingroup PSOLVER
   subroutine pkernel_free(kernel)
     use dictionaries, only: dict_free
     implicit none
@@ -490,7 +502,6 @@ contains
   end subroutine pkernel_free
 
   !> Initialization of the Poisson kernel
-  !! @ingroup PSOLVER
   function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
     use yaml_output
     use dictionaries

@@ -1,7 +1,7 @@
 !> @file
 !!    Routines to create the kernel for Poisson solver
 !! @author
-!!    Copyright (C) 2002-2013 BigDFT group  (LG)
+!!    Copyright (C) 2002-2017 BigDFT group  (LG)<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,7 +9,6 @@
 
 
 !> Initialization of the Poisson kernel
-!! @ingroup PSOLVER
 function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
@@ -169,7 +168,6 @@ end function pkernel_init_old
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
 !! calculating the convolution with the kernel expressed in the interpolating scaling
 !! function basis. The kernel pointer is unallocated on input, allocated on output.
-!! @ingroup PSOLVER
 subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !optional arguments
   use yaml_output
   use dynamic_memory
@@ -1332,9 +1330,10 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
 
 end subroutine pkernel_build_epsilon
 
-!>new version of the pkernel_build epsilon Routine,
-!! with explicit workarrays. This version is supposed not to allocate
-!! any array
+
+!> New version of the pkernel_build epsilon Routine,
+!! with explicit workarrays.
+!! This version is supposed not to allocate any array
 subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rho,depsdrho,dsurfdrho,&
      kernel,IntSur,IntVol)
   use FDder
@@ -1380,10 +1379,10 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
   use wrapper_mpi
   use yaml_output
   implicit none
-  integer, intent(in) :: mdz !< dimension of the density in the z direction
+  integer, intent(in) :: mdz              !< dimension of the density in the z direction
   integer, intent(in) :: n2wires,n3planes !<number of interesting wires in a plane and number of interesting planes
   type(mpi_environment), intent(in) :: mpi_env !< global env of Psolver
-  integer, intent(out) :: n3pr1,n3pr2 !< mpi grid of processors based on mpi_env
+  integer, intent(out) :: n3pr1,n3pr2     !< mpi grid of processors based on mpi_env
   type(mpi_environment), intent(out) :: inplane_mpi,part_mpi !<internal environments for the partitioning
   !local variables
 

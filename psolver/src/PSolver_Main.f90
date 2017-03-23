@@ -1,9 +1,9 @@
 !> @file
 !!    Main routine to perform Poisson solver calculation
 !! @author
-!!    Creation date: February 2007
+!!    Creation date: February 2007<br/>
 !!    Luigi Genovese
-!!    Copyright (C) 2002-2013 BigDFT group 
+!!    Copyright (C) 2002-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
