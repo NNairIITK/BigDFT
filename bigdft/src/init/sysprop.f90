@@ -94,11 +94,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1+1)*lzd%hgrids(1) .or. &
               locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2+1)*lzd%hgrids(2) .or. &
               locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3+1)*lzd%hgrids(3)) then
-              !write(*,'(a,2es16.6)') 'locregcenters(1,iat), dble(lzd%glr%d%n1+1)*lzd%hgrids(1)', locregcenters(1,iat), dble(lzd%glr%d%n1+1)*lzd%hgrids(1)
-              !write(*,'(a,2es16.6)') 'locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)', locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)
-              !write(*,'(a,2es16.6)') 'locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)', locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)
-              !write(*,'(a,3es16.6)') 'atoms%astruct%rxyz(1:3,iat)', atoms%astruct%rxyz(1:3,iat)
-              !stop 'locregcenter outside of global box!'
               call f_err_throw('locregcenter outside of global box!', err_name='BIGDFT_RUNTIME_ERROR')
           end if
       end do
@@ -128,8 +123,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
           call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
 
-        !if (denspot%pkernel%method .hasattr. 'sccs') &
-        !     call pkernel_allocate_cavity(denspot%pkernel)
      end if
   end if
 
@@ -984,6 +977,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
   it=atoms_iter(atoms%astruct)
   !python metod
+  if (bigdft_mpi%iproc==0) call yaml_mapping_open('Covalent radii',flow=.true.)
   do while(atoms_iter_next(it))
      !only amu is extracted here
      call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
@@ -994,9 +988,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
      else
         radii(it%iat)=rcav
      end if
+     if (bigdft_mpi%iproc==0) call yaml_map(it%name,radii(it%iat))
   end do
+  if (bigdft_mpi%iproc==0) call yaml_mapping_close()
 
-  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+!  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
   fact=pkernel%cavity%fact_rigid
   it=atoms_iter(atoms%astruct)

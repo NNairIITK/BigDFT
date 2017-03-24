@@ -367,7 +367,7 @@ contains
        ! Experimental value case.
        rcov_    = ratom(zatom)
        call nzsymbol(zatom, symbol_)
-       amu_     = UNINITIALIZED(amu_) ! should be tabulated independantly of zion
+       amu_     = UNINITIALIZED(amu_) ! should be tabulated independently of zion
        rprb_    = UNINITIALIZED(rprb_)
        ehomo_   = UNINITIALIZED(ehomo_)
        nsccode_ = UNINITIALIZED(nsccode_)

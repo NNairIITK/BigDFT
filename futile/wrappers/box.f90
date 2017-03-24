@@ -816,12 +816,7 @@ contains
     if (mesh%orthorhombic) then
        square=v(1)**2+v(2)**2+v(3)**2
     else
-       square=0.0_gp
-       do i=1,3
-        do j=1,3
-         square=square+mesh%gu(i,j)*v(i)*v(j)
-        end do
-       end do
+       square=dotp(mesh,v,v)
     end if
 
   end function square
@@ -845,9 +840,18 @@ contains
     real(gp), dimension(3), intent(in) :: v1,v2
     type(cell), intent(in) :: mesh !<definition of the cell
     real(gp) :: dotp
+    !local variables
+    integer :: i,j
 
     if (mesh%orthorhombic) then
        dotp=v1(1)*v2(1)+v1(2)*v2(2)+v1(3)*v2(3)
+    else
+       dotp=0.0_gp
+       do i=1,3
+          do j=1,3
+             dotp=dotp+mesh%gu(i,j)*v1(i)*v2(j)
+          end do
+       end do
     end if
 
   end function dotp

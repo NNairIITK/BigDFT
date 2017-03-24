@@ -135,7 +135,7 @@ def dump(data,filename=None,raw=False,tar=None):
             f.write(todump)
     else:
         import sys
-        sys,stdout.write(todump)
+        sys.stdout.write(todump)
 
 class YamlDB(dict):
     """Yaml Database, read from a file or a stream

@@ -83,7 +83,7 @@ interface_dgemmsy_fake.o: linalg.o
 f_blas.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
-f_functions.o: numerics.o
+f_functions.o: numerics.o box.o
 op2p_module.o: mpi.o linalg.o
 harmonics.o: numerics.o
 box.o: linalg.o

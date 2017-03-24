@@ -681,12 +681,10 @@ contains
     projr = dict // PERF_VARIABLES // PROJRAD
     cfrmults = dict // DFT_VARIABLES // RMULT
     jxc = dict // DFT_VARIABLES // IXC
-    !var => dict_iter(types)
-    !do while(associated(var))
+
     nullify(var)
     do while(iterating(var,on=types))
        call psp_dict_fill_all(dict, trim(dict_key(var)), jxc, projr, cfrmults(1), cfrmults(2))
-       !var => dict_next(var)
     end do
 
     ! Update interdependent values.
@@ -824,10 +822,6 @@ contains
     if (in%gen_nkpt > 1 .and. (in%inputpsiid .hasattr. 'GAUSSIAN')) then
        call f_err_throw('Gaussian projection is not implemented with k-point support',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end if
-
-!!$    if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
-!!$         in%inputpsiid == INPUT_PSI_MEMORY_LINEAR .or. &
-!!$         in%inputpsiid == INPUT_PSI_DISK_LINEAR) &
     if (in%inputpsiid .hasattr. 'LINEAR') DistProjApply=.true.
     if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
        !only on the fly calculation
@@ -843,29 +837,10 @@ contains
     ! Stop the code if it is trying to run GPU with spin=4
     if (in%nspin == 4 .and. in%matacc%iacceleration /= 0) then
        call f_err_throw('GPU calculation not implemented with non-collinear spin',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-!!$     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
     end if
 
     !control atom positions
     call check_atoms_positions(atoms%astruct, (bigdft_mpi%iproc == 0))
-
-!!$  ! Stop code for unproper input variables combination.
-!!$  if (in%ncount_cluster_x > 0 .and. .not. in%disableSym .and. atoms%geocode == 'S') then
-!!$     if (bigdft_mpi%iproc==0) then
-!!$        write(*,'(1x,a)') 'Change "F" into "T" in the last line of "input.dft"'
-!!$        write(*,'(1x,a)') 'Forces are not implemented with symmetry support, disable symmetry please (T)'
-!!$     end if
-!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
-!!$  end if
-
-!!$  if (bigdft_mpi%iproc == 0) then
-!!$     profs => input_keys_get_profiles("")
-!!$     call yaml_dict_dump(profs)
-!!$     call dict_free(profs)
-!!$  end if
-
-    !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
     ! Warn for all INPUT_VAR_ILLEGAL errors.
     do while (f_err_pop(err_name='INPUT_VAR_ILLEGAL', add_msg = msg) /= 0)
@@ -889,26 +864,12 @@ contains
        found = TRANSFER_INTEGRALS .in. dict // FRAG_VARIABLES
        if (found) in%lin%calc_transfer_integrals=dict//FRAG_VARIABLES//TRANSFER_INTEGRALS
        call frag_from_dict(dict//FRAG_VARIABLES,in%frag)
-
-!!$     ! again recheck
-!!$     call dict_from_frag(in%frag,dict_frag)
-!!$     call yaml_map('again',dict_frag)
-!!$     call dict_free(dict_frag)
-!!$     stop
     else
        call default_fragmentInputParameters(in%frag)
     end if
 
     ! Process the multipoles for the external potential
     call multipoles_from_dict(dict//DFT_VARIABLES//EXTERNAL_POTENTIAL, in%ep)
-    !!do impl=1,in%ep%nmpl
-    !!    call yaml_map('rxyz',in%ep%mpl(impl)%rxyz)
-    !!    do l=0,lmax
-    !!         if(associated(in%ep%mpl(impl)%qlm(l)%q)) then
-    !!             call yaml_map(trim(yaml_toa(l)),in%ep%mpl(impl)%qlm(l)%q)
-    !!         end if
-    !!    end do
-    !!end do
 
     ! No use anymore of the types.
     call dict_free(types)

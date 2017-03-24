@@ -400,8 +400,9 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   energs%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
        kernel%cavity%betaV*kernel%IntVol
 
+  if (present(energies) .or. wrtmsg) call PS_reduce(energs,kernel)
+
   if (present(energies)) then
-     call PS_reduce(energs,kernel)
      energies=energs
   end if
 
@@ -469,9 +470,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
      if (use_input_guess) then
         !gathering the data to obtain the distribution array
         !call PS_gather(kernel%w%pot,kernel) !not needed as in PI the W%pot array is global
-        call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
-             kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%eps,&
+        call update_rhopol(kernel%mesh,kernel%w%pot,kernel%nord,1.0_dp,kernel%w%eps,&
              kernel%w%dlogeps,kernel%w%rho,rhores2)
      end if
 
@@ -504,9 +503,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
 
         !update rhopol and calculate residue
         !reduction of the residue not necessary
-        call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
-             kernel%ndims(3),&
-             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%eps,&
+        call update_rhopol(kernel%mesh,kernel%w%pot,kernel%nord,kernel%PI_eta,kernel%w%eps,&
              kernel%w%dlogeps,kernel%w%rho,rhores2)
 
         rhores2=sqrt(rhores2/rpoints)
