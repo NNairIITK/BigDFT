@@ -10,7 +10,7 @@ program libconv
   use numerics
   implicit none
   integer :: i
-  real(f_double) :: ekin,crmult,frmult
+  real(f_double) :: ekin,crmult,frmult,maxdiff
   type(cell) :: mesh
   type(box_iterator) :: bit
   type(locreg_descriptors) :: lr
@@ -28,10 +28,10 @@ program libconv
   call bigdft_init_errors()
   call bigdft_init_timing_categories()
 
-  hgrids=0.5
-  dict_posinp=f_tree_load('{positions: [{ H: [0.0, 0.0, 0.0]}]}')
-  crmult=5.0_f_double
-  frmult=8.0_f_double
+  hgrids=0.333_f_double
+  dict_posinp=f_tree_load('{positions: [{ H: [0.0, 0.0, 0.0]}], cell: [15,15,15]}')
+  crmult=50.0_f_double
+  frmult=80.0_f_double
   angrad=onehalf*pi
   oxyz=5.0_f_double
   kpoint=0.0_f_double
@@ -54,7 +54,12 @@ program libconv
 !!$        funcs(i)=f_function_new(f_gaussian,&
 !!$             exponent=1.0_f_double/(10.0_f_double*mesh%hgrids(i)**2))
      end if
+     !funcs(i)=f_function_new(f_constant,prefactor=11.0_f_double)
   end do
+
+  call yaml_map('Number of grid points in the high-resolution domain',mesh%ndims)
+
+  call yaml_map('Periodicity of the x,y,z dimensions',pers)
 
   psir=f_malloc(mesh%ndim,id='psir')
   tpsir=f_malloc(mesh%ndim,id='tpsir')
@@ -65,7 +70,7 @@ program libconv
   bit=box_iter(mesh,centered=.true.)
   !take the reference functions
   call separable_3d_function(bit,funcs,1.0_f_double,psir)
-  call separable_3d_laplacian(bit,funcs,-0.5_f_double,tpsir)
+  call separable_3d_laplacian(bit,funcs,-2.0_f_double,tpsir)
 
   !initalize workspaces
   call initialize_work_arrays_sumrho(lr,.true.,w)
@@ -76,6 +81,9 @@ program libconv
 
   !from wavelets to real space and fine scaling functions space
   call daub_to_isf_locham(1,lr,wrk_lh,psi,psir_work)
+
+  !multiply by the potential (zero in this case)
+  call f_zero(psir_work)
 
   !calculate results of the laplacian
   call isf_to_daub_kinetic_clone(mesh%hgrids(1),mesh%hgrids(2),mesh%hgrids(3),&
@@ -91,6 +99,13 @@ program libconv
   call deallocate_locreg_descriptors(lr)
 
   !compare the results (tpsir with psir_work) 
+  call f_diff(size(tpsir),tpsir,psir_work,maxdiff,ind=i)
+
+  call yaml_map('Final difference',maxdiff)
+  call yaml_map('At point',i)
+!  call yaml_map('Corresponding to value',ind_to_iarr(mesh%ndims,i))
+  call yaml_map('Calculated value',psir_work(i))
+  call yaml_map('Reference value',tpsir(i))
 
   call f_free(psir,tpsir,psir_work)
   call f_free(psi,tpsi)
@@ -118,7 +133,31 @@ program libconv
   
   call f_lib_finalize()
 
+contains
+
+  function ind_to_iarr(ndims,ind) result(iarr)
+    implicit none
+    integer, dimension(:), intent(in) :: ndims
+    integer, intent(in) :: ind
+    integer, dimension(size(ndims)) :: iarr
+    !local variables
+    integer :: j,jnd,n,m
+
+    n=size(ndims)   
+    jnd=ind
+    m=1
+    do j=1,n-1
+       iarr(j)=modulo(jnd-1,ndims(j+1))+1
+       jnd=jnd-(iarr(j)-1)*m
+       if (j<n-1) jnd=jnd/ndims(j+1)
+       m=m*ndims(j)
+    end do
+    iarr(n)=modulo(jnd-1,ndims(n))+1
+  end function ind_to_iarr
+
+
 end program libconv
+
 
 subroutine define_lr(lr,tree_posinp,crmult,frmult,hgrids)
   use module_atoms
@@ -366,7 +405,7 @@ subroutine isf_to_daub_kinetic_clone(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ek
 !!$                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
         end do
      else
-
+print *,'here',usekpts
         if (usekpts) then
            !first calculate the proper arrays then transpose them before passing to the
            !proper routine
@@ -419,6 +458,14 @@ subroutine isf_to_daub_kinetic_clone(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ek
            do idx=1,nspinor
               call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
                    psir(1,idx),w%y_c(1,idx))
+
+!!$              call d_s0s0_1d_sym8_imd(3,0,&
+!!$                   2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+!!$                   [0,0,0],&
+!!$                   2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,1,&
+!!$                   psir(1,idx),w%y_c(1,idx),&
+!!$                   1.0_wp,1.0_wp,0.0_wp)
+
               ! compute the kinetic part and add  it to psi_out
               ! the kinetic energy is calculated at the same time
               call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
