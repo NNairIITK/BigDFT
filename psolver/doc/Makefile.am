@@ -36,8 +36,18 @@ Doxygen.stamp: $(top_builddir)/config/Doxyfile
 web.stamp: Doxygen.stamp
 	touch web.stamp
 
+ford-doc: FORD
+
+FORD: FORD.stamp
+
+FORD.stamp: $(top_builddir)/config/ford.md
+	\rm -rf FORD
+	ford --src_dir $(top_srcdir)/src \
+		--include $(top_srcdir)/src --include $(top_builddir)/src \
+		--exclude_dir $(top_srcdir)/src/unused \
+		--output_dir FORD $(top_srcdir)/config/ford.md
 
 clean-local:
-	rm -rf Doxygen lcov* *.aux *.log  *.toc Doxygen *.stamp doxygen.warnings
+	rm -rf FORD Doxygen lcov* *.aux *.log  *.toc Doxygen *.stamp doxygen.warnings
 
 PHONY = install-devdoc

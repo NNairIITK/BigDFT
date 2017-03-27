@@ -422,10 +422,9 @@ module IObox
       !local variables
       !n(c) character(len=*), parameter :: subname='read_cube'
       character(len=5) :: suffix
-      character(len=15) :: message
       integer, dimension(3) :: na,nb
       real(gp), dimension(3) :: ha,hb
-      integer :: ia,nat2
+      integer :: nat2
       logical :: exists,drr
       real(gp), dimension(:,:), pointer   :: rxyz2
       integer, dimension(:), pointer   :: iatypes2, znucl2

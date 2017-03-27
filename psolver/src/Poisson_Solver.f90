@@ -14,18 +14,19 @@
 !> Module used by the Poisson Solver library.
 !! It must be used in the parent routine.
 !! @details
-!!    In the main routine in which the Poisson Solver is called
-!!    -# The Poisson kernel must be declared as a pointer, then the
+!!    In the main routine in which the Poisson Solver is called:
+!!
+!!    1. The Poisson kernel must be declared as a pointer, then the
 !!       routine createKernel can be called. On exit, the kernel will be allocated and
 !!       ready to use. See the documentation of the createKernel routine for more details
-!!    -# The correct sizes for allocating the density/potential and the pot_ion arrays
+!!    2. The correct sizes for allocating the density/potential and the pot_ion arrays
 !!       are given from the routine PS_dim4allocation (see routine documentation for details).
 !!       Its argument MUST be in agreement with the arguments of the PSolver routine.
 !!       WARNING: No cross-check of the arguments is performed!
-!!    -# The PSolver routine can then be called. On exit, the Hartree potential is computed
+!!    3. The PSolver routine can then be called. On exit, the Hartree potential is computed
 !!       and summed (following ixc value) to XC and external potential.
 !!       The input array is overwritten. Again, see routine documentation for details.
-!!    -# QUICK INSTRUCTION FOR THE IMPATIENT:If you want to use the Poisson Solver in the
+!!    4. QUICK INSTRUCTION FOR THE IMPATIENT:If you want to use the Poisson Solver in the
 !!       "ordinary" way, for a grid of dimensions nx,ny,nz and grid spacings hx,hy,hz,
 !!       just create the Kernel with
 !!           call createKernel(geocode,nx,ny,nz,hx,hy,hz,14,0,1,kernel)
@@ -42,8 +43,9 @@
 !!          fake_arr  is an array of dimension(1), untouched
 !!          fake_*xc  values of the XC energies, automatically zero in that case
 !!
-!!       Any other changment of the arguments require reading of the documentation.
+!!       Any other changement of the arguments require reading of the documentation.
 !!       See documentations of the Public routines
+!!
 !! @warning
 !!    This module REQUIRES the module of XC functional from ABINIT, defs_xc, which
 !!    require defs_basis and defs_datatypes.

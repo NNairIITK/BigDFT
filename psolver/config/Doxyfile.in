@@ -656,10 +656,9 @@ WARN_LOGFILE           = doxygen.warnings
 
 INPUT                 = @abs_top_srcdir@/README \
                         @abs_top_srcdir@/AUTHORS \
-                        @abs_top_srcdir@/NEWS \
                         @abs_top_srcdir@/COPYING \
-                        @abs_top_srcdir@/src \
-                        @abs_top_srcdir@/tests
+                        @abs_top_srcdir/tests/README \
+                        @abs_top_srcdir@/src/Poisson_Solver.f90
 
 
 
@@ -769,7 +768,7 @@ FILTER_PATTERNS        = *.f90=@abs_top_srcdir@/doc/doxygen-filter-f90.py
 # INPUT_FILTER) will be used to filter the input files when producing source
 # files to browse (i.e. when SOURCE_BROWSER is set to YES).
 
-FILTER_SOURCE_FILES    = NO
+FILTER_SOURCE_FILES    = YES
 
 # The FILTER_SOURCE_PATTERNS tag can be used to specify source filters per file
 # pattern. A pattern will override the setting for FILTER_PATTERN (if any)
