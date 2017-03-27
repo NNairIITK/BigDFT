@@ -1,14 +1,14 @@
 !> @file
 !!  Define main module for using BigDFT as a blackbox
 !! @author
-!!    Copyright (C) 2007-2015 BigDFT group (LG, DC)
+!!    Copyright (C) 2007-2017 BigDFT group (LG, DC)<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module handling the object for the runs of bigDFT (restart, output, ...)
+!> Module handling the object for the runs of BigDFT (restart, output, ...)
 module bigdft_run
   use module_defs, only: gp
   use dictionaries
@@ -25,19 +25,19 @@ module bigdft_run
 
   private
 
-  !>  Used to restart a new DFT calculation or to save information
-  !!  for post-treatment
+  !> Used to restart a new DFT calculation or to save information
+  !! for post-treatment
   type, public :: QM_restart_objects
      type(f_reference_counter) :: refcnt
      integer :: version !< 0=cubic, 100=linear
      integer :: n1,n2,n3,nat
      real(gp), dimension(:,:), pointer :: rxyz_old,rxyz_new
      type(DFT_wavefunction) :: KSwfn !< Kohn-Sham wavefunctions
-     type(DFT_wavefunction) :: tmb !<support functions for linear scaling
+     type(DFT_wavefunction) :: tmb !< Support functions for linear scaling
      type(GPU_pointers) :: GPU
   end type QM_restart_objects
 
-  !>supplementary type in run_objects
+  !> Supplementary type in run_objects
   type, public :: MM_restart_objects
      type(f_reference_counter) :: refcnt
      !> array for temporary copy of atomic positions and forces

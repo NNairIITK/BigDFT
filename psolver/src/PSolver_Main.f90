@@ -1,9 +1,9 @@
 !> @file
 !!    Main routine to perform Poisson solver calculation
 !! @author
-!!    Creation date: February 2007
+!!    Creation date: February 2007<br/>
 !!    Luigi Genovese
-!!    Copyright (C) 2002-2013 BigDFT group 
+!!    Copyright (C) 2002-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -47,7 +47,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   !> Additional external density that is added to the output input, if present.
   !! The treatment of the Poisson Equation is done with the sum of the two densities whereas the rho-dependent cavity and some components
   !! of the energies are calculated only with the input rho.
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
+  real(dp), dimension(kernel%ndims(1), kernel%ndims(2), kernel%grid%n3p), intent(inout), optional, target :: rho_ion
   !> Electrostatic Energy of the system given as @f$\int \rho \cdot V @f$, where @f$\rho@f$ and @f$V@f$ correspond to the 
   !! values of rhov array in input and output, respectively. This value is already reduced such that each of the 
   !! MPI tasks have the same value

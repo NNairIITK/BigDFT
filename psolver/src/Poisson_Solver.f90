@@ -2,9 +2,9 @@
 !!    Define the module for Poisson Solver
 !!
 !! @author
-!!    Luigi Genovese (February 2007)
-!!    PSolverNC added by Anders Bergman, March 2008
-!!    Copyright (C) 2002-2013 BigDFT group
+!!    Luigi Genovese (February 2007)<br/>
+!!    PSolverNC added by Anders Bergman, March 2008<br/>
+!!    Copyright (C) 2002-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,18 +14,19 @@
 !> Module used by the Poisson Solver library.
 !! It must be used in the parent routine.
 !! @details
-!!    In the main routine in which the Poisson Solver is called
-!!    -# The Poisson kernel must be declared as a pointer, then the
+!!    In the main routine in which the Poisson Solver is called:
+!!
+!!    1. The Poisson kernel must be declared as a pointer, then the
 !!       routine createKernel can be called. On exit, the kernel will be allocated and
 !!       ready to use. See the documentation of the createKernel routine for more details
-!!    -# The correct sizes for allocating the density/potential and the pot_ion arrays
+!!    2. The correct sizes for allocating the density/potential and the pot_ion arrays
 !!       are given from the routine PS_dim4allocation (see routine documentation for details).
 !!       Its argument MUST be in agreement with the arguments of the PSolver routine.
 !!       WARNING: No cross-check of the arguments is performed!
-!!    -# The PSolver routine can then be called. On exit, the Hartree potential is computed
+!!    3. The PSolver routine can then be called. On exit, the Hartree potential is computed
 !!       and summed (following ixc value) to XC and external potential.
 !!       The input array is overwritten. Again, see routine documentation for details.
-!!    -# QUICK INSTRUCTION FOR THE IMPATIENT:If you want to use the Poisson Solver in the
+!!    4. QUICK INSTRUCTION FOR THE IMPATIENT:If you want to use the Poisson Solver in the
 !!       "ordinary" way, for a grid of dimensions nx,ny,nz and grid spacings hx,hy,hz,
 !!       just create the Kernel with
 !!           call createKernel(geocode,nx,ny,nz,hx,hy,hz,14,0,1,kernel)
@@ -42,8 +43,9 @@
 !!          fake_arr  is an array of dimension(1), untouched
 !!          fake_*xc  values of the XC energies, automatically zero in that case
 !!
-!!       Any other changment of the arguments require reading of the documentation.
+!!       Any other changement of the arguments require reading of the documentation.
 !!       See documentations of the Public routines
+!!
 !! @warning
 !!    This module REQUIRES the module of XC functional from ABINIT, defs_xc, which
 !!    require defs_basis and defs_datatypes.
@@ -53,7 +55,6 @@
 !!    the XC part in the PSolver routine
 !!    Search for
 !!
-!! @ingroup PSOLVER
 module Poisson_Solver
    use dictionaries, only: f_err_throw
    use f_utils
@@ -80,14 +81,14 @@ module Poisson_Solver
    integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
 
-   !timing categories
+   ! Timing categories
    integer, public, save :: TCAT_PSOLV_COMPUT=TIMING_UNINITIALIZED
    integer, public, save :: TCAT_PSOLV_COMMUN=TIMING_UNINITIALIZED
    integer, public, save :: TCAT_PSOLV_KERNEL=TIMING_UNINITIALIZED
 
    include 'configure.inc'
 
-   !intialization of the timings
+   ! Intialization of the timings
    public :: PS_initialize_timing_categories,coulomb_operator,PSolver_energies
    ! Calculate the allocation dimensions
    public :: PS_dim4allocation,PSolver_logo,ps_soft_PCM_forces
@@ -103,7 +104,6 @@ module Poisson_Solver
    !! Doxygen will duplicate the documentation for the arguments
    type doc
       character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-                                  !! @ingroup RESERVED
       !> Indicates the distribution of the data of the input/output array:
       !!    - 'G' global data. Each process has the whole array of the density
       !!          which will be overwritten with the whole array of the potential.
@@ -113,14 +113,13 @@ module Poisson_Solver
       !!          gradient, needed for XC part, and for the White-Bird correction, which
       !!          may lead up to 8 planes more on each side. Due to this fact, the information
       !!          between the processors may overlap.
-      !!          @ingroup RESERVED
       character(len=1) :: datacode
    end type doc
 
 contains
 
-  !> switch on the timing categories for the Poisson Solver
-  !! shuold be called if the time_profiling module has to be used for profiling the routines
+  !> Switch on the timing categories for the Poisson Solver
+  !! should be called if the time_profiling module has to be used for profiling the routines
   subroutine PS_initialize_timing_categories()
     use time_profiling, only: f_timing_category_group,f_timing_category
     use wrapper_mpi, only: comm => tgrp_mpi_name, mpi_initialize_timing_categories
@@ -161,7 +160,10 @@ contains
     call yaml_map('Timestamp of this run',yaml_date_and_time_toa())
       call yaml_map('Root process Hostname',mpihostname())
   end subroutine PSolver_logo
-  
+ 
+
   include 'PSolver_Main.f90'
+
   include 'createKernel.f90'
+
 end module Poisson_Solver

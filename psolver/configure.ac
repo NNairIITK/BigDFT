@@ -117,6 +117,16 @@ if test $ax_build_dynamic != "yes" ; then
 fi
 AC_SUBST(LIB_PSOLVER_PKG)
 AC_SUBST(LIB_PSOLVER_DEPS)
+dnl Test for the developers' documentation.
+AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
+AC_ARG_ENABLE(devel-doc,
+              AS_HELP_STRING([--enable-devel-doc],
+                             [compile documentation for developers using Doxygen.]),
+              ac_devel_doc=$enableval, ac_devel_doc="no")
+AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
+dnl Test for the documentation.
+AC_CHECK_PROG(ac_have_pdflatex, [pdflatex], [yes], [no])
+AM_CONDITIONAL(BUILD_PDFDOC, test x"$ac_have_pdflatex" = x"yes" -a x"$ac_devel_doc" = x"yes")
 
 dnl LIB_PSOLVER_DEPS="$LIBETSFIO_LIBS $LIBCUDA_LIBS $LINALG_LIBS $MPI_LDFLAGS $MPI_LIBS"
 dnl LIB_PSOLVER_PKG=""
@@ -127,7 +137,10 @@ dnl AC_SUBST(LIB_PSOLVER_PKG)
 dnl LIB_PSOLVER_DEPS="$LIB_PSOLVER_DEPS $LIB_FUTILE_LIBS"
 dnl AC_SUBST(LIB_PSOLVER_DEPS)
 
-AX_DOC()
+
+dnl default installation directories
+docdir="${docdir}"
+AC_SUBST(docdir)
 
 AC_SUBST(CONFIG_ARGS, [$ac_configure_args])
 
@@ -135,8 +148,8 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 psolver.pc
+config/Doxyfile
 doc/Makefile
-doc/Doxyfile
 src/configure.inc
 src/Makefile
 tests/Makefile

@@ -29,7 +29,7 @@ program libconv
   call bigdft_init_timing_categories()
 
   hgrids=0.333_f_double
-  dict_posinp=f_tree_load('{positions: [{ H: [0.0, 0.0, 0.0]}], cell: [15,15,15]}')
+  dict_posinp=f_tree_load('{positions: [{ H: [0.0, 0.0, 0.0]}], cell: [10,15,11]}')
   crmult=50.0_f_double
   frmult=80.0_f_double
   angrad=onehalf*pi
@@ -216,7 +216,7 @@ subroutine isf_to_daub_kinetic_clone(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ek
   real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
   type(locreg_descriptors), intent(in) :: lr
   type(workarr_locham), intent(inout) :: w
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: psir
   real(gp), intent(out) :: ekin
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
   real(wp), dimension(6) :: k_strten
@@ -405,7 +405,6 @@ subroutine isf_to_daub_kinetic_clone(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ek
 !!$                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
         end do
      else
-print *,'here',usekpts
         if (usekpts) then
            !first calculate the proper arrays then transpose them before passing to the
            !proper routine
@@ -456,8 +455,26 @@ print *,'here',usekpts
            !first calculate the proper arrays then transpose them before passing to the
            !proper routine
            do idx=1,nspinor
-              call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   psir(1,idx),w%y_c(1,idx))
+!!$              call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+!!$                   psir(1,idx),w%y_c(1,idx))
+
+              call d_s0s0_1d_sym8_imd(3,0,[2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],0,&
+                   [2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],&
+                   [2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],1,&
+                   psir(1,idx),w%y_c(1,idx),&
+                   1.0_wp, 1.0_wp,0.0_wp)
+              call d_s0s0_1d_sym8_imd(3,1,[2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],0,&
+                   [2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],&
+                   [2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],1,&
+                   w%y_c(1,idx),psir(1,idx),&
+                   1.0_wp, 1.0_wp,0.0_wp)
+              call d_s0s0_1d_sym8_imd(3,2,[2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],0,&
+                   [2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],&
+                   [2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2],1,&
+                   psir(1,idx),w%y_c(1,idx),&
+                   1.0_wp, 1.0_wp,0.0_wp)
+
+              
 
 !!$              call d_s0s0_1d_sym8_imd(3,0,&
 !!$                   2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
@@ -472,8 +489,26 @@ print *,'here',usekpts
                    hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
               kstrten=kstrten+kstrteno
 
-              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   w%y_c(1,idx),psir(1,idx))
+              call switch_s0_for_libconv(lr%d%n1+1,lr%d%n2+1,lr%d%n3+1,w%y_c,psir)
+
+              call d_s0s1_1d_sym8(3,0,[lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],0,&
+                   [lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],&
+                   [lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],1,&
+                   w%y_c(1,idx),psir(1,idx),&
+                   1.0_wp,0.0_wp)
+              call d_s0s1_1d_sym8(3,1,[lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],0,&
+                   [lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],&
+                   [lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],1,&
+                   psir(1,idx),w%y_c(1,idx),&
+                   1.0_wp,0.0_wp)
+              call d_s0s1_1d_sym8(3,2,[lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],0,&
+                   [lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],&
+                   [lr%d%n1+1,lr%d%n2+1,lr%d%n3+1],1,&
+                   w%y_c(1,idx),psir(1,idx),&
+                   1.0_wp,0.0_wp)
+
+!!$              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                   w%y_c(1,idx),psir(1,idx))
               call compress_and_accumulate_mixed(lr%d,lr%wfd,&
                    lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
                    lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
@@ -495,3 +530,24 @@ print *,'here',usekpts
   end select
 
 END SUBROUTINE isf_to_daub_kinetic_clone
+
+subroutine switch_s0_for_libconv(n1,n2,n3,x,y)
+  use f_precisions, only: f_double
+  use dynamic_memory, only: f_memcpy
+  implicit none
+  integer, intent(in) :: n1,n2,n3
+  real(f_double), dimension(2*n1,2*n2,2*n3), intent(inout) :: x
+  real(f_double), dimension(2*n1,2*n2,2*n3), intent(inout) :: y
+  !local variables
+  integer :: i1,i2,i3
+
+  do i3=1,2*n3
+     do i2=1,2*n2
+        do i1=1,2*n1
+           y(i1,i2,i3)=x(modulo(i1,2*n1)+1,modulo(i2,2*n2)+1,modulo(i3,2*n3)+1)
+        end do
+     end do
+  end do
+  call f_memcpy(src=y,dest=x)
+
+end subroutine switch_s0_for_libconv

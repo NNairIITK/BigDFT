@@ -1,11 +1,12 @@
 !> @file
 !! Exercise using the Poisson solver
 !! @author
-!!    Copyright (c) 2010-2011 BigDFT group
+!!    Copyright (c) 2010-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
-!!    For the list of contributors, see ~/AUTHORS 
+!!    For the list of contributors, see ~/AUTHORS
+
 program exercise
   use dictionaries
    use Poisson_Solver

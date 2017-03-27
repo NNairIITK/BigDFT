@@ -2,7 +2,7 @@
 !!  Performs a check of the Poisson Solver suite by running with different regimes
 !!  and for different choices of the XC functionals
 !! @author
-!!    Copyright (C) 2002-2013 BigDFT group 
+!!    Copyright (C) 2002-2017 BigDFT group<br/>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
