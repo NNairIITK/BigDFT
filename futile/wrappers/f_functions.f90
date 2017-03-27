@@ -64,6 +64,7 @@ module f_functions
   end type f_grid
 
   public :: f_function_new,eval,diff
+  public :: separable_3d_function,separable_3d_laplacian,radial_3d_function
 
   contains
 
@@ -340,7 +341,7 @@ module f_functions
 
     pure function sine(length,frequency,x,idiff) result(f)
       implicit none
-      integer, intent(in) :: idiff 
+      integer, intent(in) :: idiff
       real(f_double), intent(in) :: length,frequency,x
       real(f_double) :: f
       !local variables
@@ -361,7 +362,7 @@ module f_functions
 
     pure function arctan(a,x,idiff) result(f)
       implicit none
-      integer, intent(in) :: idiff 
+      integer, intent(in) :: idiff
       real(f_double), intent(in) :: a,x
       real(f_double) :: f
       !local variables
@@ -384,7 +385,7 @@ module f_functions
 
     pure function error_function(a,x,idiff) result(f)
       implicit none
-      integer, intent(in) :: idiff 
+      integer, intent(in) :: idiff
       real(f_double), intent(in) :: a,x
       real(f_double) :: f
       !local variables
@@ -419,5 +420,96 @@ module f_functions
          end select
       end if
     end function error_function
-            
+
+    subroutine radial_3d_function(bit,func,factor,f)
+      use box
+      implicit none
+      real(f_double), intent(in) :: factor
+      type(box_iterator), intent(inout) :: bit
+      type(f_function), intent(in) :: func
+      real(f_double), dimension(bit%mesh%ndims(1),bit%mesh%ndims(2),bit%mesh%ndims(3)), intent(out) :: f
+      !local variables
+      real(f_double) :: r2,r
+
+      do while(box_next_point(bit))
+         r2=square(bit%mesh,bit%rxyz)
+         r = sqrt(r2)
+         f(bit%i,bit%j,bit%k) =factor*eval(func,r)
+      end do
+
+    end subroutine radial_3d_function
+
+    !> fill a function and its laplacian
+    subroutine separable_3d_function(bit,funcs,factor,f)
+      use box
+      implicit none
+      real(f_double), intent(in) :: factor
+      type(box_iterator), intent(inout) :: bit
+      type(f_function), dimension(3), intent(in) :: funcs
+      real(f_double), dimension(bit%mesh%ndims(1),bit%mesh%ndims(2),bit%mesh%ndims(3)), intent(out) :: f
+      !local variables
+      real(f_double) :: fx,fy,fz
+
+      do while(box_next_z(bit))
+         fz=eval(funcs(3),bit%rxyz(3))
+         do while(box_next_y(bit))
+            fy=eval(funcs(2),bit%rxyz(2))
+            do while(box_next_x(bit))
+               fx=eval(funcs(1),bit%rxyz(1))
+               f(bit%i,bit%j,bit%k) = factor*fx*fy*fz
+            end do
+         end do
+      end do
+    end subroutine separable_3d_function
+
+    !> fill a function and its laplacian
+    subroutine separable_3d_laplacian(bit,funcs,factor,f)
+      use box
+      implicit none
+      real(f_double), intent(in) :: factor
+      type(box_iterator), intent(inout) :: bit
+      type(f_function), dimension(3), intent(in) :: funcs
+      real(f_double), dimension(bit%mesh%ndims(1),bit%mesh%ndims(2),bit%mesh%ndims(3)), intent(out) :: f
+      !local variables
+      real(f_double) :: fx,fy,fz,fx1,fx2,fy1,fy2,fz1,fz2
+
+      if (.not. bit%mesh%orthorhombic) then
+         do while(box_next_z(bit))
+            fz=eval(funcs(3),bit%rxyz(3))
+            fz1=diff(funcs(3),bit%rxyz(3))
+            fz2=diff(funcs(3),bit%rxyz(3),order=2)
+            do while(box_next_y(bit))
+               fy=eval(funcs(2),bit%rxyz(2))
+               fy1=diff(funcs(2),bit%rxyz(2))
+               fy2=diff(funcs(2),bit%rxyz(2),order=2)
+               do while(box_next_x(bit))
+                  fx=eval(funcs(1),bit%rxyz(1))
+                  fx1=diff(funcs(1),bit%rxyz(1))
+                  fx2=diff(funcs(1),bit%rxyz(1),order=2)
+                  f(bit%i,bit%j,bit%k) = factor*((bit%mesh%gu(1,1)*fx2*fy*fz+bit%mesh%gu(2,2)*fx*fy2*fz+&
+                       bit%mesh%gu(3,3)*fx*fy*fz2)+&
+                       2.0_f_double*(bit%mesh%gu(1,2)*fx1*fy1*fz+bit%mesh%gu(1,3)*fx1*fy*fz1+bit%mesh%gu(2,3)*fx*fy1*fz1))
+               end do
+            end do
+         end do
+      else
+         do while(box_next_z(bit))
+            fz=eval(funcs(3),bit%rxyz(3))
+            fz2=diff(funcs(3),bit%rxyz(3),order=2)
+            !print *,'z',bit%k,fz,fz2
+            do while(box_next_y(bit))
+               fy=eval(funcs(2),bit%rxyz(2))
+               fy2=diff(funcs(2),bit%rxyz(2),order=2)
+               !print *,'y',bit%j,fy,fy2
+               do while(box_next_x(bit))
+                  fx=eval(funcs(1),bit%rxyz(1))
+                  fx2=diff(funcs(1),bit%rxyz(1),order=2)
+                  !print *,'x',bit%i,fx,fx2
+                  f(bit%i,bit%j,bit%k) = factor*(fx2*fy*fz+fx*fy2*fz+fx*fy*fz2)
+               end do
+            end do
+         end do
+      end if
+    end subroutine separable_3d_laplacian
+
 end module f_functions

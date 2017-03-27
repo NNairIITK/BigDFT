@@ -14,7 +14,7 @@ include $(srcdir)/../check.mk
 
 SUBDIRS =
 
-check_PROGRAMS = check_wrappers hooks
+check_PROGRAMS = check_wrappers hooks libconv
 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
@@ -31,6 +31,11 @@ check_wrappers_LDADD = $(bigdft_library) @FCLIBS@
 hooks_SOURCES = hooks.f90
 hooks_FCFLAGS = -I$(top_builddir)/src/orbitals -I$(top_builddir)/src/modules @LIB_FUTILE_CFLAGS@
 hooks_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
+
+libconv_SOURCES = libconv.f90
+libconv_FCFLAGS = -I$(top_builddir)/src/orbitals -I$(top_builddir)/src/modules @LIB_FUTILE_CFLAGS@
+libconv_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
+
 
 EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml check_wrappers.py.in
 CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.yaml *report.yaml input_minimal.yaml input.yaml \

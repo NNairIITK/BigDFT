@@ -172,13 +172,13 @@ module wrapper_MPI
      !> Reference counter of the communicator.
      !! used to understand whether the communicator has to be destroyed
      type(f_reference_counter) :: refcnt
-     integer :: mpi_comm !< MPI communicator
-     integer :: iproc    !< Process Id
+     integer :: mpi_comm=-1 !< MPI communicator
+     integer :: iproc=0    !< Process Id
                          !! @ingroup RESERVED
-     integer :: nproc    !< Number of MPI processes (in the given communicator)
+     integer :: nproc=1    !< Number of MPI processes (in the given communicator)
                          !! @ingroup RESERVED
-     integer :: igroup   !< MPI Group Id
-     integer :: ngroup   !< Number of MPI groups
+     integer :: igroup=0   !< MPI Group Id
+     integer :: ngroup=1   !< Number of MPI groups
   end type mpi_environment
 
   public :: mpi_environment_null

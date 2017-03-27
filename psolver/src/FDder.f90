@@ -259,7 +259,7 @@ module FDder
 
       ! Beware that n_cell has to be > than n.
       if (n_cell.lt.n) then
-         call f_err_throw('Ngrid in has to be setted > than n=nord + 1')
+         call f_err_throw('Ngrid in has to be set >  n=nord + 1')
          !stop
       end if
 
@@ -1157,8 +1157,9 @@ module FDder
 
     !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
     !! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-    subroutine update_rhopol(geocode,n01,n02,n03,u,nord,hgrids,eta,eps,dlogeps,rhopol,rhores2)
+    subroutine update_rhopol(mesh,u,nord,eta,eps,dlogeps,rhopol,rhores2)
       use numerics, only: oneofourpi
+      use box
       implicit none
 
       !c..this routine computes 'nord' order accurate first derivatives
@@ -1172,43 +1173,47 @@ module FDder
       !c..du(ngrid)   = first derivative values at the grid points
 
       !c..declare the pass
-
-      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-      integer, intent(in) :: n01,n02,n03,nord
+      integer, intent(in) :: nord
       real(kind=8), intent(in) :: eta
-      real(kind=8), dimension(3), intent(in) :: hgrids
-      real(kind=8), dimension(n01,n02,n03), intent(in) :: u
-      real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
-      real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
-      real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
+      type(cell), intent(in) :: mesh
+      real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(in) :: u
+      real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(in) :: eps
+      real(kind=8), dimension(3,mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(in) :: dlogeps
+      real(kind=8), dimension(mesh%ndims(1),mesh%ndims(2),mesh%ndims(3)), intent(inout) :: rhopol
       real(kind=8), intent(out) :: rhores2
 
       !c..local variables
-      integer :: n,m,n_cell
+      integer :: n,m,n_cell,n01,n02,n03
       integer :: i,j,i1,i2,i3,ii
       !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
       real(kind=8) :: hx,hy,hz,dx,dy,dz,res,rho
       real(kind=8) :: rpoints
+      real(dp), dimension(3) :: tmp
+      logical, dimension(3) :: peri
       logical :: perx,pery,perz
 
       n = nord+1
       m = nord/2
-      hx = hgrids(1)!acell/real(n01,kind=8)
-      hy = hgrids(2)!acell/real(n02,kind=8)
-      hz = hgrids(3)!acell/real(n03,kind=8)
+      n01=mesh%ndims(1)
+      n02=mesh%ndims(2)
+      n03=mesh%ndims(3)
+      hx = mesh%hgrids(1)!acell/real(n01,kind=8)
+      hy = mesh%hgrids(2)!acell/real(n02,kind=8)
+      hz = mesh%hgrids(3)!acell/real(n03,kind=8)
       n_cell = max(n01,n02,n03)
       rpoints=product(real([n01,n02,n03],dp))
 
       !buffers associated to the geocode
       !conditions for periodicity in the three directions
-      perx=(geocode /= 'F')
-      pery=(geocode == 'P')
-      perz=(geocode /= 'F')
+      peri=cell_periodic_dims(mesh)
+      perx=peri(1)
+      pery=peri(2)
+      perz=peri(3)
 
       ! Beware that n_cell has to be > than n.
       if (n_cell.lt.n) then
-         write(*,*)'ngrid in has to be setted > than n=nord + 1'
+         write(*,*)'ngrid in has to be set > n=nord + 1'
          stop
       end if
 
@@ -1231,7 +1236,6 @@ module FDder
       rhores2=0.d0
       !$omp parallel do default(shared) &
       !$omp private(i1,i2,i3,j,ii, dx,dy,dz,res,rho)&
-!!!!$omp shared(m,n01,n02,n03,perx,pery,perz,rhopol,u,hx,hy,hz,c1D,eta,oneo4pi,dlogeps) &
       !$omp reduction(+:rhores2)
       do i3=1,n03
          do i2=1,n02
@@ -1264,16 +1268,7 @@ module FDder
                      dx = dx + c1D(j,0)*u(i1 + j,i2,i3)
                   end do
                end if
-               dx=dx/hx
-!!$        end do
-!!$     end do
-!!$  end do
-!!$  !$omp end parallel do
-!!$
-!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy)
-!!$  do i3=1,n03
-!!$     do i2=1,n02
-!!$        do i1=1,n01
+               tmp(1)=dx/hx
                dy = 0.0d0
                if (i2.le.m) then
                   if (pery) then
@@ -1302,16 +1297,7 @@ module FDder
                      dy = dy + c1D(j,0)*u(i1,i2 + j,i3)
                   end do
                end if
-               dy=dy/hy
-!!$        end do
-!!$     end do
-!!$  end do
-!!$  !$omp end parallel do
-!!$
-!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz)
-!!$  do i3=1,n03
-!!$     do i2=1,n02
-!!$        do i1=1,n01
+               tmp(2)=dy/hy
                dz = 0.0d0
                if (i3.le.m) then
                   if (perz) then
@@ -1340,11 +1326,10 @@ module FDder
                      dz = dz + c1D(j,0)*u(i1,i2,i3 + j)
                   end do
                end if
-               dz=dz/hz
+               tmp(3)=dz/hz
 
                !retrieve the previous treatment
-               res = dlogeps(1,i1,i2,i3)*dx + &
-                    dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
+               res = dotp(mesh,dlogeps(1,i1,i2,i3),tmp)
                res = res*oneofourpi
                rho=rhopol(i1,i2,i3)
                res=res-rho
@@ -1353,34 +1338,10 @@ module FDder
                rhores2=rhores2+res*res
                rhopol(i1,i2,i3)=res+rho
 
-
             end do
          end do
       end do
       !$omp end parallel do
-
-      !this part should now go inside the open loop
-
-!!$  !$omp parallel do default(shared) private(i1,i2,i3,res,rho) &
-!!$  !$omp reduction(+:rhores2)
-!!$  do i3=1,n03
-!!$     do i2=1,n02
-!!$        do i1=1,n01
-!!$           !retrieve the previous treatment
-!!$           res = dlogeps(1,i1,i2,i3)*dx + &
-!!$                dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
-!!$           res = res*oneo4pi
-!!$           rho=rhopol(i1,i2,i3)
-!!$           res=res-rho
-!!$           res=eta*res
-!!$           rhores2=rhores2+res*res
-!!$           rhopol(i1,i2,i3)=res+rho
-!!$        end do
-!!$     end do
-!!$  end do
-!!$  !$omp end parallel do
-
-      !  rhores2=rhores2/rpoints
 
     end subroutine update_rhopol
 

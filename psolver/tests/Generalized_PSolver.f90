@@ -602,6 +602,7 @@ program GPS_3D
        nord,hgrids)
   call div_u_i(geocode,n01,n02,n03,nabla_eps,oneosqrteps,nord,hgrids,corr)
 
+
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01

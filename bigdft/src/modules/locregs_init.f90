@@ -24,9 +24,37 @@ module locregs_init
   public :: check_linear_inputguess
   public :: small_to_large_locreg
   public :: assign_to_atoms_and_locregs
+  public :: lr_set
 
 
   contains
+
+    !> form a locreg given atoms. Should be used to create the Glr localisation region
+    subroutine lr_set(lr,iproc,OCLconv,dump,crmult,frmult,hgrids,rxyz,atoms,calculate_bounds,output_grid)
+      use module_interfaces
+      use locregs
+      use module_atoms
+      use module_defs, only: gp
+      implicit none
+      type(locreg_descriptors), intent(out) :: lr
+      integer, intent(in) :: iproc
+      logical, intent(in) :: OCLconv,dump
+      type(atoms_data), intent(inout) :: atoms
+      real(gp), intent(in) :: crmult,frmult
+      real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
+      real(gp), dimension(3), intent(in) :: hgrids
+      logical, intent(in) :: calculate_bounds,output_grid
+
+      lr=locreg_null()
+      call system_size(atoms,rxyz,crmult,frmult,&
+           hgrids(1),hgrids(2),hgrids(3),OCLconv,lr)
+      if (iproc == 0 .and. dump) call print_atoms_and_grid(lr, atoms, rxyz, &
+           hgrids(1),hgrids(2),hgrids(3))
+      call createWavefunctionsDescriptors(iproc,hgrids(1),hgrids(2),hgrids(3),atoms,&
+           rxyz,crmult,frmult,calculate_bounds,lr, output_grid)
+      if (iproc == 0 .and. dump) call print_wfd(lr%wfd)
+    end subroutine lr_set
+
 
     ! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
     subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
