@@ -271,7 +271,7 @@ rhopotential.o: types.o interfaces.o communications.o bigdft_matrices.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o communications.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
-locregs_init.o: types.o communications.o sort.o
+locregs_init.o: types.o communications.o sort.o interfaces.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
 sw_potential.o: atoms_data.o
 bigdft_matrices.o: types.o sparsematrix_wrappers.o
