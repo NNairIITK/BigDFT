@@ -47,7 +47,7 @@ PROJECT_BRIEF          =
 # exceed 55 pixels and the maximum width should not exceed 200 pixels.
 # Doxygen will copy the logo to the output directory.
 
-PROJECT_LOGO           = @abs_top_srcdir@/doc/PSolver_logo.png
+PROJECT_LOGO           = @abs_top_srcdir@/doc/Futile_logo.png
 
 # The OUTPUT_DIRECTORY tag is used to specify the (relative or absolute)
 # base path where the generated documentation will be put.
@@ -654,12 +654,12 @@ WARN_LOGFILE           = doxygen.warnings
 # directories like "/usr/src/myproject". Separate the files or directories
 # with spaces.
 
-INPUT                 = @abs_top_srcdir@/README \
-                        @abs_top_srcdir@/AUTHORS \
-                        @abs_top_srcdir@/COPYING \
-                        @abs_top_srcdir@/tests/README \
-                        @abs_top_srcdir@/src/Poisson_Solver.f90
+INPUT                 = @abs_top_srcdir@/src/yaml_output.f90
 
+#                       @abs_top_srcdir@/README \
+#                       @abs_top_srcdir@/AUTHORS \
+#                       @abs_top_srcdir@/COPYING \
+#                       @abs_top_srcdir@/tests/README \
 
 
 # This tag can be used to specify the character encoding of the source files
