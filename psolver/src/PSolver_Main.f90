@@ -400,7 +400,7 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
   energs%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*kernel%IntSur+&
        kernel%cavity%betaV*kernel%IntVol
 
-  if (present(energies) .or. wrtmsg) call PS_reduce(energs,kernel)
+  call PS_reduce(energs,kernel)
 
   if (present(energies)) then
      energies=energs
@@ -408,7 +408,6 @@ subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion,ehartree)
 
   if (present(ehartree)) then
      ehartree=energs%hartree
-     call PS_reduce(ehartree,kernel)
   end if
 
   if (wrtmsg) then

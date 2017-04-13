@@ -80,6 +80,42 @@ class Lattice():
                         if app: transl.append(vect)
         return transl
 
+
+class RotoTranslation():
+    "Define a transformation which can be applied to a group of atoms"
+    def __init__(self,pos1,pos2):
+        try:
+            import wahba
+            self.R,self.t,self.J=wahba.rigid_transform_3D(pos1,pos2)
+        except Exception,e:
+            print 'Error',e
+            self.R,self.t,self.J=(None,None,1.0e10)
+    def dot(self,pos):
+        "Apply the rototranslations on the set of positions provided by pos"
+        import wahba as w,numpy as np
+        if self.t is None:
+            res=w.apply_R(self.R,pos)
+        elif self.R is None:
+            res=w.apply_t(self.t,pos)
+        else:
+            res=w.apply_Rt(self.R,self.t,pos)
+        return res
+    def invert(self):
+        self.t=-self.t
+        if self.R is not None: self.R=self.R.T
+
+class Translation(RotoTranslation):
+    def __init__(self,t):
+        import numpy
+        self.R=None
+        self.t=numpy.mat(t).reshape(3,1)
+        self.J=0.0
+class Rotation(RotoTranslation):
+    def __init__(self,R):
+        self.t=None
+        self.R=R
+        self.J=0.0
+
 class Fragment():
     protected_keys=['q0','q1','q2','sigma']
     def __init__(self,atomlist=None,id='Unknown',units='AU'):
@@ -155,20 +191,49 @@ class Fragment():
             cc+=elcharge*self.rxyz(at)
             qtot+=elcharge
         return cc/qtot
-    def transform(self,R=None,t=None):
+    def transform(self,Rt): #R=None,t=None):
         "Apply a rototranslation of the fragment positions"
-        import wahba as w,numpy as np
-        if t is None:
-            self.positions=w.apply_R(R,self.positions)
-        elif R is None:
-            self.positions=w.apply_t(t,self.positions)
-        else:
-            self.positions=w.apply_Rt(R,t,self.positions)
+        import numpy as np
+        self.positions=Rt.dot(self.positions)
+        #import wahba as w,numpy as np
+        #if t is None:
+        #    self.positions=w.apply_R(R,self.positions)
+        #elif R is None:
+        #    self.positions=w.apply_t(t,self.positions)
+        #else:
+        #    self.positions=w.apply_Rt(R,t,self.positions)
         #then replace the correct positions at the atoms
         for at,r in zip(self.atoms,self.positions):
             k=self.__torxyz(at)
             at[k]=np.ravel(r).tolist()
         #further treatments have to be added for the atomic multipoles
+    def line_up(self):
+        "Align the principal axis of inertia of the fragments along the coordinate axis. Also shift the fragment such as its centroid is zero."
+        import numpy
+        Shift=Translation(self.centroid())
+        Shift.invert()
+        self.transform(Shift)
+        #now the centroid is zero
+        I=self.ellipsoid()
+        w,v=numpy.linalg.eig(I)
+        Redress=Rotation(v.T)
+        self.transform(Redress)
+        #now the principal axis of inertia are on the coordinate axis
+    def ellipsoid(self,center=0.0):
+        import numpy as np
+        I=np.mat(np.zeros(9).reshape(3,3))
+        for at in self.atoms:
+            rxyz=self.rxyz(at)-center
+            I[0,0]+=rxyz[0]**2 #rxyz[1]**2+rxyz[2]**2
+            I[1,1]+=rxyz[1]**2 #rxyz[0]**2+rxyz[2]**2
+            I[2,2]+=rxyz[2]**2 #rxyz[1]**2+rxyz[0]**2
+            I[0,1]+=rxyz[1]*rxyz[0]
+            I[1,0]+=rxyz[1]*rxyz[0]
+            I[0,2]+=rxyz[2]*rxyz[0]
+            I[2,0]+=rxyz[2]*rxyz[0]
+            I[1,2]+=rxyz[2]*rxyz[1]
+            I[2,1]+=rxyz[2]*rxyz[1]
+        return I        
     def q0(self,atom):
         "Provides the charge of the atom"
         charge=atom.get('q0')
@@ -228,6 +293,7 @@ class Fragment():
             return d1+dtot
         else:
             return None
+
 
                         
 class System():
@@ -327,13 +393,14 @@ class System():
         #return self.fragments[imin]
     def fragment_transformation(self,frag1,frag2):
         "returns the transformation among fragments if exists"
-        try:
-            import wahba
-            roto,translation,J=wahba.rigid_transform_3D(frag1.positions,frag2.positions)
-        except Exception,e:
-            print 'Error',e
-            roto,translation,J=(None,None,1.0e10)
-        return roto,translation,J
+        return RotoTranslation(frag1.positions,frag2.positions)
+        #try:
+        #    import wahba
+        #    roto,translation,J=wahba.rigid_transform_3D(frag1.positions,frag2.positions)
+        #except Exception,e:
+        #    print 'Error',e
+        #    roto,translation,J=(None,None,1.0e10)
+        #return roto,translation,J
     def decompose(self,reference_fragments):
         "Decompose the system into reference fragments"
         assert type(reference_fragments) == type([])
@@ -342,15 +409,16 @@ class System():
             transf=[]
             Js=[]
             for ref in reference_fragments:
-                r,t,j=self.fragment_transformation(ref,frag)
-                transf.append({'R':r,'t':t})
-                Js.append(j)
+                #r,t,j=self.fragment_transformation(ref,frag)
+                RT=self.fragment_transformation(ref,frag)
+                transf.append({'RT': RT})#{'R':r,'t':t})
+                #Js.append(j)
             #choose the minimal one
             import numpy
-            Jchosen=numpy.argmin(Js)
+            Jchosen=numpy.argmin([rt['RT'].J for rt in transf])
             ref=transf[Jchosen]
             ref['ref']=reference_fragments[Jchosen]
-            ref['J']=Js[Jchosen]
+            #ref['J']=Js[Jchosen]
             ref['id']=Jchosen
             self.decomposition.append(ref)
     def recompose(self,transformations=None,reference_fragments=None):
@@ -369,7 +437,8 @@ class System():
                 frag=copy.deepcopy(reference_fragments[idf])
             else:
                 frag=copy.deepcopy(item['ref'])
-            frag.transform(item['R'],item['t'])
+            #frag.transform(item['R'],item['t'])
+            frag.transform(item['RT'])
             self.append(frag)
     def Q(self):
             "Provides the global monopole of the system given as a sum of the monopoles of the atoms"
@@ -407,13 +476,14 @@ def distance(i,j):
     return numpy.sqrt(numpy.dot(vec,vec.T))
 
 def wahba_fragment(frag1,frag2):
-    "Solve the wahba's problem among fragments"
+    "Solve the wahba's problem among fragments, deprecated routine"
     import wahba #should be cleaned
-    #For each of the fragment build the list of the coordinated
+    #For each of the fragment build the list of the coordinates
     roto,translation,J=wahba.rigid_transform_3D(frag1.positions,frag2.positions)
     return roto,translation,J
 
 def rotot_collection(ref_frag,lookup,fragments):
+    "Deprecated routine, only for backward compatibility"
     W=[]
     for f in lookup:
         refF=lookup[ref_frag]

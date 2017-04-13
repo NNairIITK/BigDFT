@@ -88,7 +88,7 @@ if HAVE_AMBERTOOLS
 ambertools_wrap= wrap.c
 ###for amber supp.:
 wrap.o:     wrap.c
-	$(NAB) -I$(top_builddir) -c  -g $<
+	$(NAB) -I$(top_builddir) -c  -g @CC_PIC_FLAG@  $<
 else
 ambertools_wrap= wrap_fake.f90
 endif

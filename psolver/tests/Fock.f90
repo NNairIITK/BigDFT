@@ -16,13 +16,14 @@ program Fock_Operator_Program
   use overlap_point_to_point
   use box
   use PSbox
+  use f_blas, only: f_dot
   implicit none
   !Order of interpolating scaling function
   real(kind=8), parameter :: a_gauss = 1.0, a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   logical :: symmetric,usegpu
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
-  real(f_double) :: offset,eexctX,tel,sfac,trm
+  real(f_double) :: offset,eexctX,tel,sfac,trm,ehartree_exp
   integer :: iproc,nproc,norb,norbu,norbd,norbpj,nspin,prc
   integer :: i_stat,igpu,iorb,jproc,ndim,ngroup,isorb
   integer, dimension(3) :: nxyz
@@ -106,6 +107,9 @@ program Fock_Operator_Program
   mesh=cell_new(geocode,nxyz,hgrids)
   call test_functions_new(mesh,1,a_gauss,& !_box
        density,potential,rhopot,pot_ion,offset)
+  !calculate the expected hartree energy
+  ehartree_exp=0.5_dp*f_dot(potential,density)*mesh%volume_element
+
 
   !then fill for all the functions the proposed density
   !the psi should be transformed in real space, do it within the orbital basis iterators
@@ -198,13 +202,17 @@ program Fock_Operator_Program
   if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
      !here wrappers should be used
      call get_gpu_data(1, eexctX, pkernel%w%eexctX_GPU )
+     !f_zero should go here
      call cudamemset(pkernel%w%eexctX_GPU,0,1,i_stat)
      if (i_stat /= 0) call f_err_throw('error cudamalloc eexctX_GPU (GPU out of memory ?) ')
      pkernel%stay_on_gpu=0
   end if
   call free_OP2P_data(OP2P)
   if (nproc > 1) call mpiallred(eexctX,1,op=MPI_SUM)
-  if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
+  if (iproc == 0) then
+     call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
+     call yaml_map('Expected Exchange Energy',ehartree_exp,fmt='(1pe18.11)')
+  end if
   call f_free(nobj_par)
   call f_free(rp_ij)
   call f_free(dpsir)

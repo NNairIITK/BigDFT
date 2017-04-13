@@ -20,6 +20,7 @@ DOT=' dot '
 DOTCMD=' | dot -Edir=back -Tpng > buildprocedure.png '
 DIST='  dist --dist-only '#bigdft-suite '
 RCFILE='buildrc'
+MKFILE='Makefile'
 SETUP=' setup '
 GREP_M4_COMMENTS=" | grep -v dnl | grep -v '#' "
 
@@ -424,11 +425,26 @@ class BigDFTInstaller():
         print '--------- Linking line to build with package "'+self.package+'":'
         print "  "+includes+libs
 
-    def sourcefile_dump(self):
-        "Build the sourcefile that the installation of BigDFT require to run python modules and related activities"
+    def makefile_dump(self):
+        "Build the Makefile that the installation of BigDFT creates for performing the same actions on this build"
+        import os
         sflist=[]
-        
-        
+        sflist.append("""
+        #This Makefile is automatically generated from the BigDFT installer to avoid the calling to
+        #the installer again for future action on this build
+        #Clearly such actions only _assume_ that the build is fully functional and almost nothing
+        #can be done with this file if a problem might arise.
+        #Otherwise stated: this is an automatic message, please do not reply.
+        """)
+        for a in ACTIONS:
+            sflist.append(a+':  ')
+            sflist.append('\t'+os.path.join(self.srcdir,__file__)+' '+a+' '+self.package+' -y')
+        mkfile=open(MKFILE,'w')
+        for item in sflist:
+            mkfile.write("%s\n" % item)
+            #rcfile.write("\n")
+        mkfile.close()
+
 
     def rcfile_from_env(self):
         "Build the rcfile information from the chosen "+BIGDFT_CFG+" environment variable"
@@ -497,7 +513,7 @@ class BigDFTInstaller():
                       print '  HINT: Have a look at the file index.html of the buildlogs/ directory to find the reason'
         except:
             print 'Goodbye...'
-
+        self.makefile_dump() #temporary
 #import the uniparse module
 import UniParse
 
