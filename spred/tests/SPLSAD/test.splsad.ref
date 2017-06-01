@@ -1,0 +1,50 @@
+ <BigDFT> log of the run will be written in logfile: ./log.yaml
+ Wavefunction Optimization Finished, exit signal=    0
+DOF: n,nr 12 12
+ ------------ parameters of splined saddle method ----------
+ SPINFO: runstat new
+ SPINFO: hybrid yes
+ SPINFO: fmaxtolneb   2.000000000000000E-002
+ SPINFO: approach BFGS      
+ SPINFO: alphax    14.0000000000000     
+ SPINFO: fmaxtol   2.000000000000000E-003
+ SPINFO: maxforcecall          350
+ SPINFO: dt   3.000000000000000E-002
+ SPINFO: np            2
+ SPINFO: npneb            2
+ SPINFO: ns2            0
+ SPINFO: vdtol   0.100000000000000     
+ SPINFO: htol   2.000000000000000E-002
+ SPINFO: typintpol cubic
+ SPINFO: doneb yes
+ SPINFO: docineb no
+ SPINFO: pickbestanchorpoints no
+ -----------------------------------------------------------
+ number of anchor points            2
+ degree of freedom: n,nr           12          12
+ENDs: epot1,fnrm1,epot2,fnrm2   -0.117016503759496E+02   0.965168764873724E-03  -0.117016265025984E+02   0.963598283670224E-03
+begin of minimization_sp using  BFGS      
+BFGSMIN      0  1.023697001458425E-01  0.000E+00 1.02370E-01 5.88692E-02  1.0000E+00
+BFGSMIN      1  8.725732577527078E-03 -9.364E-02 8.72573E-03 5.17519E-03  1.0000E+00
+BFGS FINISHED: itfire,epot,fnrm,fmax    1  8.725732577527078E-03 8.72573E-03 5.17519E-03
+end of minimization_sp using  BFGS      
+begin of minimization_sp using  BFGS      
+fort57    0  7.18E-01  7.18E-01 snp   1.43504E+00
+fort53    0   0.00000E+00
+fort54    0   0.00000E+00   4.78348E-01   7.26326E-01   9.56695E-01   1.43504E+00   7.26326E-01
+fort55    0  -1.16984E+01  -1.16936E+01  -1.16923E+01  -1.16935E+01  -1.16982E+01  -1.16923E+01
+fort51     0    0    4  -1.169225805488413E+01   2.014701E-04  8.73683E-03 -4.3521E-02  1.1489E+01  7.2633E-01  5.0614E-01
+SP     9    0   1.111344438805121E-02   6.612256549891307E-03 fort52         0.16306        0.16241
+BFGSMIN      0 -1.169565805969642E+01  0.000E+00 1.10552E-02 6.58141E-03  1.0000E+00
+fort57    1  7.22E-01  7.21E-01 snp   1.44290E+00
+fort53    1   1.01354E-02
+fort54    1   0.00000E+00   7.25870E-01   1.44290E+00   7.25870E-01
+fort55    1  -1.16984E+01  -1.16923E+01  -1.16982E+01  -1.16923E+01
+fort51     1    0    2  -1.169233908456462E+01   5.172761E-05  5.05164E-04 -2.3017E-02  2.1723E+01  7.2587E-01  5.0306E-01
+fort51     1    1    2  -1.169233914690309E+01  -3.536628E-06  4.99656E-04 -2.3017E-02  3.0413E+01  7.2475E-01  5.0228E-01
+SP    13    1   2.773297376543987E-03   1.579560723795658E-03 fort52         0.15990        0.15925
+BFGSMIN      1 -1.169577403810689E+01 -1.160E-04 2.75057E-03 1.56739E-03  1.0000E+00
+BFGS FINISHED: itfire,epot,fnrm,fmax    1 -1.169577403810689E+01 2.75057E-03 1.56739E-03
+barrier heights in eV        0.15990        0.15925
+end of minimization_sp using  BFGS      
+SP-TIMINGS:     4   10    8    1.22535E+01    5.43969E+00    2.25262E+00

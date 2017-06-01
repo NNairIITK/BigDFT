@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Ta
+   73   5  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.74400000    1     3.62311645                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.58180113    2     2.00533833    -1.17236605                                  rs ns hs11 hs12
+                                        3.02703613                                             hs22
+     0.77064628    2     0.51856664    -0.50091380                                  rp np hp11 hp12
+                                        1.18537841                                             hp22
+                        -0.48563525    -0.29375358                                        kp11 kp12
+                                        0.69514785                                             kp22
+     0.53436996    2    -2.20220040     0.73493457                                  rd nd hd11 hd12
+                                       -1.66667495                                             hd22
+                         0.08671559     0.04173012                                        kd11 kd12
+                                       -0.09463501                                             kd22

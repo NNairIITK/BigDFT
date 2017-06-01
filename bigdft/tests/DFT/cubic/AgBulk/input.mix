@@ -1,0 +1,5 @@
+ 17             Mixing parameters                                                     
+ 10             Maximum number of diagonalisation iterations                          
+ 1.e-7          Stop criterion on the residue of potential or density                 
+ 2 1.d-4 1      No. of additional bands, elect. temperature, smearing method                  
+ 0.95 .8        Multiplying factors for the mixing and the elctronic DIIS             

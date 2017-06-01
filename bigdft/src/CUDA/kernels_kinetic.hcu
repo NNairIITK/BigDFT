@@ -1,0 +1,183 @@
+#ifndef __kernels_kinetic__
+#define __kernels_kinetic__
+
+
+#include "structDef_kinetic.h"
+
+//1D convolution of multiple lines in the same block
+template<typename T>
+__global__ void kinetic1d(int n,int ndat,T scale, 
+			  T *x_in, T *x_out, T *y_in, T *y_out,
+			  int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = 
+    min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: total lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LOWFILK+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      psi_sh[ShBaseElem]=x_in[BaseElem+ndat*npos];
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+      
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid] + elemOffset;
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //recycle elemOffset variable to stock the previous BaseElem
+  elemOffset = BaseElem;
+
+  //output base element, from the input one
+  BaseElem =  n*elemOffset+ thelem;
+
+  //input base element, transposed (recycle thelem)
+  thelem = ndat*thelem + elemOffset;
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  //#pragma unroll 5 (to be tested if it is important)
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution
+      register T conv = 
+	//hand-unrolled loop 
+	//order changed for increasing the precision
+	((T)KFIL14)*(psi_sh[ShBaseElem               ] +
+		     psi_sh[ShBaseElem + 28*NUM_LINES]) +
+	((T)KFIL13)*(psi_sh[ShBaseElem +    NUM_LINES]  +
+		     psi_sh[ShBaseElem + 27*NUM_LINES]) +
+	((T)KFIL12)*(psi_sh[ShBaseElem +  2*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 26*NUM_LINES]) +
+	((T)KFIL11)*(psi_sh[ShBaseElem +  3*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 25*NUM_LINES]) +
+	((T)KFIL10)*(psi_sh[ShBaseElem +  4*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 24*NUM_LINES]) +
+	((T)KFIL9) *(psi_sh[ShBaseElem +  5*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 23*NUM_LINES]) +
+	((T)KFIL8) *(psi_sh[ShBaseElem +  6*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 22*NUM_LINES]) +
+	((T)KFIL7) *(psi_sh[ShBaseElem +  7*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 21*NUM_LINES]) +
+	((T)KFIL6) *(psi_sh[ShBaseElem +  8*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 20*NUM_LINES]) +
+	((T)KFIL5) *(psi_sh[ShBaseElem +  9*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 19*NUM_LINES]) +
+	((T)KFIL4) *(psi_sh[ShBaseElem + 10*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 18*NUM_LINES]) +
+	((T)KFIL3) *(psi_sh[ShBaseElem + 11*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 17*NUM_LINES]) +
+	((T)KFIL2) *(psi_sh[ShBaseElem + 12*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 16*NUM_LINES]) +
+	((T)KFIL1) *(psi_sh[ShBaseElem + 13*NUM_LINES]  +
+		     psi_sh[ShBaseElem + 15*NUM_LINES]) +
+	((T)KFIL0) * psi_sh[ShBaseElem + 14*NUM_LINES];
+      
+
+     
+
+
+      y_out[BaseElem]=y_in[thelem]-scale*conv;
+
+      //psi_sh[ShBaseElem+LOWFILK*NUM_LINES]; //for testing only
+      x_out[BaseElem]=psi_sh[ShBaseElem+LOWFILK*NUM_LINES]; 
+
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += HW_ELEM;
+      thelem += ndat*HW_ELEM;
+      
+
+    }
+}
+
+
+//1D convolution of multiple lines in the same block
+template<typename T>
+__global__ void c_initialize(int n,int ndat,
+			     T *x_in, T *y_in,
+			     T c,int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = 
+    min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+
+  //element treated by the given thread in n-axis
+  unsigned int thelem = 
+    par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid] + elemOffset;
+
+  //input base element, transposed (recycle thelem)
+  thelem = ndat*thelem + BaseElem;
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      
+      y_in[thelem]=c*x_in[thelem];
+
+      thelem += ndat*HW_ELEM;
+      
+
+    }
+}
+
+
+
+
+/****/
+
+
+
+
+
+
+#endif

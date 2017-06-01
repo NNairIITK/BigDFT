@@ -1,0 +1,24 @@
+r 20 2.0  2.09     4.19 
+   15   5  070301 zatom,zion,pspdat
+10  -20  1 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.43000000    1    -6.65421981                                                 rloc nloc c1
+    2                                                                               nnonloc
+     0.38980284    2     6.84213556    -1.49369090                                  rs ns hs11 hs12
+                                        3.85669332                                             hs22
+     0.44079585    2     3.28260592     0.00000000                                  rp np hp11 hp12
+                                        0.00000000                                             hp22
+                         0.00254425    -0.00756218                                        kp11 kp12
+                                        0.01789537                                             kp22
+
+-----suggested header for initial guess of psppar for fitting-----
+r 20 2.0  2.09     4.19    the first line contains some input data
+ 15.0     5.00            znuc and zion as needed
+(2, 3 or 10)     -20      supported formats, iXC as given
+ --you can download pseudopotentials from--
+ http://www.abinit.org/downloads/psp-links
+-----suggested header for initial guess of psppar for fitting-----
+r 20 2.0  2.09     4.19    the first line contains some input data
+ 15.0     5.00            znuc and zion as needed
+(2, 3 or 10)     -20      supported formats, iXC as given
+ --you can download pseudopotentials from--
+ http://www.abinit.org/downloads/psp-links

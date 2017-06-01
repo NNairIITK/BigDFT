@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Kr
+   36   8  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.50000000    0                                                                rloc nloc
+    3                                                                               nnonloc
+     0.41075893    3     5.91119429    -0.76196004    -0.35573234                   rs ns hs11 hs12 hs13
+                                        1.96737236     0.91849694                              hs22 hs23
+                                                      -1.45806869                                   hs33
+     0.43025641    2     3.52435692     0.29208431                                  rp np hp11 hp12
+                                       -0.69119763                                             hp22
+                         0.08701098    -0.03634480                                        kp11 kp12
+                                        0.08600750                                             kp22
+     0.51712005    1     0.62922850                                                 rd nd hd11
+                         0.00926681                                                       kd11

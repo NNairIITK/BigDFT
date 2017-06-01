@@ -1,0 +1,155 @@
+/*! @file
+
+@brief Old README for the atom program
+
+@details
+
+Building atom.x (e.g. with the G95 compiler):
+<pre>
+g95 hcth.f90 xc_b97.f90 atom.f -o atom.x
+</pre>
+
+
+@section Using         Using the program atom
+
+The program performs an all electron calculation for an spin
+unpolarised atom. The program calculates eigenvalues and charge
+densities for all occupied and several unoccupied wavefunctions. To
+have well defined unoccupied wavefunctions the atom is put into an
+additional parabolic confining potential. The program reads its input
+from a file named 'atom.dat'. The file 'atom.dat' must have the
+following structure:
+<pre>
+ Ne                             element symbol (1.st line)
+ PADE                           XC functional
+ r                              r=relativistic/n=nonrelativistic calc. 
+ 60      10 30.0                rmax,aa,bb 
+ 1.3d0   50.0			rcov,rprb
+ 1    3				number of core and valence orbitals
+ 2    0     2.00      0.00      n,l,occup(up)  1.st orbital
+ 2    1     6.00      0.00	n,l,occup(up)  2.nd orbital
+ 3    0     0.00      0.00      n,l,occup(up)  3.st orbital
+</pre>
+
+If strings are read from 'atom.dat' they must stand in column 1 to 10;
+for numbers free format is used.
+
+1st. line: guess.....
+
+2nd. line: XC functional; at the moment the following xc functionals
+are implemented: LDA, PADE (S. GOEDECKER, M. TETER, J. HUTTER, PRB
+54,N3,1703 (1996)), BONL, BP, PW, PBE, and BLYP. For additional
+functionals read the section 'Informations/hints'.
+
+3rd. line determines whether a fully relativistic or classic
+calculation is performed.
+
+4th. line : parameters for the radial integration grid. If a value is
+zero the program uses default values. rmax is the outermost grid
+point; the parameters aa and bb determine the step size (larger values
+result in finer grids). The parameter aa is modified by the program so
+that one grid point matches exactly rcov.
+
+5th. line: the program integrates charge densities and additional
+quantities for each wavefunction from 0 up to rcov. rprb determines
+the parabolic confining potential: v_conf(r)= 1/(2*rprb**4) * r**2.
+Choose rcov so that for the most important valence states the
+integrated charge density at rcov is approximately between 0.1e and
+0.7e. In most cases the covalent radius of the atom is a good choice
+for rcov. Choose rprb ~ 2*rcov.
+
+6th. line: number of core and valence orbitals. Only the valence
+orbitals that are used for the pseudopotential generation have to be
+listed in the following lines.
+
+Following lines: n,l,occup(up) for each valence orbital. (Put all
+charge into occup(up) for usual calculations.) One line for each
+valence orbital is needed.
+
+To calculate different configurations of the same atom each additional
+configuration  has to be included in the file 'atom.dat'. Example for
+a Ne(1+)-Ion:
+<pre>
+ NEXT CONFIGURATION
+ 2    0     2.00      0.00      n,l,occup(up)  1.st orbital
+ 2    1     5.00      0.00	n,l,occup(up)  2.nd orbital
+ 3    0     0.00      0.00      n,l,occup(up)  3.st orbital
+</pre>
+
+Each configuration for an atom has the same list of orbitals only
+differing in the occupation numbers. Between different configurations
+the file 'atom.dat' may contain an arbitray number of blank lines. An
+simultaneous fit of a goedecker-pseudopotential to different
+configurations can be done with the program pseudo_2.3. 
+
+
+The program atm.f generates the following files:
+
+ae.1s.dat, ae.2s.dat,....      the all electron wavefunctions 
+atom.ae                        needed for pseudo_2.2/2.3, 
+                               contains all necessary data 
+                               and wavefunctions
+psp.par                        needed for pseudo_2.2/2.3
+weights.par                    needed for pseudo_2.2/2.3
+
+
+The program calculates for each orbital:
+
+eigenvalue
+psi(r)
+non relativistic case:
+	charge(rcov) = int_0^rcov psi^2 r^2 dr
+	dcharge      = int_0^infinity psi^2 r^4 dr
+	ddcharge     = int_0^infinity psi^2 r^6 dr
+relativistic case:
+	charge(rcov) = int_0^rcov g^2 r^2 dr          
+                       +  int_0^infinity f^2 r^2 dr'
+	dcharge      = int_0^infinity (f^2+g^2) r^4 dr '          
+	ddcharge     = int_0^infinity (f^2+g^2) r^6 dr '          
+        g(r): majority component, f(r): minority component
+All the data are written to 'atom.ae'
+
+The program pseudo_2.2/2.3 will fit the pseudopotential to the
+eigenvalues, charge(rcov), dcharge and ddcharge of the all electron
+atom. All files named 'ae.*' are only thought for plotting and can be
+deleted.
+
+
+@section Informations    Informations/hints
+
+Always plot all calculated wavefunctions! If rmax for the integration
+grid is too small bumpy wavefunctions may occur. In this case simply
+increase rmax and redo the calculation.
+
+To get accurate results increase the grid parameters aa bb until the
+desired accuracy is reached.
+
+For some XC functionals (especially BLYP) the program finds no
+solution if the integration grid is too dense. If this happens
+decrease the values for aa and bb in the file 'atom.dat' until the
+program works properly.
+
+If you are interested in XC functionals or combinations of functionals
+for which no keyword exits modify the source code: search for the
+string 'Unknown functional(s): ' and see what has to be done there.
+To find out what different functionals are available look at the
+routines XC() and GCXC(). All functionals implemented current version
+of CPMD are available!
+
+If you are interested in an isolated atom without confining potential
+set rprb to a large value (~100, always check for convergence!). Make
+sure that rmax is large enough for this calculation. The program may
+fail in finding solutions for the higher unoccupied wavefunctions as
+they are unbound (delete the corresponding orbitals from 'atom.dat').
+
+If it ever happens that the program does not find solutions for higher
+unoccupied wavefunctions despite the confining potential try to modify
+the source code: search for all occurrences of the 'vshift' and
+increase its value. For usual applications the current version will
+work.
+
+If one is interested in calculating dcharge and ddcharge by
+integrating only up to rcov modify the source code: search for the
+strings 'ddd' and 'dddd'.
+
+*/

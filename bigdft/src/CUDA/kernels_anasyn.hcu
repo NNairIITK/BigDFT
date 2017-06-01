@@ -1,0 +1,271 @@
+#ifndef __kernels_anasyn__
+#define __kernels_anasyn__
+
+
+#include "structDef_anasyn.h"
+
+
+//1D convolution of multiple lines in the same block
+template<typename T>
+__global__ void waveletsynthesis(int n,int ndat,
+				 T *psi_in, T *psi_out,int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh1[MAX_SHARED_SIZE/sizeof(T)/2];
+  __shared__ T psi_sh2[MAX_SHARED_SIZE/sizeof(T)/2];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LOWFILWT+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      psi_sh1[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      psi_sh2[ShBaseElem]=psi_in[BaseElem+ndat*(npos+n)];
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+      
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  2*n*BaseElem+ 2*(thelem + elemOffset);
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  //#pragma unroll 5 (to be tested if it is important)
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution, even components
+      register T conv = 
+	//hand-unrolled loop 
+	//order changed for increasing the precision
+	WTFIL7 *psi_sh1[ShBaseElem + 7*NUM_LINES] +
+	WTFIL15*psi_sh2[ShBaseElem + 7*NUM_LINES] +
+	WTFIL0 *psi_sh1[ShBaseElem              ] +
+	WTFIL8 *psi_sh2[ShBaseElem              ] +
+	WTFIL6 *psi_sh1[ShBaseElem + 6*NUM_LINES] +
+	WTFIL14*psi_sh2[ShBaseElem + 6*NUM_LINES] +
+	WTFIL1 *psi_sh1[ShBaseElem + 1*NUM_LINES] +
+	WTFIL9 *psi_sh2[ShBaseElem + 1*NUM_LINES] +
+	WTFIL5 *psi_sh1[ShBaseElem + 5*NUM_LINES] +
+	WTFIL13*psi_sh2[ShBaseElem + 5*NUM_LINES] +
+	WTFIL2 *psi_sh1[ShBaseElem + 2*NUM_LINES] +
+	WTFIL10*psi_sh2[ShBaseElem + 2*NUM_LINES] +
+	WTFIL4 *psi_sh1[ShBaseElem + 4*NUM_LINES] +
+	WTFIL12*psi_sh2[ShBaseElem + 4*NUM_LINES] +
+	WTFIL3 *psi_sh1[ShBaseElem + 3*NUM_LINES] +
+	WTFIL11*psi_sh2[ShBaseElem + 3*NUM_LINES] ;
+
+      psi_out[BaseElem]=conv;
+
+
+      //values of the convolution, odd components
+      conv = 
+	//hand-unrolled loop 
+	//order changed for increasing the precision
+	WTFIL15*psi_sh1[ShBaseElem + 1*NUM_LINES] -
+	WTFIL7 *psi_sh2[ShBaseElem + 1*NUM_LINES] +
+	WTFIL8 *psi_sh1[ShBaseElem + 8*NUM_LINES] -
+	WTFIL0 *psi_sh2[ShBaseElem + 8*NUM_LINES] +
+	WTFIL14*psi_sh1[ShBaseElem + 2*NUM_LINES] -
+	WTFIL6 *psi_sh2[ShBaseElem + 2*NUM_LINES] +
+	WTFIL9 *psi_sh1[ShBaseElem + 7*NUM_LINES] -
+	WTFIL1 *psi_sh2[ShBaseElem + 7*NUM_LINES] +
+	WTFIL13*psi_sh1[ShBaseElem + 3*NUM_LINES] -
+	WTFIL5 *psi_sh2[ShBaseElem + 3*NUM_LINES] +
+	WTFIL10*psi_sh1[ShBaseElem + 6*NUM_LINES] -
+	WTFIL2 *psi_sh2[ShBaseElem + 6*NUM_LINES] +
+	WTFIL12*psi_sh1[ShBaseElem + 4*NUM_LINES] -
+	WTFIL4 *psi_sh2[ShBaseElem + 4*NUM_LINES] +
+	WTFIL11*psi_sh1[ShBaseElem + 5*NUM_LINES] -
+	WTFIL3 *psi_sh2[ShBaseElem + 5*NUM_LINES] ;
+
+      psi_out[BaseElem+1]=conv;
+
+      //psi_sh[ShBaseElem+LOWFILWT*par[idim].LinesPerBlock]; //for testing only
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += 2*HW_ELEM;
+      
+    }
+
+}
+
+//transposed convolution
+template<typename T>
+__global__ void waveletanalysis(int n,int ndat, 
+				T *psi_in, T *psi_out,
+				int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = 
+    min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = par[idim].thline[tid_hw] + 
+    2*NUM_LINES*par[idim].thelem[tid_hw] +
+    2*NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LUPFILWT+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      //psi_sh[2*ShBaseElem]=psi_in[BaseElem+ndat*2*npos];
+      //psi_sh[2*ShBaseElem+1]=psi_in[BaseElem+ndat*(2*npos+1)];
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*2*npos];
+      psi_sh[ShBaseElem+NUM_LINES]=psi_in[BaseElem+ndat*(2*npos+1)];
+
+      ShBaseElem += 2*HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem =  par[idim].thline[tid_hw] + 
+    2*NUM_LINES*par[idim].thelem[tid_hw] +
+    2*NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  2*n*BaseElem+ thelem + elemOffset;
+
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+
+      ///*
+
+      //values of the convolution, even components
+      register T conv = 
+	//hand-unrolled loop 
+	//order changed for increasing the precision
+	WTFIL7 *psi_sh[ShBaseElem + 2*NUM_LINES] +
+	WTFIL15*psi_sh[ShBaseElem +15*NUM_LINES] +
+	WTFIL0 *psi_sh[ShBaseElem +16*NUM_LINES] +
+	WTFIL8 *psi_sh[ShBaseElem + 1*NUM_LINES] +
+	WTFIL6 *psi_sh[ShBaseElem + 4*NUM_LINES] +
+	WTFIL14*psi_sh[ShBaseElem +13*NUM_LINES] +
+	WTFIL1 *psi_sh[ShBaseElem +14*NUM_LINES] +
+	WTFIL9 *psi_sh[ShBaseElem + 3*NUM_LINES] +
+	WTFIL5 *psi_sh[ShBaseElem + 6*NUM_LINES] +
+	WTFIL13*psi_sh[ShBaseElem +11*NUM_LINES] +
+	WTFIL2 *psi_sh[ShBaseElem +12*NUM_LINES] +
+	WTFIL10*psi_sh[ShBaseElem + 5*NUM_LINES] +
+	WTFIL4 *psi_sh[ShBaseElem + 8*NUM_LINES] +
+	WTFIL12*psi_sh[ShBaseElem + 9*NUM_LINES] +
+	WTFIL3 *psi_sh[ShBaseElem +10*NUM_LINES] +
+	WTFIL11*psi_sh[ShBaseElem + 7*NUM_LINES] ;
+
+      psi_out[BaseElem]=conv;
+
+      
+
+      ///HERE WE SHOULD CHANGE ACCORDINGLY TO THE FILTERS
+      //values of the convolution, odd components
+      conv = 
+	//hand-unrolled loop 
+	//order changed for increasing the precision
+	WTFIL15*psi_sh[ShBaseElem + 2*NUM_LINES] -
+	WTFIL7 *psi_sh[ShBaseElem +15*NUM_LINES] +
+	WTFIL8 *psi_sh[ShBaseElem +16*NUM_LINES] -
+	WTFIL0 *psi_sh[ShBaseElem + 1*NUM_LINES] +
+	WTFIL14*psi_sh[ShBaseElem + 4*NUM_LINES] -
+	WTFIL6 *psi_sh[ShBaseElem +13*NUM_LINES] +
+	WTFIL9 *psi_sh[ShBaseElem +14*NUM_LINES] -
+	WTFIL1 *psi_sh[ShBaseElem + 3*NUM_LINES] +
+	WTFIL13*psi_sh[ShBaseElem + 6*NUM_LINES] -
+	WTFIL5 *psi_sh[ShBaseElem +11*NUM_LINES] +
+	WTFIL10*psi_sh[ShBaseElem +12*NUM_LINES] -
+	WTFIL2 *psi_sh[ShBaseElem + 5*NUM_LINES] +
+	WTFIL12*psi_sh[ShBaseElem + 8*NUM_LINES] -
+	WTFIL4 *psi_sh[ShBaseElem + 9*NUM_LINES] +   
+	WTFIL11*psi_sh[ShBaseElem +10*NUM_LINES] -
+	WTFIL3 *psi_sh[ShBaseElem + 7*NUM_LINES] ;
+
+      psi_out[BaseElem+n]=conv;
+
+      //*/
+      //for testing only
+      //psi_out[2*BaseElem]=psi_sh[ShBaseElem+2*LUPFILWT*NUM_LINES]; 
+      //psi_out[2*BaseElem+1]=psi_sh[ShBaseElem+NUM_LINES+2*LUPFILWT*NUM_LINES]; 
+
+      ShBaseElem += 2*HALF_WARP_SIZE;
+      BaseElem += HW_ELEM;
+      
+    }
+
+ 
+}
+
+
+
+
+#endif

@@ -1,0 +1,17 @@
+  0.13844399727272735E-03  0.81402749394076501E-02  0.84000000000000005E-01 20 ediff, ekinetic and dt,nsoften
+          0 irestart for aborted geometry optimization
+  4.891565213589505E-002 av_ekinetic
+  0.000000000000000E+000 av_ediff   
+   6.00000000000000      escape     
+   2.00000000000000      escape_sam 
+  0.000000000000000E+000 escape_old 
+   2.00000000000000      escape_new 
+   2.00000000000000      hopp       
+  0.000000000000000E+000 hopp_acc   
+   2.00000000000000      hopp_rej   
+  1.000000000000000E+100 egap       
+  7.572979751988369E-010 esep       
+  0.000000000000000E+000 count_sd   
+  0.000000000000000E+000 count_cg   
+  0.000000000000000E+000 count_md   
+           0 nputback   

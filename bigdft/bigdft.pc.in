@@ -1,0 +1,13 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+linalglibs=@LINALG_LIBS@
+plugin=@FC@ @FC_BUILD_SHARED@ @FC_PIC_FLAG@ -I${includedir} -o lib<your_plugin>.so <your_plugin_sources>
+
+Name: libbigdft
+Description: Library for DFT calculation over wavelets.
+Requires: psolver futile
+Version: @VERSION@
+Libs: -L${libdir} @FC_RPATH@${libdir} -lbigdft-1 @LIB_BIGDFT_PKG@
+Cflags: -I${includedir}

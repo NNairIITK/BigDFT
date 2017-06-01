@@ -1,0 +1,21 @@
+run_from_files: No
+plugins:
+  disso:
+    sources: disso.f90
+    parameters:
+      delta: [0.2, 0., 0.]
+      output: "disso.dat"
+      rerun:
+        dft:
+          nspin: 2
+        posinp:
+          positions:
+          - {H: [0., 0., 0.], IGSpin: +1}
+          - {H: [.5, 0., 0.], IGSpin: -1}
+geopt:
+  method: LOOP
+  ncount_cluster_x: 20
+posinp:
+  positions:
+    - H: [0., 0., 0.]
+    - H: [.5, 0., 0.]

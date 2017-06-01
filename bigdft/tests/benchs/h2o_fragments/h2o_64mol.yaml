@@ -1,0 +1,43 @@
+ dft:
+   hgrids: 0.4
+   rmult: [5.0, 7.0]
+   ixc: 1
+   inputpsiid: linear_restart
+   disablesym: Yes
+ perf:
+   check_sumrho: 1
+   check_overlap: 1
+   calculate_KS_residue: No
+   store_index: Yes
+   hamapp_radius_incr: 6
+   profiling_depth: 0
+   verbosity: 3
+ lin_general:
+   hybrid: No
+   nit: 1
+   rpnrm_cv: 5.0E-011
+   taylor_order: 1005
+   max_inversion_error: 1.0e-6
+ lin_basis:
+   nit: 1
+ lin_kernel:
+   nit: [30, 200]
+   alphamix: 0.3
+   linear_method: FOE 
+ lin_basis_params:
+   O:
+     nbasis: 4
+     ao_confinement: 1.0E-002
+     confinement: [5.0E-003, 0.0]
+     rloc: 7.0
+     rloc_kernel: 12
+     rloc_kernel_foe: 12
+   H:
+     nbasis: 1
+     ao_confinement: 1.0E-002
+     confinement: [5.0E-003, 0.0]
+     rloc: 7.0
+     rloc_kernel: 12
+     rloc_kernel_foe: 12
+ frag:
+   h2o: [1, ..., 64]

@@ -1,0 +1,94 @@
+sp_psip_psiv: [<psiv_i|D psi_j>]
+sp_psip_psio: [Scalar product]
+sp_psio_H_psip: [<hpsi_i|psi_j>]
+sp_psiv_H_psip: [<psiv_i|hpsi_i>]
+en: [Complete list of energy eigenvalues]
+globals: {ifile: 0}
+eval: |
+  ifile+=1
+  import numpy as np
+
+  #store scalar procucts in numpy arrays
+  sp_psip_psiv     = np.array(sp_psip_psiv)
+  sp_psip_psio     = np.array(sp_psip_psio)
+  sp_psiv_H_psip   = np.array(sp_psiv_H_psip)
+  sp_psio_H_psip   = np.array(sp_psio_H_psip)
+  ##print sp_psio_H_psip, sp_psiv_H_psip, sp_psip_psio, sp_psip_psiv, sp_psip_H_H_psip
+  ##print np.shape(sp_psio_H_psip), np.shape(sp_psiv_H_psip), np.shape(sp_psip_psio), np.shape(sp_psip_psiv), sp_psip_H_H_psip
+  ##print sp_psip_psiv, sp_psip_psio 
+
+  #get numbers of occ. and unocc. states
+  n_occ,n_vrt = sp_psip_psiv.shape
+  #print n_occ, n_vrt
+
+  #Read the data concerning the energy of occ. and unocc. states from 'en'
+  key_v="e_vrt"
+  key_v2="e_virtual"
+  key_o="e_occ"
+  key_o2="e_occupied"
+  e_v=[]
+  e_o=[]
+  coeff = 27.211396132 #conversion factor from Ha to eV
+  for e in en:
+    #print e
+    if key_o  in e:
+      e_o.append(coeff*e[key_o])  #keep only the last occ. state's energy in e_o
+    if key_o2 in e:
+      e_o.append(coeff*e[key_o2]) #keep only the last occ. state's energy in e_o
+    if key_v  in e:
+      e_v.append(coeff*e[key_v])  #keep all unocc. states enrgies in e_v
+    if key_v2 in e:
+      e_v.append(coeff*e[key_v2]) #keep all unocc. states enrgies in e_v
+  #print e_o, e_v
+
+  #cr_0 stores the contribution of all (unperturbed) bound states 
+  #to the Completeness Relation using each perturbed state as test function.
+  #cr_0 is a vector column, so that it can be easily used to multiply a list of lists later.
+  cr_0 = [ [np.sum(list_of_sp**2)] for list_of_sp in sp_psip_psio.transpose() ] 
+  #print cr_0
+ 
+  #compute the cumulative sum of the (unperturbed) virtual states contributions 
+  #to the completeness relation using each perturbed state as test function.
+  cumsum_sp_psip_psiv_sq = np.cumsum( sp_psip_psiv**2, axis=1 )
+  #add a zero at the beginning of each line of cumsum_sp_psip_psiv_sq 
+  #(in order to represent the contribution of all the bound states only)
+  cumsum_sp_psip_psiv_sq = np.insert(cumsum_sp_psip_psiv_sq, 0, 0.0, axis=1)
+  #print cumsum_sp_psip_psiv_sq
+ 
+  #Build the list of lists containing the convergence of the CR as a function of the number of virtual states used :
+  # add a numpy array filled by the total bound states contribution
+  # to the numpy array defining the convergence of the virtual states contribution to the CR
+  cr = cr_0 * np.ones_like(cumsum_sp_psip_psiv_sq) + cumsum_sp_psip_psiv_sq
+
+  #Define 1-cr (so that the values tend to 0)
+  one_minus_cr = np.ones_like(cr) - cr
+  #print one_minus_cr
+
+  #Define the maximum of 1-cr as a reference
+  ref = max([one_minus_cr[i_o][0] for i_o in range(n_occ)])
+  #print ref
+  #print one_minus_cr/max(one_minus_cr[:][0])
+  
+  #print 1-cr as a percentage of the reference value
+  #Initialize with the value when considering the bound states only
+  to_write = str(e_o[-1])                               #Initialize the first line with the energy of the last occupied state
+  for i_o in range(n_occ):                              #loop over bound states
+    to_write += ' '+str(one_minus_cr[i_o][0]/ref)           #add the value concerning each perturbed state to the line to write
+  print to_write                                        #write the line
+  #Loop over the virtual states contribution
+  for i_v in range(n_vrt):                              #loop over virtual states
+    to_write = str(e_v[i_v])                            #initialize the line with the value of the corresponding virtual state
+    for i_o in range(n_occ):                            #loop over bound states
+      to_write += ' '+str(one_minus_cr[i_o][i_v+1]/ref) #add the value concerning each perturbed state to the line to write
+    print to_write                                      #write the line
+
+  ###then plot the complete results
+  ##import matplotlib.pyplot as plt
+  ##plt.figure(ifile)
+  ##for i_p in range(n_occ):
+  ##  plt.plot([e_o[-1]]+e_v, one_minus_cr[i_p]/ref, 'o', label='state'+str(i_p+1))
+  ##  ##plt.plot(e_v,np.abs(ql[i_p]),'x-',label='QL'+str(i_p))
+  ##plt.xlabel('Energy [eV]', fontsize=18)
+  ##plt.ylabel('normalized 1-CR', fontsize=18)
+  ##plt.legend() #[str(p) for p in range(n_occ)])
+  ##plt.show()

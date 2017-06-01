@@ -1,0 +1,340 @@
+#ifndef __kernels_compress__
+#define __kernels_compress__
+
+template<typename T>
+__global__ void uncompresscoarsefine(int n1,int n2,int n3,
+				     T *psi_cf, T *psi_g,int *keys)
+{
+
+  //segment(s) treated by the group of threads
+  unsigned int iseg=threadIdx.y + blockDim.y*blockIdx.x;
+
+  //thread id
+  unsigned int tid = threadIdx.x;
+  //number of components (1=coarse,7=fine,0=empty)
+  unsigned int ncomps=keys[4*iseg]; 
+
+  //number of elements
+  unsigned int nelems=keys[4*iseg+1]; 
+
+  //starting point of the compressed wavefunctions
+  unsigned int is=keys[4*iseg+2]-1; 
+
+  //starting point of the uncompressed wavefunction
+  unsigned int ii=keys[4*iseg+3]-1; 
+
+  //starting point for the three coordinates
+  unsigned int i1s,i2s,i3s;
+
+  i3s=ii/(n1*n2);
+  ii=ii-i3s*n1*n2;
+  i2s=ii/n1;
+  i1s=ii-i2s*n1;
+
+  ii=i1s+2*n1*i2s+4*n1*n2*i3s;
+
+  if (ncomps == 1)
+    {
+      if(tid < nelems)
+	{
+	  psi_g[ii+tid]=psi_cf[is+tid];
+	}
+    }
+  else if (ncomps != 0) 
+    {
+      if(tid < nelems)
+	{
+	  psi_g[ii+tid+n1]                   =psi_cf[ncomps+7*(is+tid)];
+	  psi_g[ii+tid+2*n1*n2]              =psi_cf[ncomps+7*(is+tid)+1];
+	  psi_g[ii+tid+n1+2*n1*n2]           =psi_cf[ncomps+7*(is+tid)+2];
+	  psi_g[ii+tid+4*n1*n2*n3]           =psi_cf[ncomps+7*(is+tid)+3];
+	  psi_g[ii+tid+n1+4*n1*n2*n3]        =psi_cf[ncomps+7*(is+tid)+4];
+	  psi_g[ii+tid+2*n1*n2+4*n1*n2*n3]   =psi_cf[ncomps+7*(is+tid)+5];
+	  psi_g[ii+tid+n1+2*n1*n2+4*n1*n2*n3]=psi_cf[ncomps+7*(is+tid)+6];
+
+	}
+
+    }
+}
+
+template<typename T>
+__global__ void uncompresscoarsefinescal(int n1,int n2,int n3, 
+					 T h1,T h2,T h3,T c,
+					 T *psi_cf, T *psi_g,int *keys)
+{
+
+  //segment(s) treated by the group of threads
+  unsigned int iseg=threadIdx.y + blockDim.y*blockIdx.x;
+
+  //thread id
+  unsigned int tid = threadIdx.x;
+  //number of components (1=coarse,7=fine,0=empty)
+  unsigned int ncomps=keys[4*iseg]; 
+
+  //number of elements
+  unsigned int nelems=keys[4*iseg+1]; 
+
+  //starting point of the compressed wavefunctions
+  unsigned int is=keys[4*iseg+2]-1; 
+
+  //starting point of the uncompressed wavefunction
+  unsigned int ii=keys[4*iseg+3]-1; 
+
+  //starting point for the three coordinates
+  unsigned int i1s,i2s,i3s;
+
+  i3s=ii/(n1*n2);
+  ii=ii-i3s*n1*n2;
+  i2s=ii/n1;
+  i1s=ii-i2s*n1;
+
+  ii=i1s+2*n1*i2s+4*n1*n2*i3s;
+
+  //calculate the scaling  value by considering the fine grid spacings
+  T hh1= ((T)0.125)/(h1*h1);
+  T hh2= ((T)0.125)/(h2*h2);
+  T hh3= ((T)0.125)/(h3*h3);
+
+
+  if (ncomps == 1)
+    {
+      T GPUscal0=rsqrt(A2*hh1+A2*hh2+A2*hh3+c);
+      if(tid < nelems)
+	{
+	  psi_g[ii+tid]=psi_cf[is+tid]*GPUscal0;
+	}
+    }
+  else if (ncomps != 0) 
+    {
+
+      //reverse square root can be compared to the 1/sqrt
+      T GPUscal1=rsqrt(B2*hh1+A2*hh2+A2*hh3+c);
+      T GPUscal2=rsqrt(A2*hh1+B2*hh2+A2*hh3+c);
+      T GPUscal3=rsqrt(B2*hh1+B2*hh2+A2*hh3+c);
+      T GPUscal4=rsqrt(A2*hh1+A2*hh2+B2*hh3+c);
+      T GPUscal5=rsqrt(B2*hh1+A2*hh2+B2*hh3+c);
+      T GPUscal6=rsqrt(A2*hh1+B2*hh2+B2*hh3+c);
+      T GPUscal7=rsqrt(B2*hh1+B2*hh2+B2*hh3+c);
+	       
+      if(tid < nelems)
+	{      
+	  psi_g[ii+tid+n1]                   =
+	    psi_cf[ncomps+7*(is+tid)]*GPUscal1;
+	  psi_g[ii+tid+2*n1*n2]              =
+	    psi_cf[ncomps+7*(is+tid)+1]*GPUscal2;
+	  psi_g[ii+tid+n1+2*n1*n2]           =
+	    psi_cf[ncomps+7*(is+tid)+2]*GPUscal3;
+	  psi_g[ii+tid+4*n1*n2*n3]           =
+	    psi_cf[ncomps+7*(is+tid)+3]*GPUscal4;
+	  psi_g[ii+tid+n1+4*n1*n2*n3]        =
+	    psi_cf[ncomps+7*(is+tid)+4]*GPUscal5;
+	  psi_g[ii+tid+2*n1*n2+4*n1*n2*n3]   =
+	    psi_cf[ncomps+7*(is+tid)+5]*GPUscal6;
+	  psi_g[ii+tid+n1+2*n1*n2+4*n1*n2*n3]=
+	    psi_cf[ncomps+7*(is+tid)+6]*GPUscal7;
+
+	}
+
+    }
+}
+
+
+
+template<typename T>
+__global__ void compresscoarsefine(int n1,int n2,int n3, T *psi_g, T *psi_cf,int *keys)
+{
+
+  //segment(s) treated by the group of threads
+  unsigned int iseg=threadIdx.y + blockDim.y*blockIdx.x;
+
+  //thread id
+  unsigned int tid = threadIdx.x;
+  //number of components (1=coarse,7=fine,0=empty)
+  unsigned int ncomps=keys[4*iseg]; 
+
+  //number of elements
+  unsigned int nelems=keys[4*iseg+1]; 
+
+  //starting point of the compressed wavefunctions
+  unsigned int is=keys[4*iseg+2]-1; 
+
+  //starting point of the uncompressed wavefunction
+  unsigned int ii=keys[4*iseg+3]-1; 
+
+  //starting point for the three coordinates
+  unsigned int i1s,i2s,i3s;
+
+  i3s=ii/(n1*n2);
+  ii=ii-i3s*n1*n2;
+  i2s=ii/n1;
+  i1s=ii-i2s*n1;
+
+  ii=i1s+2*n1*i2s+4*n1*n2*i3s;
+
+  if (ncomps == 1)
+    {
+      if(tid < nelems)
+	{
+	  psi_cf[is+tid]=psi_g[ii+tid];
+	}
+    }
+  else if (ncomps != 0) 
+    {
+      if(tid < nelems)
+	{
+	  psi_cf[ncomps+7*(is+tid)]  =psi_g[ii+tid+n1]                   ;
+	  psi_cf[ncomps+7*(is+tid)+1]=psi_g[ii+tid+2*n1*n2]              ;
+	  psi_cf[ncomps+7*(is+tid)+2]=psi_g[ii+tid+n1+2*n1*n2]           ;
+	  psi_cf[ncomps+7*(is+tid)+3]=psi_g[ii+tid+4*n1*n2*n3]           ;
+	  psi_cf[ncomps+7*(is+tid)+4]=psi_g[ii+tid+n1+4*n1*n2*n3]        ;
+	  psi_cf[ncomps+7*(is+tid)+5]=psi_g[ii+tid+2*n1*n2+4*n1*n2*n3]   ;
+	  psi_cf[ncomps+7*(is+tid)+6]=psi_g[ii+tid+n1+2*n1*n2+4*n1*n2*n3];
+	}
+
+    }
+}
+
+
+template<typename T>
+__global__ void compresscoarsefinescal(int n1,int n2,int n3,
+				       T h1,T h2,T h3,T c,
+				       T *psi_g, T *psi_cf,int *keys)
+{
+
+  //segment(s) treated by the group of threads
+  unsigned int iseg=threadIdx.y + blockDim.y*blockIdx.x;
+
+  //thread id
+  unsigned int tid = threadIdx.x;
+  //number of components (1=coarse,7=fine,0=empty)
+  unsigned int ncomps=keys[4*iseg]; 
+
+  //number of elements
+  unsigned int nelems=keys[4*iseg+1]; 
+
+  //starting point of the compressed wavefunctions
+  unsigned int is=keys[4*iseg+2]-1; 
+
+  //starting point of the uncompressed wavefunction
+  unsigned int ii=keys[4*iseg+3]-1; 
+
+  //starting point for the three coordinates
+  unsigned int i1s,i2s,i3s;
+
+  i3s=ii/(n1*n2);
+  ii=ii-i3s*n1*n2;
+  i2s=ii/n1;
+  i1s=ii-i2s*n1;
+
+  ii=i1s+2*n1*i2s+4*n1*n2*i3s;
+
+  //calculate the scaling  value by considering the fine grid spacings
+  T hh1= ((T)0.125)/(h1*h1);
+  T hh2= ((T)0.125)/(h2*h2);
+  T hh3= ((T)0.125)/(h3*h3);
+
+
+  if (ncomps == 1)
+    {
+      T GPUscal0=rsqrt(A2*hh1+A2*hh2+A2*hh3+c);
+
+      if(tid < nelems)
+	{
+	  psi_cf[is+tid]=psi_g[ii+tid]*GPUscal0;
+	}
+    }
+  else if (ncomps != 0) 
+    {
+      T GPUscal1=rsqrt(B2*hh1+A2*hh2+A2*hh3+c);
+      T GPUscal2=rsqrt(A2*hh1+B2*hh2+A2*hh3+c);
+      T GPUscal3=rsqrt(B2*hh1+B2*hh2+A2*hh3+c);
+      T GPUscal4=rsqrt(A2*hh1+A2*hh2+B2*hh3+c);
+      T GPUscal5=rsqrt(B2*hh1+A2*hh2+B2*hh3+c);
+      T GPUscal6=rsqrt(A2*hh1+B2*hh2+B2*hh3+c);
+      T GPUscal7=rsqrt(B2*hh1+B2*hh2+B2*hh3+c);
+
+
+      if(tid < nelems)
+	{
+	  psi_cf[ncomps+7*(is+tid)]  =
+	    psi_g[ii+tid+n1]*GPUscal1;
+	  psi_cf[ncomps+7*(is+tid)+1]=
+	    psi_g[ii+tid+2*n1*n2]*GPUscal2;
+	  psi_cf[ncomps+7*(is+tid)+2]=
+	    psi_g[ii+tid+n1+2*n1*n2]*GPUscal3;
+	  psi_cf[ncomps+7*(is+tid)+3]=
+	    psi_g[ii+tid+4*n1*n2*n3]*GPUscal4;
+	  psi_cf[ncomps+7*(is+tid)+4]=
+	    psi_g[ii+tid+n1+4*n1*n2*n3]*GPUscal5;
+	  psi_cf[ncomps+7*(is+tid)+5]=
+	    psi_g[ii+tid+2*n1*n2+4*n1*n2*n3]*GPUscal6;
+	  psi_cf[ncomps+7*(is+tid)+6]=
+	    psi_g[ii+tid+n1+2*n1*n2+4*n1*n2*n3]*GPUscal7;
+	}
+
+    }
+}
+
+
+template<typename T>
+__global__ void wscalgpu(T *psi_cf,
+			 T h1,T h2,T h3,T c,int *keys)
+{
+
+  //segment(s) treated by the group of threads
+  unsigned int iseg=threadIdx.y + blockDim.y*blockIdx.x;
+
+  //thread id
+  unsigned int tid = threadIdx.x;
+  //number of components (1=coarse,7=fine,0=empty)
+  unsigned int ncomps=keys[4*iseg]; 
+
+  //number of elements
+  unsigned int nelems=keys[4*iseg+1]; 
+
+  //starting point of the compressed wavefunctions
+  unsigned int is=keys[4*iseg+2]-1; 
+
+  //calculate the scaling  value by considering the fine grid spacings
+  T hh1= ((T)0.125)/(h1*h1);
+  T hh2= ((T)0.125)/(h2*h2);
+  T hh3= ((T)0.125)/(h3*h3);
+
+
+  if (ncomps == 1)
+    {
+      T GPUscal0=rsqrt(A2*hh1+A2*hh2+A2*hh3+c);
+
+      if(tid < nelems)
+	{
+	  psi_cf[is+tid]=psi_cf[is+tid]*GPUscal0;
+	}
+    }
+  else if (ncomps != 0) 
+    {
+      T GPUscal1=rsqrt(B2*hh1+A2*hh2+A2*hh3+c);
+      T GPUscal2=rsqrt(A2*hh1+B2*hh2+A2*hh3+c);
+      T GPUscal3=rsqrt(B2*hh1+B2*hh2+A2*hh3+c);
+      T GPUscal4=rsqrt(A2*hh1+A2*hh2+B2*hh3+c);
+      T GPUscal5=rsqrt(B2*hh1+A2*hh2+B2*hh3+c);
+      T GPUscal6=rsqrt(A2*hh1+B2*hh2+B2*hh3+c);
+      T GPUscal7=rsqrt(B2*hh1+B2*hh2+B2*hh3+c);
+
+      if(tid < nelems)
+	{
+	  psi_cf[ncomps+7*(is+tid)]  =psi_cf[ncomps+7*(is+tid)]  *GPUscal1; 
+	  psi_cf[ncomps+7*(is+tid)+1]=psi_cf[ncomps+7*(is+tid)+1]*GPUscal2;
+	  psi_cf[ncomps+7*(is+tid)+2]=psi_cf[ncomps+7*(is+tid)+2]*GPUscal3;
+	  psi_cf[ncomps+7*(is+tid)+3]=psi_cf[ncomps+7*(is+tid)+3]*GPUscal4;
+	  psi_cf[ncomps+7*(is+tid)+4]=psi_cf[ncomps+7*(is+tid)+4]*GPUscal5;
+	  psi_cf[ncomps+7*(is+tid)+5]=psi_cf[ncomps+7*(is+tid)+5]*GPUscal6;
+	  psi_cf[ncomps+7*(is+tid)+6]=psi_cf[ncomps+7*(is+tid)+6]*GPUscal7;
+
+	}
+
+    }
+}
+
+
+#endif
+

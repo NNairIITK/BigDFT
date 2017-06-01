@@ -1,0 +1,25 @@
+ O 
+ PADE
+spin polarized  
+ 20.0      10.0 60.0       	 rmax,aa,bb 
+       1.38d0   6.0d0		 rcov,rprb  -> note rprb is rather large, weak confinement
+    1    9			 number of core and valence orbitals
+    2    0     1.00      1.00   \
+    3    0     0.00      0.00    \
+    4    0     0.00      0.00    |
+    2    1     2.00      2.00    |
+    3    1     0.00      0.00     > equal up and down occupations -> closed shell in LSDA
+    4    1     0.00      0.00    |
+    3    2     0.00      0.00    |
+    4    2     0.00      0.00    /
+    4    3     0.00      0.00   /
+NEXT CONFIGURATION
+    2    0     2.00      0.00   \                                                       
+    3    0     0.00      0.00	 \                                                                 
+    4    0     0.00      0.00	 |                                                                 
+    2    1     4.00      0.00	 |                                                                 
+    3    1     0.00      0.00	  > Second channel is zero -> Hund's rule will be used
+    4    1     0.00      0.00	 |                                                                 
+    3    2     0.00      0.00	 |                        
+    4    2     0.00      0.00	 /                       
+    4    3     0.00      0.00   /                       

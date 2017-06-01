@@ -1,0 +1,379 @@
+#ifndef __kernels_locpot__
+#define __kernels_locpot__
+
+#include "structDef_locpot.h"
+
+
+
+template<typename T>
+__device__ inline T computeElt(T *psi_sh,unsigned int ShBaseElem)
+{
+  return 
+    //hand-unrolled loop (16 elements for this filter)
+
+    //order changed for increasing the precision
+    ((T)MFIL0) *psi_sh[ShBaseElem               ] +
+    ((T)MFIL15)*psi_sh[ShBaseElem + 15*NUM_LINES] +
+    ((T)MFIL1) *psi_sh[ShBaseElem +   NUM_LINES ] +
+    ((T)MFIL14)*psi_sh[ShBaseElem + 14*NUM_LINES] +
+    ((T)MFIL2) *psi_sh[ShBaseElem + 2*NUM_LINES ] +
+    ((T)MFIL13)*psi_sh[ShBaseElem + 13*NUM_LINES] +
+    ((T)MFIL3) *psi_sh[ShBaseElem + 3*NUM_LINES ] +
+    ((T)MFIL12)*psi_sh[ShBaseElem + 12*NUM_LINES] +
+    ((T)MFIL4) *psi_sh[ShBaseElem + 4*NUM_LINES ] +
+    ((T)MFIL11)*psi_sh[ShBaseElem + 11*NUM_LINES] +
+    ((T)MFIL5) *psi_sh[ShBaseElem + 5*NUM_LINES ] +
+    ((T)MFIL10)*psi_sh[ShBaseElem + 10*NUM_LINES] +
+    ((T)MFIL6) *psi_sh[ShBaseElem + 6*NUM_LINES ] +
+    ((T)MFIL9) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
+    ((T)MFIL7) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
+    ((T)MFIL8) *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+
+}
+
+template<typename T>
+__device__ inline T computeElt_t(T *psi_sh,unsigned int ShBaseElem)
+{
+  return
+
+    ((T)MFIL15)*psi_sh[ShBaseElem               ] +
+    ((T)MFIL0) *psi_sh[ShBaseElem + 15*NUM_LINES] +
+    ((T)MFIL14)*psi_sh[ShBaseElem +   NUM_LINES ] +
+    ((T)MFIL1) *psi_sh[ShBaseElem + 14*NUM_LINES] +
+    ((T)MFIL13)*psi_sh[ShBaseElem + 2*NUM_LINES ] +
+    ((T)MFIL2) *psi_sh[ShBaseElem + 13*NUM_LINES] +
+    ((T)MFIL12)*psi_sh[ShBaseElem + 3*NUM_LINES ] +
+    ((T)MFIL3) *psi_sh[ShBaseElem + 12*NUM_LINES] +
+    ((T)MFIL11)*psi_sh[ShBaseElem + 4*NUM_LINES ] +
+    ((T)MFIL4) *psi_sh[ShBaseElem + 11*NUM_LINES] +
+    ((T)MFIL10)*psi_sh[ShBaseElem + 5*NUM_LINES ] +
+    ((T)MFIL5) *psi_sh[ShBaseElem + 10*NUM_LINES] +
+    ((T)MFIL9) *psi_sh[ShBaseElem + 6*NUM_LINES ] +
+    ((T)MFIL6) *psi_sh[ShBaseElem + 9*NUM_LINES ] +
+    ((T)MFIL8) *psi_sh[ShBaseElem + 7*NUM_LINES ] +
+    ((T)MFIL7) *psi_sh[ShBaseElem + 8*NUM_LINES ] ;
+
+}
+
+
+//1D convolution of multiple lines in the same block
+//__global__ void magicfilter1d(int n,int ndat, float *psi_out) //for textures
+
+template<typename T>
+__global__ void magicfilter1d(int n,int ndat, T *psi_in, T *psi_out,int idim)
+{
+
+  //line treated by the given block 
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LOWFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+      
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  n*BaseElem+ thelem + elemOffset;
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  //#pragma unroll 5 (to be tested if it is important)
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution
+
+      psi_out[BaseElem]=computeElt<T>(psi_sh,ShBaseElem);
+      //psi_sh[ShBaseElem+LOWFILMF*par[idim].LinesPerBlock]; //for testing only
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += HW_ELEM;
+      
+    }
+
+}
+
+//1D convolution of multiple lines in the same block
+//multiplies by the potential 
+//__global__ void magicfilter1d_pot(int n,int ndat, float *psi_out)
+template<typename T>
+__global__ void magicfilter1d_pot(int n,int ndat, T *psi_in, 
+				  T *pot, T *psi_out,int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LOWFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      //control flag for periodic boundary conditions
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  n*BaseElem+ thelem + elemOffset;
+
+  //limit element for which the block treats unique elements
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution
+     
+
+      psi_out[BaseElem]=computeElt<T>(psi_sh,ShBaseElem)*pot[BaseElem];
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += HW_ELEM;
+      
+    }
+ 
+}
+
+//transposed convolution
+template<typename T>
+__global__ void magicfilter1d_t(int n,int ndat, T *psi_in, T *psi_out,int idim)
+{
+
+  //line treated by the given block
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = 
+    min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LUPFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+      
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  n*BaseElem+ thelem + elemOffset;
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  //#pragma unroll 5 (to be tested if it is important)
+
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution
+  
+
+      psi_out[BaseElem]=computeElt_t<T>(psi_sh,ShBaseElem);
+      //psi_sh[ShBaseElem+LOWFILMF*par[idim].LinesPerBlock]; //for testing only
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += HW_ELEM;
+      
+    }
+
+ 
+}
+
+
+//put in the output array the square of the wavefunction
+template<typename T>
+__global__ void magicfilter1d_den(int n,int ndat, T *psi_in, T *psi_sq,int idim)
+{
+
+  //line treated by the given block 
+  unsigned int lineOffset = min(blockIdx.y*NUM_LINES,ndat-NUM_LINES);
+  //starting element treated by the block
+  unsigned int elemOffset = min(blockIdx.x*par[idim].ElementsPerBlock,n-par[idim].ElementsPerBlock);
+
+  //half-warp id
+  const unsigned int hwid = threadIdx.y;
+  //tid within the HW
+  const unsigned int tid_hw = threadIdx.x;
+
+  //shared memory array
+  __shared__ T psi_sh[MAX_SHARED_SIZE/sizeof(T)];
+
+  //line treated by the given thread in ndat axis
+  //which is the input base element
+  unsigned int BaseElem = par[idim].thline[tid_hw] + lineOffset;
+  //write data in shared memory
+  //element treated by the given thread in n-axis
+  unsigned int thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_copy[hwid];
+
+  unsigned int ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_copy[hwid];
+
+  int epsilon,npos;
+
+  //NOTE: it is assumed that for non-first segments the starting
+  //points is far enough for the filter to be contained
+  //and the same for non-last segments.
+  //in other terms: lenght of the line is always bigger than
+  //max(lowfil,lupfil)
+
+  for(int i=0,ipos=elemOffset-LOWFILMF+thelem;i < par[idim].hwelem_copy[hwid] ; ++i)
+    {
+      epsilon=(ipos < 0 ? -1 : ipos/n);
+      npos=ipos-epsilon*n;
+      psi_sh[ShBaseElem]=psi_in[BaseElem+ndat*npos];
+      //psi_sh[ShBaseElem]=tex1Dfetch(psi_tex,BaseElem+ndat*npos);
+
+      ShBaseElem += HALF_WARP_SIZE;
+      ipos += HW_ELEM;
+      
+    }
+
+  //end shared memory copy
+  __syncthreads();
+
+  //element treated by the given thread in n-axis
+  thelem = par[idim].thelem[tid_hw] + par[idim].hwoffset_calc[hwid];
+  //base element for the given thread in shared memory
+  ShBaseElem = tid_hw + NUM_LINES*par[idim].hwoffset_calc[hwid];
+
+  //output base element, from the input one
+  BaseElem =  n*BaseElem+ thelem + elemOffset;
+
+  //perform convolution in shared memory 
+  //each thread calculate a number of elements, identical for each
+  //half-warp
+  
+  T register psir;
+  for(int i=0;i < par[idim].hwelem_calc[hwid]; ++i)
+    {
+      //values of the convolution
+      psir=computeElt<T>(psi_sh,ShBaseElem);
+
+      psi_sq[BaseElem]=psir*psir;
+
+      ShBaseElem += HALF_WARP_SIZE;
+      BaseElem += HW_ELEM;
+      
+    }
+
+}
+
+
+#endif

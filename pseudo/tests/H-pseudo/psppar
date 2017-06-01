@@ -1,0 +1,6 @@
+non-relativistic     0.750 1.210           method, rcov and rprb
+    1   1  20130909                        zatom, zion, date (yymmdd)
+   10       -20 0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
+        0.20000  2  -4.0663326   0.6778322  rloc nloc c1 .. cnloc
+    1                                      nsep
+        1.0  1     0      s-projector

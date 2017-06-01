@@ -1,0 +1,123 @@
+ GENERIC_ERROR:
+   Id                                  : 1
+   Message                             : UNSPECIFIED
+   Action                              : UNKNOWN
+ Additional Info                       : Ambertools not present
+ Calling sequence of Main program (routines with * are not closed yet):
+ - Main_program: [ 4.238E-02,  1, ~*]
+   Subroutines:
+   - run_objects_init: [ 4.174E-02,  1,  98.50%*]
+     Subroutines:
+     - set_run_objects: [ 1.159E-02,  1,  27.77%]
+       Subroutines:
+       - inputs_from_dict: [ 1.145E-02,  1,  98.79%]
+         Subroutines:
+         - input_keys_fill_all: [ 5.921E-03,  1,  51.72%]
+           Subroutines:
+           - input_keys_init: [ 3.309E-03,  1,  55.89%]
+           - PS_input_dict: [ 5.275E-04,  1,  8.91%]
+           - chess_input_dict: [ 3.588E-04,  1,  6.06%]
+         - input_keys_dump: [ 3.706E-03,  1,  32.36%]
+         - psp_dict_analyse: [ 1.493E-04,  1,  1.30%]
+         - psp_dict_fill_all: [ 1.444E-04,  2,  1.26%]
+         - astruct_set_from_dict: [ 1.297E-04,  1,  1.13%]
+         - atomic_data_set_from_dict: [ 8.107E-05,  1,  0.71%]
+         - allocateBasicArraysInputLin: [ 5.198E-05,  1,  0.45%]
+         - kpt_input_analyse: [ 2.696E-05,  1,  0.24%]
+         - atomic_gamma_from_dict: [ 2.549E-05,  1,  0.22%]
+         - occupation_set_from_dict: [ 1.609E-05,  1,  0.14%]
+         - input_analyze: [ 1.064E-05,  1,  0.09%]
+         - read_n_orbitals: [ 9.529E-06,  1,  0.08%]
+     - astruct_file_merge_to_dict: [ 3.214E-04,  1,  0.77%]
+     - read_input_dict_from_files: [ 2.879E-04,  1,  0.69%]
+       Subroutines:
+       - merge_input_file_to_dict: [ 1.977E-04,  1,  68.68%]
+     - set_section_objects: [ 1.206E-05,  1,  0.03%]
+ Routine dictionary:
+   43255328:
+     [ rst%rxyz_new, run_objects_init,  144,  2 ]
+   43255488:
+     [ rst%rxyz_old, run_objects_init,  144,  2 ]
+   43255856:
+     [ rf_extra, run_objects_init,  144,  2 ]
+ Global dictionary (size 40):
+   43259856:
+     [ input_frag%frag_index, inputs_from_dict,  4,  1 ]
+   43259888:
+     [ input_frag%charge, inputs_from_dict,  8,  1 ]
+   43254880:
+     [ input_frag%label, inputs_from_dict,  1,  1 ]
+   43255072:
+     [ input_frag%label, inputs_from_dict,  1,  1 ]
+   43254992:
+     [ occup, occupation_set_from_dict,  64,  1 ]
+   43236832:
+     [ dogamma, psp_dict_analyse,  96,  2 ]
+   43248464:
+     [ atoms%amu, psp_dict_analyse,  16,  1 ]
+   43259920:
+     [ atoms%psppar, psp_dict_analyse,  560,  3 ]
+   43259392:
+     [ atoms%nelpsp, psp_dict_analyse,  8,  1 ]
+   43259328:
+     [ atoms%npspcode, psp_dict_analyse,  8,  1 ]
+   43259296:
+     [ atoms%nzatom, psp_dict_analyse,  8,  1 ]
+   43259360:
+     [ atoms%ixcpsp, psp_dict_analyse,  8,  1 ]
+   43259424:
+     [ atoms%radii_cf, psp_dict_analyse,  48,  2 ]
+   43259264:
+     [ atoms%iradii_source, psp_dict_analyse,  8,  1 ]
+   43259616:
+     [ atoms%nlcc_ngv, psp_dict_analyse,  8,  1 ]
+   43259776:
+     [ atoms%nlcc_ngc, psp_dict_analyse,  8,  1 ]
+   43248608:
+     [ nlccpar, psp_dict_analyse,  40,  2 ]
+   43249136:
+     [ gen_kpt, kpt_input_analyse,  24,  2 ]
+   43233024:
+     [ gen_wkpt, kpt_input_analyse,  8,  1 ]
+   43248720:
+     [ lin%locrad, inputs_from_dict,  192,  1 ]
+   43248928:
+     [ lin%locrad_kernel, inputs_from_dict,  192,  1 ]
+   43249168:
+     [ lin%locrad_mult, inputs_from_dict,  192,  1 ]
+   43249376:
+     [ lin%locrad_lowaccuracy, inputs_from_dict,  192,  1 ]
+   43249584:
+     [ lin%locrad_highaccuracy, inputs_from_dict,  192,  1 ]
+   43237520:
+     [ lin%norbsPerType, allocateBasicArraysInputLin,  8,  1 ]
+   43236992:
+     [ lin%potentialPrefac_ao, allocateBasicArraysInputLin,  16,  1 ]
+   43233056:
+     [ lin%potentialPrefac_lowaccuracy, allocateBasicArraysInputLin,  16,  1 ]
+   43248544:
+     [ lin%potentialPrefac_highaccuracy, allocateBasicArraysInputLin,  16,  1 ]
+   43248496:
+     [ lin%locrad_type, allocateBasicArraysInputLin,  32,  2 ]
+   43248656:
+     [ lin%kernel_cutoff_FOE, allocateBasicArraysInputLin,  16,  1 ]
+   43248688:
+     [ lin%kernel_cutoff, allocateBasicArraysInputLin,  16,  1 ]
+   43236944:
+     [ atomnames, astruct_set_from_dict,  2,  1 ]
+   43233088:
+     [ astruct%iatype, astruct_set_from_dict,  24,  1 ]
+   43237056:
+     [ astruct%ifrztyp, astruct_set_from_dict,  24,  1 ]
+   43237024:
+     [ astruct%input_polarization, astruct_set_from_dict,  24,  1 ]
+   43237168:
+     [ astruct%rxyz, astruct_set_from_dict,  144,  2 ]
+   43237328:
+     [ astruct%rxyz_int, astruct_set_from_dict,  144,  2 ]
+   43237088:
+     [ astruct%ixyz_int, astruct_set_from_dict,  72,  2 ]
+   Timestamp of Profile initialization:
+     2017-05-20 21:12:24.494
+   Process Id:
+     0

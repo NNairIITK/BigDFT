@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Po
+   84   6  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.59250000    1    10.41173070                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.64794961    3     1.14420296     0.28499406    -0.08280174                   rs ns hs11 hs12 hs13
+                                       -0.73585149     0.21379318                              hs22 hs23
+                                                      -0.33938616                                   hs33
+     0.74894708    2     0.59456184     0.14942108                                  rp np hp11 hp12
+                                       -0.35359482                                             hp22
+                         0.39635435     0.01329517                                        kp11 kp12
+                                       -0.03146213                                             kp22
+     0.88046840    1     0.43323228                                                 rd nd hd11
+                         0.03388641                                                       kd11

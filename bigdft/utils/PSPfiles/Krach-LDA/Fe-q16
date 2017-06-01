@@ -1,0 +1,13 @@
+Goedecker pseudopotential for Fe
+   26  16  070301 zatom,zion,pspdat
+10  1  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.36000000    2     5.39250667    -0.03006638                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.26926810    2    10.19372276     2.64717717                                  rs ns hs11 hs12
+                                       -6.83498206                                             hs22
+     0.24768563    2     0.14561261     2.21217195                                  rp np hp11 hp12
+                                       -5.23495429                                             hp22
+                         0.20145020     0.03204342                                        kp11 kp12
+                                       -0.07582857                                             kp22
+     0.22302105    1   -12.02694100                                                 rd nd hd11
+                         0.01032228                                                       kd11

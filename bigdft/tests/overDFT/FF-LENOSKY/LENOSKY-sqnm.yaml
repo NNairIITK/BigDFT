@@ -1,0 +1,13 @@
+ mode:
+   method: lensib
+ geopt:
+   method: SQNM
+   ncount_cluster_x: 500
+   frac_fluct: 0.0
+   forcemax: 1.0E-4
+   betax: 6.0E+0
+   nhistx: 5
+   cutoffratio: 1e-4
+   steepthresh: 100
+   trustr: 10.0
+   maxrise: 1e-6

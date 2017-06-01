@@ -1,0 +1,4 @@
+1/64   #frequency step = alpha*hx, alpha*hy, alpha*hz
+2      #order finite difference scheme (2 or 3)
+1      #1 - systematic moves over each atoms
+#Best effort: 4173 cm-1, E=-1.1370708233960054 Hartree, d=0.76558 angstroem

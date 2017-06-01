@@ -1,0 +1,36 @@
+ 2 F                                #mhgps_verbosity
+ connect  T                        #operation_mode, random_minmode_guess
+ 7                               #nsadmax
+			 F                               #external_minimizer
+			 1.0E-04 2.0E-04                  #en_delta_min, fp_delta_min
+			 1.0E-04 2.0E-04                  #en_delta_sad, fp_delta_sad
+			 F                                #biomode
+			 1.0E-01                          #lst_interpol_stepfrct
+			 1.0E-03                          #ts_guess_gammainv
+			 1.0E-03                          #ts_guess_perpnrmtol
+			 5.6E-02                          #ts_guess_trust
+			 1                                #ts_guess_nstepsmax
+			 5.e-1 5.e-3                        #max. time step in fire optimizer of lst function, convergence criterion
+ 5000 5000                        #nit_GEOPT, nit_CUOPT
+ 25 5                            #nhistx_GEOPT, nhistx_CUOPT
+ 100 100                          #saddle_steepthresh_trans,saddle_steepthresh_rot
+ 1.000E+00                        #fnrm tolerence convergence criterion for saddle point
+ 1.E-03  1.E-03 1.00E-03 1.00E-03 #alpha0_trans, alpha0_rot, alpha_stretch0, alpha_rot_stretch0
+ 1.000E-03                        #saddle_curvgraddif
+ 0.03E+00  0.05E+00              #saddle_rmsdispl0, saddle_trustr
+ 15.000E+00 15.000E+00 T            #saddl_tolc, saddle_tolf, tighten
+			 -20.90E+00                       #saddle_minoverlap0
+ 1.000E-09                        #saddle_maxcurvrise
+ 1.000E-04                        #saddle_cutoffratio
+ 5                                #saddle_recompIfCurvPos
+			 0.001E+00 2                         #saddle_stepoff
+			 10                               #mini_nhistx
+			 2000                             #mini_ncluster_x
+			 5.0                              #frac_fluct
+			 1.000E+00                        #forcemax
+			 1.000E-06                        #mini_maxrise
+			 1.000E-03                        #mini_betax
+			 4.000E-01                        #mini_beta_stretch_x
+			 1.000E-4                        #mini_cutoffRatio
+			 100                              #mini_steepthresh
+			 0.1                              #mini_trustr

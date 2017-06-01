@@ -1,0 +1,687 @@
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01  0.000000000000E+00  0.000000000000E+00
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14  0.000000000000E+00  0.000000000000E+00
+ CPLXREAL F G    Max diff:  0.000000000000E+00
+ CPLXIMAG F G    Max diff:  0.000000000000E+00
+ Energy diff:  0.000000000000E+00
+ CPLXREAL F D    Max diff:  0.000000000000E+00
+ CPLXIMAG F D    Max diff:  0.000000000000E+00
+ Energy diff:  0.000000000000E+00
+ CPU time/ELAPSED time for root process     0         1.94         2.74
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 431 allocations and 431 deallocations, remaining memory(B): 0
+ memory occupation peak: 20 MB
+ for the array  zt in the routine G_Poisson_Solver
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01 -3.175268521803E-01 -4.144744900528E-01
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 1 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 1 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 1 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 G 1    Max diff:  1.985233470127E-23
+ Energies diff:  5.978550987606E-14 -1.737499033538E-14 -3.025357742104E-14
+ COMPLETE    F 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -1.737499033538E-14 -3.025357742104E-14
+ ANACOMPLET  F 1 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 D 1    Max diff:  1.985233470127E-23
+ Energies diff:  5.978550987606E-14 -1.737499033538E-14 -3.025357742104E-14
+ COMPLETE    F 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -1.737499033538E-14 -3.025357742104E-14
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01 -3.175268521803E-01 -4.144744900527E-01
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 1 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 1 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 1 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 G 2    Max diff:  1.654361225106E-23
+ Energies diff:  5.978550987606E-14 -5.184741524999E-14 -8.065770273902E-14
+ COMPLETE    F 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -5.184741524999E-14 -8.065770273902E-14
+ ANACOMPLET  F 1 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 1 D 2    Max diff:  1.654361225106E-23
+ Energies diff:  5.978550987606E-14 -5.184741524999E-14 -8.065770273902E-14
+ COMPLETE    F 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -5.184741524999E-14 -8.065770273902E-14
+ CPU time/ELAPSED time for root process     0         3.32         5.36
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 691 allocations and 691 deallocations, remaining memory(B): 0
+ memory occupation peak: 27 MB
+ for the array  zt in the routine G_Poisson_Solver
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01 -3.363455254940E-01 -4.318324152021E-01
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 11 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 11 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 11 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -3.191891195797E-14 -4.746203430273E-14
+ COMPLETE    F 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -3.191891195797E-14 -4.746203430273E-14
+ ANACOMPLET  F 11 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -3.191891195797E-14 -4.746203430273E-14
+ COMPLETE    F 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -3.191891195797E-14 -4.746203430273E-14
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01 -3.363455254940E-01 -4.318324152021E-01
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 11 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 11 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 11 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -5.090372567906E-14 -7.732703366514E-14
+ COMPLETE    F 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -5.090372567906E-14 -7.732703366514E-14
+ ANACOMPLET  F 11 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -5.090372567906E-14 -7.732703366514E-14
+ COMPLETE    F 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -5.090372567906E-14 -7.732703366514E-14
+ CPU time/ELAPSED time for root process     0         6.05         9.58
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 727 allocations and 727 deallocations, remaining memory(B): 0
+ memory occupation peak: 51 MB
+ for the array  f_i in the routine vxcpostprocessing
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01 -3.177880430657E-01 -5.501171932419E-01
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 13 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 13 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 13 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 G 1    Max diff:  2.316105715148E-23
+ Energies diff:  5.978550987606E-14 -2.936539900134E-14 -3.019806626980E-14
+ COMPLETE    F 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -2.936539900134E-14 -3.019806626980E-14
+ ANACOMPLET  F 13 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 D 1    Max diff:  2.316105715148E-23
+ Energies diff:  5.978550987606E-14 -2.936539900134E-14 -3.019806626980E-14
+ COMPLETE    F 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -2.936539900134E-14 -3.019806626980E-14
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Isolated
+   Dimensions                          :  [  57,  48,  63 ]
+   MPI tasks                           :  4
+ Energies:  3.989422803955E-01 -3.177880430657E-01 -5.547092771748E-01
+ ANALYTIC    Max diff:  3.442628404571E-10   <<<< WARNING
+       result:  1.128379166751E+00
+     original:  1.128379167096E+00
+  Max diff at: 28 24 31
+ ANACOMPLET  F 13 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 13 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    F 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  F 13 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 G 2    Max diff:  1.985233470127E-23
+ Energies diff:  5.978550987606E-14 -3.697042672002E-14 -8.215650382226E-14
+ COMPLETE    F 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -3.697042672002E-14 -8.215650382226E-14
+ ANACOMPLET  F 13 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  F 13 D 2    Max diff:  1.985233470127E-23
+ Energies diff:  5.978550987606E-14 -3.697042672002E-14 -8.215650382226E-14
+ COMPLETE    F 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  5.978550987606E-14 -3.697042672002E-14 -8.215650382226E-14
+ CPU time/ELAPSED time for root process     0         4.66         7.70
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 709 allocations and 709 deallocations, remaining memory(B): 0
+ memory occupation peak: 43 MB
+ for the array  exci in the routine xc_energy
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies:  3.075484915324E+04  0.000000000000E+00  0.000000000000E+00
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff: -7.530616130680E-10  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff: -7.530616130680E-10  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff: -7.530616130680E-10  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff: -7.530616130680E-10  0.000000000000E+00  0.000000000000E+00
+ CPLXREAL P G    Max diff:  2.550226629403E+01   <<<< WARNING
+       result: -1.548787487342E+02
+     original: -1.803810150283E+02
+  Max diff at: 30 33 25
+ CPLXIMAG P G    Max diff:  2.550226629403E+01   <<<< WARNING
+       result: -1.548787487342E+02
+     original: -1.803810150283E+02
+  Max diff at: 30 33 25
+ Energy diff: -5.420588422567E-10
+ CPLXREAL P D    Max diff:  2.550226629403E+01   <<<< WARNING
+       result: -4.230772693138E+01
+     original: -6.780999322541E+01
+  Max diff at: 34 31 14
+ CPLXIMAG P D    Max diff:  2.550226629403E+01   <<<< WARNING
+       result: -4.230772693138E+01
+     original: -6.780999322541E+01
+  Max diff at: 34 31 14
+ Energy diff: -5.420588422567E-10
+ CPU time/ELAPSED time for root process     0         0.72         1.01
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 418 allocations and 418 deallocations, remaining memory(B): 0
+ memory occupation peak: 22 MB
+ for the array  zt in the routine G_Poisson_Solver
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies: -2.725736510833E+05 -5.303130376677E+04 -7.013474104202E+04
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 1 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 1 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 1 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 G 1    Max diff:  2.220446049250E-15
+ Energies diff:  8.265487849712E-09  1.462467480451E-09 -5.529727786779E-09
+ COMPLETE    P 1 G 1    Max diff:  2.220446049250E-15
+ Energies diff:  8.265487849712E-09  1.462467480451E-09 -5.529727786779E-09
+ ANACOMPLET  P 1 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 D 1    Max diff:  2.220446049250E-15
+ Energies diff:  8.265487849712E-09  1.462467480451E-09 -5.529727786779E-09
+ COMPLETE    P 1 D 1    Max diff:  2.220446049250E-15
+ Energies diff:  8.265487849712E-09  1.462467480451E-09 -5.529727786779E-09
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies: -2.725736510833E+05 -5.303130376677E+04 -7.013474104202E+04
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 1 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 1 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 1 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 G 2    Max diff:  2.664535259100E-15
+ Energies diff:  8.207280188799E-09  3.499735612422E-09 -7.566995918751E-10
+ COMPLETE    P 1 G 2    Max diff:  2.664535259100E-15
+ Energies diff:  8.207280188799E-09  3.499735612422E-09 -7.566995918751E-10
+ ANACOMPLET  P 1 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 1 D 2    Max diff:  2.664535259100E-15
+ Energies diff:  8.207280188799E-09  3.499735612422E-09 -7.566995918751E-10
+ COMPLETE    P 1 D 2    Max diff:  2.664535259100E-15
+ Energies diff:  8.207280188799E-09  3.499735612422E-09 -7.566995918751E-10
+ CPU time/ELAPSED time for root process     0         1.72         2.80
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 673 allocations and 673 deallocations, remaining memory(B): 0
+ memory occupation peak: 34 MB
+ for the array  exci in the routine xc_energy
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies: -2.725736510833E+05 -5.299096079562E+04 -7.008860213448E+04
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 11 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 11 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 11 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  8.265487849712E-09  4.292814992368E-10 -4.816683940589E-09
+ COMPLETE    P 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  8.265487849712E-09  4.292814992368E-10 -4.816683940589E-09
+ ANACOMPLET  P 11 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  8.265487849712E-09  4.292814992368E-10 -4.816683940589E-09
+ COMPLETE    P 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  8.265487849712E-09  4.292814992368E-10 -4.816683940589E-09
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies: -2.725736510833E+05 -5.299096079562E+04 -7.008860213448E+04
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 11 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 11 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 11 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 G 2    Max diff:  1.332267629550E-15
+ Energies diff:  8.207280188799E-09 -5.529727786779E-09  3.070454113185E-09
+ COMPLETE    P 11 G 2    Max diff:  1.332267629550E-15
+ Energies diff:  8.207280188799E-09 -5.529727786779E-09  3.070454113185E-09
+ ANACOMPLET  P 11 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 11 D 2    Max diff:  1.332267629550E-15
+ Energies diff:  8.207280188799E-09 -5.529727786779E-09  3.070454113185E-09
+ COMPLETE    P 11 D 2    Max diff:  1.332267629550E-15
+ Energies diff:  8.207280188799E-09 -5.529727786779E-09  3.070454113185E-09
+ CPU time/ELAPSED time for root process     0         6.39         9.79
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 712 allocations and 712 deallocations, remaining memory(B): 0
+ memory occupation peak: 76 MB
+ for the array  f_i in the routine vxcpostprocessing
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies: -2.725736510833E+05 -5.299087747574E+04 -7.010040423117E+04
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 13 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 13 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 13 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 G 1    Max diff:  2.664535259100E-15
+ Energies diff:  8.265487849712E-09 -3.870809450746E-09 -1.615262590349E-09
+ COMPLETE    P 13 G 1    Max diff:  2.664535259100E-15
+ Energies diff:  8.265487849712E-09 -3.870809450746E-09 -1.615262590349E-09
+ ANACOMPLET  P 13 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 D 1    Max diff:  2.664535259100E-15
+ Energies diff:  8.265487849712E-09 -3.870809450746E-09 -1.615262590349E-09
+ COMPLETE    P 13 D 1    Max diff:  2.664535259100E-15
+ Energies diff:  8.265487849712E-09 -3.870809450746E-09 -1.615262590349E-09
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Periodic
+   Dimensions                          :  [  64,  64,  64 ]
+   MPI tasks                           :  4
+ Energies: -2.725736510833E+05 -5.299087747575E+04 -7.009832350328E+04
+ ANALYTIC    Max diff:  9.890754881781E-12
+ ANACOMPLET  P 13 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 13 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    P 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  P 13 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 G 2    Max diff:  3.108624468950E-15
+ Energies diff:  8.207280188799E-09 -8.389179129153E-09  1.236912794411E-09
+ COMPLETE    P 13 G 2    Max diff:  3.108624468950E-15
+ Energies diff:  8.207280188799E-09 -8.389179129153E-09  1.236912794411E-09
+ ANACOMPLET  P 13 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  P 13 D 2    Max diff:  3.108624468950E-15
+ Energies diff:  8.207280188799E-09 -8.389179129153E-09  1.236912794411E-09
+ COMPLETE    P 13 D 2    Max diff:  3.108624468950E-15
+ Energies diff:  8.207280188799E-09 -8.389179129153E-09  1.236912794411E-09
+ CPU time/ELAPSED time for root process     0         3.77         6.57
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 694 allocations and 694 deallocations, remaining memory(B): 0
+ memory occupation peak: 64 MB
+ for the array  exci in the routine xc_energy
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies:  2.969431884210E+01  0.000000000000E+00  0.000000000000E+00
+ ANALYTIC    Max diff:  5.449593974441E-10   <<<< WARNING
+       result: -1.455736585061E-06
+     original: -1.455191625663E-06
+  Max diff at: 1 8 25
+ ANACOMPLET  S 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff: -2.096101070492E-13  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 0 G 1    Max diff:  0.000000000000E+00
+ Energies diff: -2.096101070492E-13  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff: -2.096101070492E-13  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 0 D 1    Max diff:  0.000000000000E+00
+ Energies diff: -2.096101070492E-13  0.000000000000E+00  0.000000000000E+00
+ CPLXREAL S G    Max diff:  0.000000000000E+00
+ CPLXIMAG S G    Max diff:  0.000000000000E+00
+ Energy diff:  0.000000000000E+00
+ CPLXREAL S D    Max diff:  0.000000000000E+00
+ CPLXIMAG S D    Max diff:  0.000000000000E+00
+ Energy diff:  0.000000000000E+00
+ CPU time/ELAPSED time for root process     0         0.78         0.93
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 1533 allocations and 1533 deallocations, remaining memory(B): 0
+ memory occupation peak: 9 MB
+ for the array  zt in the routine G_Poisson_Solver
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies: -1.433189036352E+05 -9.950230668165E+02 -1.308724746241E+03
+ ANALYTIC    Max diff:  1.626803254283E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
+  Max diff at: 1 63 25
+ ANACOMPLET  S 1 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 1 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 1 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 G 1    Max diff:  6.661338147751E-16
+ Energies diff:  4.947651177645E-09  1.830358087318E-11 -1.812168193283E-10
+ COMPLETE    S 1 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  4.947651177645E-09  1.830358087318E-11 -1.812168193283E-10
+ ANACOMPLET  S 1 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 D 1    Max diff:  6.661338147751E-16
+ Energies diff:  4.947651177645E-09  1.830358087318E-11 -1.812168193283E-10
+ COMPLETE    S 1 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  4.947651177645E-09  1.830358087318E-11 -1.812168193283E-10
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies: -1.433189036352E+05 -9.950230668165E+02 -1.308724746241E+03
+ ANALYTIC    Max diff:  1.626803253987E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
+  Max diff at: 1 63 25
+ ANACOMPLET  S 1 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 1 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 1 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 G 2    Max diff:  4.440892098501E-16
+ Energies diff:  4.598405212164E-09  1.216449163621E-11  3.985860530520E-10
+ COMPLETE    S 1 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  1.216449163621E-11  3.985860530520E-10
+ ANACOMPLET  S 1 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 1 D 2    Max diff:  4.440892098501E-16
+ Energies diff:  4.598405212164E-09  1.216449163621E-11  3.985860530520E-10
+ COMPLETE    S 1 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  1.216449163621E-11  3.985860530520E-10
+ CPU time/ELAPSED time for root process     0         1.09         1.56
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 2650 allocations and 2650 deallocations, remaining memory(B): 0
+ memory occupation peak: 13 MB
+ for the array  zt in the routine G_Poisson_Solver
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies: -1.433189036352E+05 -9.950785949620E+02 -1.308225078334E+03
+ ANALYTIC    Max diff:  1.626803254283E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
+  Max diff at: 1 63 25
+ ANACOMPLET  S 11 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 11 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 11 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 G 1    Max diff:  4.440892098501E-16
+ Energies diff:  4.947651177645E-09 -2.686419975362E-10 -2.878550731111E-10
+ COMPLETE    S 11 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  4.947651177645E-09 -2.686419975362E-10 -2.878550731111E-10
+ ANACOMPLET  S 11 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 D 1    Max diff:  4.440892098501E-16
+ Energies diff:  4.947651177645E-09 -2.686419975362E-10 -2.878550731111E-10
+ COMPLETE    S 11 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  4.947651177645E-09 -2.686419975362E-10 -2.878550731111E-10
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies: -1.433189036352E+05 -9.950785949619E+02 -1.308225078333E+03
+ ANALYTIC    Max diff:  1.626803253987E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
+  Max diff at: 1 63 25
+ ANACOMPLET  S 11 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 11 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 11 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  3.767581802094E-10  8.749339031056E-10
+ COMPLETE    S 11 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  3.767581802094E-10  8.749339031056E-10
+ ANACOMPLET  S 11 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  3.767581802094E-10  8.749339031056E-10
+ COMPLETE    S 11 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  3.767581802094E-10  8.749339031056E-10
+ CPU time/ELAPSED time for root process     0         2.81         4.51
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 2689 allocations and 2689 deallocations, remaining memory(B): 0
+ memory occupation peak: 28 MB
+ for the array  f_i in the routine vxcpostprocessing
+ ===================== nspden:  1
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies: -1.433189036352E+05 -9.950534710275E+02 -1.309787756300E+03
+ ANALYTIC    Max diff:  1.626803254283E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
+  Max diff at: 1 63 25
+ ANACOMPLET  S 13 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 13 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 13 G 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 G 1    Max diff:  4.440892098501E-16
+ Energies diff:  4.947651177645E-09 -2.858087100321E-10 -2.739852789091E-10
+ COMPLETE    S 13 G 1    Max diff:  0.000000000000E+00
+ Energies diff:  4.947651177645E-09 -2.858087100321E-10 -2.739852789091E-10
+ ANACOMPLET  S 13 D 1    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 D 1    Max diff:  4.440892098501E-16
+ Energies diff:  4.947651177645E-09 -2.858087100321E-10 -2.739852789091E-10
+ COMPLETE    S 13 D 1    Max diff:  0.000000000000E+00
+ Energies diff:  4.947651177645E-09 -2.858087100321E-10 -2.739852789091E-10
+ ===================== nspden:  2
+ Poisson Solver:
+   BC                                  : Surface
+   Dimensions                          :  [  32,  64,  48 ]
+   MPI tasks                           :  4
+ Energies: -1.433189036352E+05 -9.950534710273E+02 -1.309580723937E+03
+ ANALYTIC    Max diff:  1.626803253987E-02   <<<< WARNING
+       result: -3.502258425375E+02
+     original: -3.502421105701E+02
+  Max diff at: 1 63 25
+ ANACOMPLET  S 13 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 13 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ COMPLETE    S 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  0.000000000000E+00  0.000000000000E+00  0.000000000000E+00
+ ANACOMPLET  S 13 G 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 G 2    Max diff:  2.220446049250E-16
+ Energies diff:  4.598405212164E-09  4.000639819424E-10  7.835296855774E-10
+ COMPLETE    S 13 G 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  4.000639819424E-10  7.835296855774E-10
+ ANACOMPLET  S 13 D 2    Max diff:  0.000000000000E+00
+ XCCOMPLETE  S 13 D 2    Max diff:  2.220446049250E-16
+ Energies diff:  4.598405212164E-09  4.000639819424E-10  7.835296855774E-10
+ COMPLETE    S 13 D 2    Max diff:  0.000000000000E+00
+ Energies diff:  4.598405212164E-09  4.000639819424E-10  7.835296855774E-10
+ CPU time/ELAPSED time for root process     0         1.87         3.09
+ -------------------------MEMORY CONSUMPTION REPORT-----------------------------
+ 2671 allocations and 2671 deallocations, remaining memory(B): 0
+ memory occupation peak: 24 MB
+ for the array  exci in the routine xc_energy

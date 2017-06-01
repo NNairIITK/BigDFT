@@ -1,0 +1,7 @@
+ md:
+   mdsteps: 2000
+   timestep: 2
+   temperature: 300.0
+   print_frequency: 1
+ posinp:
+   source: posinp.xyz

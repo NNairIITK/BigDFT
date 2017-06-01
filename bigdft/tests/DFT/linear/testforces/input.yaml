@@ -1,0 +1,22 @@
+ import: linear
+ dft:
+   hgrids: 0.38
+   rmult: [5.0, 7.0]
+   inputpsiid: linear
+   disablesym: Yes
+ chess:
+   foe:
+     eval_range_foe: [-1.0,1.0]
+ lin_kernel:
+   delta_pnrm: -1.0
+ perf:
+   mixing_after_inputguess: 1 #to make the test pass...
+ posinp:
+   positions:
+   - O: [2.065621065394574, 0.7276197830051158, 0.7650374978227975]
+   - H: [0.2609031030233364, 0.4497236554241762, 0.5729218373685834]
+   - H: [2.217505931689284, 2.044733573632779, 2.030559672968256]
+   properties:
+     format: xyz
+     source: posinp
+   energy (Ha): -17.17977402367096

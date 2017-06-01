@@ -1,0 +1,21 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   ixc: PBE
+   itermax: 15
+   disablesym: Yes
+ geopt:
+   method: DIIS
+   ncount_cluster_x: 500
+   history: 5
+   betax: 4.0
+ posinp:
+   positions:
+   - N: [1.0804519988596439E-002, 4.1023649275302887E-002, 0.1011848002672195]
+   - H: [7.7589298598468304E-003, 1.935853004455566, 3.2816581428050995E-002]
+   - H: [-1.629820704460144, -0.9052987694740295, 3.3609140664339066E-002]
+   - H: [1.654444098472595, -0.900694727897644, 3.2981980592012405E-002]
+   properties:
+     format: ascii
+     source: posinp.ascii

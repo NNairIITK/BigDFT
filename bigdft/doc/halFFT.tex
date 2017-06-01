@@ -1,0 +1,87 @@
+\documentclass[12pt]{article}
+
+%\usepackage{pslatex}
+%------------------------------------------------------------------------
+\usepackage{amsmath,amsfonts}
+
+%------------------------------------------------------------------------
+%We start the document
+\begin{document}
+%------------------------------------------------------------------------
+
+\section*{Convolution of two real functions using a complex FFT}
+
+Let us suppose we need to calculate the convolution between two real functions
+$f$ and $g$ on a one-dimensional lattice of dimensions $n$:
+\begin{equation}
+h(j)=f \star g (j)=
+\sum_{\ell=0}^{n-1} f(\ell) g(\ell-j)\;.
+\end{equation}
+From general properties of FFT we have that
+\begin{equation}
+h(j)=\widetilde{(\tilde f(p) \tilde g(p))}(x)\;,
+\end{equation}
+where the FFT of a function $f(u)$ is indicated with $\tilde f(v)$ and
+$u$ and $v$ are conjugate variables.
+Let us suppose now that the function $f$, $g$ are real.
+Clearly, also the function $h$ is real.
+
+A FFT of a real function $f(p)$ defined in the region $p=0,\cdots,n-1$ satisfy the property
+\begin{equation}
+\tilde f(p)= \tilde f(n-p)^*\;.
+\end{equation}
+
+The calculation of the FFT of a real function can be performed in a different way.
+Let us define
+\begin{align}
+f_e(j)&= f(2 j)\;, & f_o(j)&= f(2 j+1)\;,
+\end{align}
+where now $j=0,\cdots,n/2-1$.
+The FFT of $f(j)$ can be rewritten as
+\begin{align}
+\tilde f(p)&= \sum_{\ell=0}^{n-1} f(\ell) e^{-\frac{2\pi i}{n}\ell p }\notag\\
+&=\sum_{\ell=0}^{n/2-1} \left(f_e(\ell) + f_o(\ell) e^{-\frac{2\pi i}{n}p} \right)e^{-\frac{2\pi i}{n/2}\ell p }\\
+&=\tilde f_e(p) +  e^{-\frac{2\pi i}{n}p} \tilde f_o (p)\;.\notag
+\end{align}
+The FFT of $f_e$ and $f_o$ are clearly defined only for $p=0,\cdots,n/2-1$.
+Consider now the complex function
+\begin{equation}
+F(j)=f_e(j)+if_o(j) \Longrightarrow \tilde F(p) = \tilde f_e (p) +i \tilde f_o (p)\;.
+\end{equation}
+Given that both $f_e$ and $f_o$ are real functions, we have that
+\begin{align}
+\tilde F(n/2 -p) &= \tilde f_e (n/2 - p) +i \tilde f_o (n/2 - p)\notag\\
+&= \tilde f_e (p)^* +i \tilde f_o (p)^*\notag\\
+& \Downarrow\\
+\tilde f_e (p) &= \frac{1}{2} \left(  F(p) +  F(n/2 -p)^*\right)\;, \\
+\tilde f_o (p) &= -\frac{i}{2} \left(  F(p) -  F(n/2 -p)^*\right)\notag \;.
+\end{align} 
+From these two functions we can calculate $\tilde f$ by simply performing a complex FFT with half the points.
+
+This property can also be used in the opposite sense, when calculating an inverse FFT of a function that is known to be real.
+We know that
+\begin{equation}
+h(j)=\sum_{p=0}^{n-1} \tilde h (p) e^{\frac{2 \pi i}{n} j p}\;.
+\end{equation}
+We can easily calculate the inverse FFT for its ``even'' and ``odd'' part
+\begin{align}
+h_e(j)=h(2j)&=\sum_{p=0}^{n/2-1} \left( \tilde h (p) +  \tilde h (n/2 + p) \right)  e^{\frac{2 \pi i}{n} j p}\;,\notag\\
+h_o(j)=h(2j+1)&=\sum_{p=0}^{n/2-1} e^{\frac{2 \pi i}{n} p} \left( \tilde h (p) -  \tilde h (n/2 + p) \right)  e^{\frac{2 \pi i}{n} j p}\;.
+\end{align}
+Since the function $h$ is by hypothesis real, we can calculate its invese FFT knowing only the first half of the values of $\tilde h$.
+In fact $\tilde h (n/2+p)=\tilde h(n/2-p)^*$, thus defining
+\begin{equation}
+H(j)=h_e(j)+i h_o(j)
+\end{equation}
+we have that
+\begin{equation}
+\tilde H(p) = \tilde h_e (p) + i \tilde h_o(p) \;,
+\end{equation}
+where
+\begin{align}
+\tilde h_e(p)&= \tilde h (p) +  \tilde h (n/2 - p)^*\;,\notag\\
+\tilde h_o(p)&= e^{\frac{2 \pi i}{n} p} \left( \tilde h (p) -  \tilde h (n/2 - p)^* \right)\;.
+\end{align}
+To calculate the convolution of two real objects  we can apply both the two reasonement, thus using only half of the point in each FFT step.
+
+\end{document}

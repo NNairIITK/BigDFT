@@ -1,0 +1,25 @@
+ geopt:
+   method: SQNM
+   biomode: yes
+   ncount_cluster_x: 10
+   frac_fluct: 0.0
+   forcemax: 1.E-2
+   betax: 3.0
+   beta_stretchx: 0.15
+   nhistx: 15
+   cutoffratio: 1e-4
+   steepthresh: 1.0
+   trustr: 0.5
+   maxrise: 1e-6
+ posinp:
+   source: sqnmbiomode.xyz
+   properties:
+    constraints:
+      bonds: 
+      - [ 1, 2, 1.033]
+      - [ 1, 3, 1.033]
+      - [ 4, 5, 1.033]
+      angles:
+      - [5, 4, 6, 106.3]
+      dihedral:
+      - [1, 2, 3, 4, 18.0165]

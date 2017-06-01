@@ -1,0 +1,7 @@
+BigDFT: electronic structure calculation based on Daubechies wavelets.
+
+bigdft-suite is a set of different packages to run bigdft.
+
+See http://bigdft.org for more information about the project BigDFT.
+
+See the INSTALL file for the installation.

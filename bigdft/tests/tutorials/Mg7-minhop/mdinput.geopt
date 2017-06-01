@@ -1,0 +1,6 @@
+SDCG 
+200      ncount_cluster: max steps during geometry relaxation
+5.d0  1.0E-4   frac_fluct:     geometry optimization stops if force norm less than frac_fluct of noise
+0.d0     randdis:        random amplitude for atoms
+8.0d0     betax: steepest descent step size,  if negative automatic determination
+

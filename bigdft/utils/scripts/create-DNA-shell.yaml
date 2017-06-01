@@ -1,0 +1,94 @@
+base: [Multipole coefficients]
+mp: [Multipole coefficients, values]
+cell: [Sizes of the simulation domain,Angstroem]
+eval: |
+    import math
+    posinp=[]
+    extpot=[]
+    for imp in range(len(mp)):
+        print imp
+        if mp[imp]['sym']=='H' or mp[imp]['sym']=='C' or mp[imp]['sym']=='N' or mp[imp]['sym']=='O' or mp[imp]['sym']=='Os' or mp[imp]['sym']=='P':
+            posinp.append(mp[imp])
+            print mp[imp]['sym']
+        elif mp[imp]['sym']=='Ow' or mp[imp]['sym']=='Na':
+            dmin = 10000000000.0
+            for jmp in range(len(mp)):
+                if mp[jmp]['sym']=='H' or mp[jmp]['sym']=='C' or mp[jmp]['sym']=='N' or mp[jmp]['sym']=='O' or mp[jmp]['sym']=='Os' or mp[jmp]['sym']=='P':
+                    for iz in range(-1,2):
+                        for iy in range(-1,2):
+                            for ix in range(-1,2):
+                                d=math.sqrt( (mp[imp]['r'][0]+ix*cell[0]-mp[jmp]['r'][0])**2 + (mp[imp]['r'][1]+iy*cell[1]-mp[jmp]['r'][1])**2 + (mp[imp]['r'][2]+iz*cell[2]-mp[jmp]['r'][2])**2 )
+                                if d<dmin:
+                                    #if imp==10379:
+                                    print 'close to ', mp[imp]['r'][0], imp, jmp, d
+                                    dmin = d
+                                    xmin = mp[imp]['r'][0]+ix*cell[0]
+                                    ymin = mp[imp]['r'][1]+iy*cell[1]
+                                    zmin = mp[imp]['r'][2]+iz*cell[2]
+            ## To get the periodically wrapped around images
+            #mp[imp]['r'][0] = xmin   
+            #mp[imp]['r'][1] = ymin   
+            #mp[imp]['r'][2] = zmin   
+            # To get the original positions
+            mp[imp]['r'][0] = mp[imp]['r'][0]
+            mp[imp]['r'][1] = mp[imp]['r'][1]
+            mp[imp]['r'][2] = mp[imp]['r'][2]
+            #if mp[imp+1]['sym']!='Hw': 
+            #    quit()
+            #if mp[imp+2]['sym']!='Hw':
+            #    quit()
+            if mp[imp]['sym']=='Ow':
+                for i in range(2):
+                    dx = mp[imp+i+1]['r'][0] - mp[imp]['r'][0]
+                    dy = mp[imp+i+1]['r'][1] - mp[imp]['r'][1]
+                    dz = mp[imp+i+1]['r'][2] - mp[imp]['r'][2]
+                    if dx>10.0:
+                        mp[imp+i+1]['r'][0] = mp[imp+i+1]['r'][0] - cell[0]
+                    if dy>10.0:
+                        mp[imp+i+1]['r'][1] = mp[imp+i+1]['r'][1] - cell[1]
+                    if dz>10.0:
+                        mp[imp+i+1]['r'][2] = mp[imp+i+1]['r'][2] - cell[2]
+                    if dx<-10.0:
+                        mp[imp+i+1]['r'][0] = mp[imp+i+1]['r'][0] + cell[0]
+                    if dy<-10.0:
+                        mp[imp+i+1]['r'][1] = mp[imp+i+1]['r'][1] + cell[1]
+                    if dz<-10.0:
+                        mp[imp+i+1]['r'][2] = mp[imp+i+1]['r'][2] + cell[2]
+            if dmin<=4.0:
+                if mp[imp]['sym']=='Ow':
+                    posinp.append(mp[imp])
+                    posinp.append(mp[imp+1])
+                    posinp.append(mp[imp+2])
+                elif mp[imp]['sym']=='Na':
+                    posinp.append(mp[imp])
+            else:
+                if mp[imp]['sym']=='Ow':
+                    extpot.append(mp[imp])
+                    extpot.append(mp[imp+1])
+                    extpot.append(mp[imp+2])
+                elif mp[imp]['sym']=='Na':
+                    extpot.append(mp[imp])
+    print '# start yaml posinp file ########################################################'
+    print yaml.dump(posinp)
+    print '# end posinp file ##########################################################'
+    print '# start yaml extpot file ########################################################'
+    print yaml.dump(extpot)
+    print '# end extpot file ##########################################################'
+    print '# start xyz posinp file ########################################################'
+    print len(posinp), base['units']
+    print 'free'
+    for imp in range(len(posinp)):
+        print posinp[imp]['sym'], posinp[imp]['r'][0], posinp[imp]['r'][1], posinp[imp]['r'][2]
+    print '# end posinp file ##########################################################'
+    print '# start xyz extpot file ########################################################'
+    print len(extpot), base['units']
+    print 'free'
+    charge = 0.0
+    for imp in range(len(extpot)):
+        print extpot[imp]['sym'], extpot[imp]['r'][0], extpot[imp]['r'][1], extpot[imp]['r'][2]
+        charge = charge + extpot[imp]['q0'][0]
+    print '# end extpot file ##########################################################'
+    print '# start total charge of extpot #############################################'
+    print 'charge', charge
+    print '# end total charge of extpot ###############################################'
+

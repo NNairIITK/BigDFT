@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Rh
+   45   9  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.62142857    1     5.39796233                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.59807881    2     2.24211131    -0.83330981                                  rs ns hs11 hs12
+                                        2.15159669                                             hs22
+     0.70958567    2     1.15527830    -0.29785195                                  rp np hp11 hp12
+                                        0.70484635                                             hp22
+                        -0.11435695    -0.08194750                                        kp11 kp12
+                                        0.19392318                                             kp22
+     0.36920687    2    -1.05305819     4.81701344                                  rd nd hd11 hd12
+                                      -10.92395969                                             hd22
+                         0.13503645     0.05633249                                        kd11 kd12
+                                       -0.12775008                                             kd22

@@ -1,0 +1,104 @@
+ *********************************************
+ ***              pseudo_2.5               ***
+ ***              fitting of               ***
+ ***   Goedecker type pseudopotentials     ***
+ ***   last changes:    september 2013     ***
+ *********************************************
+
+ Reading the file input.pseudo
+ _____________________________
+
+ plot wfs after each iteration
+ will calculate pawpatches for conf no            0
+ will calculate paw patches for the           3  first ls 
+ will consider           4  paw channels  
+ will consider  ae.pot.conf.0.pltfile for reading the initial potential
+  n of st. wf. is            1
+  l of st. wf. is            0
+  initial wf radial part is  multiplied by r**           1
+  3 lines have been read.
+  fitting disactivated because paw option is active
+ do one pseudopotential calculation.
+ no fitting.
+
+ Reading data from atom.00.ae
+ ____________________________
+
+
+
+ pseudo states =         22
+ znuc          =     14.000
+ zpseudo       =      4.000
+ r_covalent    =  2.090E+00
+ r_confining   =  4.190E+00
+ method        =          r
+ gridpoints    =        952
+
+ Initializing libXC with iXC =    -20; nspol =    1
+
+  nl    s      occ        eigenvalue     charge(rcov)    
+ 3s   0.5    2.0000   -0.3773975578    0.5299467176
+ 4s   0.5    0.0000    0.0657589821    0.0691770525
+ 5s   0.5    0.0000    0.2218089222    0.0447687497
+ 6s   0.5    0.0000    0.3531967966    0.0383013083
+ 3p  -0.5    0.6667   -0.1281209036    0.3325326049
+ 3p   0.5    1.3333   -0.1268613507    0.3298362109
+ 4p  -0.5    0.0000    0.1262582881    0.0769673926
+ 4p   0.5    0.0000    0.1265986808    0.0769009781
+ 5p  -0.5    0.0000    0.2637345829    0.0588399599
+ 5p   0.5    0.0000    0.2640181095    0.0588575138
+ 6p  -0.5    0.0000    0.3891683166    0.0517662035
+ 6p   0.5    0.0000    0.3894383099    0.0518106885
+ 3d  -0.5    0.0000    0.1129475770    0.0510204907
+ 3d   0.5    0.0000    0.1129573813    0.0509860236
+ 4d  -0.5    0.0000    0.2300338262    0.0627427749
+ 4d   0.5    0.0000    0.2300458928    0.0627067138
+ 5d  -0.5    0.0000    0.3436440351    0.0681498263
+ 5d   0.5    0.0000    0.3436578664    0.0681169853
+ 4f  -0.5    0.0000    0.2221947900    0.0005598502
+ 4f   0.5    0.0000    0.2221955819    0.0005597790
+ 5f  -0.5    0.0000    0.3333291347    0.0016619539
+ 5f   0.5    0.0000    0.3333301677    0.0016617334
+ noccmax            4
+
+ All electron and pseudo-wfn quantum numbers
+         n(AE)   l   inl(PS)
+           3     0     1
+           4     0     2
+           5     0     3
+           6     0     4
+           3     1     1
+           3     1     1
+           4     1     2
+           4     1     2
+           5     1     3
+           5     1     3
+           6     1     4
+           6     1     4
+           3     2     1
+           3     2     1
+           4     2     2
+           4     2     2
+           5     2     3
+           5     2     3
+           4     3     1
+           4     3     1
+           5     3     2
+           5     3     2
+
+ Reading penalty weights from file input.weights
+ _______________________________________________
+
+ weight for psi(r=0)=0 is      1.000E+00
+ for ekin(gauss-wavelet)       1.000E+05
+ for keeping radii wide        1.000E+00
+ for keeping hij small         1.000E+00
+ for keeping vloc local        1.000E+00
+ and for excitation energies   1.000E+03
+
+ Reading data from psppar
+ ________________________
+
+
+ WARNING
+ Could not read nuclear and valence charges on the second line of psppar.

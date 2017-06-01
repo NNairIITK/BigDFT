@@ -1,0 +1,202 @@
+- install cmake
+- install parmetis:
+  make config cc=/home/stephan/Software/openmpi-1.8.4-gnu/bin/mpicc cxx=/home/stephan/Software/openmpi-1.8.4-gnu/bin/mpicxx
+  sudo make all
+- install superlu_dist:
+sudo make all
+ with the following make.inc:
+
+        ############################################################################
+        #
+        #  Program:         SuperLU_DIST
+        #
+        #  Module:          make.inc
+        #
+        #  Purpose:         Top-level Definitions
+        #
+        #  Creation date:   February 4, 1999   version alpha
+        #
+        #  Modified:	    September 1, 1999  version 1.0
+        #                   March 15, 2003     version 2.0
+        #
+        # 		    January 18, 2006   Sam Adams
+        #                                      General Dynamics - Network Systems
+        #                       works for i386 Linux, with LAM-MPI 7.1.1 and GCC 4.
+        #
+        ############################################################################
+        #
+        #  The machine (platform) identifier to append to the library names
+        #
+        PLAT		= _i386
+        
+        #
+        #  The name of the libraries to be created/linked to
+        #
+        DSuperLUroot 	= /home/stephan/Downloads/PEXSI/DEPENDENCIES/SuperLU_DIST_3.3
+        DSUPERLULIB   	= $(DSuperLUroot)/lib/libsuperlu_dist_3.3.a
+        #
+        BLASDEF	     	= -DUSE_VENDOR_BLAS
+        BLASLIB      	= /usr/lib/libblas.so.3
+        METISLIB	= /home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2/build/Linux-x86_64/libmetis/libmetis.a
+        PARMETISLIB	= /home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2/build/Linux-x86_64/libparmetis/libparmetis.a
+        
+        # Define the required Fortran libraries, if you use C compiler to link
+        FLIBS	 	= 
+        
+        # Define all the libraries
+        LIBS            = $(DSUPERLULIB) $(BLASLIB) $(PARMETISLIB) $(METISLIB)
+        
+        #
+        #  The archiver and the flag(s) to use when building archive (library)
+        #  If your system has no ranlib, set RANLIB = echo.
+        #
+        ARCH         	= ar
+        ARCHFLAGS    	= cr
+        RANLIB       	= ranlib
+        
+        ############################################################################
+        # C compiler setup
+        CC           	= /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpicc
+        # CFLAGS should be set to be the C flags that include optimization
+        CFLAGS          = -pipe -O2
+        #
+        # NOOPTS should be set to be the C flags that turn off any optimization
+        NOOPTS		= 
+        ############################################################################
+        # FORTRAN compiler setup
+        FORTRAN         = /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90
+        F90FLAGS	= 
+        ############################################################################
+        LOADER	        = /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90
+        LOADOPTS	= 
+        ############################################################################
+        #  C preprocessor defs for compilation (-DNoChange, -DAdd_, or -DUpCase)
+        #
+        #  Need follow the convention of how C calls a Fortran routine.
+        #
+        CDEFS        = -DAdd__ 
+
+-install pexsi:
+ sudo make all
+ with the following make.inc:
+       #!/usr/bin/bash
+       COMPILE_MODE     = release
+       USE_PROFILE      = 0
+       PAR_ND_LIBRARY   = 
+       SEQ_ND_LIBRARY   = 
+       
+       # Different compiling and linking options.
+       SUFFIX       = linux
+       
+       # Compiler and tools
+       ################################################################
+       CC           = /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpicc
+       CXX          = /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpic++
+       FC           = /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90
+       LOADER       = /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpic++
+       
+       
+       AR           = ar 
+       ARFLAGS      = rvcu
+       # For System V based machine without ranlib, like Cray and SGI,
+       # use touch instead.
+       #RANLIB      = touch
+       RANLIB       = ranlib
+       
+       CP           = cp
+       RM           = rm
+       RMFLAGS      = -f
+       ################################################################
+       
+       
+       # PEXSI directory
+       PEXSI_DIR     = /home/stephan/Downloads/PEXSI/pexsi_v0.8.0/
+       
+       # Required libraries directories
+       DSUPERLU_DIR  = /home/stephan/Downloads/PEXSI/DEPENDENCIES/SuperLU_DIST_3.3/
+       METIS_DIR     = /home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2/
+       PARMETIS_DIR  = /home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2/
+       PTSCOTCH_DIR  = 
+       LAPACK_DIR    = /home/stephan/Software/intel/composer_xe_2015.2.164/mkl/lib/intel64/
+       BLAS_DIR      = /home/stephan/Software/intel/composer_xe_2015.2.164/mkl/lib/intel64/
+       
+       # Includes
+       PEXSI_INCLUDE    = -I${PEXSI_DIR}/include 
+       DSUPERLU_INCLUDE = -I${DSUPERLU_DIR}/SRC
+       INCLUDES         = ${PEXSI_INCLUDE} ${DSUPERLU_INCLUDE} 
+       
+       # Libraries
+       CPP_LIB          = -lstdc++ -lmpi -lmpi_cxx
+       GFORTRAN_LIB     = /usr/lib/gcc/x86_64-linux-gnu/4.8/libgfortran.a
+       ###LAPACK_LIB       = ${LAPACK_DIR}/libmkl_intel_lp64.a
+       ###BLAS_LIB         = ${BLAS_DIR}/libmkl_intel_lp64.a
+       MKLROOT          = /home/stephan/Software/intel/composer_xe_2015.2.164/mkl
+       LAPACK_LIB       =  -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_intel_lp64.a ${MKLROOT}/lib/intel64/libmkl_core.a ${MKLROOT}/lib/intel64/libmkl_sequential.a -Wl,--end-group -lpthread -lm
+       BLAS_LIB         =  
+       ##LAPACK_LIB       =  -llapack
+       ##BLAS_LIB         =  -lblas
+       DSUPERLU_LIB     = ${DSUPERLU_DIR}/lib/libsuperlu_dist_3.3.a
+       PEXSI_LIB        = ${PEXSI_DIR}/src/libpexsi_${SUFFIX}.a
+       
+       # Graph partitioning libraries
+       METIS_LIB        = -L${METIS_DIR}/build/Linux-x86_64/libmetis -lmetis
+       PARMETIS_LIB     = -L${PARMETIS_DIR}/build/Linux-x86_64/libparmetis -lparmetis 
+       SCOTCH_LIB       = -L${PTSCOTCH_DIR}/lib -lscotchmetis -lscotch -lscotcherr
+       PTSCOTCH_LIB     = -L${PTSCOTCH_DIR}/lib -lptscotchparmetis -lptscotch -lptscotcherr -lscotch
+       
+       
+       # Different compiling and linking options.
+       ifeq (${COMPILE_MODE}, release)
+         COMPILE_DEF    = -DDEBUG=0 -DRELEASE
+         COMPILE_FLAG   = -O3 -w
+       endif
+       ifeq (${COMPILE_MODE}, debug)
+         COMPILE_DEF    = -DDEBUG=1
+         COMPILE_FLAG   = -O0 -w -g
+       endif
+       
+       ifeq (${PAR_ND_LIBRARY}, ptscotch)
+         PAR_ND_LIB = ${PTSCOTCH_LIB}
+       else
+         PAR_ND_LIB = ${PARMETIS_LIB}
+       endif 
+       
+       ifeq (${SEQ_ND_LIBRARY}, scotch)
+         SEQ_ND_LIB = ${SCOTCH_LIB}
+       else
+         SEQ_ND_LIB = ${METIS_LIB}
+       endif 
+       
+       ifeq (${USE_PROFILE}, 1)
+         PROFILE_FLAG  = -DPROFILE
+       endif
+       
+       
+       LIBS  = ${PEXSI_LIB} ${DSUPERLU_LIB} ${PAR_ND_LIB} ${SEQ_ND_LIB} ${LAPACK_LIB} ${BLAS_LIB} ${GFORTRAN_LIB} -ldl
+       
+       
+       COMPILE_DEF  += -DAdd_
+       
+       CPPFLAG = -std=c++11
+       
+       CFLAGS       = ${COMPILE_FLAG} ${PROFILE_FLAG} ${INCLUDES}
+       FFLAGS       = ${COMPILE_FLAG} ${PROFILE_FLAG} ${INCLUDES}
+       CXXFLAGS     = ${COMPILE_FLAG} ${CPPFLAG} ${PROFILE_FLAG} ${INCLUDES}
+       CCDEFS       = ${COMPILE_DEF} 
+       CPPDEFS      = ${COMPILE_DEF} 
+       LOADOPTS     = ${PROFILE_FLAG} ${LIBS}
+       FLOADOPTS    = ${PROFILE_FLAG} ${LIBS} ${CPP_LIB}
+       
+       
+       # Generate auto-dependencies 
+       %.d: %.c
+       	@set -e; rm -f $@; \
+       	$(CC) -M $(CCDEFS) $(CFLAGS) $< > $@.$$$$; \
+       	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@;\
+       	rm -f $@.$$$$
+       
+       %.d: %.cpp
+	@set -e; rm -f $@; \
+	$(CXX) -M $(CPPDEFS) $(CXXFLAGS) $< > $@.$$$$; \
+	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@;\
+	rm -f $@.$$$$

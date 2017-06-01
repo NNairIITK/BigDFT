@@ -1,0 +1,23 @@
+--- Makefile.orig	2013-10-14 10:23:55.000000000 +0200
++++ Makefile	2014-09-02 16:52:50.000000000 +0200
+@@ -30,6 +30,14 @@
+ 
+ libs: lib
+ 
++ifndef INSTALL
++INSTALL=/usr/bin/install
++endif
++install:
++	$(INSTALL) -d $(DESTDIR)$(prefix)/bin
++	if test -f wannier90.x ; then $(INSTALL) wannier90.x $(DESTDIR)$(prefix)/bin/ ; fi
++	if test -f postw90.x ; then $(INSTALL) postw90.x $(DESTDIR)$(prefix)/bin/ ; fi
++
+ post: objdirp
+ 	(cd $(ROOTDIR)/src/objp && $(MAKE) -f $(REALMAKEFILE) post)
+ 
+@@ -173,4 +180,4 @@
+ 		then mkdir src/objp ; \
+ 	fi ) ;
+ 
+-.PHONY: wannier default all doc lib libs post clean veryclean thedoc dist test dist-lite objdir objdirp serialobjs
++.PHONY: wannier default all doc lib libs post clean veryclean thedoc dist test dist-lite objdir objdirp serialobjs install

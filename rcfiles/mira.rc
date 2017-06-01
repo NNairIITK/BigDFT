@@ -1,0 +1,34 @@
+def getcwd():
+  import os
+  return os.getcwd()
+
+def fcflags():
+  return """'FCFLAGS= -g -O3 -qsmp=omp  -qarch=qp -qtune=qp -qcache=auto -qunroll=auto -qfree=f90 -qxlf90=autodealloc -qessl -qstrict -qmaxmem=-1 -qsimd=noauto -qnoipa -qnohot' --without-gobject"""
+
+def fcflags_short():
+  return """'FCFLAGS= -g -O3'"""
+
+def libs():
+  return """'LIBS=-L. -L/soft/compilers/ibmcmp-feb2013/xlf/bg/14.1/bglib64 -lxlf90_r -lxlopt -lxl  -L/soft/compilers/ibmcmp-feb2013/xlmass/bg/7.3/bglib64 -lmass  -L/soft/compilers/ibmcmp-feb2013/xlsmp/bg/3.1/bglib64 -lxlsmp -lgfortran -lpthread -ldl '"""
+
+def linalg():
+  return """'--with-ext-linalg-path=-L/soft/libraries/essl/current/lib64 -L/soft/libraries/alcf/current/xl/SCALAPACK/lib' '--with-ext-linalg=-L/soft/libraries/alcf/current/xl/LAPACK/lib/ -L/soft/libraries/essl/current/lib64 -L/soft/libraries/alcf/current/xl/SCALAPACK/lib -llapack -lscalapack -lesslsmpbg -Wl,--allow-multiple-definition ' '--with-blas-path=-L/soft/libraries/essl/current/lib64'"""
+
+def complete_line():
+  return linalg()+""" 'CFLAGS= -g -O3 ' 'CC=mpixlc' 'CXX=mpixlcxx' 'FC=mpixlf90' """+libs()+""" 'CPPFLAGS=-I.' """+fcflags()
+
+def simple_line():
+  return """'CFLAGS= -g -O3 ' 'CC=xlc' 'CXX=xlcxx' 'FC=xlf90' 'CPPFLAGS=-I.' """+fcflags_short()
+
+modules = ['spred',]
+
+module_autogenargs.update({
+    'libyaml':"""'CFLAGS= -g -O3 ' 'CC=xlc' 'CXX=xlcxx' 'CPPFLAGS=-I.'""",
+    'futile': """'CFLAGS= -I"""+getcwd()+"""/install/include  -g -O3 ' 'CC=mpixlc' 'CXX=mpixlcxx' 'FC=mpixlf90' 'CPPFLAGS=-I.' """+fcflags()+' '+libs()+' '+linalg(),
+    'libxc': simple_line(),
+    'libABINIT': complete_line(),
+    'chess': complete_line(),
+    'GaIn': simple_line(),
+    'bigdft': complete_line(),
+    'psolver': complete_line(),
+    'spred': complete_line() })

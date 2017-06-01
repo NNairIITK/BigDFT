@@ -1,0 +1,12 @@
+WARNING: Unable to read mpd.hosts or list of hosts isn't provided. MPI job will be run on the current machine only.
+ <BigDFT> log of the run will be written in logfile: ./log.yaml
+ <BigDFT> Logfile already existing, move previous file in: ./logfiles/log.09:55:58.508.yaml
+Waiting for registration of all process...
+Waiting for registration of all process...
+Shared repartition
+Unix process (not MPI) 0 has GPU : 0
+Unix process (not MPI) 1 has GPU : 0
+OK, all process has semaphores : 32768
+Check card on all nodes....
+Logic CPU : 0 with real CPU 0
+Remove sem : 32768

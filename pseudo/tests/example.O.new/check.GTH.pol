@@ -1,0 +1,98 @@
+ *********************************************
+ ***              pseudo_2.5               ***
+ ***              fitting of               ***
+ ***   goedecker type pseudopotentials     ***
+ ***   last changes:     december 2010     ***
+ *********************************************
+
+ Reading the file input.dat
+ __________________________
+
+ plot wfs after each iteration
+    11.00000000000000       coarse cutoff for WVLT
+    11.00000000000000       fine cutoff for WVLT
+  2 lines have been read.
+ Do one pseudopotential calculation.
+ No fitting.
+
+ Reading data from atom.00.ae
+ ____________________________
+
+
+
+ pseudo states =            18
+ znuc          =     8.000000000000000     
+ zpseudo       =     6.000000000000000     
+ r_covalent    =     1.380000000000000     
+ r_confining   =     2.750000000000000     
+ ispp          = s
+ gridpoints    =           906
+
+ Initializing libXC with iXC =    -20; nspol =    2
+
+  nl    s      occ        eigenvalue     charge(rcov)    
+ 2s  -0.5    1.0000   -0.8293036143    0.7275690525
+ 2s   0.5    1.0000   -0.8293036143    0.7275690525
+ 3s  -0.5    0.0000    0.1944124847    0.0523102059
+ 3s   0.5    0.0000    0.1944124847    0.0523102059
+ 4s  -0.5    0.0000    0.5233585862    0.0378748113
+ 4s   0.5    0.0000    0.5233585862    0.0378748113
+ 2p  -0.5    2.0000   -0.2932275941    0.6629051136
+ 2p   0.5    2.0000   -0.2932275941    0.6629051136
+ 3p  -0.5    0.0000    0.2929504968    0.0709364608
+ 3p   0.5    0.0000    0.2929504968    0.0709364608
+ 4p  -0.5    0.0000    0.5900033964    0.0540696572
+ 4p   0.5    0.0000    0.5900033964    0.0540696572
+ 3d  -0.5    0.0000    0.3881331693    0.0055208259
+ 3d   0.5    0.0000    0.3881331693    0.0055208259
+ 4d  -0.5    0.0000    0.6481206894    0.0128137308
+ 4d   0.5    0.0000    0.6481206894    0.0128137308
+ 4f  -0.5    0.0000    0.5578957524    0.0001497278
+ 4f   0.5    0.0000    0.5578957524    0.0001497278
+ noccmax             3
+
+ All electron and pseudo-wfn quantum numbers
+         n(AE)   l   inl(PS)   
+           2     0     1
+           2     0     1
+           3     0     2
+           3     0     2
+           4     0     3
+           4     0     3
+           2     1     1
+           2     1     1
+           3     1     2
+           3     1     2
+           4     1     3
+           4     1     3
+           3     2     1
+           3     2     1
+           4     2     2
+           4     2     2
+           4     3     1
+           4     3     1
+
+ Reading actual weights from file weights.par
+ ____________________________________________
+
+ Weight for psi(r=0)=0 is         0.0000000000E+00
+ for Ekin(gauss-wavelet)          0.1000000000E+06
+ for small radii (norm prj)       0.1000000000E+01
+ for large hij  (instable)        0.1000000000E+01
+ and for excitation energies      0.1000000000E+04
+
+ Reading data from psppar
+ ________________________
+
+
+                 NOTICE
+
+ The first line of psppar does not specify
+ optional information about the calculation
+ type (polarized, non-/relativistic),
+ the confinement, integration radius and
+ the gaussian basis. Values are taken from
+ atom ae files without proofreading.
+
+ noccmax>ng+1
+ ng+1,rij             1    2.000000000000000     

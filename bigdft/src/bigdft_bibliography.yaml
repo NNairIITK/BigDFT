@@ -1,0 +1,104 @@
+---
+Genovese2008:
+  JOURNAL_REF: 'J. Chem. Phys. 129, 014109 (2008)'
+  BIBTEX_REF: |
+    @article{Genovese2008,
+    author = {Luigi Genovese and Alexey Neelov and Stefan Goedecker and Thierry Deutsch and Seyed Alireza Ghasemi and Alexander Willand and Damien Caliste and Oded Zilberberg and Mark Rayson and Anders Bergman and Reinhold Schneider},
+    title = {Daubechies wavelets as a basis set for density functional pseudopotential calculations},
+    journal = {The Journal of Chemical Physics},
+    volume = {129},
+    number = {1},
+    pages = {014109},
+    year = {2008},
+    doi = {10.1063/1.2949547},
+
+    URL = {http://dx.doi.org/10.1063/1.2949547}
+    }
+  DESCRIPTION: Original paper of BigDFT code, for the cubic scaling approach.
+Mohr2014:
+  JOURNAL_REF: J. Chem. Phys. 140, 204110 (2014)
+  BIBTEX_REF: |
+    @article{Mohr2014,
+    author = {Stephan Mohr and Laura E. Ratcliff and Paul Boulanger and Luigi Genovese and Damien Caliste and Thierry Deutsch and Stefan Goedecker},
+    title = {Daubechies wavelets for linear scaling density functional theory},
+    journal = {The Journal of Chemical Physics},
+    volume = {140},
+    number = {20},
+    pages = {204110},
+    year = {2014},
+    doi = {10.1063/1.4871876},
+    
+    URL = {http://dx.doi.org/10.1063/1.4871876}
+    }
+  DESCRIPTION: First paper describing linear scaling approach in Daubechies wavelets basis
+Mohr2015:
+  JOURNAL_REF: PCCP 17, 31360 (2015)
+  BIBTEX_REF: |
+    @Article{Mohr2015,
+    author ={Mohr, Stephan and Ratcliff, Laura E. and Genovese, Luigi and Caliste, Damien and Boulanger, Paul and Goedecker, Stefan and Deutsch, Thierry},
+    title  ={Accurate and efficient linear scaling DFT calculations with universal applicability},
+    journal  ={Phys. Chem. Chem. Phys.},
+    year  ={2015},
+    volume  ={17},
+    issue  ={47},
+    pages  ={31360-31370},
+    doi  ={10.1039/C5CP00437C},
+    url  ={http://dx.doi.org/10.1039/C5CP00437C}
+    }
+  DESCRIPTION: Paper describing the suitability of Linear scaling approach for a wide class of systems
+Schaefer2015:
+  JOURNAL_REF: J. Chem. Phys. 142, 034112 (2015)
+  BIBTEX_REF: |
+    @article{Schaefer2015,
+    title   = {{S}tabilized {Q}uasi-{N}ewton {O}ptimization of {N}oisy {P}otential {E}nergy {S}urfaces},
+    author  = {Schaefer, Bastian and Ghasemi, S. Alireza and Roy, Shantanu and Goedecker, Stefan},
+    year    = {2015},
+
+    month   = jan,
+
+    Journal  = {The Journal of Chemical Physics},
+    volume = {142},
+    number = {3},
+    pages   = {034112},
+
+    Arxivid = {arXiv:1412.0935},
+    doi = {10.1063/1.4905665}
+    }
+  DESCRIPTION: Geometry optimizers tailored for electronic structure calculations
+Bitzek2006:
+  JOURNAL_REF: 'Phys. Rev. Lett. 97, 170201 (2006)'
+  BIBTEX_REF: | 
+    @article{Bitzek2006,
+    title = {Structural Relaxation Made Simple},
+    author = {Bitzek, Erik and Koskinen, Pekka and G\\\"ahler, Franz and Moseler, Michael and Gumbsch, Peter},
+    journal = {Phys. Rev. Lett.},
+    volume = {97},
+    issue = {17},
+    pages = {170201},
+    numpages = {4},
+    year = {2006},
+    month = {Oct},
+    publisher = {American Physical Society},
+    doi = {10.1103/PhysRevLett.97.170201}
+    }
+  DESCRIPTION: FIRE, a damped MD minimizer
+Ratcliff2015:
+  DESCRIPTION: Fragment approach in BigDFT
+  JOURNAL_REF: J. Chem. Phys. 142, 234105 (2015)
+  BIBTEX_REF: |
+    @article{Ratcliff2015,
+    author = {Laura E. Ratcliff and Luigi Genovese and Stephan Mohr and Thierry Deutsch},
+    title = {Fragment approach to constrained density functional theory calculations using Daubechies wavelets},
+    journal = {The Journal of Chemical Physics},
+    volume = {142},
+    number = {23},
+    pages = {234105},
+    year = {2015},
+    doi = {10.1063/1.4922378},
+    URL = { 
+            http://dx.doi.org/10.1063/1.4922378
+    },
+    eprint = { 
+            http://dx.doi.org/10.1063/1.4922378
+    }
+    }

@@ -1,0 +1,13 @@
+ mode:
+   method: lj
+ geopt:
+   method: SQNM
+   ncount_cluster_x: 500
+   frac_fluct: 0.0
+   forcemax: 1.0E-3
+   betax: 1.0E-3
+   nhistx: 15
+   cutoffratio: 1e-4
+   steepthresh: 100
+   trustr: 0.1
+   maxrise: 1e-6

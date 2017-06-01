@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: Bader Charge Analysis</title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+         <a href="H3X-hacking_bigdft.html">&lt;&nbsp;prev. lesson</a> 
+         <a style="float:right;" href="H3C-Wannier.html">Next lesson &gt;</a> 
+        <h2>Content of this lesson</h2>
+        <ul>
+          <li>Plotting charge density </li>
+          <li>Charge partitioning between atoms</li>
+          <li>Total & partial electric dipole moment </li>
+        </ul>
+        <h2>Material</h2>
+        <ul>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/input.dft" target="_blank">input.dft</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/posinp.xyz" target="_blank">posinp.xyz</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/psppar.O" target="_blank">psppar.O</a></li>
+          <li>H<sub>2</sub>O-bader/<a href="H2O-bader/psppar.H" target="_blank">psppar.H</a></li>
+        </ul>
+      </div>
+
+      <p class="warn">This lesson has been created for the current stable version.</p>
+
+      <h1> Charge Analysis: H<sub>2</sub>O molecule</h1>
+
+      <p>The purpose of this lesson is to introduce the concept of  partitioning of the continuous charge density obtained 
+       by solving the Schr&ouml;dinger equation among the atoms of the system. 
+          It is done according to the Bader's "Quantum Theory of Atoms in Molecules",
+          and then the partial charge and polarization of individual atoms are determined. 
+        </p>
+
+      <h2>Plotting charge density</h2>
+<a href= http://en.wikipedia.org/wiki/Electric_dipole_moment target="_blank">
+ <img class="figure" src="http://upload.wikimedia.org/wikipedia/commons/thumb/1/15/Water-elpot-transparent-3D-balls.png/250px-Water-elpot-transparent-3D-balls.png" width="200px" alt="water molecule" /></a> 
+      <p>For a charge analysis you need the electronic charge density to be output 
+       after the last wave function convergence.
+      To do this, set the third number of the eleventh line of  <code>input.dft</code> to 1:
+      <pre>   0    0    1  InputPsiId, output_wf, output_grid</pre>
+      <p>  By setting the <code>output_grid</code> to "1" the electronic charge density is requested to be written in the
+<a href=http://paulbourke.net/dataformats/cube/ target="_blank"><code>.cube</code></a> format
+       (whereas "2" would mean that different scalar potentials (Hartree, ionic and local) are written as well.
+        Whenever a cube file is generated, BigDFT outputs also the corresponding averaged values over xy, xz and yz  planes.
+        </p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: run BigDFT for the H<sub>2</sub>O molecule as in <a href="H2O-bader/posinp.xyz" target="_blank"><code>posinp.xyz</code></a>.
+          The other files needed for this task are: 
+          the pseudo-potentials <a href="H2O-bader/psppar.O" target="_blank"><code>psppar.O</code></a> and <a href="H2O-slab/psppar.H" target="_blank"><code>psppar.H</code></a>
+         and the input file  <a href="H2O-bader/input.dft" target="_blank"><code>input.dft</code></a>;
+           Note that a high resolution grid of <code>hgrid=0.2</code> is used here. In the following the reason of this choice will be clearified.
+       </p>
+
+
+   <p class="answer"> Once the calculation is terminated, make a 3D plot of the electronic charge density 
+       <code>data/electronic_density.cube</code> at some isosurfaces, e.g. 0.8 ea<sub>o</sub><sup>-3</sup> 
+    (you can do it with <a href=http://inac.cea.fr/L_Sim/V_Sim/index.en.html target="_blank"><code>v_sim</code></a> ).
+     Draw a few cutting planes with coloured map of density.
+         </p>
+      </div>
+
+
+      <h2>Charge partitioning between atoms</h2>
+<a href= http://theory.cm.utexas.edu/henkelman/research/bader/ target="_blank">
+ <img class="figure" src="http://theory.cm.utexas.edu/henkelman/research/bader/h2o_3d.png" width="200px" alt="Bader surfaces of water molecule" /></a> 
+<p>        
+           If  a spatial basis set like wavelets or plane-waves is used in solving the Schr&ouml;dinger equation, the wavefunction belongs to the whole system but not to individual atoms.
+           In this case, defining boundaries which partition the electronic charge density (and any other quantity derived from it) between the atoms 
+           can be useful. Bader's theory of "atoms in molecules" seems to provide a reliable definition to this aim; It exploits the topological properties of 
+           the charge density to partition the space in several regions, each one hopefully surrounding a nucleus.
+          The boundary of each Bader volume  is defined as the surface through which the charge density gradient has a zero flux.
+          To analyze the charge density from BigDFT we use the implementation  by
+           <a href= http://theory.cm.utexas.edu/henkelman/research/bader/ target="_blank"> Graeme Henkelman's group</a>
+          (with some modifications); On their homepage you can find details of their algorithm as well as their freely available code.
+         </p>
+         <p>
+         <i>Hint:</i> When not doing all-electron calculations, Bader analysis should be done with special care.
+             In BigDFT the core electrons are effectively represented by pseudopotentials. If the pseudopotential is too soft, then 
+             no density maximum might be found at the nucleus position and the Bader code may miss it.
+             In this case producing the density file over a very dense grid mesh  can help the Bader code to capture the maxima.
+              The denser grid mesh will  increase also the overall accuracy of the Bader analysis.
+         </p>
+
+      <div class="exercice">
+            <p><b>Exercise</b>: run the executable <code>(bigdft-root)/src/tools/bader/bader</code>. By default it looks for the file 
+         <code> electronic_density.cube</code>  in the working directory (<code>data/</code> in this case), although one can pass the 
+         name of the cube file as argument (<code>bader [ cubefile ]</code>). 
+         </p>
+        <p class="answer">
+              This post-processing program takes a while depending on the box size and grid resolution.
+              Several output files are generated, including <code> dipole.dat </code> in which  
+              you can see the partial charge of each atom:
+</p>
+<pre>
+Atoms coordinates: 
+atom#    coordinates:  X           Y           Z           CHARGE:  core      electronic     net
+--------------------------------------------------------------------------------------------------
+   1                7.3000      7.3003      7.2432                +1.00000    -0.40727    +0.59273
+   2                7.3000      8.4153      8.7003                +6.00000    -7.18542    -1.18542
+   3                7.3000      7.2997     10.1568                +1.00000    -0.40731    +0.59269
+--------------------------------------------------------------------------------------------------
+</pre>
+
+<p class = "answer">
+Note  the net charge associated to the Oxygen and Hydrogen atoms.
+The large charge transfer between the atoms makes water molecules to be dipolar.   
+</p>
+      </div>
+<p> <i>Hint:</i>
+You may want to visualize the Bader's boundaries between atoms as in the side figure. To do this use the argument <code> -p all_atom </code>
+when you run <code>bader</code>, then one cube file is generated for each atom 
+which has zero values at grid points do not belong to the corresponding atom.
+<!which has none-zero values only at grid points assigned to the corresponding atom.>
+</p>
+
+<p>
+         Indeed there is no clear boundary between atoms and therefore the results depend on the definition.
+         <b>Voronoi partitioning</b>  and <b>Mulliken population charge analysis</b> are two other common methods in this context, 
+           although those are not based on density analysis.
+            The former is a geometrical method to assigning each elementary volume of charge to its nearest atom while the latter 
+             projects the wave-function to the atomic orbitals. 
+             With such an atomic-centered basis set, the charge associated to a given atom can be obtained directly from the  
+           corresponding wavefunction of that atom. However, this is not quite accurate because of e.g. overlapping of the wave functions of 
+           neighboring atoms.
+  </p>
+  <p>
+  Now you calculate the partial charges from these two methods and compare the results.         
+     Vonoroi analysis is possible by <code>bader</code> code  and Mulliken population charge analysis can be done in BigDFT.      
+<p>
+
+ <div class="exercice">
+  <p><b>Exercise</b>: 
+<p>  Run <code>bader -c voronoi</code> where using <code>-c voronoi</code> parameter means to perform the Voronoi analysis in the end.
+           Compare the partial charges on each atom obtained by the two methods. 
+           According to the Voronoi method, do the H atoms take some electronic charge from the O atom or give some to it?
+            </p>
+<p class = "answer">
+               It is not surprising that Voronoi polyhedra do not contain the correct charges of atoms with covalent bonds 
+               since no difference between different atomic types is considered.
+		Although it may work well for ionic systems.
+</p>
+
+<p>   Run BigDFT again after you changed the eleventh line in  <code> input.dft </code> as  
+</p>
+<pre>
+   10    0       1  InputPsiId, output_wf, output_grid
+</pre>
+
+<p> With 10 as InputPsi, BigDFT will do a Mulliken analysis once the wavefunction is converged. 
+ Find the "Mulliken analysis" part in the output of BigDFT
+ and compare the decomposed charge with the two other methods.
+ <p class = "answer">
+ In this method, you can also find the electronic charge decomposed between different orbitals and spins. 
+The latter provides individual atomic magnetic moments if spin-polarized calculation is done.
+ </p>
+      </div>
+      
+
+      <h2>Total and partial electric dipole moments </h2>
+      <img class="figure" src="H2O-bader/avg_y.png"  alt="charge density  along y axis" />
+<p>
+As mentioned earlier, in addition to a <code>cube</code> file, the averages along the 3 axes are also written out by BigDFT. 
+In the present case you can find the file <code>electronic_density_avg_x</code>  which contains the projection of the
+          electronic density along the x axis and two others along the y and z axes. 
+
+      A plot of these averages shows how the electronic density is concentrated in each planar layer. 
+                We have already determined how much negative charge is transferred from H's to O by means of the Bader method.
+                A considerable dipole moment due to this charge displacement is expected. 
+                 Furthermore, since the charge inside each atomic region is not regularly distributed an intra-atomic polarization
+                dipole moment can be associated to each  atom.
+<p>
+
+ <div class="exercice">
+  <p><b>Exercise</b>: 
+<p>  Find the  "Electric Dipole Moment" of the water molecule in the output of BigDFT. </p>
+<p class = "answer">
+		It is 0.727 in ea<sub>o</sub> while the experimental value is 0.728 ea<sub>o</sub> (or 1.85 Debye).
+</p>
+
+<p>   Make a vectorial visualization of the intra-atomic dipole moments 
+          output in <code> dipole.dat</code>. 
+</p>
+<pre>
+Atomic polarization dipole-moments with respect to the corresponding nuclei positions [e.a0]
+atom#         Intra-atomic:                Px          Py          Pz          |P|
+---------------------------------------------------------------------------------------
+  1                                    -0.000003    0.113755    0.128914      0.171927
+  2                                    -0.000261    0.368147    0.000188      0.368147
+  3                                    -0.000002    0.113715   -0.128937      0.171918
+---------------------------------------------------------------------------------------
+</pre>
+
+<p> Do the intra-atomic polarization dipole moments sum up to the  overall dipole moment? </p>
+<p class = "answer">
+ In order to calculate the overall dipole moment, you should consider also
+the contributions from inter-atomic charge transfer and the (pseudo) nuclei charge. These two contibutions sum up to 
+ &sum;q<sub>i</sub><b>r</b><sub>i</sub>
+where the core positions <b>r</b><sub>i</sub> and net charges q<sub>i</sub> are found in <code>dipole.dat</code>.
+</p>
+      </div>
+    </div>
+
+    <div class="footer">Author (Sadeghi A)
+      |
+      <!-- hhmts start -->
+      Last modified: Mon Aug 29 14:43:21 CEST 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>

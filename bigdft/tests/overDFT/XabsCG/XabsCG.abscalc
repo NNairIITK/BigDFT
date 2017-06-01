@@ -1,0 +1,8 @@
+  3   meaning  :  1 tchebychev 2 Lanczos 3: CG
+  1    absorber atom number 
+       1     L_absorbe
+  0.0   0.0   1.0              and its componenent
+  1                            pot short_cut
+  20                         number of Hamiltonian multiplications 
+  0.0                           bottomshift
+

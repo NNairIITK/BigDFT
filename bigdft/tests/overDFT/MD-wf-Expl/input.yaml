@@ -1,0 +1,62 @@
+ dft:
+   hgrids: [0.4, 0.4, 0.4]
+   rmult: [6.0, 8.00]
+   ixc: PBE
+   qcharge: 0
+   nspin: 1 
+   mpol: 0
+   gnrm_cv: 5.e-2
+   nrepmax: 2
+   itermax: 40
+   ncong: 1
+   idsx: 10
+   disablesym: No
+   inputpsiid: 1
+ perf:
+   projrad: 8.000
+   unblock_comms: DEN
+   psp_onfly: No
+   verbosity: 0
+ md:
+     mdsteps: 3
+     timestep: 2.0
+     temperature: 50.0
+     print_frequency: 1
+     wavefunction_extrapolation: 2
+ posinp: MD-wf-Expl.xyz
+ psppar.O:
+   Pseudopotential type                : HGH-K + NLCC
+   Atomic number                       : 8
+   No. of Electrons                    : 6
+   Pseudopotential XC                  : -101130
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.3455
+     Coefficients (c1 .. c4): [-11.74358701538502, 1.906539679467192, 0.0, 0.0]
+   Non Linear Core Correction term:
+     Rcore                             :  0.3451737258622046
+     Core charge                       :  9.020856824201472
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.3680407854708886
+     h_ij terms: [10.85890680354861, -0.4297672987148062, 0.0, -2.129011394613137, 0.0, 
+                0.0]
+   Source                              : psppar.O
+   Radii of active regions (AU):
+     Coarse                            : 1.215575721499752
+     Fine                              : 0.3455
+     Coarse PSP                        : 0.3680407854708886
+     Source                            : Hard-Coded
+ psppar.H:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 1
+   No. of Electrons                    : 1
+   Pseudopotential XC                  : -101130
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.2315018477233373
+     Coefficients (c1 .. c4): [-1.954065840548669, -8.359809276223161E-002, 0.0, 0.0]
+   Source                              : psppar.H
+   Radii of active regions (AU):
+     Coarse                            : 1.463418464633951
+     Fine                              : 0.2315018477233373
+     Coarse PSP                        : 0.0
+     Source                            : Hard-Coded

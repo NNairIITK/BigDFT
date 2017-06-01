@@ -1,0 +1,14 @@
+Goedecker pseudopotential for Cs
+   55   1  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     1.20000000    0                                                                rloc nloc
+    3                                                                               nnonloc
+     1.22473727    3     0.61152657    -0.09288578    -0.07173455                   rs ns hs11 hs12 hs13
+                                        0.23983005     0.18521782                              hs22 hs23
+                                                      -0.29402418                                   hs33
+     1.28047759    2     0.24489277    -0.09604275                                  rp np hp11 hp12
+                                        0.22727863                                             hp22
+                        -0.10762747    -0.05837136                                        kp11 kp12
+                                        0.13813185                                             kp22
+     1.10752212    1    -0.54216260                                                 rd nd hd11
+                         0.00325918                                                       kd11

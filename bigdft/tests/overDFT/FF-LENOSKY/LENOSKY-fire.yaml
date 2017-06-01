@@ -1,0 +1,9 @@
+ mode:
+   method: lensib
+ geopt:
+   method: FIRE
+   ncount_cluster_x: 500
+   frac_fluct: 0.0
+   forcemax: 1.0E-4
+   dtinit: 1.0
+   dtmax: 2.0

@@ -1,0 +1,13 @@
+Goedecker pseudopotential for Cr
+   24  14  070301 zatom,zion,pspdat
+10  1  2 2 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.37000000    2     5.11336166    -0.64681932                                  rloc nloc c1 c2
+    3                                                                               nnonloc
+     0.30601140    2     8.61783515     1.60252229                                  rs ns hs11 hs12
+                                       -4.13769475                                             hs22
+     0.24108964    2     3.16158758     2.12679104                                  rp np hp11 hp12
+                                       -5.03290619                                             hp22
+                         0.16978070    -0.00017378                                        kp11 kp12
+                                        0.00041123                                             kp22
+     0.21957702    1   -11.15786828                                                 rd nd hd11
+                         0.00900712                                                       kd11

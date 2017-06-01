@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Ir
+   77   9  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.64100000    1    10.72001591                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.50996044    2     2.44599887    -1.08871009                                  rs ns hs11 hs12
+                                        2.81103736                                             hs22
+     0.68497052    2     0.46179182    -0.55134721                                  rp np hp11 hp12
+                                        1.30472563                                             hp22
+                        -0.56534735    -0.36325582                                        kp11 kp12
+                                        0.85962018                                             kp22
+     0.47174528    2    -4.54548411     0.72115617                                  rd nd hd11 hd12
+                                       -1.63542847                                             hd22
+                         0.12719880     0.06700352                                        kd11 kd12
+                                       -0.15194970                                             kd22

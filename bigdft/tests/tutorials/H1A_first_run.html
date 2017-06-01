@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: First runs with BigDFT</title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+        <a style="float:right;" href="H1B_grid_cv.html">next lesson&nbsp;&gt;</a>
+
+        <h2>Content of this lesson</h2>
+        <ul>
+          <li>Default run: no input files</li>
+          <li>Using a naming scheme for IO files</li>
+        </ul>
+        <h2>Material</h2>
+        <ul style="float:left;margin-right:1em;">
+          <li>N<sub>2</sub>/<a href="N2/posinp.xyz" target="_blank">posinp.xyz</a></li>
+        </ul>
+        <ul style="float:left;margin-right:1em;">
+          <li>N<sub>2</sub>/<a href="N2/psppar.N" target="_blank">psppar.N</a></li>
+        </ul>
+      </div>
+
+      <p class="warn">This lesson has been created for current stable version. Earlier
+        versions are fully capable of running this tutorial but input files may
+        have to be changed according to possible earlier formats.</p>
+
+      <h1>Basics of BigDFT: first runs and managing different calculations, N<sub>2</sub> molecule as example</h1>
+
+      <p>BigDFT code is organized by <em>optional</em> input files, each one with <em>compulsory</em> variables.
+      Input files can be organised in different sets, each one associated to a particular calculation.
+      With this lesson you will have to deal with the different outputs of BigDFT code, such as to learn how to manipulate basic DFT objects.</p>
+
+      <h2>Default run: no input files</h2>
+      <p>As mentioned above, <em>all</em> the BigDFT files are optional, except the... atomic positions.
+         This means that a DFT calculation can be done also by giving the atomic positions file only.
+	Consider for example the N2 molecule, given by the <a href="N2/posinp.xyz" target="_blank"><code>posinp.xyz</code></a> file:</p>
+      <pre>
+2 angstroem
+free
+N 0. 0. 0.
+N 0. 0. 1.11499
+</pre>
+      <p>Run the code in a directory which has only this file.</p>
+      <pre>
+user@garulfo:~/N2/$ ls
+bigdft  posinp.xyz
+user@garulfo:~/N2/$ ./bigdft | tee N2.out
+...</pre>
+      <p>The screen output should then behave like that:</p>
+      <pre>
+ ------------------------------------------------------------------------------------
+ |              Daubechies Wavelets for DFT Pseudopotential Calculations            |
+ ------------------------------------------------------------------------------------
+                                   The Journal of Chemical Physics 129, 014109 (2008)
+
+ |... (file:input.perf.. not present)............................Performance Options 
+ |debug F                    Debug option
+ |fftcache 8192              Cache size for the FFT
+ |accel NO                   Acceleration (NO, CUDAGPU, OCLGPU)
+ |blas F                     CUBLAS acceleration
+ |projrad  1.50E+01          Radius of the projector as a function of the maxrad
+ |exctxpar OP2P              Exact exchange parallelisation scheme
+ |ig_diag T                  Input guess: (T:Direct, F:Iterative) diag. of Ham.
+ |ig_norbp 5                 Input guess: Orbitals per process for iterative diag.
+ |ig_blocks  300 800         Input guess: Block sizes for orthonormalisation
+ |ig_tol  1.00E-04           Input guess: Tolerance criterion
+ |methortho 0                Orthogonalisation (0=Cholesky,1=GS/Chol,2=Loewdin)
+ |rho_commun DBL             Density communication scheme
+ |linear OFF                 Linear Input Guess approach
+ |verbosity 2                verbosity of the output 0=low, 2=high
+ |psp_onfly T                Calculate pseudopotential projectors on the fly
+ |... (file:input.dft.. not present)......................DFT Calculation Parameters 
+ |0.45 0.45 0.45 hx,hy,hz: grid spacing in the three directions                      
+ |5.0 8.0        c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+ |1              ixc: exchange-correlation parameter (LDA=1,PBE=11)                  
+ |0 0. 0. 0.     charge of the system, Electric field (Ex,Ey,Ez)                     
+ |1 0            nspin=1 non-spin polarization, mpol=total magnetic moment           
+ |1.e-4          gnrm_cv: convergence criterion gradient                             
+ |50 1           itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs     
+ |6 6            ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history 
+ |0              dispersion correction potential (values 1,2,3), 0=none              
+ |0 0 0          InputPsiId, output_wf, output_denspot                               
+ |0.0 30         rbuf, ncongt: length of the tail (AU),# tail CG iterations          
+ |0 0 0          Davidson subspace dim., # of opt. orbs, # of plotted orbs           
+ |F              disable the symmetry detection                                      
+ |... (file:input.mix.. not present)...............................Mixing Parameters 
+ |0              Mixing parameters                                                   
+ |1              Maximum number of diagonalisation iterations                        
+ |1.e-4          Stop criterion on the residue of potential or density               
+ |0 0.0 1        No. of additional bands, elec. temperature, smearing method         
+ |0.0 2.0        Multiplying factors for the mixing and the electronic DIIS          
+ |... (file:input.geopt.. not present)...........................Geometry Parameters 
+ |BFGS           Geometry optimisation method                                        
+ |1              Maximum number of force evaluations                                 
+ |1.0 0.0        fract_fluct,forcemax                                                
+ |0.0            random displacement amplitude                                       
+ |4.0            Stepsize for the geometry optimisation                              
+ |... (file:input.tddft.. not present).............................TD-DFT Parameters 
+ |NONE           TDDFT Method                                                        
+ |... (file:input.sic.. not present)..................................SIC Parameters 
+ |NONE           SIC method: NONE, PZ, NK                                            
+ |0.0            SIC downscaling parameter                                           
+ |0.0            Reference occupation fref (NK case only)                            
+ |... (file:input.kpt.. not present)..............Brillouin Zone Sampling Parameters 
+ |manual         K-point sampling method                                             
+ |1              Number of K-points                                                  
+ |0. 0. 0. 1.    K-pt coords, K-pt weigth                                            
+ |----------------------------------------------------------------------------------
+ |  Data Writing directory:    not needed
+[...]
+</pre>
+      <p>
+	Each input file contains compulsory lines, with the exception of <code>input.perf</code> which controls developer-oriented performance variables.
+	You can see there the possible optional files which BigDFT might read.
+        Since they do not exist, their default values are applied to the code.
+        Basically, they correspond to Single-Point LDA calculation, without k-points nor spin-polarisation.
+	Since the input files are not present, default files are written in the submission directory:</p>
+      <pre>
+user@garulfo:~/N2/$ ls
+default.dft  default.geopt  default.kpt  default.mix  default.sic  default.tddft  posinp.xyz  time.yaml forces_posinp.xyz
+</pre>
+      <p>All these default files represent the template you should use to define your calculation.
+  Also, the default Pseudopotentials are used.</p>
+
+      <h2>Using a naming scheme for IO files</h2>
+
+      <p>All input parameters can be found in files with a naming prefix. By default, this prefix is <code>input</code> (or <code>posinp</code> for atomic input positions). For instance, parameters for geometry optimization will be set up by a file named <code>input.geopt</code>. One can choose the naming prefix by providing an argument to <code>bigdft</code> command line.</p>
+
+      <p>Imagine for example that you are interested in visualizing the wavefunctions output of the calculation. To do that, you should enter the suitable parameters in the <code>.dft</code> file. Create a new calculation set by using the "LDA" prefix and rename all relevant files with LDA:</p>
+      <pre>
+user@garulfo:~/N2/$ cp default.dft LDA.dft
+user@garulfo:~/N2/$ cp posinp.xyz LDA.xyz
+</pre>
+      <p>Modify <code>LDA.dft</code> such as to output the wavefunctions at the end of calculation, by putting the <code>output_wf</code> variable to 1 
+(Which repsesents the formatted output. Also 2 (binary) and 3 (ETSF format) are available)</p>
+      <pre>
+ 0 1 0          InputPsiId, output_wf, output_grid 
+</pre>
+
+      <p>Now you can run this input file, by putting "LDA" as a command line argument of the code:</p>
+      <pre>
+user@garulfo:~/N2/$ ./bigdft LDA | tee LDA.out
+</pre>
+      <p>You can now see that the <code>LDA.dft</code> file is read.</p>
+
+      <p>When using a naming scheme, the output files are placed in a directory called <code>data-<i>{naming scheme}</i></code>. In our LDA example, the wavefunctions of the system can thus be found in the <code>data-LDA</code> directory:</p>
+      <pre>
+user@garulfo:$ ls data-LDA/
+wavefunction-k001-NR.b0001  wavefunction-k001-NR.b0002  wavefunction-k001-NR.b0003
+wavefunction-k001-NR.b0004  wavefunction-k001-NR.b0005
+</pre>
+      <p>Here <code>001</code> means the first K-point (meaningless in this case), <code>N</code> stands for non spin-polarized, <code>R</code> for real part and the remaining number is the orbital ID. Post-processing of these files is done in the fourth tutorial.</p>
+
+      <p>In the same spirit, another calculation can be done with different parameters. 
+Imagine we want to perform a Hartree-Fock calculation. In BigDFT, this can be done by putting the <code>ixc</code> input variable to 100. So, copy the <code>LDA.dft</code> file to <code>HF.dft</code> and modify it accordingly (don't forget to rename also the coordinate file). This time, an error will occur:</p>
+      <pre>
+user@garulfo:$ ./bigdft HF | tee HF.out
+[...]
+ ERROR: The pseudopotential parameter file "psppar.N" is lacking,
+        and no registered pseudo found for "N", exiting...
+user@garulfo:$
+</pre>
+
+<p>This is because the pseudopotential is assigned by default in the code only for LDA and PBE XC approximations. You can find <a href="N2/psppar.N" target="_blank">here</a> the pseudopotential which is taken by default in the LDA run. Put it in a <code>psppar.N</code> file, and run the calculation (redirect the output in the file HF.out for example). When possible, care should be taken in choosing a pseudopotential which has been generated with the same XC approximation used. Unfortunately, at present HGH data are only available for semilocal functionals. For example, the same exercise as follows  could have been done with Hybrid XC functionals, like for example PBE0 (<code>ixc</code>=-406). See the <a href="http://inac.cea.fr/L_Sim/BigDFT/html-manual/node7.html">manual page</a> for a list of the supported XC functionals. Data of the calculation can be analysed. Consider the eigenvectors of the LDA and HF runs.</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Compare the values of the HOMO and HOMO-1 eigenvalues for the LDA and the HF run.
+Change the values of the hgrid and crmult to find the converged values.
+Note that, both in the LDA and in the HF calculation, a norm-conserving PSP is used.
+The results can be compared to all-electron calculations, done with different basis sets, from references (units are eV):</p>
+<ol>
+  <li>S.&nbsp;Hamel <i>et&nbsp;al.</i> J. Electron Spectrospcopy and Related Phenomena 123 (2002) 345-363</li>
+  <li>P.&nbsp;Politzer, F.&nbsp;Abu-Awwad, Theor. Chem. Acc. (1998), 99:83-87</li>
+</ol>
+        <pre>
+         LDA(1)      HF(1)      HF(2)       (Exp.)
+3&sigma;<sub>g</sub>     10.36        17.25      17.31      (15.60) 
+1&pi;<sub>u</sub>     11.84        16.71      17.02      (16.98)
+2&sigma;<sub>u</sub>     13.41        21.25      21.08      (18.78)
+</pre>
+        <p class="answer">
+The results depends, of course, on the precision chosen for the calculation, and of the presence of the pseudopotential.
+As it is well-known, the pseudopotential appoximation is however much less severe than the approximation induced by typical XC functionals. We might see that, even in the HF case, the presence of a LDA-based pseudopotential (of rather good quality) does not alter so much the results. Here you can find the values from BigDFT calculation using a very good precision (<code>hgrid=0.3</code>, <code>crmult=7.0</code>). Note that 1 ha=27.21138386 eV.
+</p> 
+	  <pre>
+         LDA           HF     
+3&sigma;<sub>g</sub>     10.40        17.32     
+1&pi;<sub>u</sub>     11.75        16.62    
+2&sigma;<sub>u</sub>     13.52        21.30
+</pre>
+<p>How much these values differ from the calculation with default parameters? Does they converge to a given value?
+How much is the <em>correlation</em> of the N2 molecule in (PSP) LDA?</p>
+      </div>
+</div>
+
+    <div class="footer">Authors (Luigi D Genovese A cea D fr) (Damien D Caliste A cea D fr)
+      |
+      <a href="http://validator.w3.org/check/referer" title="Check HTML compliance with W3C norms">XHTML1.0</a> - 
+      <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
+      |
+      <!-- hhmts start -->
+      Last modified: Sun Oct 16 19:03:37 CEST 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>

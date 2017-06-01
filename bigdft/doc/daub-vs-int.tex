@@ -1,0 +1,48 @@
+\documentclass[12pt]{article}
+
+%\usepackage{pslatex}
+%------------------------------------------------------------------------
+\usepackage{amsmath,amsfonts}
+
+%------------------------------------------------------------------------
+%We start the document
+\begin{document}
+
+\section{Relation between Daubechies and Interpolating scaling functions in BigDFT code}
+We know that the definition of an interpolating scaling function (ISF) of order $2m-1$ (with $2m-1$ vanishing moments\footnote{Note that the definition is in this case shifted by one wrt the definition we use in {\tt BigDFT} since for the ISF of the Poisson Solver the moments $M_\ell=\delta_{l,m}$, $\ell=0,\cdots m$.}) can be obtained from the autocorrelation of the Daubechies scaling function (DSF) of order $m$:
+\begin{equation}
+ \varphi(x) =\int \phi(t) \phi(t-x) {\rm d}t\;.
+\end{equation}
+In the {\tt BigDFT} code we use a formally different relation between the ISF and the DSF.
+Indeed, a given function $f(x)$ can be expressend both in ISF or in DSF:
+\begin{align}
+ f(x)&= \sum_i f^D_i \phi_i(x) \notag \\
+ &= \sum_i f^I_i \varphi_i(x)\;,
+\end{align}
+with the magic filter relation $f^D_i=\sum_j \omega_{i,j} f^I_j$. Hence
+\begin{equation}
+ f(x)=\sum_{i,j} \omega_{i,j} f^I_j \phi_i(x)\;.
+\end{equation}
+For the two relations to be compatible, one must have the filters $\omega$ to be optimal quadrature coefficients for the autocorrelation integral:
+\begin{equation}
+\sum_{i} \omega_{i,j} \phi_i(x) = \int \phi(t) \phi(t-x+j) {\rm d}t\;.
+\end{equation}
+If this is true, we can have an exact relationship between DSF of order 8 and ISF of order 16 (in {\tt BigDFT} notation).
+
+The refinement relation can help us in finding the coefficients $\omega_i$.
+Indeed,
+\begin{equation}
+ \omega_{i,j} = \int \phi(t) \phi(t-x+j) \phi(x-i) {\rm d}t {\rm d}x = \omega_{i-j}\;.
+\end{equation}
+By using the refinement relation it is easy to show that
+\begin{align}
+ \omega_{i}& = \int {\rm d}t {\rm d}x \; \phi(t) \phi(t-x+i) \phi(x) \notag \\
+&= \frac{1}{2} \sum_{j,k} h_j h_k \int {\rm d}t {\rm d}x\; \phi(2t-j) \phi(t-x+i) \phi(2x-k) \notag \\
+&= \frac{1}{8} \sum_{j,k} h_j h_k \int {\rm d}t {\rm d}x \;\phi(t-j) \phi(\frac{t-x}{2}+i) \phi(x-k) \notag \\
+&= \frac{1}{8 \sqrt 2} \sum_{j,k,\ell} h_j h_k h_\ell \int {\rm d}t {\rm d}x\; \phi(t-j) \phi(t-x+2 i-\ell) \phi(x-k)  \\
+ &= \frac{1}{8 \sqrt 2} \sum_{j,k,\ell} h_j h_k h_\ell\; \omega_{2i +j -k -\ell} \notag \;.
+\end{align}
+This relation may help us to find the value of the $\omega_i$ by following the same reasoning has for the kinetic energy filters.
+\end{document}
+
+

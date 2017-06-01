@@ -1,0 +1,7 @@
+/*! @file
+@brief Tests the convolutions with OpenCL
+
+@dir
+@brief Contains some tests for the convolutions in OpenCL
+
+*/

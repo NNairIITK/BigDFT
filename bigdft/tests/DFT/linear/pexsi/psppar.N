@@ -1,0 +1,9 @@
+spin-polarized 1       1.421       2.840  method,ncov,rcov(1)..... rprb
+    7    5  20150407 zatom, zion, date (yymmdd)
+   12   -101130  0 0 2002 0                 pspcod, ixc, lmax, lloc, mmax, r2well
+    0.40469225351999993E+00    2 -0.81009806373602462E+01  0.12941912238937141E+01 rloc nloc c1 .. cnloc
+   1                                                       nsep
+   0.42560530166010629E+00  2  0.92183335485525468E+01 -0.24905918766907065E+01      s-projector
+                       0.38356320566012669E+00
+    0.35406223736655473E+00     0.38000447613273036E+00      rcore, qcore (nlcc)
+

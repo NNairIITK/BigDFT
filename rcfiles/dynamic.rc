@@ -1,0 +1,32 @@
+conditions.add("testing")
+#conditions.add("python")
+
+#build_policy = "all"
+
+# List of modules to be built by default
+modules = ['bigdft',]
+
+# Specific configure arguments for each module
+module_autogenargs['futile'] = "FC=mpif90 CFLAGS='-Wall -g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --enable-dynamic-libraries"
+
+module_autogenargs['chess'] = "FC=mpif90 CFLAGS='-Wall -g -O2 -fPIC' FCFLAGS='-O2 -g -Wall -fbounds-check -fPIC'"
+
+module_autogenargs['psolver'] = "FC=mpif90 CFLAGS='-Wall -g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --enable-dynamic-libraries"
+
+module_autogenargs['libxc'] = "CC=gcc --enable-shared"
+
+module_autogenargs['GaIn'] = "CFLAGS='-Wall -g -O2 -fPIC' FCFLAGS='-O2 -g -Wall -fbounds-check -fPIC'"
+
+module_autogenargs['bigdft'] = "FC=mpif90 CFLAGS='-Wall -g -O2' CXXFLAGS='-g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages --enable-dynamic-libraries" % globals()
+
+module_autogenargs['spred'] = "FC=mpif90 CFLAGS='-Wall -g -O2' CXXFLAGS='-g -O2' FCFLAGS='-O2 -g -Wall -fbounds-check' --with-pyyaml-path=%(prefix)s/lib/python2.7/site-packages --enable-dynamic-libraries" % globals()
+
+module_autogenargs['pseudo'] = "FC=mpif90 FCFLAGS='-O2 -g -Wall -fbounds-check'"
+
+module_autogenargs['libABINIT'] = "FC=mpif90 FCFLAGS='-fPIC -g -O2'"
+
+module_makeargs['wannier90'] = "F90=gfortran MPIF90=mpif90 LIBS='-llapack -lblas' COMMS='mpi'"
+
+module_makeargs['parmetis'] = "config all install prefix=%(prefix)s" % globals() 
+
+module_autogenargs['etsf_io'] += "FCFLAGS='-fPIC'"

@@ -1,0 +1,117 @@
+---
+ GPU FLOPS double Benchmark:
+   ms                                  :  316.49
+   Gflop/s                             :  11.76
+   Dims                                :  [  908960 ]
+ GPU MOPS double Benchmark:
+   ms                                  :  3.17
+   Gflop/s                             :  4.59
+   Dims                                :  [  908960 ]
+ GPU transpose FLOPS double Benchmark:
+   ms                                  :  1.56
+   Gflop/s                             :  18.63
+   Dims                                :  [  76,  11960 ]
+ GPU notranspose FLOPS double Benchmark:
+   ms                                  :  1.45
+   Gflop/s                             :  20.02
+   Dims                                :  [  76,  11960 ]
+ GPU copy FLOPS double Benchmark:
+   ms                                  :  1.64
+   Gflop/s                             :  17.70
+   Dims                                :  [  76,  11960 ]
+  #------------------------------------------------------------------------------- Convolutions
+ Convolutions: {CPU: {ms:  17.09, Gflop/s:  1.70}, GPU: {ms:  3.82, Gflop/s:  7.61}, 
+ Ratio:  4.474, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  4.4409E-16}
+  #------------------------------------------------------------------------- Convolutions (str)
+ Convolutions (str): {CPU: {ms:  17.09, Gflop/s:  1.70}, GPU: {ms:  3.86, Gflop/s:  7.54}, 
+ Ratio:  4.429, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  4.4409E-16}
+  #----------------------------------------------------------------------- Convolutions (block)
+ Convolutions (block): {CPU: {ms:  17.09, Gflop/s:  1.70}, GPU: {ms:  3.53, Gflop/s:  8.24}, 
+ Ratio:  4.843, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  4.4409E-16}
+  #----------------------------------------------------------------------------- Convolutions T
+ Convolutions T: {CPU: {ms:  17.04, Gflop/s:  1.71}, GPU: {ms:  3.80, Gflop/s:  7.66}, 
+ Ratio:  4.486, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  4.4409E-16}
+  #--------------------------------------------------------------------------------------- GEMM
+ GEMM: {CPU: {ms:  21.24, Gflop/s:  6.50}, GPU: {ms:  22.71, Gflop/s:  6.08}, 
+ Ratio:  0.936, Dims:  [  76,  76,  11960 ], No. Elems:  5776, Max. Diff.:  4.2292E-11}
+  #------------------------------------------------------------------------------- GEMM (block)
+ GEMM (block): {CPU: {ms:  21.24, Gflop/s:  6.50}, GPU: {ms:  20.17, Gflop/s:  6.85}, 
+ Ratio:  1.053, Dims:  [  76,  76,  11960 ], No. Elems:  5776, Max. Diff.:  4.2292E-11}
+  #------------------------------------------------------------------------------------- GEMMSY
+ GEMMSY: {CPU: {ms:  21.24, Gflop/s:  6.50}, GPU: {ms:  13.86, Gflop/s:  9.97}, 
+ Ratio:  1.533, Dims:  [  76,  76,  11960 ], No. Elems:  5776, Max. Diff.:  4.2292E-11}
+  #-------------------------------------------------------------------------------------- ZGEMM
+ ZGEMM: {CPU: {ms:  18.00, Gflop/s:  7.68}, GPU: {ms:  26.95, Gflop/s:  5.13}, 
+ Ratio:  0.668, Dims:  [  38,  38,  11960 ], No. Elems:  1444, Max. Diff.:  1.1823E-10}
+  #---------------------------------------------------------------------------------- Reduction
+ Reduction: {CPU: {ms:  1.27, Gflop/s:  1.44}, GPU: {ms:  2.31, Gflop/s:  0.79}, 
+ Ratio:  0.549, Dims:  [  908960 ], No. Elems:  908960, Max. Diff.:  2.2204E-16}
+  #-------------------------------------------------------------------------------- Dot Product
+ Dot Product: {CPU: {ms:  1.39, Gflop/s:  1.31}, GPU: {ms:  3.88, Gflop/s:  0.47}, 
+ Ratio:  0.358, Dims:  [  908960 ], No. Elems:  908960, Max. Diff.:  2.2204E-16}
+  #----------------------------------------------------------------------------- Convolution 3D
+ Convolution 3D: {CPU: {ms:  48.25, Gflop/s:  1.81}, GPU: {ms:  11.19, Gflop/s:  7.80}, 
+ Ratio:  4.313, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  7.7716E-16}
+  #------------------------------------------------------------------------- Convolution 3D (B)
+ Convolution 3D (B): {CPU: {ms:  48.25, Gflop/s:  1.81}, GPU: {ms:  10.51, Gflop/s:  8.30}, 
+ Ratio:  4.591, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  7.7716E-16}
+  #------------------------------------------------------------------------- Convolution 3D (S)
+ Convolution 3D (S): {CPU: {ms:  48.25, Gflop/s:  1.81}, GPU: {ms:  11.54, Gflop/s:  7.56}, 
+ Ratio:  4.180, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  2.2204E-16}
+  #--------------------------------------------------------------------------- Convolution T 3D
+ Convolution T 3D: {CPU: {ms:  50.33, Gflop/s:  1.73}, GPU: {ms:  11.37, Gflop/s:  7.67}, 
+ Ratio:  4.426, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  5.5511E-16}
+  #------------------------------------------------------------------------------- Potential 3D
+ Potential 3D: {CPU: {ms:  106.31, Gflop/s:  1.65}, GPU: {ms:  23.76, Gflop/s:  7.38}, 
+ Ratio:  4.474, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  2.4425E-15}
+  #--------------------------------------------------------------------------------- Kinetic 3D
+ Kinetic 3D: {CPU: {ms:  149.56, Gflop/s:  0.82}, GPU: {ms:  28.18, Gflop/s:  4.35}, 
+ Ratio:  5.308, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  7.5606E-14}
+  #---------------------------------------------------------------------------------- MF Shrink
+ MF Shrink: {CPU: {ms:  14.37, Gflop/s:  1.62}, GPU: {ms:  3.10, Gflop/s:  7.53}, 
+ Ratio:  4.633, Dims:  [  61,  11960 ], No. Elems:  729560, Max. Diff.:  4.4409E-16}
+  #------------------------------------------------------------------------------------ MF Grow
+ MF Grow: {CPU: {ms:  13.30, Gflop/s:  1.76}, GPU: {ms:  3.95, Gflop/s:  5.91}, 
+ Ratio:  3.364, Dims:  [  61,  11960 ], No. Elems:  729560, Max. Diff.:  4.4409E-16}
+  #------------------------------------------------------------------------------- Kinetic k 3D
+ Kinetic k 3D: {CPU: {ms:  477.76, Gflop/s:  1.03}, GPU: {ms:  95.02, Gflop/s:  5.17}, 
+ Ratio:  5.028, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  7.2109E-14}
+  #------------------------------------------------------------------------------------ Kinetic
+ Kinetic: {CPU: {ms:  151.47, Gflop/s:  0.27}, GPU: {ms:  12.00, Gflop/s:  3.41}, 
+ Ratio:  12.624, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  1.4211E-13}
+  #-------------------------------------------------------------------------------- Analysis 3D
+ Analysis 3D: {CPU: {ms:  66.95, Gflop/s:  1.30}, GPU: {ms:  13.50, Gflop/s:  6.46}, 
+ Ratio:  4.958, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  1.7764E-15}
+  #---------------------------------------------------------------------------- Analysis 3D (B)
+ Analysis 3D (B): {CPU: {ms:  66.95, Gflop/s:  1.30}, GPU: {ms:  11.17, Gflop/s:  7.81}, 
+ Ratio:  5.995, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  1.7764E-15}
+  #------------------------------------------------------------------------------- Synthesis 3D
+ Synthesis 3D: {CPU: {ms:  67.50, Gflop/s:  1.29}, GPU: {ms:  12.73, Gflop/s:  6.85}, 
+ Ratio:  5.302, Dims:  [  76,  92,  130 ], No. Elems:  908960, Max. Diff.:  8.8818E-16}
+  #----------------------------------------------------------------------------------- Analysis
+ Analysis: {CPU: {ms:  21.02, Gflop/s:  1.38}, GPU: {ms:  4.48, Gflop/s:  6.49}, 
+ Ratio:  4.690, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  6.6613E-16}
+  #------------------------------------------------------------------------------- Analysis (B)
+ Analysis (B): {CPU: {ms:  21.02, Gflop/s:  1.38}, GPU: {ms:  4.02, Gflop/s:  7.23}, 
+ Ratio:  5.224, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  6.6613E-16}
+  #---------------------------------------------------------------------------------- Synthesis
+ Synthesis: {CPU: {ms:  21.99, Gflop/s:  1.32}, GPU: {ms:  4.59, Gflop/s:  6.34}, 
+ Ratio:  4.791, Dims:  [  76,  11960 ], No. Elems:  908960, Max. Diff.:  8.8818E-16}
+  #---------------------------------------------------------------------------- Analysis shrink
+ Analysis shrink: {CPU: {ms:  17.26, Gflop/s:  1.37}, GPU: {ms:  3.14, Gflop/s:  7.56}, 
+ Ratio:  5.496, Dims:  [  62,  11960 ], No. Elems:  741520, Max. Diff.:  8.8818E-16}
+  #----------------------------------------------------------------------------- Synthesis grow
+ Synthesis grow: {CPU: {ms:  19.57, Gflop/s:  1.21}, GPU: {ms:  4.30, Gflop/s:  5.51}, 
+ Ratio:  4.547, Dims:  [  62,  11960 ], No. Elems:  741520, Max. Diff.:  8.8818E-16}
+  #--------------------------------------------------------------------------------- Uncompress
+ Uncompress: {CPU: {ms:  10.59, Gflop/s:  0.30}, GPU: {ms:  11.60, Gflop/s:  0.27}, 
+ Ratio:  0.913, Dims:  [  76,  76,  76 ], No. Elems:  3177944, Max. Diff.:  0.0000E+00}
+  #----------------------------------------------------------------------------------- Compress
+ Compress: {CPU: {ms:  5.06, Gflop/s:  0.63}, GPU: {ms:  10.18, Gflop/s:  0.31}, 
+ Ratio:  0.497, Dims:  [  76,  76,  76 ], No. Elems:  3177944, Max. Diff.:  0.0000E+00}
+  #---------------------------------------------------------------------------- Uncompress Scal
+ Uncompress Scal: {CPU: {ms:  8.53, Gflop/s:  0.37}, GPU: {ms:  11.75, Gflop/s:  0.27}, 
+ Ratio:  0.726, Dims:  [  76,  76,  76 ], No. Elems:  3177944, Max. Diff.:  0.0000E+00}
+  #------------------------------------------------------------------------------ Compress Scal
+ Compress Scal: {CPU: {ms:  5.16, Gflop/s:  0.62}, GPU: {ms:  10.49, Gflop/s:  0.30}, 
+ Ratio:  0.492, Dims:  [  76,  76,  76 ], No. Elems:  3177944, Max. Diff.:  0.0000E+00}

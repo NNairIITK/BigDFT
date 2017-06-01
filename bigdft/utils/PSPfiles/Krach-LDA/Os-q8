@@ -1,0 +1,15 @@
+Goedecker pseudopotential for Os
+   76   8  070301 zatom,zion,pspdat
+10  1  2 0 2001 0  pspcod,pspxc,lmax,lloc,mmax,r2well
+     0.66700000    1     9.44045936                                                 rloc nloc c1
+    3                                                                               nnonloc
+     0.51030708    2     2.40236688    -1.17998407                                  rs ns hs11 hs12
+                                        3.04670577                                             hs22
+     0.71755329    2     0.49952321    -0.44509384                                  rp np hp11 hp12
+                                        1.05328427                                             hp22
+                        -0.43074635    -0.29654416                                        kp11 kp12
+                                        0.70175157                                             kp22
+     0.48758605    2    -4.14203471     0.73468110                                  rd nd hd11 hd12
+                                       -1.66610013                                             hd22
+                         0.11694065     0.06162898                                        kd11 kd12
+                                       -0.13976139                                             kd22

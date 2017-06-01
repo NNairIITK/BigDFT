@@ -1,0 +1,11 @@
+/*!
+This directory contains the routine based on CUDA developed by NVIDIA to use their graphics
+processor.
+
+Use make check to compile conv_check\n
+This program tests GPU and CPU and gives a ratio of performance:
+<pre>
+echo '1024 1024 4096 4096 10' > fort.1
+./conv_check
+</pre>
+*/

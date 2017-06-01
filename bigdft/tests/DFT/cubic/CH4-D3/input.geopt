@@ -1,0 +1,6 @@
+BFGS
+1000      ncount_cluster: max steps during geometry relaxation
+10. 0.004   frac_fluct:     geometry optimization stops if force norm less than frac_fluct of noise
+0.d0     randdis:        random amplitude for atoms
+3.0      betamax
+

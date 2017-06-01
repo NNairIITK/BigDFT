@@ -1,0 +1,337 @@
+<?xml version="1.0" encoding="iso-8859-15"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+  <head>
+    <title>Tutorial: Acceleration example on different platforms</title>
+    <meta name="copyright" content="&#169; 2004-2011 CEA" />
+    <link rel="author" type="text/html" href="http://www.cea.fr" hreflang="fr" lang="fr" />
+    <link rel="stylesheet" type="text/css" href="../styles/original.css" />
+  </head>
+
+  <body>
+
+    <div class="header">
+      <div class="visuLogo">
+        <img src="../images/logo_header.png" alt="" width="102" height="80" />
+      </div>
+      <!-- %%VERSION%% -->
+    </div>
+
+    <!-- %%MENU%% -->
+
+    <div class="main"><a name="top" id="top"></a>
+
+      <div class="floatingmenu">
+        <a href="H2A_MPI_OMP.html">&lt;&nbsp;prev. lesson</a>
+        <a style="float:right;" href="H2C-BART.html">Third Group&gt;</a> 
+        <h2>Content of this lesson</h2>
+        <ul>
+	  <li>Compiling GPU versions of the BigDFT code</li>
+          <li>Testing GPU routines</li>
+	  <li>Doing total energy calculations on different platforms</li>
+	  <li>Doing parallel computation using GPU version</li>
+        </ul>
+        <h2>Material</h2>
+        <ul style="float:left;margin-right:1em;">
+          <li><a href="GPU/ZnO.dft">ZnO.dft</a></li>
+          <li><a href="GPU/ZnO.xyz">ZnO.xyz</a></li>
+        </ul>
+        <ul style="float:left;margin-right:1em;">
+          <li><a href="GPU/ZnO.perf">ZnO.perf</a></li>
+          <li><a href="GPU/ZnO.kpt">ZnO.kpt</a></li>
+        </ul>
+	<ul style="float:left;margin-right:1em;">
+          <li><a href="GPU/input.dft">input.dft</a></li>
+          <li><a href="GPU/posinp.ascii">posinp.ascii</a></li>
+        </ul>
+	<ul style="float:left;margin-right:1em;">
+          <li><a href="GPU/input.kpt">input.kpt</a></li>
+          <li><a href="GPU/psppar.C">psppar.C</a></li>
+        </ul>
+
+      </div>
+
+      <p class="warn">This lesson has been created for current stable version. Versions more recent than 1.5.0
+        versions are fully capable of running this tutorial but input files may
+        have to be changed according to possible earlier formats.</p>
+
+      <h1>Acceleration example on different platforms: OpenCL and CUDA version</h1>
+
+      <p>The purpose of this lesson is to introduce the usage of the GPU version(s) of the BigDFT code. You will
+	learn basics of making GPU runs and how to interpret potential benefits of using GPU version.</p>
+
+      <h2>Compiling GPU versions of the BigDFT code</h2>
+      To activate the support for GPU with BigDFT, you need a system with a GPU installed, preferentially with a OpenCL driver.
+      Also, you have to compile BigDFT with the acceleration support activated.
+      The OpenCL-based acceleration of BigDFT is fully functional. All Boundary conditions as well as k-points calculation benefit from OpenCL acceleration.
+      The CUDA version is not maintained anymore and is working only for Periodic BC at Gamma point.
+      
+      <p>Compilation of the OpenCL version of the code requires 
+        <code>--enable-opencl</code> option in the configure sequence. Some other options like 
+	<code>--with-ocl-path</code> may also be specified. See the example below (which is installation-specific):</p>
+
+      <pre> &lt;path_to_distribution&gt;/configure FC=mpif90 FCFLAGS="-O2 -openmp" 
+	--with-ext-linalg="-Wl,--start-group -lmkl_intel_lp64 -lmkl_intel_thread -lmkl_core -Wl,--end-group -openmp -lpthread -lm"  
+	--enable-opencl --with-ocl-path=/sw/keeneland/cuda/4.1/linux_binary</pre>
+
+      <p>For the CUDA version <code>--enable-cuda-gpu</code> option should be used
+	in the configure sequence. <code>--with-cuda-path</code> option may also be specified.</p>
+      
+	<pre> &lt;path_to_distribution&gt;/configure FC=mpif90 FCFLAGS="-O2 -openmp" 
+	--with-ext-linalg="-lmkl_lapack95_lp64 -lmkl_intel_lp64  -lguide 
+	-lmkl_intel_thread -lmkl_core" --enable-cuda-gpu</pre>
+
+	<div class="exercice">
+        <p><b>Exercise</b>: Compile the OpenCL and CUDA versions of the code in two 
+	separate folders.</p>
+	<p class="answer">Create a folder where you want to build the code and switch to that 	
+	folder. Call the configure script in the BigDFT main source folder by specifying its 
+	relative or absolute path. Add the options necessary for the version you 
+	want to compile as described above. Check the informative messages at the end of the 
+	configure to see if the OpenCL or CUDA was enabled or not. Specify OpenCL or CUDA path if 
+	it is necessary by the additional options described above. If everything
+	went okay in the configure you can compile the code by typing <code>make</code>.
+	Note that, if your system supports it, you might create one single set of binaries valid for both for OpenCL and CUDA implementations.</p>
+	 </div>
+
+      <h2>First Evaluation Level: GPU routines against their CPU counterpart</h2>
+    
+      <p>For both acceleration types, <code>conv_check</code> program makes checks on the GPU related parts of the code. 
+	You  can compile and run it by typing <code>make check</code> in the <code>tests/libs/CUDA</code>
+	or <code>tests/libs/OpenCL</code> subfolder of BigDFT build folder depending on the acceleration 
+	type.</p>
+
+      <div class="exercice">
+        <p><b>Exercise</b>: Go to your CUDA build folder and switch to subfolder <code>tests/libs/CUDA
+	</code>. Type: <code>make check</code> to compile and run the <i>conv_check</i> 
+	program. Observe the output which is generated in <i>conv_check.out</i> file.</p>
+	<p class="answer">The output will have comparisons of CPU and GPU timings of code 
+	sections which was implemented by CUDA:</p>
+	<span class="override"><pre>CPU Convolutions, dimensions:   124 17160
+GPU Convolutions, dimensions:   124 17160
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |     25.84|      2.64||      1.07|     63.65||  24.150|       2127840|  2.2204E-16|</pre></span>
+	<p class="answer">Computation time ratio of CPU and GPU versions are given as <code>
+	Ratio</code>. Observe that the benefit of using GPU varies depending on the kernel which has been ported (and also from the machine).</p>  
+      </div>
+
+	<div class="exercice">
+        <p><b>Exercise</b>: Go to your OpenCL build folder and switch to subfolder 
+	<code>tests/libs/OpenCL</code>. Type: <code>make check</code> to compile and run the 	
+	<i>conv_check</i> program. Observe the output which is generated in <i>conv_check.out</i> 
+	file.</p>
+	<p class="answer">The output will have comparisons of CPU and GPU timings of code 
+	sections which was implemented by OpenCL:</p>
+	<span class="override"><pre>CPU Convolutions, dimensions:   124 17160
+GPU Convolutions, dimensions:   124 17160
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |     25.47|      2.67||      0.87|     78.24||  29.266|       2127840|  4.4409E-16|</pre></span>
+	<p class="answer">Computation time ratio of CPU and GPU versions are given as <code>
+        Ratio</code>. Observe that the OpenCL version has more kernel which have been ported compared 
+	to CUDA version for specific parts of the code and OpenCL version has more GPU enabled 
+	code sections. Also, optimisation where pushed further. Therefore, OpenCL version of the code should be preferred.
+	In particular, the CUDA version of the code works only for fully periodic BC at gamma point only.
+	It has therefore less functionalities and it is not maintained anymore.
+	</p>  
+      </div>
+
+	<h2>Kohn-Sham DFT Operation with GPU acceleration</h2>
+
+The GPU acceleration of kernels presented so far is somehow disconnected to a production run. 
+One might wonder how these preformances will reflect in the behaviour of a full run.
+In order to test the behaviour of the complete code operations, a functionality is added in the <code>bigdft-tool</code> program.
+This functionality, called <code>GPU-test</code> will run the GPU-related BigDFT unitary 3D operations (Density construction, Local Hamiltonian and preconditioning) with and without GPU acceleration, for the set of input files which is provided.
+This is a useful tool to predict the potential advantages of GPU usage for a given system. Indeed, these operations belong to the "Convolutions" category of the <code>time.yaml</code> file.
+	<div class="exercice">
+        <p><b>Exercise</b>: To activate the <code>GPU-test</code> you should call <code>bigdft-tool</code> this way:
+	  <pre>&lt;path_to_build&gt;/bigdft-tool --name=&lt;name&gt; -a GPU-test --n-repeat=&lt;nrep&gt; --n-orbs=&lt;norbs&gt;  </pre>
+	 where <code>&lt;name&gt;</code>, <code>&lt;nrep&gt;</code> and <code>&lt;norbs&gt;</code> are optional arguments indicating the run name, the number of repetitions of the calculation and the number of orbitals treated. their default values are <code>none</code>, <code>1</code> and <code>norb</code> (the total number of orbitals in the  system), respectively.
+	<p class="answer">The output will have comparisons of CPU and GPU timings of code 
+	sections which was implemented by OpenCL and CUDA:</p>
+	<span class="override"><pre>
+---------------------------------- CPU-GPU comparison: Density calculation
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |     37.36|      2.63||      2.81|     34.98||  13.294|        512000|  9.7145E-17|
+ ---------------------------------- CPU-GPU comparison: Local Hamiltonian calculation
+ ekin,epot=   56.3306474633124        93.0696865423315     
+ ekinGPU,epotGPU   56.3306474633134        93.0696865423313     
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |    117.52|      2.28||      7.46|     35.98||  15.762|      65536000|  7.4772E-16|
+ ---------------------------------- CPU-GPU comparison: Linear Algebra (Blas)
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |   1789.95|      9.37||   1790.32|      9.37||   1.000|         16384|  0.0000E+00|
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |   1315.30|      6.43||   1314.96|      6.43||   1.000|         16384|  0.0000E+00|
+ ---------------------------------- CPU-GPU comparison: Preconditioner
+ gnrm   284.904515990837     
+ gnrmGPU   284.904515990839     
+ | CPU: ms  |  Gflops  || GPU:  ms |  GFlops  || Ratio  | No. Elements | Max. Diff. |
+ |    133.67|      4.10||     20.51|     26.72||   6.519|      65536000|  3.1919E-16|
+ Ratios:  13.294  15.762   1.000   1.000   6.519
+</pre></span>
+	<p class="answer">
+	  Run these features with the systems presented in these page, with and without CUDA (if available).
+	  Experience Amdahl's law: compare the behaviours with the run of the whole code (see below).
+	</p>  
+	</div>
+
+	
+
+      <h2>The complete code: managing multiple GPU with MPI</h2>
+      
+      <p>For both OpenCL and CUDA versions an additional input file <code>input.perf</code>
+	should be provided for the BigDFT run. <br><br>
+	This file contains performance-oriented varaibles, and it is the sole input file of BigDFT inpu
+	For OpenCL version, one of the lines of this file 
+	should have the keywords <code>ACCEL OCLGPU</code>. <br><br>
+
+	For CUDA version the keywords should
+	be <code>ACCEL CUDAGPU</code> and an additional file called 
+	<a href="GPU/GPU.config"><code>GPU.config</code></a> should also be provided with some parameter values, which control explicitly the Multi-GPU association: </p>
+      <pre>USE_SHARED=0
+
+MPI_TASKS_PER_NODE=1
+NUM_GPU=1
+
+GPU_CPUS_AFF_0=0,1,2,3
+GPU_CPUS_AFF_1=4,5,6,7
+
+USE_GPU_BLAS=1
+USE_GPU_CONV=1</pre>
+      	<p> For the OpenCL case, these association are performed automatically. Given the number of MPI processes per node, GPU devices are 
+	  associated with them, in a round-robin scheme. Memory transfers and computation between different processes associated to the same card are then 
+	  overlapped and scheduled by the queue handler of OpenCL driver.
+	</p>
+      
+	<p> Benefit of using GPU version depends on the system studied. If for a specific
+	system, most of the computation time is spent in GPU enabled parts of the code, using GPU 
+	version would be very beneficial. However, some system runs require most of the 
+	computation to be done with the code sections not using GPU, such as the Poisson solver. 
+	</p>
+
+	<div class="exercice">
+        <p><b>Exercise</b>: Do total energy calculations for a periodic ZnO 8-atom supercell (see figure) using CPU, CUDA and OpenCL 
+	versions of the code. 
+        <img class="figureR" src="Figures/ZnO-8.png" width="180" alt="Periodic replication of ZnO 8-atoms supercell" />
+	  You will need <a href="GPU/ZnO.dft"><code>ZnO.dft</code></a>
+	and <a href="GPU/ZnO.xyz"><code>ZnO.xyz</code></a>, and also <a href="GPU/ZnO.perf"><code>ZnO.perf</code></a> for this computation. 
+	For the CUDA computations create the additional	input file(s) described above. 
+	In order to compare with CUDA, do for the moment a gamma-point only calculation (which means that another input file should be added for k-points, see below).
+	  Compare computation times of different versions. 
+
+	As described in the previous lesson, in actual performance evaluations, the correct quantity which should be considered is the <code>WFN_OPT</code> category in the <code>(data/)time.yaml</code> file. Indeed, the initialization and finalization timings (including the timings needed to compile OpenCL kernels of for initialize <code>S_GPU</code> library in CUDA) are not representatives of actual performances.
+        <p class="answer"> Note that, in OpenCL standard, kernels are compiled at runtime. This can be see during the initialization of the code.
+	  Of course, this happens at the beginning of the run. 
+	  In a production run with multiple execution of BigDFT (e.g. a geometry optimisation run), this is only performed at the very beginning and it will not create artificial slowdown.
+	</p>
+
+So you should use the <a href="scalability/process_time.rb"><code>process_time.rb</code></a> script which has been presented in the previous lesson:
+<pre>
+> ruby process_time.rb time.yaml
+</pre>
+       Together with the <a href="scalability/weak_scaling.gnuplot"><code>weak_scaling.gnuplot</code></a> script 
+(also a <a href="scalability/strong_scaling.gnuplot"><code>strong_scaling.gnuplot</code></a> script is available to compare relative behaviour of runs).
+       Consider also the results when including MPI parallelisation. Remember that, if on a node the number of MPI processes per node is bigger than the number of devices, GPU are shared as explained above. In evaluating performances, consider that, for this system GPU accelerated routines are not hot-spot operations.
+You might also consider to do a realistic system with K-points (from <a href="GPU/ZnO.kpt"><code>ZnO.kpt</code></a> file). In this case,  OpenCL acceleration only should be considered.
+      <img class="figureR" src="Figures/ZnO-gamma.png" width="550" alt="Intranode behaviour of ZnO at gamma point, Keeneland" />
+      <img class="figureR" src="Figures/ZnO-kpts.png" width="550" alt="Internode behaviour of ZnO with K points  Keeneland" />
+<p>
+Which conclusions can be extracted from these results? Here some examples:
+<ul>
+  <li>OpenCL and CUDA acceleration efficiency are identical for this system until we associate one card to one MPI process. Overloading the card in OpenCL degradates the SpeedUp whereas this does not happen with CUDA. This is presumably due to a not optimal handling by the OpenCL driver, of memory transfer on the card and calculation. This effect is more visible since the number of orbitals which are associated to each MPI process is rather little (the systemn has 36 orbitals), and it does not happen for bigger cases (see below) </li>
+<li> Combining OpenCL with MPI and OpenMP is possible and gives effective advantages.</li>
+<li> The Speedup of the bottom figure is given with respect to the best full node occupancy in pure CPU, so it is a internode-like speedup. </li>
+<li> Does this behaviour would have been predictible by using GPU-test and CPU runs, without running the whole system? Are all the relevant variables taken into account?
+</ul>
+
+</p>
+      </div>
+      <h2>Architecture dependency: conclusions are machine-dependent</h2>
+     	<p> To illustrate the dependency of system architecture with respect to the results you might obtain, it could be interesting to 
+	  simulate the behaviour of a system in which the GPU-accelerated operations are dominant. For example, a calculation of a small supercell with lots of K-points does the job. 
+	</p>
+
+	<div class="exercice">
+        <p><b>Exercise</b>: Do total energy calculations for the system described by the files <a href="GPU/input.dft"><code>input.dft</code></a>
+	and <a href="GPU/posinp.ascii"><code>posinp.ascii</code></a>, <a href="GPU/psppar.C"><code>psppar.C</code></a> and also <a href="GPU/input.perf"><code>input.perf</code></a>.
+	<p class="answer"> As a illustration of the differences you can find in the enclosed figure the difference in performances for the same run on 
+	  16 and 128 processors, with and without GPUs on two machines: the Swiss CSCS "Todi", with nodes with 1 16-Core AMD Opteron and 1 NVIDIA Tesla X2090 GPU, and the US NICS "Keeneland", whose nodes have two Intel Westmere hex-core CPUs and three NVIDIA 6GB Fermi GPUs. The CPU are twice as faster in Keeneland, and if we combine this with GPU (the last run in the Figure has been done with 2 MPI process per node), for such run SU can be really big.
+      <img class="figureR" src="Figures/Csurf.png" width="550" alt="Comparison of Todi and Keeneland, Graphene, Keeneland" />
+	</p>
+</div>
+
+<!--
+<h2>Architecture dependency: conclusions are machine-dependent</h2>
+	  B80 cluster of previous lesson, using CPU and OpenCL 
+	versions of the code. 
+	For the OpenCL version create the additional <a href="B80.perf"><code>B80.perf</code></a>
+	input file described above. Compare computation times of the two versions
+	as in the previous exercise. Do not use MPI or OpenMP parallelization also
+	for this case.
+	<p class="answer"> For this free boundary condition calculation, most
+	of the computation time is spent in Poisson solver part of the code which
+	does not facilitate GPU. Therefore, benefit of using GPU for this calculation
+	would not be much.
+	</p>
+	</p>
+      </div>
+-->
+<!--
+	 <h2>Doing parallel computation using GPU version</h2>
+
+	<p>BigDFT GPU runs can benefit MPI parallelization. Multiple MPI processors can
+	access to the same GPU card in such a run. However, benefit of using MPI parallelization
+	would not be as much as pure MPI version since in general, on a given machine the number of MPI procs is bigger than the number of GPU cards thus several MPI procs have to share the same GPU.</p> 
+
+	<div class="exercice">
+        <p><b>Exercise</b>: Do total energy calculation for the periodic Si system in the
+	<code>/tests/DFT/GPU</code> folder of BigDFT source using 4 MPI nodes with and without OpenCL
+	acceleration. You will need 
+	<a href="GPU/Si8.dft"><code>input.dft</code></a> and
+	, <a href="GPU/Si8.xyz"><code>posinp.xyz</code></a> files for this computation.
+	As the first step, compare the computation time of OpenCL+MPI version with the computation
+	time of the single node OpenCL calculation. Then, compare the computation time of the pure MPI 
+	run with the computation time of single node CPU calculation for this system. Use the results 
+	of previous exercises for comparisons.
+	</p>
+	<p class="answer">Computation time of the 4 MPI node GPU calculation for this system
+	would not necessarily be significantly less than the single node GPU calculation. 
+	  However, this is of course due to the smallness of the system.</p> 
+	</p>
+      </div>
+
+	<p>If there are more than one GPU cards in the compute platform then different
+	MPI processes can use different GPU cards for better performance. For the CUDA version,
+	number of GPU devices and number of MPI nodes should be specified in the <code>input.perf
+	</code> file. OpenCL version detects and uses multiple GPU cards automatically.</p>
+
+	<div class="exercice">
+        <p><b>Example</b>: In this example we will do a calculation on a 64 atom periodic Si
+	system using OpenCL+MPI version of the code. We will need 
+	<a href="GPU/Si64.dft"><code>input.dft</code></a> and
+	, <a href="GPU/Si64.xyz"><code>posinp.xyz</code></a> files for this computation.
+	 We will use a large cluster in which each workstation having a GPU card.
+	Number of total MPI processes will be determined according
+	to the available cluster. We will compare the computation time of OpenCL+MPI version
+	with the computation time of the pure MPI version having same number of MPI processes. 
+	</p>
+	<p class="answer">In this run the OpenCL version of the code will arrange the GPU usage
+	automatically. Each MPI process will access the GPU card on the same physical machine it
+	runs. The speed up due to GPU usage would depend on the number of GPU cards (number of
+	physical nodes) in the cluster. </p> 
+	</p>
+      </div>
+-->
+    <div class="footer">Author (Luigi Genovese - CEA Grenoble)
+      |
+      <a href="http://validator.w3.org/check/referer" title="Check HTML compliance with W3C norms">XHTML1.0</a> - 
+      <a href="http://jigsaw.w3.org/css-validator/check/referer" title="Check CSS compliance with W3C norms">CSS2</a>
+      |
+      <!-- hhmts start -->
+      Last modified: Tue Oct 11 16:50:00 CEST 2011
+      <!-- hhmts end -->
+    </div>
+
+  </body>
+</html>
+

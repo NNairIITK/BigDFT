@@ -1,0 +1,19 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [4.0, 8.0]
+   nrepmax: accurate
+   idsx: 8
+   disablesym: Yes
+ posinp:
+   units: angstroem
+   positions:
+   - N: [4.999992376060827, 4.999999453085334, 5.370400061371956]
+   - H: [5.951566695822339, 4.999999669890684, 4.998541424468887]
+   - H: [4.524220020297332, 5.824078840088872, 4.998544255016181]
+   - H: [4.5242209078195, 4.175922036935108, 4.998544502142977]
+   properties:
+     format: xyz
+     source: ll_input.xyz
+   energy (Ha): -11.70280542422885

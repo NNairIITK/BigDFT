@@ -1,0 +1,115 @@
+/*! @file
+
+@brief Input variable iXC
+
+@details
+
+@section IXC_INTRO     About the input variable iXC
+
+In short, iXC is a six digit number to access functionals from libXC. Each functional has a certain
+three digit code, and seperate values can be specified for both, exchange and correlation, e.g.
+<pre>
+ Teter93 (PADE)  LDA    -000020 = -20
+   PBE           GGA    -101130 = -130101
+</pre>
+In the input file "atom.dat" for the all electron calculation, the corresponding output and any
+pseudopotential file psppar, the input variable iXC is used to determine the type of exchange 
+correlation functionals to be used. The conventions for this input variable have been taken from 
+ABINIT to choose from the various functionals accessible in the libXC libraries. Pseudo supports
+all LDA and GGA functionals from libXC. For positive values of iXC a negative sign will be assumed. 
+
+
+This is the corresponding section of the ABINIT manual:
+
+The LibXC functionals are accessed by negative values of ixc. The LibXC contains functional forms
+for either exchange-only functionals, correlation-only functionals, or combined exchange and 
+correlation functionals. Each of them is to be specified by a three-digit number. In case of a
+combined exchange and correlation functional, only one such three-digit number has to be specified
+as value of ixc, with a minus sign (to indicate that it comes from the LibXC). In the case of
+separate exchange functional (let us represent its identifier by XXX) and correlation functional
+(let us represent its identified by CCC), a six-digit number will have to be specified for ixc, by
+concatenation, be it XXXCCC or CCCXXX. As an example, ixc=-020 gives access to the Teter93 LDA,
+while ixc=-101130 gives access to the PBE GGA. 
+
+
+
+And here is a list of recognized three digit codes:
+
+<pre>
+  XC_LDA_X             =   1  !  Exchange                     
+  XC_LDA_C_WIGNER      =   2  !  Wigner parametrization       
+  XC_LDA_C_RPA         =   3  !  Random Phase Approximation   
+  XC_LDA_C_HL          =   4  !  Hedin & Lundqvist            
+  XC_LDA_C_GL          =   5  !  Gunnarson & Lundqvist        
+  XC_LDA_C_XALPHA      =   6  !  Slater's Xalpha              
+  XC_LDA_C_VWN         =   7  !  Vosko, Wilk, & Nussair       
+  XC_LDA_C_VWN_RPA     =   8  !  Vosko, Wilk, & Nussair (RPA) 
+  XC_LDA_C_PZ          =   9  !  Perdew & Zunger              
+  XC_LDA_C_PZ_MOD      =  10  !  Perdew & Zunger (Modified)   
+  XC_LDA_C_OB_PZ       =  11  !  Ortiz & Ballone (PZ)         
+  XC_LDA_C_PW          =  12  !  Perdew & Wang                
+  XC_LDA_C_PW_MOD      =  13  !  Perdew & Wang (Modified)     
+  XC_LDA_C_OB_PW       =  14  !  Ortiz & Ballone (PW)         
+  XC_LDA_C_2D_AMGB     =  15  !  Attacalite et al             
+  XC_LDA_C_2D_PRM      =  16  !  Pittalis, Rasanen & Marques correlation in 2D 
+  XC_LDA_C_vBH         =  17  !  von Barth & Hedin            
+  XC_LDA_C_1D_CSC      =  18  !  Casula, Sorella, and Senatore 1D correlation     
+  XC_LDA_X_2D          =  19  !  Exchange in 2D 
+  XC_LDA_XC_TETER93    =  20  !  Teter 93 parametrization                
+  XC_GGA_X_PBE         = 101  !  Perdew, Burke & Ernzerhof exchange             
+  XC_GGA_X_PBE_R       = 102  !  Perdew, Burke & Ernzerhof exchange (revised)   
+  XC_GGA_X_B86         = 103  !  Becke 86 Xalfa,beta,gamma                      
+  XC_GGA_X_B86_R       = 104  !  Becke 86 Xalfa,beta,gamma (reoptimized)        
+  XC_GGA_X_B86_MGC     = 105  !  Becke 86 Xalfa,beta,gamma (with mod. grad. correction) 
+  XC_GGA_X_B88         = 106  !  Becke 88 
+  XC_GGA_X_G96         = 107  !  Gill 96                                        
+  XC_GGA_X_PW86        = 108  !  Perdew & Wang 86 
+  XC_GGA_X_PW91        = 109  !  Perdew & Wang 91 
+  XC_GGA_X_OPTX        = 110  !  Handy & Cohen OPTX 01                          
+  XC_GGA_X_DK87_R1     = 111  !  dePristo & Kress 87 (version R1)               
+  XC_GGA_X_DK87_R2     = 112  !  dePristo & Kress 87 (version R2)               
+  XC_GGA_X_LG93        = 113  !  Lacks & Gordon 93 
+  XC_GGA_X_FT97_A      = 114  !  Filatov & Thiel 97 (version A) 
+  XC_GGA_X_FT97_B      = 115  !  Filatov & Thiel 97 (version B) 
+  XC_GGA_X_PBE_SOL     = 116  !  Perdew, Burke & Ernzerhof exchange (solids)    
+  XC_GGA_X_RPBE        = 117  !  Hammer, Hansen & Norskov (PBE-like) 
+  XC_GGA_X_WC          = 118  !  Wu & Cohen 
+  XC_GGA_X_mPW91       = 119  !  Modified form of PW91 by Adamo & Barone 
+  XC_GGA_X_AM05        = 120  !  Armiento & Mattsson 05 exchange                
+  XC_GGA_X_PBEA        = 121  !  Madsen (PBE-like) 
+  XC_GGA_X_MPBE        = 122  !  Adamo & Barone modification to PBE             
+  XC_GGA_X_XPBE        = 123  !  xPBE reparametrization by Xu & Goddard         
+  XC_GGA_X_2D_B86_MGC  = 124  !  Becke 86 MGC for 2D systems 
+  XC_GGA_X_BAYESIAN    = 125  !  Bayesian best fit for the enhancement factor 
+  XC_GGA_C_PBE         = 130  !  Perdew, Burke & Ernzerhof correlation          
+  XC_GGA_C_LYP         = 131  !  Lee, Yang & Parr 
+  XC_GGA_C_P86         = 132  !  Perdew 86 
+  XC_GGA_C_PBE_SOL     = 133  !  Perdew, Burke & Ernzerhof correlation SOL      
+  XC_GGA_C_PW91        = 134  !  Perdew & Wang 91 
+  XC_GGA_C_AM05        = 135  !  Armiento & Mattsson 05 correlation             
+  XC_GGA_C_XPBE        = 136  !  xPBE reparametrization by Xu & Goddard         
+  XC_GGA_C_LM          = 137  !  Langreth and Mehl correlation          
+  XC_GGA_XC_LB         = 160  !  van Leeuwen & Baerends 
+  XC_GGA_XC_HCTH_93    = 161  !  HCTH functional fitted to  93 molecules  
+  XC_GGA_XC_HCTH_120   = 162  !  HCTH functional fitted to 120 molecules  
+  XC_GGA_XC_HCTH_147   = 163  !  HCTH functional fitted to 147 molecules  
+  XC_GGA_XC_HCTH_407   = 164  !  HCTH functional fitted to 147 molecules  
+  XC_GGA_XC_EDF1       = 165  !  Empirical functionals from Adamson, Gill, and Pople 
+  XC_GGA_XC_XLYP       = 166  !  XLYP functional 
+  XC_GGA_XC_B97        = 167  !  Becke 97                                 
+  XC_GGA_XC_B97_1      = 168  !  Becke 97-1                               
+  XC_GGA_XC_B97_2      = 169  !  Becke 97-2                               
+  XC_GGA_XC_B97_D      = 170  !  Grimme functional to be used with C6 vdW term 
+  XC_GGA_XC_B97_K      = 171  !  Boese-Martin for Kinetics                
+  XC_GGA_XC_B97_3      = 172  !  Becke 97-3                               
+  XC_GGA_XC_PBE1W      = 173  !  Functionals fitted for water 
+  XC_GGA_XC_MPWLYP1W   = 174  !  Functionals fitted for water 
+  XC_GGA_XC_PBELYP1W   = 175  !  Functionals fitted for water 
+  XC_GGA_XC_SB98_1a    = 176  !  Schmider-Becke 98 parameterization 1a    
+  XC_GGA_XC_SB98_1b    = 177  !  Schmider-Becke 98 parameterization 1b    
+  XC_GGA_XC_SB98_1c    = 178  !  Schmider-Becke 98 parameterization 1c    
+  XC_GGA_XC_SB98_2a    = 179  !  Schmider-Becke 98 parameterization 2a    
+  XC_GGA_XC_SB98_2b    = 180  !  Schmider-Becke 98 parameterization 2b    
+  XC_GGA_XC_SB98_2c    = 181  !  Schmider-Becke 98 parameterization 2c    
+</pre>
+*/
