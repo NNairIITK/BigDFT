@@ -1,1 +1,0 @@
-../../bigdft/tests/fldiff.py

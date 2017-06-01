@@ -1,6 +1,0 @@
-This library contains the files needed by BigDFT from ABINIT repository.
-
-In the file sync.sh, change the correct name of abinit source directory.
-do sh ./sync.sh in the libABINIt directory.
-cd src
-sh ../makedeps.sh > deps

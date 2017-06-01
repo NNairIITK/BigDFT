@@ -1,7 +1,0 @@
-/*! @file
-@brief README for the test of the CUDA implementation.
-
-@dir
-@brief Tests the convolutions with CUDA
-
-*/

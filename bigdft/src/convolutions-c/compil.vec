@@ -1,1 +1,0 @@
-gcc -O2 -msse3 -mtune=core2 -ftree-vectorize -ftree-vectorizer-verbose=2 -ffast-math -mfpmath=sse -mfused-madd test_vectorize.c -o test_vectorize -lrt

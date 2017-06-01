@@ -1,5 +1,0 @@
-VSSD         minimization method: LBFGS or SDCG
-4                  ncount_cluster: max steps during geometry relaxation
-0.d0    1.d-4       frac_fluct, fmax:     geometry optimization stops if force norm less than frac_fluct of noise
-0.d0               randdis:        random amplitude for atoms
-100.d0               betax: steepest descent step size,  if negative automatic determination

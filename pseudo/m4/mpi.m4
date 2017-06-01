@@ -1,1 +1,0 @@
-../../bigdft/config/m4/mpi.m4
