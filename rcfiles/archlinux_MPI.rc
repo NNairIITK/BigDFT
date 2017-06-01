@@ -1,0 +1,44 @@
+#This is the configuration file for the BigDFT installer
+#This is a python script which is executed by the build suite 
+ 
+#Add the condition testing to run tests and includes PyYaml
+conditions.add("testing")
+#List the module the this rcfile will build
+modules = ['spred',]
+def getcwd():
+  import os
+  return os.getcwd()
+#example of the potentialities of the python syntax in this file
+def env_configuration():
+    return  """ -with-ambertools="$HOME/Github/amber16/lib" FC="mpif90" F77="mpif77" CC="mpicc" CXX="mpicxx" "FCFLAGS=-O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -openmp -m64 -g -Wl,--no-as-needed -ldl" "--with-ext-linalg=-lblacs-openmpi -lblacsF77init-openmpi -llapack -lblas -lyaml -lrt -disable-mpi -lblacs-openmpi -lblacsF77init-openmpi -llapack -lblas -Wl,--no-as-needed -ldl" """ 
+
+def linear_configuration():
+    return  """ -with-ambertools="$HOME/Github/amber16/lib" -with-blas   FC="mpif90" F77="mpif77" CC="mpicc" CXX="mpicxx" "FCFLAGS=-O2 -march=native "  """ 
+
+#the following command sets the environment variable to give these settings
+#to all the modules
+import os
+os.environ['BIGDFT_CONFIGURE_FLAGS']=env_configuration()
+#here follow the configuration instructions for the modules built
+#we specify the configurations for the modules to customize the options if needed
+module_autogenargs.update({
+   
+'libyaml': linear_configuration(),
+   
+'futile': linear_configuration(),
+    
+'psolver': linear_configuration(),
+   
+'chess': linear_configuration(),
+   
+'libxc': linear_configuration(),
+   
+'libABINIT': linear_configuration(),
+   
+'GaIn': linear_configuration(),
+   
+'bigdft': linear_configuration(),
+   
+'spred': linear_configuration(),
+   
+})
