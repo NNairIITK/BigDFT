@@ -171,3 +171,4 @@ chess/install-sh
 chess/missing
 .ipynb_checkpoints*/
 .bzr/
+.direnv/
