@@ -232,7 +232,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    wfn_loop: do iter=1,in%itermax_virt
 
-      if (iproc == 0 .and. verbose > 0) then
+      if (iproc == 0 .and. get_verbose_level() > 0) then
          call yaml_comment('iter=' // trim(yaml_toa(iter)),hfill='-')
          call yaml_sequence(advance='no')
          call yaml_mapping_open(flow=.true.)
@@ -264,7 +264,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       !check for convergence or whether max. numb. of iterations exceeded
       if (endloop) then
          if (iproc == 0) then
-            if (verbose > 1) call yaml_map('Minimization iterations required',iter)
+            if (get_verbose_level() > 1) call yaml_map('Minimization iterations required',iter)
             call write_energies(iter,energs,gnrm,0.d0,' ')
             call yaml_mapping_close()
             call yaml_comment('End of Virtual Wavefunction Optimisation',hfill='-')
@@ -300,7 +300,10 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
             &   psiw(1),out_add=VTwfn%psi(1))
       end if
 
-      if (iproc == 0) call yaml_mapping_close()
+      if (iproc == 0) then
+         call yaml_mapping_close()
+         call yaml_flush_document()
+      end if
 
    end do wfn_loop
 
@@ -308,7 +311,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
       call yaml_sequence_close() !wfn iterations
       if (iter == in%itermax_virt) then
          call yaml_warning('No convergence within the allowed number of minimization steps')
-      else if (verbose > 1) then
+      else if (get_verbose_level() > 1) then
          call yaml_map('Minimization iterations required',iter)
       end if
    end if
@@ -496,7 +499,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !last index of e and hamovr are for mpi_alLzd%Glreduce.
    !e (eigenvalues) is also used as 2 work arrays
 
-   msg=verbose > 2 .and. iproc ==0! no extended output
+   msg=get_verbose_level() > 2 .and. iproc ==0! no extended output
    !msg =(iproc==0)!extended output
 
    if (iproc==0) &
@@ -1198,7 +1201,7 @@ subroutine davidson(iproc,nproc,in,at,&
       call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,v(1),psiw(1))
       call transpose_v(iproc,nproc,orbsv,lzd%glr%wfd,commsv,hv(1),psiw(1))
 
-      !if(iproc==0 .and. verbose > 1) write(*,'(1x,a)')"done. "
+      !if(iproc==0 .and. get_verbose_level() > 1) write(*,'(1x,a)')"done. "
       call timing(iproc,'Davidson      ','ON')
       iter=iter+1
       if(iter>in%itermax_virt)then !an input variable should be put
@@ -1817,6 +1820,7 @@ subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,
    use module_base
    use module_types
    use yaml_output
+   use locregs
    implicit none
    logical, intent(in) :: occorbs
    integer, intent(in) :: iproc,nspin,nvirt,nplot!,output_wf_format
@@ -1996,12 +2000,7 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi,psivirt !<occupied and virtual eigenfunctions
   !local variables
   integer :: ind,iorb
-  real(gp) :: hx,hy,hz
   character(len=300) :: orbname,denname
-
-  hx=hgrids(1)
-  hy=hgrids(2)
-  hz=hgrids(3)
 
   !add a modulo operator to get rid of the particular k-point
   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
@@ -2017,8 +2016,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
      write(denname,'(A,i4.4)')trim(dir_output)//'denvirt',iorb+orbsv%isorb
      !write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-     call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
-     call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hgrids,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hgrids,rxyz,psivirt(ind:))
 
   end do
 
@@ -2030,8 +2029,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
         write(denname,'(A,i4.4)')trim(dir_output)//'densocc',iorb+orbs%isorb
         !write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-        call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
-        call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hgrids,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hgrids,rxyz,psi(ind:))
 
      endif
   end do

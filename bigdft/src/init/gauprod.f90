@@ -325,7 +325,7 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
      ishltmp=0
      !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
      if (ityx > ntypesx) then
-        if (iproc == 0 .and. verbose > 1) then
+        if (iproc == 0 .and. get_verbose_level() > 1) then
            call yaml_map('Generation of input wavefunction data for atom ', trim(at%astruct%atomnames(ityp)))
            call print_eleconf(nspin_print,&
                 at%aoig(iat)%aocc,at%aoig(iat)%nl_sc)
@@ -1028,6 +1028,7 @@ END FUNCTION xfac
 subroutine wavelets_to_gaussians(geocode,norbp,nspinor,n1,n2,n3,G,thetaphi,hx,hy,hz,wfd,psi,coeffs)
   use module_base
   use module_types
+  use compression
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: norbp,n1,n2,n3,nspinor
@@ -1062,6 +1063,7 @@ subroutine orbital_projection(geocode,n1,n2,n3,nat,rxyz,thetaphi,nshell,ndoc,nam
   use module_base
   use module_types
   use gaussians
+  use compression
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nat,nshltot,nexpo,ncoeff
@@ -1158,6 +1160,7 @@ subroutine lsh_projection(geocode,l,ng,xp,psiat,n1,n2,n3,rxyz,thetaphi,hx,hy,hz,
      wfd,psi,coeffs)
   use module_base
   use module_types
+  use compression
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: l,ng,n1,n2,n3

@@ -20,7 +20,10 @@
 
 
 module highlevel_wrappers
-  use futile
+  !use futile
+  !use dynamic_memory
+  use yaml_output
+  use time_profiling
   use wrapper_mpi
   use sparsematrix_base
   private
@@ -39,6 +42,10 @@ module highlevel_wrappers
                                         sparse_matrix_and_matrices_init_from_file_bigdft, &
                                         matrices_init, &
                                         get_selected_eigenvalues_from_FOE
+      use sparsematrix, only: resize_matrix_to_taskgroup
+      use sparsematrix_init, only: init_matrix_taskgroups_wrapper, &
+                                   write_sparsematrix_info
+      use dynamic_memory
       implicit none
 
       ! Calling arguments
@@ -52,7 +59,7 @@ module highlevel_wrappers
       ! Local variables
       integer :: iev, iev_min, iev_max
       type(sparse_matrix_metadata) :: smmd
-      type(sparse_matrix) :: smat_s, smat_m, smat_l
+      type(sparse_matrix),dimension(3) :: smat
       type(matrices),dimension(1) :: ovrlp_minus_one_half
       type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
       real(kind=8),dimension(:),allocatable :: eval
@@ -61,36 +68,51 @@ module highlevel_wrappers
 
       call sparse_matrix_metadata_init_from_file(trim(metadata_file), smmd)
       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
-           iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
+           iproc, nproc, mpiworld(), smat(1), ovrlp_mat, &
            init_matmul=.false.)
       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(hamiltonian_file), &
-           iproc, nproc, mpiworld(), smat_m, hamiltonian_mat, &
+           iproc, nproc, mpiworld(), smat(2), hamiltonian_mat, &
            init_matmul=.false.)
       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(kernel_file), &
-           iproc, nproc, mpiworld(), smat_l, kernel_mat, &
+           iproc, nproc, mpiworld(), smat(3), kernel_mat, &
            init_matmul=.true., filename_mult=trim(kernel_matmul_file))
-      call matrices_init(smat_l, ovrlp_minus_one_half(1))
+
+      call init_matrix_taskgroups_wrapper(iproc, nproc, mpi_comm_world, .true., 3, smat) 
+      call resize_matrix_to_taskgroup(smat(1), ovrlp_mat)
+      call resize_matrix_to_taskgroup(smat(2), hamiltonian_mat)
+      call resize_matrix_to_taskgroup(smat(3), kernel_mat)
+
+      if (iproc==0) then
+          call yaml_mapping_open('Matrix properties')
+          call write_sparsematrix_info(smat(1), 'Overlap matrix')
+          call write_sparsematrix_info(smat(2), 'Hamiltonian matrix')
+          call write_sparsematrix_info(smat(3), 'Density kernel')
+          call yaml_mapping_close()
+      end if
+
+
+      call matrices_init(smat(3), ovrlp_minus_one_half(1), matsize=SPARSE_TASKGROUP)
 
       !call timing(mpiworld(),'INIT','PR')
       call f_timing_checkpoint(ctr_name='INIT',mpi_comm=mpiworld(),nproc=mpisize(),&
                    gather_routine=gather_timings)
       iev_min = iev_minx
       iev_max = iev_maxx
-      if (iev_min<1 .or. iev_min>smat_s%nfvctr .or. iev_max>smat_s%nfvctr .or. iev_max<1) then
+      if (iev_min<1 .or. iev_min>smat(1)%nfvctr .or. iev_max>smat(1)%nfvctr .or. iev_max<1) then
           if (iproc==0) then
               call yaml_warning('The required eigenvalues are outside of the possible range, automatic ajustment')
           end if
       end if
       iev_min = max(iev_min,1)
-      iev_min = min(iev_min,smat_s%nfvctr)
-      iev_max = min(iev_max,smat_s%nfvctr)
+      iev_min = min(iev_min,smat(1)%nfvctr)
+      iev_max = min(iev_max,smat(1)%nfvctr)
       iev_max = max(iev_max,1)
       eval = f_malloc(iev_min.to.iev_max,id='eval')
       if (iproc==0) then
           call yaml_mapping_open('Calculating eigenvalues using FOE')
       end if
       call get_selected_eigenvalues_from_FOE(iproc, nproc, mpiworld(), &
-           iev_min, iev_max, smat_s, smat_m, smat_l, ovrlp_mat, hamiltonian_mat, &
+           iev_min, iev_max, smat(1), smat(2), smat(3), ovrlp_mat, hamiltonian_mat, &
            ovrlp_minus_one_half, eval, fscale)
 
       !!call timing(mpiworld(),'CALC','PR')
@@ -116,9 +138,9 @@ module highlevel_wrappers
       end if
 
 
-      call deallocate_sparse_matrix(smat_s)
-      call deallocate_sparse_matrix(smat_m)
-      call deallocate_sparse_matrix(smat_l)
+      call deallocate_sparse_matrix(smat(1))
+      call deallocate_sparse_matrix(smat(2))
+      call deallocate_sparse_matrix(smat(3))
       call deallocate_matrices(ovrlp_mat)
       call deallocate_matrices(hamiltonian_mat)
       call deallocate_matrices(kernel_mat)
@@ -141,6 +163,8 @@ module highlevel_wrappers
       use sparsematrix_io, only: write_linear_coefficients
       use sparsematrix_highlevel, only: sparse_matrix_metadata_init_from_file, &
                                         sparse_matrix_and_matrices_init_from_file_bigdft
+      use dynamic_memory
+      use dictionaries, only: f_err_throw
       implicit none
 
       ! Calling arguments
@@ -159,6 +183,10 @@ module highlevel_wrappers
       type(matrices) :: ovrlp_mat, hamiltonian_mat
       real(kind=8),dimension(:),allocatable :: eval
       external :: gather_timings
+
+      integer :: nspin_test, nfvctr_test, ntmb_test
+      real(mp),dimension(:),pointer :: eval_tmp
+      real(mp),dimension(:,:),pointer :: coeff_tmp
 
       call sparse_matrix_and_matrices_init_from_file_bigdft(matrix_format, trim(overlap_file), &
            iproc, nproc, mpiworld(), smat_s, ovrlp_mat, &
@@ -189,13 +217,9 @@ module highlevel_wrappers
           if (.not.present(coeff_file)) then
               call f_err_throw("'coeff_file' is not present")
           end if
-          iunit=99
-          call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
-          call write_linear_coefficients(iproc, 0, trim(coeff_file), 2, smmd%nat, smmd%rxyz, &
-               smmd%iatype, smmd%ntypes, smmd%nzatom, &
-               smmd%nelpsp, smmd%atomnames, smat_s%nfvctr, &
+          call write_linear_coefficients(matrix_format, iproc, nproc, mpiworld(), 0, &
+               trim(coeff_file), 2, smat_s%nfvctr, &
                smat_s%nfvctr, smat_s%nspin, hamiltonian_mat%matrix, eval)
-          call f_close(iunit)
       end if
 
       if (present(evals_out)) then

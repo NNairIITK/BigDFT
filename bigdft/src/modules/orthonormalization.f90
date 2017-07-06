@@ -303,13 +303,13 @@ module orthonormalization
           end do
           if (iortho>0) then
               call gramschmidt_subset(iproc, nproc, verbosity, iorder, tmb%npsidim_orbs, &
-                   tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, &
-                   tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+                   tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%smat(1), tmb%linmat%auxs, &
+                   tmb%linmat%smat(3), tmb%collcom, tmb%orthpar, &
                    tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
           end if
           call orthonormalize_subset(iproc, nproc, verbosity, iorder, tmb%npsidim_orbs, &                                  
-               tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, tmb%linmat%auxs, &
-               tmb%linmat%l, tmb%linmat%auxl, tmb%collcom, tmb%orthpar, &
+               tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%smat(1), tmb%linmat%auxs, &
+               tmb%linmat%smat(3), tmb%linmat%auxl, tmb%collcom, tmb%orthpar, &
                tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
           if (finished) exit ortho_loop
           iortho=iortho+1
@@ -563,8 +563,8 @@ module orthonormalization
     !! use sparsity of density kernel for all inverse quantities
     subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, ice_obj, &
                correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_aux, lagmat_, psit_c, psit_f, &
-               hpsit_c, hpsit_f, &
-               can_use_transposed, overlap_calculated, experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
+               hpsit_c, hpsit_f, hpsit_c_orig, hpsit_f_orig, &
+               can_use_transposed, overlap_calculated, calculate_inverse, norder_taylor, max_inversion_error, &
                npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi)
       use module_base
       use module_types
@@ -600,12 +600,14 @@ module orthonormalization
       type(sparse_matrix),intent(in) :: lagmat
       type(linmat_auxiliary),intent(in) :: lagmat_aux
       type(matrices),intent(out) :: lagmat_
-      real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
+      real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c 
       real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
+      real(kind=8),dimension(collcom%ndimind_c),intent(in) :: hpsit_c_orig
+      real(kind=8),dimension(7*collcom%ndimind_f),intent(in) :: hpsit_f_orig
       real(kind=8),dimension(:),pointer :: psit_c, psit_f
       logical,intent(inout) :: can_use_transposed, overlap_calculated
       type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-      logical,intent(in) :: experimental_mode, calculate_inverse
+      logical,intent(in) :: calculate_inverse
       integer,intent(inout) :: norder_taylor
       real(kind=8),intent(in) :: max_inversion_error
       real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
@@ -613,11 +615,11 @@ module orthonormalization
       type(work_transpose),intent(out) :: wt_hphi
     
       ! Local variables
-      real(kind=8) :: max_error, mean_error
+      real(kind=8) :: max_error, mean_error, trH
       real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
       integer,dimension(:),allocatable :: ipiv
       type(matrices),dimension(1) :: inv_ovrlp_
-      integer :: ist, ispin
+      integer :: ist, ispin, ii, iorb, iiorb
       integer, dimension(1) :: power
       real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large, tmpmat, tmparr
       real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
@@ -632,27 +634,27 @@ module orthonormalization
     
     
     
-      !inv_ovrlp_seq = sparsematrix_malloc(linmat%l, iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
-      !inv_lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='inv_lagmatp')
-      !lagmatp = sparsematrix_malloc(linmat%l, iaction=DENSE_MATMUL, id='lagmatp')
+      !inv_ovrlp_seq = sparsematrix_malloc(linmat%smat(3), iaction=SPARSEMM_SEQ, id='inv_ovrlp_seq')
+      !inv_lagmatp = sparsematrix_malloc(linmat%smat(3), iaction=DENSE_MATMUL, id='inv_lagmatp')
+      !lagmatp = sparsematrix_malloc(linmat%smat(3), iaction=DENSE_MATMUL, id='lagmatp')
       !!inv_ovrlp_(1) = matrices_null()
-      !!inv_ovrlp_(1)%matrix_compr = sparsematrix_malloc_ptr(linmat%l,iaction=SPARSE_FULL,id='inv_ovrlp_(1)%matrix_compr')
+      !!inv_ovrlp_(1)%matrix_compr = sparsematrix_malloc_ptr(linmat%smat(3),iaction=SPARSE_FULL,id='inv_ovrlp_(1)%matrix_compr')
     
       if (calculate_inverse) then
           ! Invert the overlap matrix
           if (iproc==0 .and. verbosity>0) call yaml_map('calculation of S^-1','direct calculation')
-          !!tmparr = sparsematrix_malloc(linmat%s,iaction=SPARSE_FULL,id='tmparr')
-          !!call vcopy(linmat%s%nvctr*linmat%s%nspin, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
-          !!call extract_taskgroup_inplace(linmat%s, linmat%ovrlp_)
+          !!tmparr = sparsematrix_malloc(linmat%smat(1),iaction=SPARSE_FULL,id='tmparr')
+          !!call vcopy(linmat%smat(1)%nvctr*linmat%smat(1)%nspin, linmat%ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+          !!call extract_taskgroup_inplace(linmat%smat(1), linmat%ovrlp_)
           power(1)=1
           call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
                norder_taylor, 1, power, -1, &
-               imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+               imode=1, ovrlp_smat=linmat%smat(1), inv_ovrlp_smat=linmat%smat(3), &
                ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=linmat%ovrlppowers_(3), &
                verbosity=0, &
                check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error, &
                ice_obj=ice_obj)
-          !!call vcopy(linmat%s%nvctr*linmat%s%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
+          !!call vcopy(linmat%smat(1)%nvctr*linmat%smat(1)%nspin, tmparr(1), 1, linmat%ovrlp_%matrix_compr(1), 1)
           !!call f_free(tmparr)
           call check_taylor_order(iproc, mean_error, max_inversion_error, norder_taylor)
       else
@@ -663,46 +665,63 @@ module orthonormalization
       call transpose_localized(iproc, nproc, npsidim_orbs, orbs, collcom, &
            TRANSPOSE_GATHER, lphi, psit_c, psit_f, lzd, wt_philarge)
       can_use_transposed=.true.
+
+      !@NEW Calculate Omega in a different way ####################################
+      ! Calculate <phi_alpha|g^beta>
+      call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+           psit_c, hpsit_c_orig, psit_f, hpsit_f_orig, lagmat, lagmat_aux, lagmat_)
+      trH=0.d0
+      do iorb=1,lagmat%nfvctrp
+         iiorb=lagmat%isfvctr+iorb
+         ii=matrixindex_in_compressed(lagmat,iiorb,iiorb)
+         trH = trH + lagmat_%matrix_compr(ii-lagmat%isvctrp_tg)
+      end do
+      call mpiallred(trH, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      !if (iproc==0) call yaml_map('Omega new',trH)
+      !############################################################################
     
+
       ! Calculate <phi_alpha|g_beta>
       call calculate_overlap_transposed(iproc, nproc, orbs, collcom, psit_c, hpsit_c, psit_f, hpsit_f, lagmat, lagmat_aux, lagmat_)
       !call gather_matrix_from_taskgroups_inplace(iproc, nproc, lagmat, lagmat_)
     
-      lagmat_large = sparsematrix_malloc0(linmat%l, iaction=SPARSE_TASKGROUP, id='lagmat_large')
+      lagmat_large = sparsematrix_malloc0(linmat%smat(3), iaction=SPARSE_TASKGROUP, id='lagmat_large')
     
       ! Symmetrize the matrix. Directly use the large sparsity pattern as this one 
       ! is used later for the matrix vector multiplication.
       !!call symmetrize_matrix()
-      tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
-      call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+      tmp_mat_compr = sparsematrix_malloc(linmat%smat(3),iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
+      call transform_sparse_matrix(iproc, linmat%smat(2), linmat%smat(3), SPARSE_TASKGROUP, 'small_to_large', &
            smat_in=lagmat_%matrix_compr, lmat_out=tmp_mat_compr)
-      call symmetrize_matrix(linmat%l, 'minus', tmp_mat_compr, lagmat_large)
+      !!write(*,*) 'WARNING HERE: symmetrize commented!!!'
+      call symmetrize_matrix(linmat%smat(3), 'minus', tmp_mat_compr, lagmat_large)
+      !lagmat_large=-tmp_mat_compr
       call f_free(tmp_mat_compr)
     
     
       ! Apply S^-1
-      !!call sequential_acces_matrix_fast2(linmat%l, linmat%ovrlppowers_(3)%matrix_compr, inv_ovrlp_seq)
+      !!call sequential_acces_matrix_fast2(linmat%smat(3), linmat%ovrlppowers_(3)%matrix_compr, inv_ovrlp_seq)
       ! Transform the matrix to the large sparsity pattern (necessary for the following uncompress_matrix_distributed)
       if (correction_orthoconstraint==0) then
           if (data_strategy_main==GLOBAL_MATRIX) then
               stop 'deprecated'
-              !!!call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+              !!!call transform_sparse_matrix(iproc, linmat%smat(2), linmat%smat(3), SPARSE_TASKGROUP, 'small_to_large', &
               !!!     smat_in=lagmat_%matrix_compr, lmat_out=lagmat_large)
           end if
           if (iproc==0) call yaml_map('correction orthoconstraint',.true.)
-          !!call uncompress_matrix_distributed2(iproc, linmat%l, DENSE_MATMUL, lagmat_large, lagmatp)
-          !!call sparsemm(linmat%l, inv_ovrlp_seq, lagmatp, inv_lagmatp)
+          !!call uncompress_matrix_distributed2(iproc, linmat%smat(3), DENSE_MATMUL, lagmat_large, lagmatp)
+          !!call sparsemm(linmat%smat(3), inv_ovrlp_seq, lagmatp, inv_lagmatp)
           !!write(*,*) 'iproc, sum(inv_lagmatp)', iproc, sum(inv_lagmatp)
-          !!call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
+          !!call compress_matrix_distributed(iproc, nproc, linmat%smat(3), DENSE_MATMUL, &
           !!     inv_lagmatp, lagmat_large)
-          do ispin=1,linmat%l%nspin
-              ist=(ispin-1)*linmat%l%nvctrp_tg+1
-              call matrix_matrix_mult_wrapper(iproc, nproc, linmat%l, &
+          do ispin=1,linmat%smat(3)%nspin
+              ist=(ispin-1)*linmat%smat(3)%nvctrp_tg+1
+              call matrix_matrix_mult_wrapper(iproc, nproc, linmat%smat(3), &
                    linmat%ovrlppowers_(3)%matrix_compr(ist:), lagmat_large(ist:), lagmat_large(ist:))
           end do
       end if
       if (data_strategy_main==SUBMATRIX) then
-          call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'large_to_small', &
+          call transform_sparse_matrix(iproc, linmat%smat(2), linmat%smat(3), SPARSE_TASKGROUP, 'large_to_small', &
                lmat_in=lagmat_large, smat_out=lagmat_%matrix_compr)
       end if
       call f_free(lagmat_large)
@@ -734,7 +753,7 @@ module orthonormalization
       hpsit_tmp_c = f_malloc(collcom%ndimind_c,id='psit_tmp_c')
       hpsit_tmp_f = f_malloc(7*collcom%ndimind_f,id='psit_tmp_f')
       hphi_nococontra = f_malloc(npsidim_orbs,id='hphi_nococontra')
-      call build_linear_combination_transposed(collcom, linmat%l, linmat%auxl, linmat%ovrlppowers_(3), &
+      call build_linear_combination_transposed(collcom, linmat%smat(3), linmat%auxl, linmat%ovrlppowers_(3), &
            hpsit_c, hpsit_f, .true., hpsit_tmp_c, hpsit_tmp_f, iproc)
     
       ! Start the untranspose process (will be gathered together in
@@ -836,24 +855,24 @@ module orthonormalization
       !!!    else if (data_strategy==SUBMATRIX) then
       !!!        ! Directly use the large sparsity pattern as this one is used later
       !!!        ! for the matrix vector multiplication
-      !!!        tmp_mat_compr = sparsematrix_malloc(linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
-      !!!        call transform_sparse_matrix(iproc, linmat%m, linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+      !!!        tmp_mat_compr = sparsematrix_malloc(linmat%smat(3),iaction=SPARSE_TASKGROUP,id='tmp_mat_compr')
+      !!!        call transform_sparse_matrix(iproc, linmat%smat(2), linmat%smat(3), SPARSE_TASKGROUP, 'small_to_large', &
       !!!             smat_in=lagmat_%matrix_compr, lmat_out=tmp_mat_compr)
       !!!        do ispin=1,lagmat%nspin
-      !!!            ishift=(ispin-1)*linmat%l%nvctrp_tg
+      !!!            ishift=(ispin-1)*linmat%smat(3)%nvctrp_tg
       !!!            !$omp parallel default(none) &
       !!!            !$omp shared(linmat,lagmat_large,tmp_mat_compr,ishift) &
       !!!            !$omp private(iseg,ii,i,ii_trans)
       !!!            !$omp do
-      !!!            !do iseg=linmat%l%iseseg_tg(1),linmat%l%iseseg_tg(2)
-      !!!            do iseg=linmat%l%istartendseg_local(1),linmat%l%istartendseg_local(2)
-      !!!                ii = linmat%l%keyv(iseg)
+      !!!            !do iseg=linmat%smat(3)%iseseg_tg(1),linmat%smat(3)%iseseg_tg(2)
+      !!!            do iseg=linmat%smat(3)%istartendseg_local(1),linmat%smat(3)%istartendseg_local(2)
+      !!!                ii = linmat%smat(3)%keyv(iseg)
       !!!                ! A segment is always on one line, therefore no double loop
-      !!!                do i=linmat%l%keyg(1,1,iseg),linmat%l%keyg(2,1,iseg) !this is too much, but for the moment ok
-      !!!                    ii_trans = matrixindex_in_compressed(linmat%l,linmat%l%keyg(1,2,iseg),i)
-      !!!                    lagmat_large(ii+ishift-linmat%l%isvctrp_tg) = &
-      !!!                        - 0.5d0*tmp_mat_compr(ii+ishift-linmat%l%isvctrp_tg) &
-      !!!                        - 0.5d0*tmp_mat_compr(ii_trans+ishift-linmat%l%isvctrp_tg)
+      !!!                do i=linmat%smat(3)%keyg(1,1,iseg),linmat%smat(3)%keyg(2,1,iseg) !this is too much, but for the moment ok
+      !!!                    ii_trans = matrixindex_in_compressed(linmat%smat(3),linmat%smat(3)%keyg(1,2,iseg),i)
+      !!!                    lagmat_large(ii+ishift-linmat%smat(3)%isvctrp_tg) = &
+      !!!                        - 0.5d0*tmp_mat_compr(ii+ishift-linmat%smat(3)%isvctrp_tg) &
+      !!!                        - 0.5d0*tmp_mat_compr(ii_trans+ishift-linmat%smat(3)%isvctrp_tg)
       !!!                    ii=ii+1
       !!!                end do
       !!!            end do

@@ -1,7 +1,7 @@
 import yaml
     
 def kw_pop(*args,**kwargs):
-    """ Treatment of kwargs. Eliminate from kwargs the tuple in args"""
+    """Treatment of kwargs. Eliminate from kwargs the tuple in args."""
     arg=kwargs.copy()
     key,default=args
     if key in arg:
@@ -11,6 +11,7 @@ def kw_pop(*args,**kwargs):
 
 #function which removes from a set of lines the yaml_fields contained in the to_remove list
 def clean_logfile(logfile_lines,to_remove):
+  """Removes from a set of lines the yaml_fields contained in the to_remove list."""
   line_rev=logfile_lines #list of the lines of the logfile
   #loop in the reversed from (such as to parse by blocks)
   extra_lines=20 #internal variable to be customized
@@ -111,12 +112,43 @@ def clean_logfile(logfile_lines,to_remove):
     print 'Difference: ',list(set(to_remove) - set(removed) )
   return cleaned_logfile
 
-def load(file=None,stream=None):
+def load(file=None,stream=None,doc_lists=False,safe_mode=False):
+    """
+    Return a list of loaded logfiles from files, which is a list
+    of paths leading to logfiles.
+    
+    Optional arguments:
+    - file: the yaml file containing the stream to be loaded
+    - stream: the stream to load
+    - doc_lists: if true ensures that the results is always in a form 
+                 of lists of documents, event in the case of a single doc
+    - safe_mode: When true, in the case of multiple documents 
+                 in the stream, it loads the document one after another. 
+                 This is useful to avoid losing of all the document list 
+                 in the case when one of the document is 
+                 not yaml compliant. Works only when the separation of the 
+                 documents is indicated by the usual syntax "---\n" 
+                 (i.e. no yaml tags)
+                 
+    """
     strm=stream if stream else open(file,'r')
     try:
-        ld=yaml.load(strm,Loader=yaml.CLoader)
+        ldr=yaml.MinLoader #seems only to work with the strings
     except:
-        ld=yaml.load_all(strm,Loader=yaml.CLoader)
+        ldr=yaml.CLoader
+    try:
+        ld=yaml.load(strm,Loader=ldr)
+        if doc_lists: ld=[ld]
+    except:
+        if safe_mode:
+            documents=strm.split('---\n')
+            for i,raw_doc in enumerate(documents):
+                try:
+                    logs.append(yaml.load(raw_doc,Loader=ldr))
+                except Exception,f:
+                    print 'Document',i,'of stream NOT loaded'
+        else:
+            ld=yaml.load_all(strm,Loader=ldr)
     return ld
 
 def dump(data,filename=None,raw=False,tar=None):

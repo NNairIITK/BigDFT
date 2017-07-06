@@ -9,7 +9,7 @@
 
 
 !> Localize the projectors for pseudopotential calculations
-subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
+subroutine localize_projectors(iproc,nproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
      logrid,at,orbs,nl)
   use module_base
   use module_types, only: atoms_data,orbitals_data
@@ -18,8 +18,9 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   use psp_projectors_base, only: DFT_PSP_projectors
   use psp_projectors, only: bounds_to_plr_limits, pregion_size
   use public_enums, only: PSPCODE_PAW
+  use sparsematrix_init, only: distribute_on_tasks
   implicit none
-  integer, intent(in) :: n1,n2,n3
+  integer, intent(in) :: iproc,nproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -31,17 +32,23 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   !n(c) logical :: cmplxprojs
   type(gaussian_basis_iter) :: iter
   integer :: istart,ityp,iat,mproj,nl1,nu1,nl2,nu2,nl3,nu3,mvctr,mseg,nprojelat,i,l
-  integer :: ikpt,nkptsproj,ikptp,izero
+  integer :: ikpt,nkptsproj,ikptp,izero,natp,isat
   real(gp) :: maxfullvol,totfullvol,totzerovol,fullvol,maxrad,maxzerovol,rad
+  integer,dimension(:,:),allocatable :: reducearr
 
   call f_routine(id='localize_projectors')
   
-  istart=1
+  istart=0
   nl%nproj=0
   nl%nprojel=0
 
+  ! Parallelize over the atoms
+  call distribute_on_tasks(at%astruct%nat, iproc, nproc, natp, isat)
 
-  do iat=1,at%astruct%nat
+  reducearr = f_malloc0((/18,at%astruct%nat/),id='reducearr')
+
+  !do iat=1,at%astruct%nat
+  do iat=isat+1,isat+natp
 
      mproj = 0
      call gaussian_iter_start(nl%proj_G, iat, iter)
@@ -136,16 +143,66 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
         call bounds_to_plr_limits(.true.,2,nl%pspd(iat)%plr,&
              nl1,nl2,nl3,nu1,nu2,nu3)
      endif
+
+     ! Copy the data for the communication
+     reducearr( 1,iat) = nl%pspd(iat)%mproj
+     reducearr( 2,iat) = nl%pspd(iat)%nlr
+     reducearr( 3,iat) = nl%pspd(iat)%plr%wfd%nseg_c
+     reducearr( 4,iat) = nl%pspd(iat)%plr%wfd%nvctr_c
+     reducearr( 5,iat) = nl%pspd(iat)%plr%wfd%nseg_f
+     reducearr( 6,iat) = nl%pspd(iat)%plr%wfd%nvctr_f
+     reducearr( 7,iat) = nl%pspd(iat)%plr%ns1
+     reducearr( 8,iat) = nl%pspd(iat)%plr%ns2
+     reducearr( 9,iat) = nl%pspd(iat)%plr%ns3
+     reducearr(10,iat) = nl%pspd(iat)%plr%d%n1
+     reducearr(11,iat) = nl%pspd(iat)%plr%d%n2
+     reducearr(12,iat) = nl%pspd(iat)%plr%d%n3
+     reducearr(13,iat) = nl%pspd(iat)%plr%d%nfl1
+     reducearr(14,iat) = nl%pspd(iat)%plr%d%nfl2
+     reducearr(15,iat) = nl%pspd(iat)%plr%d%nfl3
+     reducearr(16,iat) = nl%pspd(iat)%plr%d%nfu1
+     reducearr(17,iat) = nl%pspd(iat)%plr%d%nfu2
+     reducearr(18,iat) = nl%pspd(iat)%plr%d%nfu3
   enddo
+
+  ! Distribute the data to all process, using an allreduce
+  if (nproc > 1) call mpiallred(reducearr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  !$omp parallel default(none) shared(at, nl, reducearr) private(iat)
+  !$omp do schedule(static)
+  do iat=1,at%astruct%nat
+      nl%pspd(iat)%mproj           = reducearr( 1,iat)
+      nl%pspd(iat)%nlr             = reducearr( 2,iat)
+      nl%pspd(iat)%plr%wfd%nseg_c  = reducearr( 3,iat)
+      nl%pspd(iat)%plr%wfd%nvctr_c = reducearr( 4,iat)
+      nl%pspd(iat)%plr%wfd%nseg_f  = reducearr( 5,iat)
+      nl%pspd(iat)%plr%wfd%nvctr_f = reducearr( 6,iat)
+      nl%pspd(iat)%plr%ns1         = reducearr( 7,iat)
+      nl%pspd(iat)%plr%ns2         = reducearr( 8,iat)
+      nl%pspd(iat)%plr%ns3         = reducearr( 9,iat)
+      nl%pspd(iat)%plr%d%n1        = reducearr(10,iat)
+      nl%pspd(iat)%plr%d%n2        = reducearr(11,iat)
+      nl%pspd(iat)%plr%d%n3        = reducearr(12,iat)
+      nl%pspd(iat)%plr%d%nfl1      = reducearr(13,iat)
+      nl%pspd(iat)%plr%d%nfl2      = reducearr(14,iat)
+      nl%pspd(iat)%plr%d%nfl3      = reducearr(15,iat)
+      nl%pspd(iat)%plr%d%nfu1      = reducearr(16,iat)
+      nl%pspd(iat)%plr%d%nfu2      = reducearr(17,iat)
+      nl%pspd(iat)%plr%d%nfu3      = reducearr(18,iat)
+  end do
+  !$omp end do
+  !$omp end parallel
+  call f_free(reducearr)
+  call mpiallred(nl%nproj, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  call mpiallred(nl%nprojel, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+  call mpiallred(istart, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  istart = istart + 1
+
 
   !control the strategy to be applied following the memory limit
   !if the projectors takes too much memory allocate only one atom at the same time
   !control the memory of the projectors expressed in GB
   if (memorylimit /= 0.e0 .and. .not. DistProjApply .and. &
        real(istart-1,kind=4) > memorylimit*134217728.0e0) then
-!!$     if (iproc == 0) then
-!!$        write(*,'(44x,a)') '------ On-the-fly projectors application'
-!!$     end if
      DistProjApply =.true.
   end if
 
@@ -437,6 +494,7 @@ subroutine fill_projectors_old(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
 use module_base
 use module_types
 use yaml_output
+use locregs
 implicit none
 integer, intent(in) :: idir
 real(gp), intent(in) :: hx,hy,hz
@@ -1917,8 +1975,7 @@ subroutine calc_coeff_proj(l,i,m,nterm_max,nterm,lx,ly,lz,fac_arr)
 END SUBROUTINE calc_coeff_proj
 
 subroutine plr_segs_and_vctrs(plr,nseg_c,nseg_f,nvctr_c,nvctr_f)
-  use module_base
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(in) :: plr
   integer, intent(out) :: nseg_c,nseg_f,nvctr_c,nvctr_f

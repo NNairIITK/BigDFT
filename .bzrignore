@@ -107,6 +107,7 @@ libABINIT/depcomp
 yaml/
 PyYAML/
 libxc/
+openbabel/
 *.aux
 *.log
 *.mod
@@ -165,6 +166,7 @@ netcdf-fortran-*/
 GaIn-*/
 spred/INSTALL
 libABINIT/compile
+chess/config
 chess/compile
 chess/depcomp
 chess/install-sh

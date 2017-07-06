@@ -81,7 +81,6 @@ $(modules): $(libwrappers_a_OBJECTS)
 interface_cuda_fake.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 f_blas.o: linalg.o
-interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 f_functions.o: numerics.o box.o
 op2p_module.o: mpi.o linalg.o
@@ -89,7 +88,7 @@ harmonics.o: numerics.o
 box.o: linalg.o
 #fft2d.o: fft3d.o
 
-AM_FCFLAGS = -I. -I$(top_builddir)/flib/ @MPI_INCLUDE@
+AM_FCFLAGS = -I. -I$(top_builddir)/dicts/ -I$(top_builddir)/flib/ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
 AM_CPPFLAGS += -I@CUDA_PATH@/include
@@ -120,13 +119,3 @@ modules = module_fft_sg.@MODULE_EXT@ \
 	box.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h
-
-# Copy modules in a common include directory.
-all: all-am insmod
-install: install-am insmod
-check: check-am insmod
-insmod: $(modules)
-	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
-	for mod in "$(modules)" ; do \
-	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
-	done

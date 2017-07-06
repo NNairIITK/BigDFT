@@ -71,6 +71,14 @@
      COMMENT: Required accuracy for the Chebyshev fit for the penalty function
      default: 1.e-5
      RANGE: [1.e-10,1.e-3]
+   betax_foe:
+     COMMENT: the exponent in the exponential penalty function which is used to determine the eigenvalue bounds for FOE
+     default: -1000.0
+     RANGE: [-10000.0,-10.0]
+   betax_ice:
+     COMMENT: the exponent in the exponential penalty function which is used to determine the eigenvalue bounds for ICE
+     default: -1000.0
+     RANGE: [-10000.0,-10.0]
    #fscale:
    #  COMMENT: Decay length of the error function
    #  DESCRIPTION: |
@@ -97,6 +105,11 @@
      DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
      default: 40
      RANGE: [20,200]
+   pexsi_nproc_per_pole:
+     COMMENT: Number of processes used per pole by PEXSI
+     DESCRIPTION: number of processes used per pole by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+     default: 1
+     RANGE: [1,10000]
    pexsi_mumin:
      COMMENT: Initial guess for the lower bound of the chemical potential used by PEXSI
      DESCRIPTION: |
@@ -134,3 +147,20 @@
      DESCRIPTION: Upper bound for the spectral radius of S^-1H (in hartree?) used by PEXSI. This does not seem to be a critical parameter.
      default: 10.0
      RANGE: [-100.0,100.0]
+   pexsi_do_inertia_count:
+     COMMENT: Decides whether PEXSI should use the inertia count at each iteration
+     DESCRIPTION: decides whether PEXSI should use the inertia count at each iteration
+     default: yes
+   pexsi_max_iter:
+     COMMENT: Maximal number of PEXSI iterations
+     DESCRIPTION: Maximal number of PEXSI iterations
+     default: 10
+     RANGE: [1,100]
+   pexsi_verbosity:
+     COMMENT: Verbosity level of the PEXSI solver
+     DESCRIPTION: Verbosity level of the PEXSI solver
+     default: 0
+     EXCLUSIVE: 
+       0: minimal output
+       1: standard output
+       2: detailed output

@@ -2,6 +2,7 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 . "@bindir@/unienv.sh"
 unienv BIGDFT_ROOT @bindir@
+unienv BIGDFT_SOURCES @abs_top_srcdir@
 #for dynamic libraries (commented as the if statement does not work in a .in file)
 #unienv LD_PRELOAD @libdir@/libbigdft-1.so
 #for gobject introspection

@@ -11,7 +11,7 @@ AC_DEFUN([AX_CHESS],
 AC_REQUIRE([AX_FLIB])
 AC_REQUIRE([AX_LINALG])
 AC_REQUIRE([AX_MPI])
-AX_PACKAGE([CHESS],[0.1.3],[-lCheSS-1],[$LINALG_LIBS $LIB_FUTILE_LIBS],[$LIB_FLIB_CFLAGS],
+AX_PACKAGE([CHESS],[0.1.3],[-lCheSS-1],[$LIB_FUTILE_LIBS $LINALG_LIBS],[$LIB_FUTILE_CFLAGS],
 [program main
     use sparsematrix_base
     use sparsematrix_highlevel

@@ -11,6 +11,7 @@ module pseudopotentials
   use module_defs, only: gp
   use m_pawrad, only: pawrad_type
   use m_pawtab, only: pawtab_type
+  use module_base, only: bigdft_mpi
   use dictionaries
   use public_keys
   use public_enums
@@ -260,7 +261,7 @@ module pseudopotentials
          if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
               & has_key(loc, COEFF_KEY)
       end if
-
+ 
       ! Nonlocal terms
       if (present(psppar))   psppar(:,:) = 0._gp
       if (has_key(dict, NLPSP_KEY) .and. present(psppar)) then
@@ -826,7 +827,7 @@ module pseudopotentials
 
     subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
       use module_defs, only: dp, gp, pi_param
-      use module_base, only: bigdft_mpi
+      !use module_base, only: bigdft_mpi
       use module_xc
       use abi_defs_basis, only: tol14, fnlen
       use m_pawpsp, only: pawpsp_main
@@ -885,7 +886,7 @@ module pseudopotentials
 
       ! Always allocate paw_setup, but fill it only for iproc == 0.
       allocate(paw_setup(1))
-      if (bigdft_mpi%iproc == 0) then
+!      if (bigdft_mpi%iproc == 0) then
          ! Parse the PAW file if in XML format
          call f_iostream_from_file(ios, trim(filename))
          call f_iostream_get_line(ios, line)
@@ -895,7 +896,7 @@ module pseudopotentials
             ipsp2xml = f_malloc(1, id = "ipsp2xml")
             ipsp2xml(1) = 1
          end if
-      end if
+!      end if
 
       call pawpsp_main( &
            & pawrad,pawtab,&
@@ -922,7 +923,7 @@ module pseudopotentials
     !! there is no need to separate scpr in its real and imaginary part before
     !pure 
     subroutine apply_hij_coeff(prj,n_w,n_p,scpr,hscpr)
-      use module_base, only: gp,wp
+      use module_defs, only: gp,wp
       use f_blas, only: f_eye,f_gemv
       implicit none
       integer, intent(in) :: n_p,n_w

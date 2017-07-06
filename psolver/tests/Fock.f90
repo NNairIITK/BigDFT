@@ -52,7 +52,8 @@ program Fock_Operator_Program
   !initialize categories for the Poisson Solver
   call PS_initialize_timing_categories()
   !tell to f_malloc who is the master
-  call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
+  call f_malloc_set_status(iproc=iproc)
+  !call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
   call f_routine(id='Fock_Operator_Program')
   if (iproc ==0) then
      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')

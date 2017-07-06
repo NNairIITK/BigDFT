@@ -17,7 +17,7 @@ module dynamic_memory_base
   use f_precisions
   use yaml_parse, only: yaml_load
   use yaml_output, only: yaml_map
-  use f_utils, only: f_time,f_zero
+  use f_utils, only: f_time,f_zero,f_sizeof
   use iso_c_binding
   use smpi_shared
   use f_environment
@@ -131,7 +131,7 @@ module dynamic_memory_base
 
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1,f_memcpy_i2
-     module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
+     module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i1i3,f_memcpy_i2i1,f_memcpy_i2i0,f_memcpy_i3i1
      module procedure f_memcpy_li0,f_memcpy_li1
      module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
      module procedure f_memcpy_l1
@@ -147,7 +147,7 @@ module dynamic_memory_base
   interface f_maxdiff
      module procedure f_maxdiff_i0,f_maxdiff_i1
      module procedure f_maxdiff_li0,f_maxdiff_li1
-     module procedure f_maxdiff_i0i1,f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_i0i1,f_maxdiff_i1i2,f_maxdiff_i2i1,f_maxdiff_i3i1
      module procedure f_maxdiff_li0li1,f_maxdiff_li1li2,f_maxdiff_li2li1
      module procedure f_maxdiff_r0
      module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
@@ -308,9 +308,12 @@ contains
     integer(kind=8) :: itime
 
 
-    if (f_err_raise(ictrl == 0,&
+    if (ictrl == 0) then
+       call f_err_throw(&
          'ERROR (f_routine): the routine f_malloc_initialize has not been called',&
-         ERR_MALLOC_INTERNAL)) return
+         ERR_MALLOC_INTERNAL)
+       return
+    end if
 
     if (.not. present(id)) return !no effect
 
@@ -419,9 +422,12 @@ contains
     implicit none
     integer :: jproc,unit_dbg
 
-    if (f_err_raise(ictrl == 0,&
-         '(f_release_routine): the routine f_malloc_initialize has not been called',&
-         ERR_MALLOC_INTERNAL)) return
+    if (ictrl == 0) then
+       call f_err_throw(&
+            '(f_release_routine): the routine f_malloc_initialize has not been called',&
+            ERR_MALLOC_INTERNAL)
+       return
+    end if
 
     !profile the profiling
     call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
@@ -447,27 +453,18 @@ contains
     end if
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
-!!$    if (f_err_check()) then
-!!$       call yaml_warning('ERROR found!')
-!!$       call f_dump_last_error()
-!!$       call yaml_comment('End of ERROR')
-!!$       call f_timer_resume()
-!!$       return
-!!$    end if
-
     !last_opened_routine=trim(dict_key(dict_codepoint))!repeat(' ',namelen)
     !the main program is opened until there is a subprograms keyword
-    if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
-         'parent not associated(A)',&
-         ERR_MALLOC_INTERNAL)) then
+    if (.not. associated(mems(ictrl)%dict_codepoint%parent)) then
+       call f_err_throw('parent not associated(A)',&
+            ERR_MALLOC_INTERNAL)
        call f_timer_resume()
        return
     end if
     if (dict_key(mems(ictrl)%dict_codepoint%parent) == subprograms) then    
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint%parent
-       if (f_err_raise(.not. associated(mems(ictrl)%dict_codepoint%parent),&
-            'parent not associated(B)',&
-            ERR_MALLOC_INTERNAL)) then
+       if (.not. associated(mems(ictrl)%dict_codepoint%parent)) then
+          call f_err_throw('parent not associated(B)',ERR_MALLOC_INTERNAL)
           call f_timer_resume()
           return
        end if
@@ -826,6 +823,8 @@ contains
        !ndebug=f_nan_pad_size
     end if
 
+    call f_set_profiling_depth()
+
     !initialize the memprofiling counters
     call set(mems(ictrl)%dict_global//'Timestamp of Profile initialization',&
          trim(yaml_date_and_time_toa()))
@@ -835,45 +834,30 @@ contains
     call f_routine(id=main)
 
     !set status of library to the initial case
-    call f_malloc_set_status(memory_limit=0.e0)
+    call f_set_memory_limit()
 
   end subroutine f_malloc_initialize
 
   !> Initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc,profiling_depth)
+  subroutine f_malloc_set_status(output_level,logfile_name,iproc)!,profiling_depth)
     use yaml_output!, only: yaml_date_and_time_toa
     use f_utils
     use yaml_strings
     implicit none
     !Arguments
     character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
-    real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
+    !real(kind=4), intent(in), optional :: memory_limit       !< Memory limit
     integer, intent(in), optional :: output_level            !< Level of output for memocc
                                                              !! 0 no file, 1 light, 2 full
     integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default 0)
     !> innermost profiling level that will be applied to the code
-    integer, intent(in), optional :: profiling_depth
+    !integer, intent(in), optional :: profiling_depth
     !local variables
     integer :: unt,jctrl,jproc
 
     if (f_err_raise(ictrl == 0,&
          'ERROR (f_malloc_set_status): the routine f_malloc_initialize has not been called',&
          ERR_MALLOC_INTERNAL)) return
-
-!!$    if (.not. mems(ictrl)%profile_initialized) then
-!!$       profile_initialized=.true.
-!!$       !call malloc_errors()
-!!$       !initalize the dictionary with the allocation information
-!!$       nullify(dict_routine)
-!!$       call dict_init(dict_global)
-!!$       call set(dict_global//'Timestamp of Profile initialization',trim(yaml_date_and_time_toa()))
-!!$       !Process Id (used to dump)
-!!$       call set(dict_global//processid,0)
-!!$       call dict_init(dict_calling_sequence)
-!!$       !in principle the calling sequence starts from the main
-!!$       dict_codepoint => dict_calling_sequence
-!!$       call f_routine(id='Main program')
-!!$    end if
 
     if (present(output_level)) then
        if (output_level > 0) then
@@ -896,13 +880,9 @@ contains
           !a previous instance of malloc_set_status, and raise and exception if it is so
           do jctrl=ictrl-1,1,-1
              if (trim(logfile_name)==mems(jctrl)%logfile) &
-!!$                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
-!!$                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
-!!$                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
              call f_err_throw('Logfile name "'//trim(logfile_name)//&
                   '" in f_malloc_set_status invalid, already in use for instance No.'//jctrl&
                   ,err_id=ERR_INVALID_MALLOC)
-
              exit
           end do
           unt=-1 !SM: unt otherwise not defined for jproc/=0
@@ -931,22 +911,30 @@ contains
        mems(ictrl)%output_level=output_level
     end if
 
-    if (present(memory_limit)) call f_set_memory_limit(memory_limit)
+    !if (present(memory_limit)) call f_set_memory_limit(memory_limit)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
 
-    if (present(profiling_depth)) then
-       !set the limit of the profiling to the maximum
-       !it cannot be lower than the present depth
-       if (profiling_depth < mems(ictrl)%profiling_depth) then
-          call f_err_throw('The profiling_depth level cannot be lowered',&
-               err_id=ERR_INVALID_MALLOC)
-       end if
-       mems(ictrl)%profiling_depth=max(profiling_depth,mems(ictrl)%depth)
-       if (profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disab
-    end if
+!!$    if (present(profiling_depth)) then
+!!$    end if
 
   end subroutine f_malloc_set_status
+
+  subroutine f_set_profiling_depth()
+    use f_environment, only: f_maximum_profiling_depth
+    implicit none
+    !integer, intent(in) :: profiling_depth
+
+    !set the limit of the profiling to the maximum
+    !it cannot be lower than the present depth
+    if (f_maximum_profiling_depth < mems(ictrl)%profiling_depth) then
+       call f_err_throw('The profiling_depth level cannot be lowered',&
+            err_id=ERR_INVALID_MALLOC)
+    end if
+    mems(ictrl)%profiling_depth=max(f_maximum_profiling_depth,mems(ictrl)%depth)
+    if (f_maximum_profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disab
+  end subroutine f_set_profiling_depth
+
 
   !> Finalize f_malloc (Display status)
   subroutine f_malloc_finalize(dump,process_id)

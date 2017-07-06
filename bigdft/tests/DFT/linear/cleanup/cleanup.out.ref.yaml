@@ -143,14 +143,12 @@
    domain                              : ~ #      Domain to add to the hostname to find the IP
    inguess_geopt                       : 0 #      Input guess to be used during the optimization
    store_index                         : Yes #    Store indices or recalculate them for linear scaling
-   verbosity                           : 2 #      Verbosity of the output
    psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
    mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
     #                                              preserving
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
-   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
    explicit_locregcenters              : No #     Linear scaling explicitly specify localization centers
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
@@ -436,6 +434,12 @@
      Rloc                              :  0.22179
      h_ij matrix:
      -  [  18.26692,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+     -  [  0.00000,  0.00000,  0.00000 ]
+   - Channel (l)                       :  1
+     Rloc                              :  0.25683
+     h_ij matrix:
+     -  [  0.00000,  0.00000,  0.00000 ]
      -  [  0.00000,  0.00000,  0.00000 ]
      -  [  0.00000,  0.00000,  0.00000 ]
    No. of projectors                   :  1
@@ -1347,26 +1351,23 @@
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
      nzion                             :  6
      sigma                             :  [  0.248,  0.248,  0.248 ]
-     q0                                :  [ -7.625625E-01 ]
+     q0                                :  [ -6.762562E+00 ]
      q1                                :  [  1.507079E-01,  1.530909E-01, -2.310671E-01 ]
      q2: [ 4.424550E-01,  7.999239E-01, -2.442833E-01,  3.655600E-01,  3.303853E-01]
-     type                              : unknown
    - sym                               : H # 0002
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
      nzion                             :  1
      sigma                             :  [  0.200,  0.200,  0.200 ]
-     q0                                :  [  3.901886E-01 ]
+     q0                                :  [ -6.098114E-01 ]
      q1                                :  [  3.870218E-02,  2.331291E-02,  2.789677E-01 ]
      q2: [ 8.182779E-02,  4.896978E-03, -2.135401E-01,  4.755400E-02,  3.602723E-01]
-     type                              : unknown
    - sym                               : H # 0003
      r: [ 2.217505931689284,  2.044733573632779,  2.030559672968256]
      nzion                             :  1
      sigma                             :  [  0.200,  0.200,  0.200 ]
-     q0                                :  [  3.723943E-01 ]
+     q0                                :  [ -6.276057E-01 ]
      q1                                :  [ -2.07447E-01, -2.013806E-01, -5.589937E-03 ]
      q2: [ 1.473550E-02,  3.714103E-01,  9.529613E-02,  1.496332E-02, -1.904056E-01]
-     type                              : unknown
  Checking the total multipoles based on the atomic multipoles:
  - Up to multipole l= 0:
      Electric Dipole Moment (Debye):

@@ -95,7 +95,7 @@ subroutine testLoop(outs, it, check)
   if (it == size(steps)) then
      if (bigdft_mpi%iproc == 0) then
         open(unit = unit, file = trim(filename))
-        write(unit, "(2F16.12)") en
+        write(unit, "(2F18.12)") en
         close(unit)
         call yaml_sequence_open("Energy (Hartree) per volume (Bohr^3)")
         do i = 1, size(steps)

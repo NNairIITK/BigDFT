@@ -213,7 +213,7 @@ program MP_gaussian
 !!$        call gau_daub_1d(.false.,1, x0, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
 !!$             1, [ 1.d0 ], hgrid,nres,-npts,2*npts,1,f_mus,nw,work)
         !now calculate the diff with respect to the original
-        call f_diff(size(f_mu),f_mu,transpose(f_mus(isigma,:,:,istep)),diff)
+        call f_diff(f_sizeof(f_mu),f_mu,transpose(f_mus(isigma,:,:,istep)),diff)
         !the f_diff routine seems not working here
         call yaml_map('Diffs',[diff,sum(abs(f_mu-transpose(f_mus(isigma,:,:,istep))))])
         diff=sum(abs(f_mu-transpose(f_mus(isigma,:,:,istep))))

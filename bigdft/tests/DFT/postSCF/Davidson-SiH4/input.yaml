@@ -14,9 +14,11 @@
    disablesym: Yes
  perf:
    psp_onfly: No
-   ef_interpol_det: 0.10E-19
    check_sumrho: 2
    check_overlap: 2
+ chess:
+   foe:
+     ef_interpol_det: 0.10E-19
  posinp:
    positions:
    - Si: [0.0, 0.0, 0.0]

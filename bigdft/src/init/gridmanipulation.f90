@@ -28,8 +28,9 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
    !character(len=*), parameter :: subname='system_size'
    integer, parameter :: lupfil=14
    real(gp), parameter :: eps_mach=1.e-12_gp
-   integer :: iat,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
+   integer :: iat,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3!,n1i,n2i,n3i
    real(gp) :: ri,rad,cxmin,cxmax,cymin,cymax,czmin,czmax,alatrue1,alatrue2,alatrue3
+   real(gp), dimension(3) :: hgridsh
 
    !check the geometry code with the grid spacings
    if (atoms%astruct%geocode == 'F' .and. (hx/=hy .or. hx/=hz .or. hy/=hz)) then
@@ -101,9 +102,9 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
       alatrue2=real(n2,gp)*hy
       alatrue3=real(n3,gp)*hz
 
-      n1i=2*n1+31
-      n2i=2*n2+31
-      n3i=2*n3+31
+!!$      n1i=2*n1+31
+!!$      n2i=2*n2+31
+!!$      n3i=2*n3+31
 
    case('P')
       !define the grid spacings, controlling the FFT compatibility
@@ -114,9 +115,9 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
       alatrue2=(cymax-cymin)
       alatrue3=(czmax-czmin)
 
-      n1i=2*n1+2
-      n2i=2*n2+2
-      n3i=2*n3+2
+!!$      n1i=2*n1+2
+!!$      n2i=2*n2+2
+!!$      n3i=2*n3+2
 
    case('S')
       call correct_grid(atoms%astruct%cell_dim(1),hx,n1)
@@ -128,9 +129,9 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
       alatrue2=real(n2,gp)*hy
       alatrue3=(czmax-czmin)
 
-      n1i=2*n1+2
-      n2i=2*n2+31
-      n3i=2*n3+2
+!!$      n1i=2*n1+2
+!!$      n2i=2*n2+31
+!!$      n3i=2*n3+2
 
    case default
       call f_err_throw('Illegal geocode in system_size',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
@@ -234,36 +235,16 @@ subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr)
       nfl3=n3/2
       nfu3=n3/2
    end if
+
+   hgridsh(1)=0.5_gp*hx
+   hgridsh(2)=0.5_gp*hy
+   hgridsh(3)=0.5_gp*hz
+
    !assign the values
-   Glr%geocode=atoms%astruct%geocode
-   Glr%d%n1  =n1  
-   Glr%d%n2  =n2  
-   Glr%d%n3  =n3  
-   Glr%d%n1i =n1i 
-   Glr%d%n2i =n2i 
-   Glr%d%n3i =n3i 
-   Glr%d%nfl1=nfl1
-   Glr%d%nfl2=nfl2
-   Glr%d%nfl3=nfl3
-   Glr%d%nfu1=nfu1
-   Glr%d%nfu2=nfu2
-   Glr%d%nfu3=nfu3
+   call init_lr(Glr,atoms%astruct%geocode,hgridsh,n1,n2,n3,&
+        nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,&
+        hybrid_flag=.not. OCLconv)
 
-   Glr%ns1=0
-   Glr%ns2=0
-   Glr%ns3=0
-   Glr%nsi1=0
-   Glr%nsi2=0
-   Glr%nsi3=0
-
-   !while using k-points this condition should be disabled
-   !evaluate if the condition for the hybrid evaluation if periodic BC hold
-   Glr%hybrid_on=                   (nfu1-nfl1+lupfil < n1+1)
-   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu2-nfl2+lupfil < n2+1))
-   Glr%hybrid_on=(Glr%hybrid_on.and.(nfu3-nfl3+lupfil < n3+1))
-
-   !OCL convolutions not compatible with hybrid boundary conditions
-   if (OCLConv) Glr%hybrid_on = .false.
 END SUBROUTINE system_size
 
 

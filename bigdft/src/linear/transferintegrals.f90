@@ -345,6 +345,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use module_base
   use module_types
   use yaml_output
+  use get_kernel, only: reorthonormalize_coeff
   use module_fragments
   !use internal_io
   !use module_interfaces, except_this_one => calc_site_energies_transfer_integrals

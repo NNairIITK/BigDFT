@@ -3,8 +3,9 @@ jhbuild.py
 bigdft.modules
 gnome.modules
 rcfiles/
-m4/
-libABINIT.patch
+m3/
+glib.patch
+glib2.patch
 libffi-toolexeclibdir.patch
 wannier90-2.0.0.patch
 distfiles

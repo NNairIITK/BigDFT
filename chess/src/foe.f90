@@ -39,9 +39,10 @@ module foe
 
     subroutine fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
-               calculate_minusonehalf, foe_verbosity, &
+               calculate_minusonehalf, foe_verbosity, inversion_method, pexsi_np_sym_fact, &
                smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj, ice_obj, &
-               symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels,  energy_kernel_)
+               symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels, &
+               energy_kernel_)
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse_matrix_product, symmetrize_matrix, max_asymmetry_of_matrix, &
@@ -53,7 +54,7 @@ module foe
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: evnoise, &
                             retransform_ext, get_chebyshev_expansion_coefficients, &
-                            find_fermi_level, get_polynomial_degree, &
+                            find_fermi_level, &
                             calculate_trace_distributed_new, get_bounds_and_polynomials
       use module_func
       use dynamic_memory
@@ -64,6 +65,8 @@ module foe
       real(kind=mp),intent(out) :: ebs
       logical,intent(in) :: calculate_minusonehalf, symmetrize_kernel, calculate_energy_density_kernel
       integer,intent(in) :: foe_verbosity
+      character(len=*),intent(in) :: inversion_method
+      integer,intent(in) :: pexsi_np_sym_fact
       type(sparse_matrix),intent(in) :: smats, smatm, smatl
       type(matrices),intent(in) :: ham_, ovrlp_
       type(matrices),dimension(1),intent(inout) :: ovrlp_minus_one_half_
@@ -157,8 +160,8 @@ module foe
       if (iproc==0) call yaml_mapping_open('S^-1/2')
       if (calculate_minusonehalf) then
           if (iproc==0) call yaml_map('Can take from memory',.false.)
-          call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
-               ice_obj=ice_obj) !has internal timer
+          call overlap_minus_onehalf(inversion_method, iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
+               ice_obj=ice_obj, pexsi_np_sym_fact=pexsi_np_sym_fact)
       else
           if (iproc==0) call yaml_map('Can take from memory',.true.)
       end if
@@ -256,14 +259,14 @@ module foe
                smats=smats, ovrlp_=ovrlp_, ovrlp_minus_one_half_=ovrlp_minus_one_half_(1), &
                efarr=efarr, fscale_arr=fscale_arr, max_errorx=max_error)
 
-          if (iproc==0) then
-              call yaml_mapping_open('summary',flow=.true.)
-              call yaml_map('npl',npl)
-              call yaml_map('bounds', &
-                   (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f6.2)')
-              call yaml_map('exp accur',max_error,fmt='(es8.2)')
-              call yaml_mapping_close()
-          end if
+          !!if (iproc==0) then
+          !!    call yaml_mapping_open('summary',flow=.true.)
+          !!    call yaml_map('npl',npl)
+          !!    call yaml_map('bounds', &
+          !!         (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f6.2)')
+          !!    call yaml_map('exp accur',max_error,fmt='(es8.2)')
+          !!    call yaml_mapping_close()
+          !!end if
 
           call find_fermi_level(iproc, nproc, comm, npl, chebyshev_polynomials, &
                foe_verbosity, 'test', smatl, 1, foe_obj, kernel_, calculate_spin_channels)
@@ -714,7 +717,7 @@ module foe
       hamscal_compr = sparsematrix_malloc(smatl, iaction=SPARSE_TASKGROUP, id='hamscal_compr')
 
       !if (iproc==0) call yaml_map('S^-1/2','recalculate')
-      call overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
+      call overlap_minus_onehalf('ICE', iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
           verbosity=0) !has internal timer
 
       ! Use kernel_%matrix_compr as workarray to save memory
@@ -770,19 +773,22 @@ module foe
     end subroutine get_selected_eigenvalues
 
 
-    subroutine overlap_minus_onehalf(iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
-               verbosity, ice_obj)
+    subroutine overlap_minus_onehalf(method, iproc, nproc, comm, smats, smatl, ovrlp_, ovrlp_minus_one_half_, &
+               verbosity, ice_obj, pexsi_np_sym_fact)
       use foe_base, only: foe_data
       use ice, only: inverse_chebyshev_expansion_new
+      use selinv, only: selinv_wrapper
       use dynamic_memory
       implicit none
       ! Calling arguments
+      character(len=*),intent(in) :: method
       integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smats, smatl
       type(matrices),intent(in) :: ovrlp_
       type(matrices),dimension(1),intent(out) :: ovrlp_minus_one_half_
       integer,intent(in),optional :: verbosity
       type(foe_data),intent(inout),optional :: ice_obj
+      integer,intent(in),optional :: pexsi_np_sym_fact
       ! Local variables
       integer :: verbosity_
       real(mp),dimension(1) :: ex
@@ -792,18 +798,27 @@ module foe
       verbosity_ = 1
       if (present(verbosity)) verbosity_ = verbosity
     
-      ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
-      ex=-0.5d0
-      if (present(ice_obj)) then
-          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-               ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
-               ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-               verbosity=verbosity_, ice_objx=ice_obj)
+      if (trim(method)=='ICE') then
+          ! Can't use the wrapper, since it is at a higher level in the hierarchy (to be improved)
+          ex=-0.5d0
+          if (present(ice_obj)) then
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+                   verbosity=verbosity_, ice_objx=ice_obj)
+          else
+              call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
+                   ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
+                   ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
+                   verbosity=verbosity_)
+          end if
+      else if (trim(method)=='SelInv') then
+          if (.not.present(pexsi_np_sym_fact)) then
+              call f_err_throw("To use Selected Inversion the argument 'pexsi_np_sym_fact' must be present")
+          end if
+          call selinv_wrapper(iproc, nproc, comm, smats, smatl, ovrlp_, pexsi_np_sym_fact, ovrlp_minus_one_half_(1))
       else
-          call inverse_chebyshev_expansion_new(iproc, nproc, comm, &
-               ovrlp_smat=smats, inv_ovrlp_smat=smatl, ncalc=1, ex=ex, &
-               ovrlp_mat=ovrlp_, inv_ovrlp=ovrlp_minus_one_half_, &
-               verbosity=verbosity_)
+          call f_err_throw("'method' must be 'ICE' or SelInv', but you specified '"//trim(method)//"'")
       end if
     
       call f_release_routine()

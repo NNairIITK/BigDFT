@@ -10,17 +10,14 @@
 
 !> Initialization of the localized regions for the support functions
 module locregs_init
+  use locregs
   implicit none
 
   private
 
   !> Public routines
-  public :: initLocregs,determine_locregsphere_parallel
-  public :: determine_locreg_parallel !is this one deprecated?
-!  public :: check_overlap
-!  public :: check_overlap_from_descriptors_periodic
-  !public :: transform_keyglob_to_keygloc
-  !public :: determine_wfd_periodicity !is this one deprecated?
+  public :: initLocregs!,determine_locregsphere_parallel
+  !public :: determine_locreg_parallel
   public :: check_linear_inputguess
   public :: small_to_large_locreg
   public :: assign_to_atoms_and_locregs
@@ -42,7 +39,7 @@ module locregs_init
       type(atoms_data), intent(inout) :: atoms
       real(gp), intent(in) :: crmult,frmult
       real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-      real(gp), dimension(3), intent(in) :: hgrids
+      real(gp), dimension(3), intent(inout) :: hgrids
       logical, intent(in) :: calculate_bounds,output_grid
 
       lr=locreg_null()
@@ -57,17 +54,17 @@ module locregs_init
 
 
     ! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
-    subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
+    subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, rxyz,locrad, orbs, Glr, locregShape, lborbs)
       use module_base
       use module_types
-      use module_atoms, only: atomic_structure
       implicit none
 
       ! Calling arguments
       integer, intent(in) :: iproc, nproc
       type(local_zone_descriptors), intent(inout) :: lzd
       real(kind=8), intent(in) :: hx, hy, hz
-      type(atomic_structure), intent(in) :: astruct
+      real(gp), dimension(lzd%nlr), intent(in) :: locrad
+      real(gp), dimension(3,lzd%nlr), intent(in) :: rxyz
       type(orbitals_data), intent(in) :: orbs
       type(locreg_descriptors), intent(in) :: Glr
       character(len=1), intent(in) :: locregShape
@@ -99,10 +96,13 @@ module locregs_init
       end if
 
       if(locregShape=='c') then
-         stop 'locregShape c is deprecated'
+         calculateBounds=.true.
+         call determine_locreg_parallel(iproc,nproc,lzd%nlr,rxyz,locrad,&
+              hx,hy,hz,Glr,lzd%Llr,orbs,calculateBounds)
+         !stop 'locregShape c is deprecated'
       else if(locregShape=='s') then
          call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, hx, hy, hz, &
-              astruct, orbs, Glr, lzd%Llr, calculateBounds)
+              orbs, Glr, lzd%Llr, calculateBounds)
       end if
 
       call f_free(calculateBounds)
@@ -188,7 +188,7 @@ module locregs_init
     end subroutine small_to_large_locreg
 
 
-    subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
+    subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,orbs,Glr,Llr,calculateBounds)!,outofzone)
     
       use module_base
       use module_types
@@ -199,7 +199,7 @@ module locregs_init
       integer, intent(in) :: iproc,nproc
       integer, intent(in) :: nlr
       real(gp), intent(in) :: hx,hy,hz
-      type(atomic_structure),intent(in) :: astruct
+      !type(atomic_structure),intent(in) :: astruct
       type(orbitals_data),intent(in) :: orbs
       type(locreg_descriptors), intent(in) :: Glr
       type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
@@ -207,15 +207,17 @@ module locregs_init
     !  integer, dimension(3,nlr),intent(out) :: outofzone
       !local variables
       character(len=*), parameter :: subname='determine_locreg'
-      logical :: Gperx,Gpery,Gperz,Lperx,Lpery,Lperz
-      logical :: warningx,warningy,warningz,xperiodic,yperiodic,zperiodic
-      integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
-      integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
-      integer :: ilr,isx,isy,isz,iex,iey,iez
-      integer :: ln1,ln2,ln3
+      logical :: Gperx,Gpery,Gperz!>,Lperx,Lpery,Lperz
+      logical :: warningx,warningy,warningz
+!!$      integer :: Gnbl1,Gnbl2,Gnbl3,Gnbr1,Gnbr2,Gnbr3
+!!$      integer :: Lnbl1,Lnbl2,Lnbl3,Lnbr1,Lnbr2,Lnbr3
+      integer :: ilr!,isx,isy,isz,iex,iey,iez
+!!$      integer :: ln1,ln2,ln3
       integer :: ii, iorb, jproc, iiorb
       ! integer :: iat, norb, norbu, norbd, nspin
-      integer, dimension(3) :: outofzone
+!!$      integer, dimension(3) :: outofzone
+      !! start and end points for each direction
+      integer, dimension(2,3) :: nbox 
       integer, dimension(:),allocatable :: rootarr, norbsperatom, norbsperlocreg, onwhichmpi
       !real(8),dimension(:,:),allocatable :: locregCenter
       type(orbitals_data) :: orbsder
@@ -248,13 +250,13 @@ module locregs_init
       call timing(iproc,'wfd_creation  ','ON')  
       do ilr=1,nlr
          !initialize out of zone and logicals
-         outofzone (:) = 0     
+         !outofzone (:) = 0     
          warningx = .false.
          warningy = .false.
          warningz = .false. 
-         xperiodic = .false.
-         yperiodic = .false.
-         zperiodic = .false. 
+!!$         xperiodic = .false.
+!!$         yperiodic = .false.
+!!$         zperiodic = .false. 
     
     
          if(calculateBounds(ilr)) then 
@@ -263,199 +265,203 @@ module locregs_init
              ! Determine the extrema of this localization regions (using only the coarse part, since this is always larger or equal than the fine part).
              call determine_boxbounds_sphere(gperx, gpery, gperz, glr%d%n1, glr%d%n2, glr%d%n3, glr%ns1, glr%ns2, glr%ns3, &
                   hx, hy, hz, llr(ilr)%locrad, llr(ilr)%locregCenter, &
-                  glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, isx, isy, isz, iex, iey, iez)
+                  glr%wfd%nseg_c, glr%wfd%keygloc, glr%wfd%keyvloc, &
+                  nbox(1,1),nbox(1,2),nbox(1,3),nbox(2,1),nbox(2,2),nbox(2,3))
+             !!!>isx, isy, isz, iex, iey, iez)
              !write(*,'(a,3i7)') 'ilr, isx, iex', ilr, isx, iex
+
+             call lr_box(llr(ilr),Glr,[hx,hy,hz],nbox,.false.)
         
-             ln1 = iex-isx
-             ln2 = iey-isy
-             ln3 = iez-isz
-      
-             ! Localization regions should have free boundary conditions by default
-             Llr(ilr)%geocode='F'
-        
-             !assign the starting/ending points and outofzone for the different
-             ! geometries
-             select case(Glr%geocode)
-             case('F')
-                isx=max(isx,Glr%ns1)
-                isy=max(isy,Glr%ns2)
-                isz=max(isz,Glr%ns3)
-        
-                iex=min(iex,Glr%ns1+Glr%d%n1)
-                iey=min(iey,Glr%ns2+Glr%d%n2)
-                iez=min(iez,Glr%ns3+Glr%d%n3)
-        
-             case('S')
-                ! Get starting and ending for x direction     
-                if (iex - isx >= Glr%d%n1) then       
-                   isx=Glr%ns1
-                   iex=Glr%ns1 + Glr%d%n1
-                   xperiodic = .true.
-                else
-                   !isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
-                   !iex= ln1 + isx
-                   if (iex > Glr%ns1+Glr%d%n1) then
-                      outofzone(1)=modulo(iex,Glr%d%n1+1)
-                   end if           
-                end if
-                
-                ! Get starting and ending for y direction (perpendicular to surface)
-                isy=max(isy,Glr%ns2)
-                iey=min(iey,Glr%ns2 + Glr%d%n2)
-                outofzone(2) = 0
-        
-                !Get starting and ending for z direction
-                if (iez - isz >= Glr%d%n3) then
-                   isz=Glr%ns3 
-                   iez=Glr%ns3 + Glr%d%n3
-                   zperiodic = .true.
-                else
-                   !isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
-                   !iez= ln3 + isz
-                   if (iez > Glr%ns3+Glr%d%n3) then
-                      outofzone(3)=modulo(iez,Glr%d%n3+1)
-                   end if 
-                end if
-                if(xperiodic .and. zperiodic) then
-                  Llr(ilr)%geocode = 'S'
-                end if    
-    
-             case('P')
-                 ! Get starting and ending for x direction     
-                if (iex - isx >= Glr%d%n1) then       
-                   isx=Glr%ns1
-                   iex=Glr%ns1 + Glr%d%n1
-                   xperiodic = .true.
-                else
-                   !isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
-                   !iex= ln1 + isx
-                   if (iex > Glr%ns1+Glr%d%n1) then
-                      outofzone(1)=modulo(iex,Glr%d%n1+1)
-                   end if           
-                end if
-                
-                ! Get starting and ending for y direction (perpendicular to surface)
-                if (iey - isy >= Glr%d%n2) then       
-                   isy=Glr%ns2
-                   iey=Glr%ns2 + Glr%d%n2
-                   yperiodic = .true.
-                 else
-                   !isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
-                   !iey= ln2 + isy
-                   if (iey > Glr%ns2+Glr%d%n2) then
-                      outofzone(2)=modulo(iey,Glr%d%n2+1)
-                   end if           
-                end if
-        
-                !Get starting and ending for z direction
-                if (iez - isz >= Glr%d%n3) then
-                   isz=Glr%ns3 
-                   iez=Glr%ns3 + Glr%d%n3
-                   zperiodic = .true.
-                else
-                   !isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
-                   !iez= ln3 + isz
-                   if (iez > Glr%ns3+Glr%d%n3) then
-                      outofzone(3)=modulo(iez,Glr%d%n3+1)
-                   end if 
-                end if
-                if(xperiodic .and. yperiodic .and. zperiodic ) then
-                  Llr(ilr)%geocode = 'P'
-                end if
-             end select
-    
-             ! Make sure that the localization regions are not periodic
-             if (xperiodic .or. yperiodic .or. zperiodic) then
-                 call f_err_throw('The size of the localization region '&
-                     &//trim(yaml_toa(ilr,fmt='(i0)'))//&
-                     &' is larger than that of the global region.&
-                     & Reduce the localization radii or use the cubic version',&
-                     & err_name='BIGDFT_RUNTIME_ERROR')
-             end if
-        
-             !values for the starting point of the cube for wavelet grid
-             Llr(ilr)%ns1=isx
-             Llr(ilr)%ns2=isy
-             Llr(ilr)%ns3=isz
-        
-             !dimensions of the localisation region
-             Llr(ilr)%d%n1=iex-isx
-             Llr(ilr)%d%n2=iey-isy
-             Llr(ilr)%d%n3=iez-isz
-        
-             !assign outofzone
-             Llr(ilr)%outofzone(:) = outofzone(:)
-        
-             ! Set the conditions for ext_buffers (conditions for buffer size)
-             Lperx=(Llr(ilr)%geocode /= 'F')
-             Lpery=(Llr(ilr)%geocode == 'P')
-             Lperz=(Llr(ilr)%geocode /= 'F')
-        
-             !calculate the size of the buffers of interpolating function grid
-             call ext_buffers(Gperx,Gnbl1,Gnbr1)
-             call ext_buffers(Gpery,Gnbl2,Gnbr2)
-             call ext_buffers(Gperz,Gnbl3,Gnbr3)
-             call ext_buffers(Lperx,Lnbl1,Lnbr1)
-             call ext_buffers(Lpery,Lnbl2,Lnbr2)
-             call ext_buffers(Lperz,Lnbl3,Lnbr3)
-        
-             !starting point of the region for interpolating functions grid
-             Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
-             Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
-             Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
-             !write(*,*) 'ilr, Llr(ilr)%nsi3',ilr, Llr(ilr)%nsi3
-    
-        
-             !dimensions of the fine grid inside the localisation region
-             Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
-             Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
-             Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
-             
-             !NOTE: This will not work with symmetries (must change it)
-             Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
-             Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
-             Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
-        
-             !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-             if(Llr(ilr)%geocode == 'F') then
-                Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-                Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-                Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
-             else if(Llr(ilr)%geocode == 'S') then
-                Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
-                Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-                Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
-             else
-                Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
-                Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
-                Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
-             end if
-    
-    
-             ! Make sure that the extent of the interpolating functions grid for the
-             ! locreg is not larger than the that of the global box.
-             if (Llr(ilr)%d%n1i>Glr%d%n1i) then
-                 call f_err_throw('The interpolating functions grid in x dimension for locreg '&
-                     &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n1i,fmt='(i0)'))//')&
-                     & is larger than that of the global region('//trim(yaml_toa(Glr%d%n1i,fmt='(i0)'))//').&
-                     & Reduce the localization radii or use the cubic version',&
-                     & err_name='BIGDFT_RUNTIME_ERROR')
-             end if
-             if (Llr(ilr)%d%n2i>Glr%d%n2i) then
-                 call f_err_throw('The interpolating functions grid in y dimension for locreg '&
-                     &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n2i,fmt='(i0)'))//')&
-                     & is larger than that of the global region('//trim(yaml_toa(Glr%d%n2i,fmt='(i0)'))//').&
-                     & Reduce the localization radii or use the cubic version',&
-                     & err_name='BIGDFT_RUNTIME_ERROR')
-             end if
-             if (Llr(ilr)%d%n3i>Glr%d%n3i) then
-                 call f_err_throw('The interpolating functions grid in z dimension for locreg '&
-                     &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n3i,fmt='(i0)'))//')&
-                     & is larger than that of the global region('//trim(yaml_toa(Glr%d%n3i,fmt='(i0)'))//').&
-                     & Reduce the localization radii or use the cubic version',&
-                     & err_name='BIGDFT_RUNTIME_ERROR')
-             end if
-        
+!!!>             ln1 = iex-isx
+!!!>             ln2 = iey-isy
+!!!>             ln3 = iez-isz
+!!!>      
+!!!>             ! Localization regions should have free boundary conditions by default
+!!!>             Llr(ilr)%geocode='F'
+!!!>        
+!!!>             !assign the starting/ending points and outofzone for the different
+!!!>             ! geometries
+!!!>             select case(Glr%geocode)
+!!!>             case('F')
+!!!>                isx=max(isx,Glr%ns1)
+!!!>                isy=max(isy,Glr%ns2)
+!!!>                isz=max(isz,Glr%ns3)
+!!!>        
+!!!>                iex=min(iex,Glr%ns1+Glr%d%n1)
+!!!>                iey=min(iey,Glr%ns2+Glr%d%n2)
+!!!>                iez=min(iez,Glr%ns3+Glr%d%n3)
+!!!>        
+!!!>             case('S')
+!!!>                ! Get starting and ending for x direction     
+!!!>                if (iex - isx >= Glr%d%n1) then       
+!!!>                   isx=Glr%ns1
+!!!>                   iex=Glr%ns1 + Glr%d%n1
+!!!>                   xperiodic = .true.
+!!!>                else
+!!!>                   !isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+!!!>                   !iex= ln1 + isx
+!!!>                   if (iex > Glr%ns1+Glr%d%n1) then
+!!!>                      outofzone(1)=modulo(iex,Glr%d%n1+1)
+!!!>                   end if           
+!!!>                end if
+!!!>                
+!!!>                ! Get starting and ending for y direction (perpendicular to surface)
+!!!>                isy=max(isy,Glr%ns2)
+!!!>                iey=min(iey,Glr%ns2 + Glr%d%n2)
+!!!>                outofzone(2) = 0
+!!!>        
+!!!>                !Get starting and ending for z direction
+!!!>                if (iez - isz >= Glr%d%n3) then
+!!!>                   isz=Glr%ns3 
+!!!>                   iez=Glr%ns3 + Glr%d%n3
+!!!>                   zperiodic = .true.
+!!!>                else
+!!!>                   !isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+!!!>                   !iez= ln3 + isz
+!!!>                   if (iez > Glr%ns3+Glr%d%n3) then
+!!!>                      outofzone(3)=modulo(iez,Glr%d%n3+1)
+!!!>                   end if 
+!!!>                end if
+!!!>                if(xperiodic .and. zperiodic) then
+!!!>                  Llr(ilr)%geocode = 'S'
+!!!>                end if    
+!!!>    
+!!!>             case('P')
+!!!>                 ! Get starting and ending for x direction     
+!!!>                if (iex - isx >= Glr%d%n1) then       
+!!!>                   isx=Glr%ns1
+!!!>                   iex=Glr%ns1 + Glr%d%n1
+!!!>                   xperiodic = .true.
+!!!>                else
+!!!>                   !isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+!!!>                   !iex= ln1 + isx
+!!!>                   if (iex > Glr%ns1+Glr%d%n1) then
+!!!>                      outofzone(1)=modulo(iex,Glr%d%n1+1)
+!!!>                   end if           
+!!!>                end if
+!!!>                
+!!!>                ! Get starting and ending for y direction (perpendicular to surface)
+!!!>                if (iey - isy >= Glr%d%n2) then       
+!!!>                   isy=Glr%ns2
+!!!>                   iey=Glr%ns2 + Glr%d%n2
+!!!>                   yperiodic = .true.
+!!!>                 else
+!!!>                   !isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
+!!!>                   !iey= ln2 + isy
+!!!>                   if (iey > Glr%ns2+Glr%d%n2) then
+!!!>                      outofzone(2)=modulo(iey,Glr%d%n2+1)
+!!!>                   end if           
+!!!>                end if
+!!!>        
+!!!>                !Get starting and ending for z direction
+!!!>                if (iez - isz >= Glr%d%n3) then
+!!!>                   isz=Glr%ns3 
+!!!>                   iez=Glr%ns3 + Glr%d%n3
+!!!>                   zperiodic = .true.
+!!!>                else
+!!!>                   !isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+!!!>                   !iez= ln3 + isz
+!!!>                   if (iez > Glr%ns3+Glr%d%n3) then
+!!!>                      outofzone(3)=modulo(iez,Glr%d%n3+1)
+!!!>                   end if 
+!!!>                end if
+!!!>                if(xperiodic .and. yperiodic .and. zperiodic ) then
+!!!>                  Llr(ilr)%geocode = 'P'
+!!!>                end if
+!!!>             end select
+!!!>    
+!!!>             ! Make sure that the localization regions are not periodic
+!!!>             if (xperiodic .or. yperiodic .or. zperiodic) then
+!!!>                 call f_err_throw('The size of the localization region '&
+!!!>                     &//trim(yaml_toa(ilr,fmt='(i0)'))//&
+!!!>                     &' is larger than that of the global region.&
+!!!>                     & Reduce the localization radii or use the cubic version',&
+!!!>                     & err_name='BIGDFT_RUNTIME_ERROR')
+!!!>             end if
+!!!>        
+!!!>             !values for the starting point of the cube for wavelet grid
+!!!>             Llr(ilr)%ns1=isx
+!!!>             Llr(ilr)%ns2=isy
+!!!>             Llr(ilr)%ns3=isz
+!!!>        
+!!!>             !dimensions of the localisation region
+!!!>             Llr(ilr)%d%n1=iex-isx
+!!!>             Llr(ilr)%d%n2=iey-isy
+!!!>             Llr(ilr)%d%n3=iez-isz
+!!!>        
+!!!>             !assign outofzone
+!!!>             Llr(ilr)%outofzone(:) = outofzone(:)
+!!!>        
+!!!>             ! Set the conditions for ext_buffers (conditions for buffer size)
+!!!>             Lperx=(Llr(ilr)%geocode /= 'F')
+!!!>             Lpery=(Llr(ilr)%geocode == 'P')
+!!!>             Lperz=(Llr(ilr)%geocode /= 'F')
+!!!>        
+!!!>             !calculate the size of the buffers of interpolating function grid
+!!!>             call ext_buffers(Gperx,Gnbl1,Gnbr1)
+!!!>             call ext_buffers(Gpery,Gnbl2,Gnbr2)
+!!!>             call ext_buffers(Gperz,Gnbl3,Gnbr3)
+!!!>             call ext_buffers(Lperx,Lnbl1,Lnbr1)
+!!!>             call ext_buffers(Lpery,Lnbl2,Lnbr2)
+!!!>             call ext_buffers(Lperz,Lnbl3,Lnbr3)
+!!!>        
+!!!>             !starting point of the region for interpolating functions grid
+!!!>             Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
+!!!>             Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
+!!!>             Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
+!!!>             !write(*,*) 'ilr, Llr(ilr)%nsi3',ilr, Llr(ilr)%nsi3
+!!!>    
+!!!>        
+!!!>             !dimensions of the fine grid inside the localisation region
+!!!>             Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
+!!!>             Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+!!!>             Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+!!!>             
+!!!>             !NOTE: This will not work with symmetries (must change it)
+!!!>             Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+!!!>             Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+!!!>             Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+!!!>        
+!!!>             !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+!!!>             if(Llr(ilr)%geocode == 'F') then
+!!!>                Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+!!!>                Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+!!!>                Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+!!!>             else if(Llr(ilr)%geocode == 'S') then
+!!!>                Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+!!!>                Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+!!!>                Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+!!!>             else
+!!!>                Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+2
+!!!>                Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+2
+!!!>                Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+2
+!!!>             end if
+!!!>    
+!!!>    
+!!!>             ! Make sure that the extent of the interpolating functions grid for the
+!!!>             ! locreg is not larger than the that of the global box.
+!!!>             if (Llr(ilr)%d%n1i>Glr%d%n1i) then
+!!!>                 call f_err_throw('The interpolating functions grid in x dimension for locreg '&
+!!!>                     &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n1i,fmt='(i0)'))//')&
+!!!>                     & is larger than that of the global region('//trim(yaml_toa(Glr%d%n1i,fmt='(i0)'))//').&
+!!!>                     & Reduce the localization radii or use the cubic version',&
+!!!>                     & err_name='BIGDFT_RUNTIME_ERROR')
+!!!>             end if
+!!!>             if (Llr(ilr)%d%n2i>Glr%d%n2i) then
+!!!>                 call f_err_throw('The interpolating functions grid in y dimension for locreg '&
+!!!>                     &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n2i,fmt='(i0)'))//')&
+!!!>                     & is larger than that of the global region('//trim(yaml_toa(Glr%d%n2i,fmt='(i0)'))//').&
+!!!>                     & Reduce the localization radii or use the cubic version',&
+!!!>                     & err_name='BIGDFT_RUNTIME_ERROR')
+!!!>             end if
+!!!>             if (Llr(ilr)%d%n3i>Glr%d%n3i) then
+!!!>                 call f_err_throw('The interpolating functions grid in z dimension for locreg '&
+!!!>                     &//trim(yaml_toa(ilr,fmt='(i0)'))//'('//trim(yaml_toa(Llr(ilr)%d%n3i,fmt='(i0)'))//')&
+!!!>                     & is larger than that of the global region('//trim(yaml_toa(Glr%d%n3i,fmt='(i0)'))//').&
+!!!>                     & Reduce the localization radii or use the cubic version',&
+!!!>                     & err_name='BIGDFT_RUNTIME_ERROR')
+!!!>             end if
+!!!>        
         !!DEBUG
         !     if (iproc == 0) then
         !        write(*,*)'Description of zone:',ilr
@@ -528,43 +534,7 @@ module locregs_init
     
       call f_free(onwhichmpi)
       call f_release_routine()
-    
-    
-    !!$  subroutine create_orbsder()
-    !!$    call nullify_orbitals_data(orbsder)
-    !!$    norbsperatom = f_malloc0(astruct%nat,id='norbsperatom')
-    !!$    locregCenter = f_malloc((/ 3, nlr /),id='locregCenter')
-    !!$    norbsPerLocreg = f_malloc(nlr,id='norbsPerLocreg')
-    !!$    do iorb=1,orbs%norb
-    !!$        iat=orbs%onwhichatom(iorb)
-    !!$        norbsperatom(iat)=norbsperatom(iat)+3
-    !!$    end do
-    !!$    norb=3*orbs%norb
-    !!$    norbu=norb
-    !!$    norbd=0
-    !!$    nspin=1
-    !!$    call orbitals_descriptors(iproc, nproc, norb, norbu, norbd, nspin, orbs%nspinor,&
-    !!$         orbs%nkpts, orbs%kpts, orbs%kwgts, orbsder,.true.) !simple repartition
-    !!$    call f_free_ptr(orbsder%onwhichatom)
-    !!$
-    !!$    do ilr=1,nlr
-    !!$        locregCenter(:,ilr)=llr(ilr)%locregCenter
-    !!$    end do
-    !!$                 
-    !!$    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, astruct%nat, &
-    !!$         nspin, norbsPerAtom, locregCenter, orbsder%onwhichatom)
-    !!$
-    !!$    call f_free_ptr(orbsder%inWhichLocreg)
-    !!$    norbsPerLocreg=3
-    !!$
-    !!$    call assignToLocreg2(iproc, nproc, orbsder%norb, orbsder%norb_par, astruct%nat, nlr, &
-    !!$         nspin, norbsPerLocreg, locregCenter, orbsder%inwhichlocreg)
-    !!$
-    !!$    call f_free(locregCenter)
-    !!$    call f_free(norbsPerLocreg)
-    !!$    call f_free(norbsperatom)
-    !!$  end subroutine create_orbsder
-    
+
     END SUBROUTINE determine_locregSphere_parallel
 
 
@@ -1660,6 +1630,7 @@ module locregs_init
       integer :: ilr,isx,isy,isz,iex,iey,iez,iorb
       integer :: ln1,ln2,ln3
       integer,dimension(3) :: outofzone
+      integer, dimension(2,3) :: nbox 
       real(gp) :: rx,ry,rz,cutoff
     !!  integer :: iilr,ierr
     !!  integer,dimension(0:nproc-1) :: nlr_par,islr_par
@@ -1671,11 +1642,10 @@ module locregs_init
     !  call parallel_repartition_locreg(iproc,nproc,nlr,nlr_par,islr_par)
     
       !initialize out of zone and logicals
-      outofzone (:) = 0
+!!$      outofzone (:) = 0
       warningx = .false.
       warningy = .false.
       warningz = .false.
-    
       !determine the limits of the different localisation regions
       do ilr=1,nlr
          !nullify all pointers
@@ -1713,176 +1683,188 @@ module locregs_init
          rz=cxyz(3,ilr)
     
          cutoff=locrad(ilr)
+
+         nbox(1,1)=floor((rx-cutoff)/hx)
+         nbox(1,2)=floor((ry-cutoff)/hy)
+         nbox(1,3)=floor((rz-cutoff)/hz)
     
-         isx=floor((rx-cutoff)/hx)
-         isy=floor((ry-cutoff)/hy)
-         isz=floor((rz-cutoff)/hz)
+         nbox(2,1)=ceiling((rx+cutoff)/hx)
+         nbox(2,2)=ceiling((ry+cutoff)/hy)
+         nbox(2,3)=ceiling((rz+cutoff)/hz)
+
+         call lr_box(Llr(ilr),Glr,[hx,hy,hz],nbox,.true.)
     
-         iex=ceiling((rx+cutoff)/hx)
-         iey=ceiling((ry+cutoff)/hy)
-         iez=ceiling((rz+cutoff)/hz)
+!!!>         isx=floor((rx-cutoff)/hx)
+!!!>         isy=floor((ry-cutoff)/hy)
+!!!>         isz=floor((rz-cutoff)/hz)
+!!!>    
+!!!>         iex=ceiling((rx+cutoff)/hx)
+!!!>         iey=ceiling((ry+cutoff)/hy)
+!!!>         iez=ceiling((rz+cutoff)/hz)
+!!!>
+         
     
-         ln1 = iex-isx
-         ln2 = iey-isy
-         ln3 = iez-isz
-    
-         ! First check if localization region fits inside box
-    !!!     if (iproc == 0 .and. verbose > 1) then
-    !!!        if ((iex - isx >= Glr%d%n1 - 14) .and. (warningx .eqv. .false.)) then
-    !!!           write(*,*)'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
-    !!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx
-    !!!           write(*,*)'Increasing the simulation box is recommended. The code will use the '
-    !!!           write(*,*)'simulation box width. This is the only warning for x direction.'
-    !!!           warningx = .true.
-    !!!        end if
-    !!!        if ((iey - isy >= Glr%d%n2 - 14) .and. (warningy .eqv. .false.)) then
-    !!!           write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
-    !!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
-    !!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
-    !!!           write(*,*)'of the simulation box. This is the only warning for y direction.'
-    !!!           warningy = .true.
-    !!!        end if
-    !!!        if ((iez - isz >= Glr%d%n3 - 14) .and. (warningz .eqv. .false.)) then
-    !!!           write(*,*)'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
-    !!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
-    !!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
-    !!!           write(*,*)'of the simulation box. This is the only warning for z direction.'
-    !!!           warningz = .true.
-    !!!        end if 
-    !!!     end if
-    
-         ! Localization regions should always have free boundary conditions
-         Llr(ilr)%geocode='F'
-    
-         !assign the starting/ending points and outofzone for the different
-         ! geometries
-         select case(Glr%geocode)
-         case('F')
-            isx=max(isx,Glr%ns1)
-            isy=max(isy,Glr%ns2)
-            isz=max(isz,Glr%ns3)
-    
-            iex=min(iex,Glr%ns1+Glr%d%n1)
-            iey=min(iey,Glr%ns2+Glr%d%n2)
-            iez=min(iez,Glr%ns3+Glr%d%n3)
-    
-         case('S')
-            ! Get starting and ending for x direction     
-            if (iex - isx >= Glr%d%n1) then
-               isx=Glr%ns1
-               iex=Glr%ns1 + Glr%d%n1
-            else
-               isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
-               iex= ln1 + isx
-               if (iex > Glr%ns1+Glr%d%n1) then
-                  outofzone(1)=modulo(iex,Glr%d%n1+1)
-               end if
-            end if
-    
-            ! Get starting and ending for y direction (perpendicular to surface)
-            isy=max(isy,Glr%ns2)
-            iey=min(iey,Glr%ns2 + Glr%d%n2)
-            outofzone(2) = 0
-    
-            !Get starting and ending for z direction
-            if (iez - isz >= Glr%d%n3) then
-               isz=Glr%ns3
-               iez=Glr%ns3 + Glr%d%n3
-            else
-               isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
-               iez= ln3 + isz
-               if (iez > Glr%ns3+Glr%d%n3) then
-                  outofzone(3)=modulo(iez,Glr%d%n3+1)
-               end if
-            end if
-    
-         case('P')
-             ! Get starting and ending for x direction     
-            if (iex - isx >= Glr%d%n1) then
-               isx=Glr%ns1
-               iex=Glr%ns1 + Glr%d%n1
-            else
-               isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
-               iex= ln1 + isx
-               if (iex > Glr%ns1+Glr%d%n1) then
-                  outofzone(1)=modulo(iex,Glr%d%n1+1)
-               end if
-            end if
-    
-            ! Get starting and ending for y direction (perpendicular to surface)
-            if (iey - isy >= Glr%d%n2) then
-               isy=Glr%ns2
-               iey=Glr%ns2 + Glr%d%n2
-             else
-               isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
-               iey= ln2 + isy
-               if (iey > Glr%ns2+Glr%d%n2) then
-                  outofzone(2)=modulo(iey,Glr%d%n2+1)
-               end if
-            end if
-    
-            !Get starting and ending for z direction
-            if (iez - isz >= Glr%d%n3) then
-               isz=Glr%ns3
-               iez=Glr%ns3 + Glr%d%n3
-            else
-               isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
-               iez= ln3 + isz
-               if (iez > Glr%ns3+Glr%d%n3) then
-                  outofzone(3)=modulo(iez,Glr%d%n3+1)
-               end if
-            end if
-         end select
-    
-         !values for the starting point of the cube for wavelet grid
-         Llr(ilr)%ns1=isx
-         Llr(ilr)%ns2=isy
-         Llr(ilr)%ns3=isz
-    
-         !dimensions of the localisation region
-         Llr(ilr)%d%n1=iex-isx
-         Llr(ilr)%d%n2=iey-isy
-         Llr(ilr)%d%n3=iez-isz
-    
-         !assign outofzone
-         Llr(ilr)%outofzone(:) = outofzone(:)
-    
-         ! Set the conditions for ext_buffers (conditions for buffer size)
-         Gperx=(Glr%geocode /= 'F')
-         Gpery=(Glr%geocode == 'P')
-         Gperz=(Glr%geocode /= 'F')
-         Lperx=(Llr(ilr)%geocode /= 'F')
-         Lpery=(Llr(ilr)%geocode == 'P')
-         Lperz=(Llr(ilr)%geocode /= 'F')
-    
-         !calculate the size of the buffers of interpolating function grid
-         call ext_buffers(Gperx,Gnbl1,Gnbr1)
-         call ext_buffers(Gpery,Gnbl2,Gnbr2)
-         call ext_buffers(Gperz,Gnbl3,Gnbr3)
-         call ext_buffers(Lperx,Lnbl1,Lnbr1)
-         call ext_buffers(Lpery,Lnbl2,Lnbr2)
-         call ext_buffers(Lperz,Lnbl3,Lnbr3)
-    
-         !starting point of the region for interpolating functions grid
-         Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
-         Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
-         Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
-    
-         !dimensions of the fine grid inside the localisation region
-         Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
-         Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
-         Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
-    
-         !NOTE: This will not work with symmetries (must change it)
-         Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
-         Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
-         Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
-    
-         !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
-         Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
-         Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
-         Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
-    
+!!!>         ln1 = iex-isx
+!!!>         ln2 = iey-isy
+!!!>         ln3 = iez-isz
+!!!>    
+!!!>         ! First check if localization region fits inside box
+!!!>    !!!     if (iproc == 0 .and. verbose > 1) then
+!!!>    !!!        if ((iex - isx >= Glr%d%n1 - 14) .and. (warningx .eqv. .false.)) then
+!!!>    !!!           write(*,*)'Width of direction x :',(iex - isx)*hx,' of localization region:',ilr
+!!!>    !!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n1*hx
+!!!>    !!!           write(*,*)'Increasing the simulation box is recommended. The code will use the '
+!!!>    !!!           write(*,*)'simulation box width. This is the only warning for x direction.'
+!!!>    !!!           warningx = .true.
+!!!>    !!!        end if
+!!!>    !!!        if ((iey - isy >= Glr%d%n2 - 14) .and. (warningy .eqv. .false.)) then
+!!!>    !!!           write(*,*)'Width of direction y :',(iey - isy)*hy,' of localization region:',ilr
+!!!>    !!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n2*hy,'.'
+!!!>    !!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
+!!!>    !!!           write(*,*)'of the simulation box. This is the only warning for y direction.'
+!!!>    !!!           warningy = .true.
+!!!>    !!!        end if
+!!!>    !!!        if ((iez - isz >= Glr%d%n3 - 14) .and. (warningz .eqv. .false.)) then
+!!!>    !!!           write(*,*)'Width of direction z :',(iez - isz)*hz,' of localization region:',ilr
+!!!>    !!!           write(*,*)'is close or exceeds to the width of the simulation box:',Glr%d%n3*hz,'.'
+!!!>    !!!           write(*,*)'Increasing the simulation box is recommended. The code will use the width'
+!!!>    !!!           write(*,*)'of the simulation box. This is the only warning for z direction.'
+!!!>    !!!           warningz = .true.
+!!!>    !!!        end if 
+!!!>    !!!     end if
+!!!>    
+!!!>         ! Localization regions should always have free boundary conditions
+!!!>         Llr(ilr)%geocode='F'
+!!!>    
+!!!>         !assign the starting/ending points and outofzone for the different
+!!!>         ! geometries
+!!!>         select case(Glr%geocode)
+!!!>         case('F')
+!!!>            isx=max(isx,Glr%ns1)
+!!!>            isy=max(isy,Glr%ns2)
+!!!>            isz=max(isz,Glr%ns3)
+!!!>    
+!!!>            iex=min(iex,Glr%ns1+Glr%d%n1)
+!!!>            iey=min(iey,Glr%ns2+Glr%d%n2)
+!!!>            iez=min(iez,Glr%ns3+Glr%d%n3)
+!!!>    
+!!!>         case('S')
+!!!>            ! Get starting and ending for x direction     
+!!!>            if (iex - isx >= Glr%d%n1) then
+!!!>               isx=Glr%ns1
+!!!>               iex=Glr%ns1 + Glr%d%n1
+!!!>            else
+!!!>               isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+!!!>               iex= ln1 + isx
+!!!>               if (iex > Glr%ns1+Glr%d%n1) then
+!!!>                  outofzone(1)=modulo(iex,Glr%d%n1+1)
+!!!>               end if
+!!!>            end if
+!!!>    
+!!!>            ! Get starting and ending for y direction (perpendicular to surface)
+!!!>            isy=max(isy,Glr%ns2)
+!!!>            iey=min(iey,Glr%ns2 + Glr%d%n2)
+!!!>            outofzone(2) = 0
+!!!>    
+!!!>            !Get starting and ending for z direction
+!!!>            if (iez - isz >= Glr%d%n3) then
+!!!>               isz=Glr%ns3
+!!!>               iez=Glr%ns3 + Glr%d%n3
+!!!>            else
+!!!>               isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+!!!>               iez= ln3 + isz
+!!!>               if (iez > Glr%ns3+Glr%d%n3) then
+!!!>                  outofzone(3)=modulo(iez,Glr%d%n3+1)
+!!!>               end if
+!!!>            end if
+!!!>    
+!!!>         case('P')
+!!!>             ! Get starting and ending for x direction     
+!!!>            if (iex - isx >= Glr%d%n1) then
+!!!>               isx=Glr%ns1
+!!!>               iex=Glr%ns1 + Glr%d%n1
+!!!>            else
+!!!>               isx=modulo(isx,Glr%d%n1+1) + Glr%ns1
+!!!>               iex= ln1 + isx
+!!!>               if (iex > Glr%ns1+Glr%d%n1) then
+!!!>                  outofzone(1)=modulo(iex,Glr%d%n1+1)
+!!!>               end if
+!!!>            end if
+!!!>    
+!!!>            ! Get starting and ending for y direction (perpendicular to surface)
+!!!>            if (iey - isy >= Glr%d%n2) then
+!!!>               isy=Glr%ns2
+!!!>               iey=Glr%ns2 + Glr%d%n2
+!!!>             else
+!!!>               isy=modulo(isy,Glr%d%n2+1) + Glr%ns2
+!!!>               iey= ln2 + isy
+!!!>               if (iey > Glr%ns2+Glr%d%n2) then
+!!!>                  outofzone(2)=modulo(iey,Glr%d%n2+1)
+!!!>               end if
+!!!>            end if
+!!!>    
+!!!>            !Get starting and ending for z direction
+!!!>            if (iez - isz >= Glr%d%n3) then
+!!!>               isz=Glr%ns3
+!!!>               iez=Glr%ns3 + Glr%d%n3
+!!!>            else
+!!!>               isz=modulo(isz,Glr%d%n3+1) +  Glr%ns3
+!!!>               iez= ln3 + isz
+!!!>               if (iez > Glr%ns3+Glr%d%n3) then
+!!!>                  outofzone(3)=modulo(iez,Glr%d%n3+1)
+!!!>               end if
+!!!>            end if
+!!!>         end select
+!!!>    
+!!!>         !values for the starting point of the cube for wavelet grid
+!!!>         Llr(ilr)%ns1=isx
+!!!>         Llr(ilr)%ns2=isy
+!!!>         Llr(ilr)%ns3=isz
+!!!>    
+!!!>         !dimensions of the localisation region
+!!!>         Llr(ilr)%d%n1=iex-isx
+!!!>         Llr(ilr)%d%n2=iey-isy
+!!!>         Llr(ilr)%d%n3=iez-isz
+!!!>    
+!!!>         !assign outofzone
+!!!>         Llr(ilr)%outofzone(:) = outofzone(:)
+!!!>    
+!!!>         ! Set the conditions for ext_buffers (conditions for buffer size)
+!!!>         Gperx=(Glr%geocode /= 'F')
+!!!>         Gpery=(Glr%geocode == 'P')
+!!!>         Gperz=(Glr%geocode /= 'F')
+!!!>         Lperx=(Llr(ilr)%geocode /= 'F')
+!!!>         Lpery=(Llr(ilr)%geocode == 'P')
+!!!>         Lperz=(Llr(ilr)%geocode /= 'F')
+!!!>    
+!!!>         !calculate the size of the buffers of interpolating function grid
+!!!>         call ext_buffers(Gperx,Gnbl1,Gnbr1)
+!!!>         call ext_buffers(Gpery,Gnbl2,Gnbr2)
+!!!>         call ext_buffers(Gperz,Gnbl3,Gnbr3)
+!!!>         call ext_buffers(Lperx,Lnbl1,Lnbr1)
+!!!>         call ext_buffers(Lpery,Lnbl2,Lnbr2)
+!!!>         call ext_buffers(Lperz,Lnbl3,Lnbr3)
+!!!>    
+!!!>         !starting point of the region for interpolating functions grid
+!!!>         Llr(ilr)%nsi1= 2 * Llr(ilr)%ns1 - (Lnbl1 - Gnbl1)
+!!!>         Llr(ilr)%nsi2= 2 * Llr(ilr)%ns2 - (Lnbl2 - Gnbl2)
+!!!>         Llr(ilr)%nsi3= 2 * Llr(ilr)%ns3 - (Lnbl3 - Gnbl3)
+!!!>    
+!!!>         !dimensions of the fine grid inside the localisation region
+!!!>         Llr(ilr)%d%nfl1=max(isx,Glr%d%nfl1)-isx ! should we really substract isx (probably because the routines are coded with 0 as origin)?
+!!!>         Llr(ilr)%d%nfl2=max(isy,Glr%d%nfl2)-isy
+!!!>         Llr(ilr)%d%nfl3=max(isz,Glr%d%nfl3)-isz
+!!!>    
+!!!>         !NOTE: This will not work with symmetries (must change it)
+!!!>         Llr(ilr)%d%nfu1=min(iex,Glr%d%nfu1)-isx
+!!!>         Llr(ilr)%d%nfu2=min(iey,Glr%d%nfu2)-isy
+!!!>         Llr(ilr)%d%nfu3=min(iez,Glr%d%nfu3)-isz
+!!!>    
+!!!>         !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+!!!>         Llr(ilr)%d%n1i=2*Llr(ilr)%d%n1+31
+!!!>         Llr(ilr)%d%n2i=2*Llr(ilr)%d%n2+31
+!!!>         Llr(ilr)%d%n3i=2*Llr(ilr)%d%n3+31
+!!!>    
     !DEBUG
     !     if (iproc == 0) then
     !        write(*,*)'Description of zone:',ilr

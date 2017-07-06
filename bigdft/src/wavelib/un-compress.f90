@@ -1772,7 +1772,8 @@ END SUBROUTINE uncompress_per_f_short
 subroutine uncompress_standard_scal(grid,wfd,scal,keyv_c,keyv_f,keyg_c,keyg_f,&
      psi_c,psi_f,psig_c,psig_f)
   use module_base
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(grid_dimensions), intent(in) :: grid
   type(wavefunctions_descriptors), intent(in) :: wfd !< to be used only for the dimensions
@@ -1838,7 +1839,8 @@ END SUBROUTINE uncompress_standard_scal
 subroutine compress_standard_scal(grid,wfd,scal,keyv_c,keyv_f,keyg_c,keyg_f,&
      psig_c,psig_f,psi_c,psi_f)
   use module_base
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(grid_dimensions), intent(in) :: grid
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1908,7 +1910,8 @@ subroutine compress_and_accumulate_standard(grid,wfd,&
      keyv_c,keyv_f,keyg_c,keyg_f,&
      psig_c,psig_f,psi_c,psi_f)
   use module_base
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(grid_dimensions), intent(in) :: grid
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -1976,7 +1979,8 @@ subroutine compress_and_accumulate_mixed(grid,wfd,&
      keyv_c,keyv_f,keyg_c,keyg_f,&
      psig,psi_c,psi_f)
   use module_base
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(grid_dimensions), intent(in) :: grid
   type(wavefunctions_descriptors), intent(in) :: wfd

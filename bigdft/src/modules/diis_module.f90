@@ -299,9 +299,9 @@ contains
     end do
 
     ! Output to screen, depending on policy.
-    if (verbose >= 10) then
-       call broadcast_kpt_objects(nproc, ngrp, (diis%idsx+1), rds, igrpproc)
-    end if
+!!$    if (verbose >= 10) then
+!!$       call broadcast_kpt_objects(nproc, ngrp, (diis%idsx+1), rds, igrpproc)
+!!$    end if
     if (iproc == 0) then 
        call write_diis_weights(1,diis%idsx,1,ngrp,min(diis%idsx,diis%ids),rds)
     endif

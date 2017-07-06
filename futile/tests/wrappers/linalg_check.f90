@@ -90,7 +90,7 @@ program linalg_check
   call subspace_matrix(symm,psi,hpsi,ncplx,nvctr,norb,mat)
 
   !then compare the matrices
-  call f_diff(size(mat),mat,ref_mat,diff)
+  call f_diff(int(size(mat),f_long),mat,ref_mat,diff)
 
   nthreads=1
   !$ nthreads=omp_get_max_threads()

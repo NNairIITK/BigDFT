@@ -133,11 +133,6 @@ libCheSS-1.a: $(libCheSS_1_a_OBJECTS) tmp-libCheSS/extract.stamp insmod
 	$(AR) $(ARFLAGS) $@ $(libCheSS_1_a_OBJECTS) tmp-libCheSS/*.o
 	$(RANLIB) $@
 
-libCheSS-1.so.@CHESS_MINOR_VERSION@: $(chess_dynamic_library)
-	ln -fs $^ $@
-	ln -fs $@ libCheSS-1.so
-
-
 #dependencies
 $(modules): $(libCheSS_1_a_OBJECTS)
 foe_common.o: foe_base.o chebyshev.o fermi_level.o chess_base.o

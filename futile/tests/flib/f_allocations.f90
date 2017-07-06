@@ -8,7 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 program f_buffer_allocations
   use futile
-  use wrapper_mpi
   implicit none
   !declare a number of allocatable arrays an pointers of different implicit type and ranks
   logical, dimension(:), allocatable ::             l1
@@ -536,8 +535,8 @@ program f_buffer_allocations
   call yaml_comment('',hfill='~')
   call f_free_ptr(d1_ptr)
   call f_free_ptr(d1_ptr_exotic)
-  call mpifinalize()
   call f_lib_finalize()
+
   contains
 
     subroutine buffer_info(shp,lbnd,ubnd,sizeof,typeb)
@@ -546,7 +545,8 @@ program f_buffer_allocations
       character(len=*), intent(in) :: typeb
       integer, dimension(:), intent(in) :: shp,lbnd,ubnd
 
-      call yaml_mapping_open(typeb//' buffer,kind '//trim(yaml_toa(sizeof)))
+      !call yaml_mapping_open(typeb//' buffer,kind '//trim(yaml_toa(sizeof)))
+      call yaml_mapping_open(typeb//' buffer, kind '+sizeof+', rank'+yaml_toa(size(shp)))
         call yaml_map('Shape',shp)
         call yaml_map('Lbound',lbnd)
         call yaml_map('Ubound',ubnd)

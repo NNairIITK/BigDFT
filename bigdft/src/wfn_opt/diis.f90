@@ -624,7 +624,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
      if (iproc == 0) then
         !if (verbose > 0) write(*,'(1x,a,1pe11.3)') 'alpha=',diis%alpha
         !yaml output
-        if (verbose > 0) call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
+        if (get_verbose_level() > 0) call yaml_map('SDalpha',diis%alpha,fmt='(1pe11.3)')
 !        write(70,'(1x,a,1pe11.3)') 'SDalpha: ',diis%alpha
      end if
      call axpy(sum(comms%ncntt(0:nproc-1)),-diis%alpha,hpsit(1),1,psit(1),1)
@@ -704,13 +704,14 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   type(diis_objects), intent(inout) :: diis
 ! Local variables
   character(len=*), parameter :: subname='diisstp'
-  integer :: i,j,ist,jst,mi,info,jj,mj,ipsi_spin_sh,iorb_group_sh
-  integer :: ikptp,ikpt,ispsi,ispsidst,nvctrp,icplx,ncplx,norbi,ngroup,igroup,iacc_add
+  integer :: i,j,ist,jst,mi,info,jj,mj,iorb_group_sh
+  integer :: ikptp,ikpt,ispsi,nvctrp,icplx,ncplx,norbi,ngroup,igroup
   complex(tp) :: zdres,zdotc
   real(tp), dimension(2) :: psicoeff
   integer, dimension(:), allocatable :: ipiv
   real(tp), dimension(:,:,:), allocatable :: adsw
   real(tp), dimension(:,:,:,:), allocatable :: rds
+  integer(f_long) :: ipsi_spin_sh, ispsidst, indl1, indl2, iacc_add
 
   !calculate the number of complex components
   if (orbs%nspinor > 1) then
@@ -731,7 +732,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
   adsw = f_malloc0((/ ncplx, diis%idsx+1, diis%idsx+1 /),id='adsw')
   !call to_zero(ncplx*(diis%idsx+1)**2,adsw(1,1,1))
 
-  ispsidst=1
+  ispsidst=int(1,kind=f_long)
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikpt)
@@ -760,15 +761,19 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
            zdres=cmplx(0.0_tp,0.0_tp,kind=tp)
         end if
         
-        ipsi_spin_sh=0
+        ipsi_spin_sh=int(0,kind=f_long)
         do igroup=1,ngroup
            norbi=orbs%norb!u
            if (ncplx==1) then
               !to be corrected for complex wavefunctions
               !print *,'isipnst',sum(comms%ncntt(0:nproc-1)),ispsidst+ipsi_spin_sh,nvctrp*norbi*orbs%nspinor
+              indl1 = ispsidst + ipsi_spin_sh + &
+                      int(diis%mids-1,kind=f_long)*int(nvctrp,kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)
+              indl2 = ispsidst + ipsi_spin_sh + &
+                      int(mi-1,kind=f_long)*int(nvctrp,kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)
               rds(1,i-ist+1,1,ikpt)=rds(1,i-ist+1,1,ikpt)+dot(nvctrp*norbi*orbs%nspinor,&
-                   diis%hpsidst(ispsidst+ipsi_spin_sh+(diis%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
-                   diis%hpsidst(ispsidst+ipsi_spin_sh+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+                   diis%hpsidst(indl1),1,&
+                   diis%hpsidst(indl2),1)
               !this has to be inserted in module_base
               !call ds_dot(nvctrp*orbs%norb*orbs%nspinor,&
               !     hpsidst_sp,ispsidst+(mids-1)*nvctrp*orbs%norb*orbs%nspinor,1,&
@@ -776,22 +781,27 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
               !     rds(i-ist+1,ikpt))
            else 
               !this should be simple or double precision either
+              indl1 = ispsidst + ipsi_spin_sh + &
+                      int(diis%mids-1,kind=f_long)*int(nvctrp,kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)
+              indl2 = ispsidst + ipsi_spin_sh + &
+                      int(mi-1,kind=f_long)*int(nvctrp,kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)
               zdres=zdres+zdotc(nvctrp*norbi*(orbs%nspinor/2),&
-                   diis%hpsidst(ispsidst+ipsi_spin_sh+(diis%mids-1)*nvctrp*orbs%norb*orbs%nspinor),1,&
-                   diis%hpsidst(ispsidst+ipsi_spin_sh+(mi-1)*nvctrp*orbs%norb*orbs%nspinor),1)
+                   diis%hpsidst(indl1),1,&
+                   diis%hpsidst(indl2),1)
            end if
         end do
         !copy the complex result in the rds array (vcopy TO BE REDEFINED)
         if (ncplx == 2) call vcopy(2,zdres,1,rds(1,i-ist+1,1,ikpt),1)
      end do
-     ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+     ispsidst = ispsidst + &
+                int(nvctrp,kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)*int(diis%idsx,kind=f_long)
   end do
   if (nproc > 1) then
      call mpiallred(rds,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   endif
 
   ispsi=1
-  ispsidst=1
+  ispsidst=int(1,kind=f_long)
   do ikptp=1,orbs%nkptsp
      ikpt=orbs%iskpts+ikptp!orbs%ikptsp(ikptp)
      nvctrp=comms%nvctr_par(iproc,ikpt)
@@ -881,7 +891,9 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
         !change the approach and fill only the difference between the original psit and the updated one
         jst=max(1,diis%ids-diis%idsx+1)
         !use the array which will be erased in the next step as the work array
-        iacc_add=ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mod(diis%ids,diis%idsx))*orbs%norb*orbs%nspinor*nvctrp
+        iacc_add = ispsidst + iorb_group_sh*int(nvctrp,kind=f_long)*int(orbs%nspinor,kind=f_long) + &
+                   int(mod(diis%ids,diis%idsx),kind=f_long)*int(orbs%norb,kind=f_long)*&
+                   int(orbs%nspinor,kind=f_long)*int(nvctrp,kind=f_long)
         if (diis%ids < diis%idsx) then
            !some arrays still has to be filled
            !call vscal(nvctrp*orbs%nspinor*norbi,0.0_tp,diis%psidst(iacc_add),1)
@@ -932,20 +944,22 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
            if (ncplx ==1) then
               !use axpy for updating the array (can be done for all the orbitals in the group)
               !the last step is the update with psi
+              indl1 = ispsidst + int(iorb_group_sh,kind=f_long)*int(nvctrp,kind=f_long)*int(orbs%nspinor,kind=f_long) + &
+                      int((mj-1),kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)*int(nvctrp,kind=f_long)
               call axpy(nvctrp*orbs%nspinor*norbi,psicoeff(1),&
-                   diis%psidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%psidst(indl1),1,&
                    diis%psidst(iacc_add),1)
               !this will work only if the errors are written in the same precision
               call axpy(nvctrp*orbs%nspinor*norbi,-rds(1,jj,igroup,ikpt),&
-                   diis%hpsidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%hpsidst(indl1),1,&
                    diis%psidst(iacc_add),1)
            else
               call c_axpy(nvctrp*(orbs%nspinor/2)*norbi,psicoeff(1),&
-                   diis%psidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%psidst(indl1),1,&
                    diis%psidst(iacc_add),1)
               !this will work only if the errors are written in double precision
               call c_axpy(nvctrp*(orbs%nspinor/2)*norbi,-rds(1,jj,igroup,ikpt),&
-                   diis%hpsidst(ispsidst+iorb_group_sh*nvctrp*orbs%nspinor+(mj-1)*orbs%norb*orbs%nspinor*nvctrp),1,&
+                   diis%hpsidst(indl1),1,&
                    diis%psidst(iacc_add),1)
            end if
 
@@ -959,13 +973,14 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      end do
 !!$     end do
      ispsi=ispsi+nvctrp*orbs%norb*orbs%nspinor
-     ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
+     ispsidst = ispsidst + &
+                int(nvctrp,kind=f_long)*int(orbs%norb,kind=f_long)*int(orbs%nspinor,kind=f_long)*int(diis%idsx,kind=f_long)
   end do
 
   ! Output to screen, depending on policy.
-  if (verbose >= 10) then
-     call broadcast_kpt_objects(nproc, orbs%nkpts, ncplx*ngroup*(diis%idsx+1), rds, orbs%ikptproc)
-  end if
+!!$  if (verbose >= 10) then
+!!$     call broadcast_kpt_objects(nproc, orbs%nkpts, ncplx*ngroup*(diis%idsx+1), rds, orbs%ikptproc)
+!!$  end if
 
 !!$           ttr=0.0_dp
 !!$           tti=0.0_dp

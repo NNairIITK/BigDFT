@@ -2,13 +2,13 @@ module psp_projectors_base
   use module_base
   use gaussians
   use locregs
+  use compression
   use locreg_operations
   implicit none
 
   private
 
   integer,parameter,public :: NCPLX_MAX = 2
-
 
   !> Non local pseudopotential descriptors
   type, public :: nonlocal_psp_descriptors

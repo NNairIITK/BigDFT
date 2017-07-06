@@ -29,6 +29,7 @@ module communications
   public :: transpose_v
   public :: untranspose_v
   public :: toglobal_and_transpose
+  public :: communicate_basis_for_density_collective
 
 
   contains
@@ -1339,7 +1340,8 @@ module communications
     !> Locreg communication
     subroutine communicate_locreg_descriptors_basics(iproc, nproc, nlr, rootarr, orbs, llr)
       use module_base
-      use module_types, only: orbitals_data, locreg_descriptors
+      use module_types, only: orbitals_data
+      use locregs, only: locreg_descriptors
       implicit none
     
       ! Calling arguments
@@ -1546,7 +1548,8 @@ module communications
        use dictionaries
        use wrapper_mpi
        use module_base, only: bigdft_mpi
-       use module_types, only: orbitals_data, locreg_descriptors
+       use module_types, only: orbitals_data
+       use locregs, only: locreg_descriptors
        use wrapper_linalg
        use locregs, only: allocate_wfd, check_overlap_cubic_periodic
        use yaml_output
@@ -2038,7 +2041,9 @@ module communications
     !> Get the offset of the data of locreg iilr
     function get_offset(nlr, llr, orbs, norb_max, iiproc, iilr, locregs_local, mask)
       use module_base
-      use module_types, only: orbitals_data, locreg_descriptors
+      use module_types, only: orbitals_data
+      use locregs, only: locreg_descriptors
+
       implicit none
       integer,intent(in) :: nlr, norb_max, iiproc, iilr
       type(locreg_descriptors),dimension(nlr),intent(inout) :: llr
@@ -2107,6 +2112,7 @@ module communications
                out_add) !optional
       use module_base
       use module_types
+      use compression
       implicit none
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
@@ -2159,6 +2165,7 @@ module communications
          work_add,out_add) !optional
       use module_base
       use module_types
+      use compression
       implicit none
       integer, intent(in) :: iproc,nproc
       type(orbitals_data), intent(in) :: orbs
@@ -2307,6 +2314,69 @@ module communications
     END SUBROUTINE toglobal_and_transpose
 
 
+    subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
+      use dynamic_memory
+      use module_types, only: local_zone_descriptors, orbitals_data, comms_linear
+      use locreg_operations, only: workarr_sumrho, initialize_work_arrays_sumrho, deallocate_work_arrays_sumrho
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, npsidim
+      type(local_zone_descriptors),intent(in) :: lzd
+      type(orbitals_data),intent(in) :: orbs
+      real(kind=8),dimension(npsidim),intent(in) :: lphi
+      type(comms_linear),intent(inout) :: collcom_sr
+      
+      ! Local variables
+      integer :: ist, istr, iorb, iiorb, ilr
+      real(kind=8),dimension(:),allocatable :: psir, psirwork, psirtwork
+      type(workarr_sumrho) :: w
+      character(len=*),parameter :: subname='comm_basis_for_dens_coll'
+    
+      call timing(iproc,'commbasis4dens','ON')
+      call f_routine(id='communicate_basis_for_density_collective')
+    
+      psir = f_malloc(collcom_sr%ndimpsi_c,id='psir')
+    
+      ! Allocate the communication buffers for the calculation of the charge density.
+      !call allocateCommunicationbufferSumrho(iproc, comsr, subname)
+      ! Transform all orbitals to real space.
+      ist=1
+      istr=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inWhichLocreg(iiorb)
+          call initialize_work_arrays_sumrho(lzd%Llr(ilr),.true.,w)
+          call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
+          call deallocate_work_arrays_sumrho(w)
+          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=collcom_sr%ndimpsi_c+1) then
+          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
+          stop
+      end if
+    
+      psirwork = f_malloc(collcom_sr%ndimpsi_c,id='psirwork')
+    
+      call transpose_switch_psir(collcom_sr, psir, psirwork)
+    
+      call f_free(psir)
+    
+      psirtwork = f_malloc(collcom_sr%ndimind_c,id='psirtwork')
+    
+      call transpose_communicate_psir(iproc, nproc, collcom_sr, psirwork, psirtwork)
+    
+      call f_free(psirwork)
+    
+      call transpose_unswitch_psirt(collcom_sr, psirtwork, collcom_sr%psit_c)
+    
+      call f_free(psirtwork)
+    
+      call f_release_routine()
+      call timing(iproc,'commbasis4dens','OF')
+    
+    end subroutine communicate_basis_for_density_collective
 
 
 end module communications

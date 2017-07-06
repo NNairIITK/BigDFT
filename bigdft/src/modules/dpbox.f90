@@ -11,7 +11,7 @@
 !> Module which contains the data structure associated to the dnesity and potential grid
 module module_dpbox
 
-  use module_base, only: gp,mpi_environment,mpi_environment_null,f_err_throw
+  use module_base
   use bounds, only: ext_buffers
   use box
 
@@ -39,16 +39,13 @@ module module_dpbox
      !! the same holds for non-collinear calculations
      integer :: i3rho_add             !< dpbox%ndims(1)*dpbox%ndims(2)*dpbox%i3xcsh+1
      integer :: ndimpot               !< n1i*n2i*n3p = dpbox%ndims(1)dpbox%ndims(2)*dpbox%n3p
-     integer :: ndimgrid              !< n1i*n2i*n3i = dpbox%ndims(1)*dpbox%ndims(2)*dpbox%ndims(3)
+     integer :: ndimrho             !< n1i*n2i*n3i = dpbox%ndims(1)*dpbox%ndims(2)*dpbox%ndims(3)
      integer :: ndimrhopot            !< dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3d*dpbox%nrhodim
      type(cell) :: mesh !<defines the cell of the system
      !>iterator over the potential degrees of freedom
      type(box_iterator) :: bitp 
      !>iterator for the density
      type(box_iterator) :: bitd 
-!!$     integer, dimension(3) :: ndims   !< Box containing the grid dimensions in ISF basis in x,y and z direction (n1i,n2i,n3i)
-!!$     real(gp), dimension(3) :: hgrids !< Grid spacings of the box (half of wavelet ones)
-!!$     character(len=1) :: geocode      !< @copydoc poisson_solver::doc::geocode
      integer, dimension(:,:), pointer :: nscatterarr !< dim(nproc,4) for each proc (n3d,n3p,i3s+i3xcsh-1,i3xcsh) see @link dpbox_repartition @endlink
      integer, dimension(:,:), pointer :: ngatherarr  !< dim(nproc,3) (dpbox%ndimpot,n1i*n2i*nscatteradd(:,3),n1i*n2i*n3d) see @link dpbox_repartition @endlink
      type(mpi_environment) :: mpi_env !< MPI environment for the psolver i.e. mpi_env%iproc /= bigdft_mpi%iproc
@@ -56,6 +53,7 @@ module module_dpbox
 
 
   !> Define an iterator over the points of the grid which should be also inside a given box (for instance centered on an atom)
+  !! to be removed as it is superseded by the box_iterator of box module
   type, public :: dpbox_iterator
     integer :: ix,iy,iz                  !< Indices of the three-dimensional arrays in distributed PSolver data scheme
     integer :: it,nt                     !< ithread and nthread for omp
@@ -78,7 +76,7 @@ module module_dpbox
 
 
   !Public routines
-  public :: dpbox_null,deallocate_denspot_distribution,dpbox_free
+  public :: dpbox_null,deallocate_denspot_distribution,dpbox_free,dpbox_set
   public :: dpbox_iter,dpbox_iter_next
   public :: dpbox_iterator_null, nullify_dpbox_iterator
   
@@ -105,11 +103,8 @@ contains
     dpbox%nrhodim=0
     dpbox%i3rho_add=0
     dpbox%ndimpot=0
-    dpbox%ndimgrid=0
+    dpbox%ndimrho=0
     dpbox%ndimrhopot=0
-!!$    dpbox%ndims=(/0,0,0/)
-!!$    dpbox%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-!!$    dpbox%geocode = "F"
     nullify(dpbox%nscatterarr)
     nullify(dpbox%ngatherarr)
     dpbox%mpi_env=mpi_environment_null()
@@ -154,6 +149,139 @@ contains
 
   END SUBROUTINE dpbox_free
 
+  !> Initialize dpbox from the local zone descriptors
+  subroutine dpbox_set(dpbox,mesh,xc,iproc,nproc,mpi_comm,&
+       SICapproach,nspin)!
+    use module_xc
+    use bounds, only: locreg_mesh_origin
+    use wrapper_MPI, only: mpi_environment_set
+    implicit none
+    integer, intent(in) :: iproc,nproc,mpi_comm,nspin
+    character(len=4), intent(in) :: SICapproach
+    type(cell), intent(in) :: mesh
+    type(xc_info), intent(in) :: xc
+    type(denspot_distribution), intent(out) :: dpbox
+    !local variables
+    integer :: npsolver_groupsize,i3sd,n3p,n3d,i3sp,igpu
+
+    dpbox=dpbox_null()
+
+    !call dpbox_set_box(dpbox,Lzd)
+
+    !the reference mesh should be copied from the Glr
+    dpbox%mesh=mesh
+
+    !if the taskgroup size is not a divisor of nproc do not create taskgroups
+!!$  if (nproc > 1 .and. PS_groupsize > 0 .and. &
+!!$       PS_groupsize < nproc .and.&
+!!$       mod(nproc,PS_groupsize)==0) then
+!!$     npsolver_groupsize=PS_groupsize
+!!$  else
+    npsolver_groupsize=nproc
+!!$  end if
+    !here we should inherit the mpi_env of the kernel
+    call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
+    igpu=0
+    call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,igpu,xc,&
+         nspin,cell_geocode(dpbox%mesh),SICapproach,dpbox)
+
+    !set the iterators for the density and the potential
+    i3sp=dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
+    i3sd=i3sp-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
+    n3p=dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
+    n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
+
+!!$  dpbox%bitd=box_iter(dpbox%mesh,&
+!!$       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sd,n3p=n3d)
+    dpbox%bitp=box_iter(dpbox%mesh,&
+         origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sp,n3p=n3p)
+
+  end subroutine dpbox_set
+
+  !> Create descriptors for density and potentials (parallel distribution)
+  subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,dpbox)
+    use module_xc
+    implicit none
+    integer, intent(in) :: nspin,iproc,nproc,igpu
+    type(xc_info), intent(in) :: xc
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+    character(len=4), intent(in) :: SICapproach
+    type(denspot_distribution), intent(inout) :: dpbox
+
+    ! Create descriptors for density and potentials.
+
+    ! these arrays should be included in the comms descriptor
+    ! allocate values of the array for the data scattering in sumrho
+    ! its values are ignored in the datacode='G' case
+    dpbox%nscatterarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.4 /),id='dpbox%nscatterarr')
+    !allocate array for the communications of the potential
+    !also used for the density
+    dpbox%ngatherarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.3 /),id='dpbox%ngatherarr')
+
+    call dpbox_repartition(iproc,nproc,igpu,geocode,'D',xc,dpbox)
+
+    ! Allocate Charge density / Potential in real space
+    ! here the full_density treatment should be put
+    dpbox%nrhodim=nspin
+    dpbox%i3rho_add=0
+    if (trim(SICapproach)=='NK') then
+       dpbox%nrhodim=2*dpbox%nrhodim !to be eliminated with an orbital-dependent potential
+       dpbox%i3rho_add=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%i3xcsh+1
+    end if
+
+    !fill the full_local_potential dimension
+    dpbox%ndimpot=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3p
+    dpbox%ndimrho=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d
+    !dpbox%ndimgrid=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%mesh%ndims(3)
+    dpbox%ndimrhopot=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d*dpbox%nrhodim
+  end subroutine denspot_communications
+
+  !> Do the parallel distribution and the descriptors for the density and the potential
+  subroutine dpbox_repartition(iproc,nproc,igpu,geocode,datacode,xc,dpbox)
+    use Poisson_Solver
+    use module_xc
+    implicit none
+    !Arguments
+    integer, intent(in) :: iproc,nproc,igpu
+    type(xc_info), intent(in) :: xc
+    character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
+    character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
+    type(denspot_distribution), intent(inout) :: dpbox
+    !Local variables
+    integer :: jproc,n3d,n3p,n3pi,i3xcsh,i3s
+
+    if (datacode == 'D') then
+       do jproc=0,nproc-1
+          call PS_dim4allocation(geocode,datacode,jproc,nproc,&
+               dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
+               igpu,n3d,n3p,n3pi,i3xcsh,i3s)
+          dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
+          dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
+          dpbox%nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
+          dpbox%nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
+       end do
+    end if
+
+    if (iproc < nproc) then
+       dpbox%n3d=dpbox%nscatterarr(iproc,1)
+       dpbox%n3p=dpbox%nscatterarr(iproc,2)
+       dpbox%i3xcsh=dpbox%nscatterarr(iproc,4)
+       dpbox%i3s=dpbox%nscatterarr(iproc,3)-dpbox%i3xcsh+1
+       dpbox%n3pi=dpbox%n3p
+    else
+       dpbox%n3d=0
+       dpbox%n3p=0
+       dpbox%i3xcsh=0
+       dpbox%i3s=1
+       dpbox%n3pi=dpbox%n3p
+    end if
+
+    dpbox%ngatherarr(:,1)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,2)
+    dpbox%ngatherarr(:,2)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,3)
+    !for the density
+    dpbox%ngatherarr(:,3)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,1)
+
+  end subroutine dpbox_repartition
 
   !> Function nullify an iterator over dpbox
   pure function dpbox_iterator_null() result (boxit)
@@ -520,6 +648,34 @@ contains
     end if
 
   END SUBROUTINE ind_positions_new
+
+
+!!!  !> Initialize dpbox (density pot distribution) i.e. the parameters defining the grid
+!!!  subroutine dpbox_set_box(dpbox,Glr)
+!!!    use module_base
+!!!    use locregs, only: locreg_descriptors
+!!!    use module_dpbox, only: denspot_distribution
+!!!    use module_types
+!!!    use box
+!!!    implicit none
+!!!    type(locreg_descriptors), intent(in) :: Lzd
+!!!    type(denspot_distribution), intent(inout) :: dpbox
+!!!    !local variables
+!!!    integer, dimension(3) :: ndims
+!!!
+!!!!!$  !The grid for the potential is twice finer
+!!!!!$  dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
+!!!!!$  dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
+!!!!!$  dpbox%hgrids(3)=0.5_gp*Lzd%hgrids(3)
+!!!!!$  !Same dimension
+!!!    ndims(1)=Lzd%Glr%d%n1i
+!!!    ndims(2)=Lzd%Glr%d%n2i
+!!!    ndims(3)=Lzd%Glr%d%n3i
+!!!!!$  dpbox%geocode=Lzd%Glr%geocode
+!!!
+!!!    dpbox%mesh=Lzd%Glr%mesh!cell_new(Lzd%Glr%geocode,ndims,0.5_gp*Lzd%hgrids)
+!!!
+!!!  end subroutine dpbox_set_box
 
 
 end module module_dpbox

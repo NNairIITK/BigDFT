@@ -270,6 +270,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
         nmax_occ => nmax_occ_ao
    use module_types
    use yaml_output
+   use module_atoms
    implicit none
    integer, intent(in) :: norbe,iproc
    integer, intent(in) :: norbsc,nspin
@@ -291,8 +292,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    integer :: iorb,jorb,iat,ity,i,ictot,inl,l,m,nctot,iocc,ictotpsi,ishell,icoeff
    integer :: noncoll,ig,ispinor,icoll,ikpts,ikorb,nlo,ntypesx,ityx,jat,ng,nspin_print
    !integer :: nsccode
-   real(gp) :: ek,mx,my,mz,ma,mb,mc,md
-   real(gp) :: mnorm,fac
+   real(gp) :: ek,mx,my,mz,ma,mb,mc,md,tt
+   real(gp) :: mnorm,fac,theta,phi,chi,chipphi,chimphi
    !logical, dimension(lmax,noccmax) :: semicore
    integer, dimension(2) :: iorbsc,iorbv
    !integer, dimension(lmax) :: nl
@@ -301,7 +302,8 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    real(gp), dimension(:), allocatable :: psiatn
    real(gp), dimension(:,:), allocatable :: atmoments,xp
    real(gp), dimension(:,:,:), allocatable :: psiat
-    real(gp), dimension(0:4,0:6) :: psppar
+   real(gp), dimension(0:4,0:6) :: psppar
+   type(atoms_iterator) :: itat 
 
    !if (iproc == 0 .and. verbose > 1) then
       !write(*,'(1x,a)')'Calculating AIO wavefunctions: '
@@ -358,6 +360,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    end do count_shells
 
    !print *,'ntypesx',ntypesx,iatypex
+   orbpol_nc=.false.
 
    G%ndoc = f_malloc_ptr(G%nshltot,id='G%ndoc')
    G%nam = f_malloc_ptr(G%nshltot,id='G%nam')
@@ -370,7 +373,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
 
    !print *,'atomx types',ntypesx
 
-   if (iproc == 0 .and. verbose > 1) then
+   if (iproc == 0 .and. get_verbose_level() > 1) then
       call yaml_newline()
       call yaml_sequence_open('Atomic Input Orbital Generation')
       call yaml_newline()
@@ -390,7 +393,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
       ishltmp=0
       !call count_atomic_shells(nspin_print,at%aoig(iat)%aocc,occup,nl)
       if (ityx > ntypesx) then
-         if (iproc == 0 .and. verbose > 1) then
+         if (iproc == 0 .and. get_verbose_level() > 1) then
             call yaml_sequence(advance='no')
             call yaml_mapping_open(flow=.true.)
             call yaml_map('Atom Type',trim(at%astruct%atomnames(ity)))
@@ -418,7 +421,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                   ng-1,xp(1,ityx),psiat(1,1,ityx),.false.)
          end if
          ntypesx=ntypesx+1
-         if (iproc == 0 .and. verbose > 1) then
+         if (iproc == 0 .and. get_verbose_level() > 1) then
             !write(*,'(1x,a)')'done.'
             call yaml_mapping_close()
          end if
@@ -442,7 +445,7 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
          !stop 
       end if
    end do
-   if (iproc == 0 .and. verbose > 1) then
+   if (iproc == 0 .and. get_verbose_level() > 1) then
       call yaml_sequence_close()
       call yaml_newline()
    end if
@@ -468,23 +471,32 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    if (orbse%nspinor == 4) then
       atmoments = f_malloc((/ 3, at%astruct%nat /),id='atmoments')
 
-      open(unit=22,file='moments',form='formatted',action='read',status='old')
-      !this part can be transferred on the atomic orbitals section
-      do iat=1,at%astruct%nat
-         read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
-         if (i_stat > 0) then
-            call f_err_throw('The file "moments" is not correct!' // &
-               & 'The file "moments" has the line ' // trim(yaml_toa(iat)) // &
-               & ' which have not 3 numbers for the atom ' // trim(yaml_toa(iat)) // '.', &
-               & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
-            !write(unit=*,fmt='(a,i0,a,i0,a)') 'The file "moments" has the line ',iat,&
-            !   &   ' which have not 3 numbers for the atom ',iat,'.'
-            !stop 'The file "moments" is not correct!'
+      itat=atoms_iter(at%astruct)
+      do while(atoms_iter_next(itat))
+         if ('IGmom' .in. itat%attrs) then
+            atmoments(:,itat%iat)=itat%attrs//'IGmom'
+         else
+            call f_zero(atmoments(:,itat%iat))
          end if
-         atmoments(1,iat)=mx
-         atmoments(2,iat)=my
-         atmoments(3,iat)=mz
       end do
+
+!!$      open(unit=22,file='moments',form='formatted',action='read',status='old')
+!!$      !this part can be transferred on the atomic orbitals section
+!!$      do iat=1,at%astruct%nat
+!!$         read(unit=22,fmt=*,iostat=i_stat) mx,my,mz
+!!$         if (i_stat > 0) then
+!!$            call f_err_throw('The file "moments" is not correct!' // &
+!!$               & 'The file "moments" has the line ' // trim(yaml_toa(iat)) // &
+!!$               & ' which have not 3 numbers for the atom ' // trim(yaml_toa(iat)) // '.', &
+!!$               & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
+!!$            !write(unit=*,fmt='(a,i0,a,i0,a)') 'The file "moments" has the line ',iat,&
+!!$            !   &   ' which have not 3 numbers for the atom ',iat,'.'
+!!$            !stop 'The file "moments" is not correct!'
+!!$         end if
+!!$         atmoments(1,iat)=mx
+!!$         atmoments(2,iat)=my
+!!$         atmoments(3,iat)=mz
+!!$      end do
    end if
 
    eks=0.0_gp
@@ -639,44 +651,59 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
                                  mz=mz/mnorm
                               end if
 
-                              ma=0.0_gp
-                              mb=0.0_gp
-                              mc=0.0_gp
-                              md=0.0_gp
-
-                              if(mz > 0.0_gp) then 
-                                 ma=ma+mz
+                              !determine the representation of the spinor
+                              theta=0.5_gp*acos(mz)
+                              if (abs(theta) > 1.e-8) then
+                                 tt=1.0_gp/(sin(2.0_gp*theta)+epsilon(1.0_gp))
+                                 chipphi=acos(mx*tt)
+                                 chimphi=asin(-my*tt)
+                                 chi=0.5_gp*(chipphi+chimphi)
+                                 phi=0.5_gp*(chipphi-chimphi)
+                                 ma=cos(theta)*cos(phi)
+                                 mb=cos(theta)*sin(phi)
+                                 mc=sin(theta)*cos(chi)
+                                 md=sin(theta)*sin(chi)
                               else
-                                 mc=mc+abs(mz)
-                              end if
-                              if(mx > 0.0_gp) then 
-                                 ma=ma+fac*mx
-                                 mb=mb+fac*mx
-                                 mc=mc+fac*mx
-                                 md=md+fac*mx
-                              else
-                                 ma=ma-fac*abs(mx)
-                                 mb=mb-fac*abs(mx)
-                                 mc=mc+fac*abs(mx)
-                                 md=md+fac*abs(mx)
-                              end if
-                              if(my > 0.0_gp) then 
-                                 ma=ma+fac*my
-                                 mb=mb-fac*my
-                                 mc=mc+fac*my
-                                 md=md+fac*my
-                              else
-                                 ma=ma-fac*abs(my)
-                                 mb=mb+fac*abs(my)
-                                 mc=mc+fac*abs(my)
-                                 md=md+fac*abs(my)
-                              end if
-                              if(mx==0.0_gp .and. my==0.0_gp .and. mz==0.0_gp) then
-                                 ma=1.0_gp/sqrt(2.0_gp)
+                                 ma=1.0_gp
                                  mb=0.0_gp
-                                 mc=1.0_gp/sqrt(2.0_gp)
+                                 mc=0.0_gp
                                  md=0.0_gp
                               end if
+                              
+
+!!$                              if(mz > 0.0_gp) then 
+!!$                                 ma=ma+mz
+!!$                              else
+!!$                                 mc=mc+abs(mz)
+!!$                              end if
+!!$                              if(mx > 0.0_gp) then 
+!!$                                 ma=ma+fac*mx
+!!$                                 mb=mb+fac*mx
+!!$                                 mc=mc+fac*mx
+!!$                                 md=md+fac*mx
+!!$                              else
+!!$                                 ma=ma-fac*abs(mx)
+!!$                                 mb=mb-fac*abs(mx)
+!!$                                 mc=mc+fac*abs(mx)
+!!$                                 md=md+fac*abs(mx)
+!!$                              end if
+!!$                              if(my > 0.0_gp) then 
+!!$                                 ma=ma+fac*my
+!!$                                 mb=mb-fac*my
+!!$                                 mc=mc+fac*my
+!!$                                 md=md+fac*my
+!!$                              else
+!!$                                 ma=ma-fac*abs(my)
+!!$                                 mb=mb+fac*abs(my)
+!!$                                 mc=mc+fac*abs(my)
+!!$                                 md=md+fac*abs(my)
+!!$                              end if
+!!$                              if(mx==0.0_gp .and. my==0.0_gp .and. mz==0.0_gp) then
+!!$                                 ma=1.0_gp/sqrt(2.0_gp)
+!!$                                 mb=0.0_gp
+!!$                                 mc=1.0_gp/sqrt(2.0_gp)
+!!$                                 md=0.0_gp
+!!$                              end if
 
                               !assign the gaussian coefficients for each
                               !spinorial component

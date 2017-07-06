@@ -26,6 +26,7 @@ module multipole_base
     type(multipole),dimension(:),pointer :: qlm
     real(dp),dimension(0:lmax) :: sigma !<sigmas for the radial Gaussian when constructing the potential from the multipoles
     integer :: nzion ! core charge of the multipole... integer as also nelpsp is an integer
+    character(len=1) :: mpchar !< character of the electronic multipole (net or gross values)
   end type multipole_set
 
   type,public :: external_potential_descriptors
@@ -187,11 +188,15 @@ module multipole_base
               if ('sym' .in. iter) then
                   ep%mpl(impl+1)%sym = iter//'sym'
               end if
-              ! Retrieve the core charge of the multipole, which always has to be given.
-              if ('nzion' .notin. iter) then
-                  call f_err_throw('No multipole core charge was provided for the multipole center no. '//trim(yaml_toa(impl+1)))
-              else
+              ! Retrieve the core charge of the multipole.
+              ! If it is present, this means that the electronic multipoles below will be the gross values.
+              ! If it is not present, this means that the electronic multipoles below will be the net values.
+              if ('nzion' .in. iter) then
                   ep%mpl(impl+1)%nzion = iter//'nzion'
+                  ep%mpl(impl+1)%mpchar = 'G'
+              else
+                  ep%mpl(impl+1)%nzion = 0
+                  ep%mpl(impl+1)%mpchar = 'N'
               end if
               ilen = dict_len(iter//'r')
               if (ilen/=3) then

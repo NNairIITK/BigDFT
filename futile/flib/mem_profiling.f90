@@ -36,9 +36,11 @@ module memory_profiling
 contains
 
   !> Set a memory limit
-  subroutine f_set_memory_limit(limit)
-    real, intent(in) :: limit
-    memorylimit = limit
+  subroutine f_set_memory_limit()
+    use f_environment, only: f_memorylimit
+    implicit none
+    !real, intent(in) :: limit
+    memorylimit = real(f_memorylimit)
   end subroutine f_set_memory_limit
 
   !> Retrieve the information of the present memory state

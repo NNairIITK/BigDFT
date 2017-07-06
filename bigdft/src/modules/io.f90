@@ -422,27 +422,27 @@ module io
             ! for the latter assume orthogonal and just take K_aa
 
             ! should eventually extract this from sparse?
-            linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%l,iaction=DENSE_FULL,id='linmat%kernel_%matrix')
+            linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%smat(3),iaction=DENSE_FULL,id='linmat%kernel_%matrix')
     
             call uncompress_matrix2(iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
-                 linmat%l, linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
+                 linmat%smat(3), linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
 
             !might be better to move this outside of the routine?
             !if (calc_sks) then
             !   ovrlp_half_(1) = matrices_null()
-            !   call allocate_matrices(linmat%l, allocate_full=.true., matname='ovrlp_half_(1)', mat=ovrlp_half_(1))
+            !   call allocate_matrices(linmat%smat(3), allocate_full=.true., matname='ovrlp_half_(1)', mat=ovrlp_half_(1))
 
             !   !for case where tmbs aren't properly orthogonal, calculate S^1/2 K S^1/2
             !   call overlapPowerGeneral(iproc, bigdft_mpi%nproc, methTransformOverlap, 1, (/2/), &
             !        orthpar%blocksize_pdgemm, &
-            !        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+            !        imode=1, ovrlp_smat=linmat%smat(1), inv_ovrlp_smat=linmat%smat(3), &
             !        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=ovrlp_half_, &
             !        check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
             !   !if (iproc==0) call yaml_map('max error',max_error)
             !   !if (iproc==0) call yaml_map('mean error',mean_error)
             !   call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
 
-            !   call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
+            !   call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%smat(3), &
             !        ovrlp_half_(1)%matrix_compr, ovrlp_half_(1)%matrix)
 
             !   kernel_orthog=f_malloc_ptr(src_ptr=linmat%kernel_%matrix,id='kernel_orthog')
@@ -519,16 +519,16 @@ module io
     
                if (.not. binary) then
                    !!write(unitm,'(a,3i10,a)') '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-                   !!    ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                   !!    ref_frags(ifrag_ref)%astruct_frg%nat, linmat%smat(2)%nspin, &
                    !!    '    number of basis functions, number of atoms, number of spins'
-                   write(unitm,'(3i10,a)') linmat%m%nspin, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                   write(unitm,'(3i10,a)') linmat%smat(2)%nspin, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
                        ref_frags(ifrag_ref)%astruct_frg%nat,  &
                        '    number of basis functions, number of atoms, number of spins'
                else
                    !!write(unitm) '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-                   !!    ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                   !!    ref_frags(ifrag_ref)%astruct_frg%nat, linmat%smat(2)%nspin, &
                    !!    '    number of basis functions, number of atoms, number of spins'
-                   write(unitm) linmat%m%nspin, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                   write(unitm) linmat%smat(2)%nspin, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
                        ref_frags(ifrag_ref)%astruct_frg%nat,  &
                        '    number of basis functions, number of atoms, number of spins'
                end if
@@ -541,7 +541,7 @@ module io
                !!end do
  
                ! need to fix spin
-               !do ispin=1,linmat%m%nspin
+               !do ispin=1,linmat%smat(2)%nspin
                   do io=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
                      ia=frag_map(io,2)
                      do jo=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
@@ -573,13 +573,13 @@ module io
     
                   if (.not. binary) then
                       !!write(unitm,'(a,3i10,a)') '#  ', ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
-                      !!    linmat%m%nspin, '    number of basis functions, number of atoms, number of spins'
-                      write(unitm,'(3i10,a)') linmat%m%nspin, ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
+                      !!    linmat%smat(2)%nspin, '    number of basis functions, number of atoms, number of spins'
+                      write(unitm,'(3i10,a)') linmat%smat(2)%nspin, ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
                           '    number of basis functions, number of atoms, number of spins'
                   else
                       !!write(unitm) '#  ', ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
-                      !!    linmat%m%nspin, '    number of basis functions, number of atoms, number of spins'
-                      write(unitm) linmat%m%nspin, ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
+                      !!    linmat%smat(2)%nspin, '    number of basis functions, number of atoms, number of spins'
+                      write(unitm) linmat%smat(2)%nspin, ntmb_frag_and_env, ref_frags(ifrag_ref)%astruct_env%nat, &
                           '    number of basis functions, number of atoms, number of spins'
                   end if
                   !!do ia=1,ref_frags(ifrag_ref)%astruct_env%nat
@@ -591,7 +591,7 @@ module io
                   !!end do
  
                   ! need to fix spin
-                  !do ispin=1,linmat%m%nspin
+                  !do ispin=1,linmat%smat(2)%nspin
                      do io=1,ntmb_frag_and_env
                         ia=map_frag_and_env(io,2)
                         do jo=1,ntmb_frag_and_env
@@ -1141,7 +1141,7 @@ module io
          enddo
       enddo
     
-      if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction written No.',iorb)
+      if (get_verbose_level() >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction written No.',iorb)
       !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
     
     END SUBROUTINE writeonewave_linear
@@ -1697,7 +1697,6 @@ module io
     subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
       use module_base
       use locregs
-  
       implicit none
       !Arguments
       integer, intent(in) :: n1, n2, n3, nvctr_c, nvctr_f
@@ -2091,7 +2090,7 @@ module io
       call get_sparse_matrix_format(iformat, sparse_format)
 
       if (write_sparse) then
-          call write_sparse_matrix_metadata(iproc, tmb%linmat%m%nfvctr, at%astruct%nat, at%astruct%ntypes, &
+          call write_sparse_matrix_metadata(iproc, tmb%linmat%smat(2)%nfvctr, at%astruct%nat, at%astruct%ntypes, &
                at%astruct%units, at%astruct%geocode, at%astruct%cell_dim, at%astruct%shift, at%astruct%iatype, &
                at%astruct%rxyz, at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%orbs%onwhichatom, trim(filename//'sparsematrix_metadata.dat'))
@@ -2099,35 +2098,35 @@ module io
       end if
     
       if (write_dense) then
-          call write_dense_matrix(iproc, nproc, comm, tmb%linmat%m, tmb%linmat%ham_, &
+          call write_dense_matrix(iproc, nproc, comm, tmb%linmat%smat(2), tmb%linmat%ham_, &
                uncompress=.true., filename=trim(filename//'hamiltonian.bin'), binary=binary)
       end if
 
       if (write_sparse) then
           call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse'))
+               tmb%linmat%smat(2), tmb%linmat%ham_, trim(filename//'hamiltonian_sparse'))
       end if
     
     
       if (write_dense) then
-          call write_dense_matrix(iproc, nproc, comm, tmb%linmat%s, tmb%linmat%ovrlp_, &
+          call write_dense_matrix(iproc, nproc, comm, tmb%linmat%smat(1), tmb%linmat%ovrlp_, &
                uncompress=.true., filename=trim(filename//'overlap.bin'), binary=binary)
       end if
 
       if (write_sparse) then
           call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse')
+               tmb%linmat%smat(1), tmb%linmat%ovrlp_, filename//'overlap_sparse')
       end if
     
     
       if (write_dense) then
-          call write_dense_matrix(iproc, nproc, comm, tmb%linmat%l, tmb%linmat%kernel_, &
+          call write_dense_matrix(iproc, nproc, comm, tmb%linmat%smat(3), tmb%linmat%kernel_, &
                uncompress=.true., filename=trim(filename//'density_kernel.bin'), binary=binary)
       end if
 
       if (write_sparse) then
           call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
-               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse')
+               tmb%linmat%smat(3), tmb%linmat%kernel_, filename//'density_kernel_sparse')
       end if
     
     
@@ -2135,7 +2134,7 @@ module io
           ! calculate 'onsite' overlap matrix as well - needs double checking
     
           if (write_dense) then
-              tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+              tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%smat(1), iaction=DENSE_FULL, &
                                          id='tmb%linmat%ovrlp_%matrix')
     
               call tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
@@ -2150,10 +2149,10 @@ module io
                  !end if
     
                  if (.not. binary) then
-                     write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+                     write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%smat(2)%nfvctr, at%astruct%nat, &
                          '    number of basis functions, number of atoms'
                  else
-                     write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+                     write(unitm) '#  ',tmb%linmat%smat(2)%nfvctr, at%astruct%nat, &
                          '    number of basis functions, number of atoms'
                  end if
                  do iat=1,at%astruct%nat
@@ -2164,10 +2163,10 @@ module io
                      end if
                  end do
     
-                 do ispin=1,tmb%linmat%l%nspin
-                    do iorb=1,tmb%linmat%l%nfvctr
+                 do ispin=1,tmb%linmat%smat(3)%nspin
+                    do iorb=1,tmb%linmat%smat(3)%nfvctr
                        iat=tmb%orbs%onwhichatom(iorb)
-                       do jorb=1,tmb%linmat%l%nfvctr
+                       do jorb=1,tmb%linmat%smat(3)%nfvctr
                           jat=tmb%orbs%onwhichatom(jorb)
                           if (.not. binary) then
                              write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
@@ -2192,32 +2191,32 @@ module io
       if (write_SminusonehalfH) then
           SminusonehalfH(1) = matrices_null()
           SminusonehalfH(1)%matrix_compr = &
-              sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
-          ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
-          tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
-          call transform_sparse_matrix(iproc, tmb%linmat%m, tmb%linmat%l, SPARSE_TASKGROUP, 'small_to_large', &
+              sparsematrix_malloc0_ptr(tmb%linmat%smat(3),iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
+          ham_large = sparsematrix_malloc0_ptr(tmb%linmat%smat(3),iaction=SPARSE_TASKGROUP,id='ham_large')
+          tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%smat(3),iaction=SPARSE_TASKGROUP,id='tmp_large')
+          call transform_sparse_matrix(iproc, tmb%linmat%smat(2), tmb%linmat%smat(3), SPARSE_TASKGROUP, 'small_to_large', &
                smat_in=tmb%linmat%ham_%matrix_compr, lmat_out=ham_large)
           ! calculate S^-1/2
           power=-2
           call overlapPowerGeneral(iproc, nproc, bigdft_mpi%mpi_comm, &
                norder_taylor, 1, power, -1, &
-               imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+               imode=1, ovrlp_smat=tmb%linmat%smat(1), inv_ovrlp_smat=tmb%linmat%smat(3), &
                ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
                check_accur=norder_taylor<1000, max_error=max_error, mean_error=mean_error, &
                ice_obj=tmb%ice_obj)
           ! Calculate S^-1/2 * H
           call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
-          call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
+          call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%smat(3), tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
           call f_free_ptr(ham_large)
           call f_free_ptr(tmp_large)
           if (write_dense) then
-              call write_dense_matrix(iproc, nproc, comm, tmb%linmat%l, SminusonehalfH(1), &
+              call write_dense_matrix(iproc, nproc, comm, tmb%linmat%smat(3), SminusonehalfH(1), &
                    uncompress=.true., filename=trim(filename//'SminusonehalfH.bin'), binary=binary)
           end if
 
           if (write_sparse) then
               call write_sparse_matrix(sparse_format, iproc, nproc, bigdft_mpi%mpi_comm, &
-                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse')
+                   tmb%linmat%smat(1), SminusonehalfH(1), filename//'SminusonehalfH_sparse')
           end if
           call deallocate_matrices(SminusonehalfH(1))
       end if
@@ -2283,7 +2282,7 @@ module io
               end if
          end do
       end do  
-      if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
+      if (get_verbose_level() >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
     
     END SUBROUTINE writeLinearCoefficients
 
@@ -2440,6 +2439,7 @@ module io
     subroutine plot_locreg_grids(iproc, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
       use module_base
       use module_types
+      use locregs
       use locreg_operations, only: lpsi_to_global2
       implicit none
       
@@ -2575,12 +2575,12 @@ module io
       if (present(label)) label_ = trim(label)
     
       if (len(trim(comment)) > 0 .and. .not.write_only_energies) then
-         if (verbose >0) call yaml_newline()
+         if (get_verbose_level() >0) call yaml_newline()
          call write_iter()
-         if (verbose >0) call yaml_comment(trim(comment))
+         if (get_verbose_level() >0) call yaml_comment(trim(comment))
       end if
     
-      yesen=verbose > 0
+      yesen=get_verbose_level() > 0
       if (present(scf_mode)) yesen=yesen .and. .not. (scf_mode .hasattr. 'MIXING')
     
       if (yesen) then
@@ -2624,8 +2624,8 @@ module io
          call yaml_newline()
          if (len(trim(comment)) == 0) then
             call write_iter()
-            if (verbose >0) call yaml_newline()
-         else if (verbose > 1 .and. present(scf_mode)) then
+            if (get_verbose_level() >0) call yaml_newline()
+         else if (get_verbose_level() > 1 .and. present(scf_mode)) then
             call yaml_map('SCF criterion',scf_mode)
          end if
       end if
@@ -2661,7 +2661,7 @@ module io
 
 
    subroutine get_sparse_matrix_format(iformat, sparse_format)
-     use module_base
+     use dictionaries, only: f_err_throw !module_base
      implicit none
      integer,intent(in) :: iformat
      character(len=*),intent(out) :: sparse_format
@@ -2765,7 +2765,7 @@ module io
         enddo
      enddo
    
-     if (bigdft_mpi%iproc == 0 .and. verbose >= 2) &
+     if (bigdft_mpi%iproc == 0 .and. get_verbose_level() >= 2) &
         & call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
      !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
    
@@ -2779,6 +2779,7 @@ module io
      use yaml_output
      use module_interfaces, only: open_filename_of_iorb
      use public_enums
+     use compression
      implicit none
      integer, intent(in) :: iproc,n1,n2,n3,iformat
      real(gp), intent(in) :: hx,hy,hz

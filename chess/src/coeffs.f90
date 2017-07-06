@@ -77,6 +77,14 @@ module coeffs
           call diagonalizeHamiltonian2(iproc, nproc, comm, &
                blocksize_pdsyev, nfvctr, &
                ham_full(1,1,ispin), ovrlp_full(1,1,ispin), eval)
+
+          ! Make sure that the eigenvectors have the same sign on all MPI tasks.
+          ! To do so, ensure that the first entry is always positive.
+          do iorb=1,nfvctr
+              if (ham_full(1,iorb,1)<0.d0) then
+                  call dscal(nfvctr, -1.d0, ham_full(1,iorb,1), 1)
+              end if
+          end do
     
           ! Broadcast the results (eigenvectors and eigenvalues) from task 0 to
           ! all other tasks (in this way avoiding that different MPI tasks have different values)
@@ -98,13 +106,6 @@ module coeffs
               call vcopy(norbd, eval(1), 1, eval_occup(norbu+1), 1)
           end if
     
-          ! Make sure that the eigenvectors have the same sign on all MPI tasks.
-          ! To do so, ensure that the first entry is always positive.
-          do iorb=1,nfvctr
-              if (ham_full(1,iorb,1)<0.d0) then
-                  call dscal(nfvctr, -1.d0, ham_full(1,iorb,1), 1)
-              end if
-          end do
     
           ! Copy the diagonalized matrix to the coeff array.
           !write(*,*) 'norbu, norbd, norb', norbu, norbd, norb
@@ -146,6 +147,8 @@ module coeffs
       real(kind=mp), dimension(denskern%nfvctr,norb), intent(in) :: coeff
     
       integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie, ispin
+
+      call f_routine(id='calculate_kernel_and_energy')
     
       if (calculate_kernel) then 
          !!call extract_taskgroup_inplace(denskern, denskern_mat)
@@ -195,6 +198,7 @@ module coeffs
       !!end if
       !call timing(iproc,'calc_energy','OF')
       call f_timing(TCAT_SMAT_MULTIPLICATION,'OF')
+      call f_release_routine()
     
     end subroutine calculate_kernel_and_energy
 

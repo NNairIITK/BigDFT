@@ -262,7 +262,7 @@ END SUBROUTINE read_density_cube_old
 
 
 !> the API of this function has to be modified to make it readable
-subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, &
+subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hgrids,rxyz,psi, &
            unit0_, unitx_, unity_, unitz_)
   use module_base
   use locregs, only: locreg_descriptors
@@ -275,7 +275,7 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
   character(len=*) :: orbname
   integer, intent(in) :: nexpo
   real(dp), intent(in) :: factor
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3), intent(in) :: hgrids
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
@@ -287,7 +287,7 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
   integer, dimension(3) :: ndims
-  real(gp), dimension(3) :: hgrids
+  real(gp), dimension(3) :: hhgrids
   integer :: iunit0, iunitx, iunity, iunitz
   integer,parameter :: unit0 = 22
   integer,parameter :: unitx = 23
@@ -316,9 +316,9 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
   ndims(1)=n1i
   ndims(2)=n2i
   ndims(3)=n3i
-  hgrids(1)=0.5_gp*hx
-  hgrids(2)=0.5_gp*hy
-  hgrids(3)=0.5_gp*hz
+  hhgrids(1)=0.5_gp*hgrids(1)
+  hhgrids(2)=0.5_gp*hgrids(2)
+  hhgrids(3)=0.5_gp*hgrids(3)
   call initialize_work_arrays_sumrho(lr,.true.,w)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
@@ -347,7 +347,7 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
 !!$       at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
 !!$       1.0_gp,psir,nexpo,0.0_gp,psir)
 
-  call dump_field(trim(orbname)//'.cube',lr%geocode,ndims,hgrids,1,psir,&
+  call dump_field(trim(orbname)//'.cube',lr%geocode,ndims,hhgrids,1,psir,&
        rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
 
 

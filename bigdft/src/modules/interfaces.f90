@@ -19,6 +19,7 @@ module module_interfaces
             &   wfd_old,psi_old)
         use module_defs, only: wp
         use module_types
+        use compression
          implicit none
          integer, intent(in) :: nproc
          type(orbitals_data), intent(in) :: orbs
@@ -52,6 +53,7 @@ module module_interfaces
            &   crmult,frmult,calculate_bounds,Glr,output_denspot)
        use module_defs, only: gp
        use module_types
+       use locregs
         implicit none
         !Arguments
         type(atoms_data), intent(in) :: atoms
@@ -498,7 +500,8 @@ module module_interfaces
       interface
         subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
         use module_defs, only: gp,wp
-         use module_types
+        use module_types
+        use locregs
          implicit none
          integer, intent(in) :: iproc,nproc
          real(gp), intent(in) :: hx,hy,hz
@@ -593,7 +596,8 @@ module module_interfaces
       interface
         subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
         use module_defs, only: gp,wp
-         use module_types
+        use module_types
+        use locregs
          implicit none
          logical, intent(in) :: occorbs
          integer, intent(in) :: iproc,nspin,nvirt,nplot
@@ -671,7 +675,8 @@ module module_interfaces
         subroutine NK_SIC_potential(lr,orbs,xc,fref,hgrids,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
         use module_defs, only: gp,wp,dp
         use module_types
-         use module_xc
+        use module_xc
+        use locregs
          implicit none
          real(gp), intent(in) :: fref
          type(locreg_descriptors), intent(in) :: lr
@@ -693,6 +698,7 @@ module module_interfaces
          wfd,psi,orblist)
          use module_defs, only: gp,dp,wp
          use module_types
+         use compression
          implicit none
          integer, intent(in) :: iproc,n1,n2,n3, iformat
          real(gp), intent(in) :: hx,hy,hz
@@ -801,119 +807,6 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
         END SUBROUTINE free_wave_to_isf
       end interface
-
-      interface
-        subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-              fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,do_iterative_orthogonalization,sf_per_type,&
-          nit_precond,target_function,&
-          correction_orthoconstraint,nit_basis,&
-          ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
-          gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, &
-          correction_co_contra, &
-          precond_convol_workarrays, precond_workarrays, &
-          wt_philarge, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, reset_DIIS_history, &
-          cdft, input_frag, ref_frags, hphi_pspandkin, eproj, ekin)
-        use module_defs, only: gp,dp,wp
-        use module_types
-        use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
-        use fragment_base, only: fragmentInputParameters
-        use module_fragments, only: system_fragment
-        use constrained_dft, only: cdft_data
-        use communications_base, only: work_transpose
-        implicit none
-
-        ! Calling arguments
-        integer,intent(in) :: iproc, nproc
-        integer,intent(inout) :: order_taylor
-        real(kind=8),intent(in) :: max_inversion_error
-        integer,intent(out) :: infoBasisFunctions
-        type(atoms_data), intent(in) :: at
-        type(orbitals_data) :: orbs
-        real(kind=8),dimension(3,at%astruct%nat) :: rxyz
-        type(DFT_local_fields), intent(inout) :: denspot
-        type(GPU_pointers), intent(inout) :: GPU
-        real(kind=8),intent(out) :: trH, fnrm_tmb
-        real(kind=8),intent(inout) :: trH_old
-        type(DFT_PSP_projectors),intent(inout) :: nlpsp
-        integer,intent(in) :: scf_mode
-        type(localizedDIISParameters),intent(inout) :: ldiis
-        type(DFT_wavefunction),target,intent(inout) :: tmb
-        type(SIC_data) :: SIC !<parameters for the SIC methods
-        type(energy_terms),intent(in) :: energs_base
-        logical,intent(in) :: do_iterative_orthogonalization
-        integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type
-        integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
-        real(kind=8),intent(out) :: ratio_deltas
-        logical, intent(inout) :: ortho_on
-        integer, intent(in) :: extra_states
-        integer,intent(in) :: itout
-        real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
-        logical,intent(in) :: experimental_mode
-        logical,intent(out) :: can_use_ham
-        logical,intent(in) :: correction_co_contra
-        type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
-        type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
-        type(work_transpose),intent(inout) :: wt_philarge, wt_hphi, wt_phi
-        type(work_mpiaccumulate),intent(inout) :: fnrm, energs_work
-        logical, intent(in) :: frag_calc, reset_DIIS_history
-        !these must all be present together
-        type(cdft_data),intent(inout),optional :: cdft
-        type(fragmentInputParameters),optional,intent(in) :: input_frag
-        type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
-        real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
-        real(kind=8),intent(inout),optional :: eproj, ekin
-        END SUBROUTINE getLocalizedBasis
-      end interface
-
-    interface
-      subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
-        energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,&
-        calculate_pspandkin,communicate_phi_for_lsumrho,&
-        calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
-        calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,tel,occopt,&
-        pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_DeltaE,pexsi_temperature, pexsi_tol_charge, pexsi_np_sym_fact,&
-        convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel,hphi_pspandkin,eproj,ekin)
-      use module_defs, only: gp,dp,wp
-      use module_types
-      !use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-      use constrained_dft
-      use diis_sd_optimization
-      use sparsematrix_base, only: sparse_matrix
-      implicit none
-      integer,intent(in) :: iproc, nproc, scf_mode, itout, it_scc, it_cdft, occopt
-      integer,intent(inout) :: order_taylor
-      real(kind=8),intent(in) :: max_inversion_error
-      type(orbitals_data),intent(inout) :: orbs
-      type(atoms_data),intent(in) :: at
-      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
-      type(DFT_local_fields), intent(inout) :: denspot
-      type(GPU_pointers),intent(inout) :: GPU
-      integer,intent(out) :: infoCoeff
-      type(energy_terms),intent(inout) :: energs
-      real(kind=8),intent(inout) :: fnrm
-      type(DFT_PSP_projectors),intent(inout) :: nlpsp
-      type(SIC_data),intent(in) :: SIC
-      type(DFT_wavefunction),intent(inout) :: tmb
-      logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix, calculate_pspandkin
-      logical,intent(in):: communicate_phi_for_lsumrho
-      logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
-      type(work_mpiaccumulate),intent(inout) :: energs_work
-      logical,intent(in) :: remove_coupling_terms
-      real(kind=8), intent(in) :: factor, tel
-      integer,intent(in) :: pexsi_npoles, pexsi_np_sym_fact
-      real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_DeltaE,pexsi_temperature, pexsi_tol_charge
-      type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
-      integer, intent(in), optional :: nitdmin ! for dmin only
-      real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
-      logical, intent(in), optional :: curvefit_dmin ! for dmin only
-      type(cdft_data),intent(inout),optional :: cdft
-      integer, intent(in) :: extra_states
-      logical, optional, intent(in) :: reorder
-      logical, optional, intent(in) :: updatekernel
-      real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout),optional :: hphi_pspandkin
-      real(kind=8),intent(inout),optional :: eproj, ekin
-      END SUBROUTINE get_coeff
-    end interface
 
     interface
       subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
@@ -1067,20 +960,6 @@ module module_interfaces
          END SUBROUTINE input_check_psi_id
        end interface
 
-       !!interface
-       !!  subroutine assignToLocreg2(iproc, nproc, norb, norbu, norb_par, natom, nlr, nspin, Localnorb, spinsgn, rxyz, inwhichlocreg)
-       !!  use module_defs, only: gp,dp,wp
-       !!  use module_types
-       !!  implicit none
-       !!  integer,intent(in):: nlr,iproc,nproc,nspin,natom,norb,norbu
-       !!  integer,dimension(nlr),intent(in):: Localnorb
-       !!  real(kind=8),dimension(norb),intent(in):: spinsgn
-       !!  integer,dimension(0:nproc-1),intent(in):: norb_par
-       !!  real(8),dimension(3,nlr),intent(in):: rxyz
-       !!  integer,dimension(:),pointer,intent(out):: inwhichlocreg
-       !!  END SUBROUTINE assignToLocreg2
-       !!end interface
-
        interface
          subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
             gradient,rhocore)
@@ -1105,6 +984,7 @@ module module_interfaces
          use module_types
          use foe_base, only: foe_data
          use communications_base, only: p2pComms
+         use locregs
          implicit none
          integer,intent(in):: iproc, nproc, nlr
          integer,intent(out) :: npsidim_orbs, npsidim_comp
@@ -1330,23 +1210,6 @@ module module_interfaces
           END SUBROUTINE orthogonalize
         end interface
 
-  !!interface
-  !!   subroutine calculate_density_kernel(iproc, nproc, isKernel, norbp, isorb, norbu, norb, occup, &
-  !!         coeff, denskern, denskern_, keep_uncompressed_)
-  !!     !use module_defs, only: gp,dp,wp
-  !!     use module_types
-  !!     use sparsematrix_base, only: sparse_matrix
-  !!     implicit none
-  !!     integer,intent(in):: iproc, nproc, norbp, isorb, norbu, norb
-  !!     real(kind=8),dimension(norb),intent(in) :: occup
-  !!     logical, intent(in) :: isKernel
-  !!     type(sparse_matrix), intent(in) :: denskern
-  !!     real(kind=8),dimension(denskern%nfvctr,norb),intent(in):: coeff   !only use the first (occupied) orbitals
-  !!     type(matrices), intent(out) :: denskern_
-  !!     logical,intent(in),optional :: keep_uncompressed_ !< keep the uncompressed kernel in denskern_%matrix (requires that this array is already allocated outside of the routine)
-  !!   END SUBROUTINE calculate_density_kernel
-  !!end interface
-
   interface
      subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
        use module_defs, only: gp,dp,wp
@@ -1408,6 +1271,7 @@ module module_interfaces
        use module_defs, only: gp,dp,wp
        use module_types
        use module_fragments
+       use locregs
        implicit none
        integer, dimension(3), intent(in) :: n,n_old
        real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
@@ -1460,29 +1324,6 @@ module module_interfaces
   end interface
 
   interface
-     subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit, itmax, energy, &
-          sd_fit_curve, factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder, num_extra)
-       use module_defs, only: gp,dp,wp
-       use module_types
-       use diis_sd_optimization
-       implicit none
-       integer,intent(in):: iproc, nproc, itmax, itout, it_scc, it_cdft
-       integer,intent(inout) :: order_taylor
-       real(kind=8),intent(in) :: max_inversion_error
-       type(orbitals_data),intent(in):: orbs
-       type(DFT_wavefunction),intent(inout):: tmb
-       type(DIIS_obj), intent(inout) :: ldiis_coeff
-       real(kind=gp),intent(in):: fnrm_crit
-       real(kind=gp),intent(out):: fnrm
-       real(kind=gp), intent(inout) :: energy
-       logical, intent(in) :: sd_fit_curve
-       real(kind=gp), intent(in) :: factor
-       integer, optional, intent(in) :: num_extra
-       logical, optional, intent(in) :: reorder
-     END SUBROUTINE optimize_coeffs
-  end interface
-
-  interface
      subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
        use module_types
        implicit none
@@ -1495,21 +1336,6 @@ module module_interfaces
      END SUBROUTINE calculate_residue_ks
   end interface
 
-  !!interface
-  !!   subroutine write_energies(iter,energs,gnrm,gnrm_zero,comment,scf_mode,only_energies)
-  !!     use module_defs, only: gp,dp,wp
-  !!     use module_types, only: energy_terms
-  !!     use f_enums, only: f_enumerator
-  !!     implicit none
-  !!     integer, intent(in) :: iter
-  !!     type(energy_terms), intent(in) :: energs
-  !!     real(gp), intent(in) :: gnrm,gnrm_zero
-  !!     character(len=*), intent(in) :: comment
-  !!     type(f_enumerator), intent(in), optional :: scf_mode
-  !!     logical,intent(in),optional :: only_energies
-  !!   END SUBROUTINE write_energies
-  !!end interface
-
 
   interface
      subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
@@ -1518,6 +1344,8 @@ module module_interfaces
        use module_defs, only: gp,dp,wp
        use module_types
        use gaussians, only:gaussian_basis
+       use locregs
+       use compression
        implicit none
        integer, intent(in) :: iproc
        real(gp), intent(in) :: hx,hy,hz
@@ -1534,35 +1362,8 @@ module module_interfaces
      END SUBROUTINE applyprojectorsonthefly
   end interface
 
-
   interface
-     subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
-       use module_types
-       use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond,confpot_data
-       implicit none
-       type(orbitals_data),intent(in) :: orbs
-       type(local_zone_descriptors),intent(in) :: lzd
-       type(confpot_data),dimension(orbs%norbp),intent(in) ::  confdatarr
-       type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
-       type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
-     END SUBROUTINE allocate_precond_arrays
-  end interface
-
-  interface
-     subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
-       use module_defs, only: gp,dp,wp
-       use module_types
-       use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
-       implicit none
-       type(orbitals_data),intent(in) :: orbs
-       type(local_zone_descriptors),intent(in) :: lzd
-       type(workarrays_quartic_convolutions),dimension(:),pointer,intent(inout) :: precond_convol_workarrays
-       type(workarr_precond),dimension(:),pointer,intent(inout) :: precond_workarrays
-     END SUBROUTINE deallocate_precond_arrays
-  end interface
-
-  interface
-     subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, &
+     subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hgrids,rxyz,psi, &
           unit0_, unitx_, unity_, unitz_)
        use module_defs, only: gp,dp,wp
        use locregs, only: locreg_descriptors
@@ -1572,7 +1373,7 @@ module module_interfaces
        character(len=*) :: orbname
        integer, intent(in) :: nexpo
        real(dp), intent(in) :: factor
-       real(gp), intent(in) :: hx,hy,hz
+       real(gp), dimension(3), intent(in) :: hgrids
        type(atoms_data), intent(in) :: at
        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
        type(locreg_descriptors), intent(in) :: lr

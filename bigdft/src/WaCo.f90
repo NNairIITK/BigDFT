@@ -22,12 +22,13 @@ program WaCo
    use communications_init, only: orbitals_communicators
    use io, only: writeonewave_linear, writeLinearCoefficients, writeonewave
    use bigdft_run
-   use locregs, only: copy_locreg_descriptors
+   use locregs, only: copy_locreg_descriptors,locreg_descriptors
    use public_enums, only: LINEAR_PARTITION_NONE, WF_FORMAT_BINARY, WF_FORMAT_ETSF, WF_FORMAT_NONE
    use module_input_keys, only: user_dict_from_files, inputs_from_dict, free_input_variables
-   use locregs_init, only: determine_locregsphere_parallel
+   use locregs_init, only: initLocregs
    use locreg_operations, only: psi_to_locreg2,workarr_sumrho,&
         initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
+   use locregs_init, only: lr_set
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -168,22 +169,29 @@ program WaCo
    call read_input_waco(trim(radical)//'.waco',nwannCon,ConstList,linear,nbandCon,bandlist) 
 
    call system_properties(iproc,nproc,input,atoms,orbs)
+   
+   lzd=default_lzd()
+   lzd%hgrids=[input%hx,input%hy,input%hz]
 
-   ! Determine size alat of overall simulation cell and shift atom positions
-   ! then calculate the size in units of the grid space
-   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
-        .false.,Glr)
-   if (iproc == 0) &
-        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, input%hx,input%hy,input%hz)
+   call lr_set(Glr,iproc,.false.,.true.,input%crmult,input%frmult,&
+        lzd%hgrids,atoms%astruct%rxyz,atoms,&
+        .true.,.false.)
+
+!!$   ! Determine size alat of overall simulation cell and shift atom positions
+!!$   ! then calculate the size in units of the grid space
+!!$   call system_size(atoms,atoms%astruct%rxyz,input%crmult,input%frmult,input%hx,input%hy,input%hz,&
+!!$        .false.,Glr)
+!!$   if (iproc == 0) &
+!!$        & call print_atoms_and_grid(Glr, atoms, atoms%astruct%rxyz, input%hx,input%hy,input%hz)
    
    box(1) = atoms%astruct%cell_dim(1)*b2a !Glr%d%n1*input%hx * b2a
    box(2) = atoms%astruct%cell_dim(2)*b2a !Glr%d%n2*input%hy * b2a
    box(3) = atoms%astruct%cell_dim(3)*b2a !Glr%d%n3*input%hz * b2a
 
-   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-   call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
-        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,Glr)
-   if (iproc == 0) call print_wfd(Glr%wfd)
+!!$   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
+!!$   call createWavefunctionsDescriptors(iproc,input%hx,input%hy,input%hz,&
+!!$        atoms,atoms%astruct%rxyz,input%crmult,input%frmult,.true.,Glr)
+!!$   if (iproc == 0) call print_wfd(Glr%wfd)
 
    !#################################################################
    ! Read Other files
@@ -764,9 +772,8 @@ program WaCo
        lzd%hgrids(1)=input%hx
        lzd%hgrids(2)=input%hy
        lzd%hgrids(3)=input%hz
+       lzd%nlr=nwannCon
        allocate(Lzd%Llr(nwannCon))
-       calcbounds = f_malloc(nwannCon,id='calcbounds')
-       calcbounds =.false.  
        do ilr=1,nwannCon
           Lzd%llr(ilr)%locregCenter(1)=cxyz(1,ilr)
           Lzd%llr(ilr)%locregCenter(2)=cxyz(2,ilr)
@@ -774,8 +781,14 @@ program WaCo
 
           Lzd%llr(ilr)%locrad=locrad(ilr)
        end do
-       call determine_locregSphere_parallel(iproc,nproc,nwannCon,Lzd%hgrids(1),&
-               Lzd%hgrids(2),Lzd%hgrids(3),atoms%astruct,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
+
+       call initLocregs(iproc, nproc, lzd,&
+            Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+            atoms%astruct%rxyz,locrad,orbs,Lzd%Glr,'s')
+!!$       calcbounds = f_malloc(nwannCon,id='calcbounds')
+!!$       calcbounds =.false.  
+!!$       call determine_locregSphere_parallel(iproc,nproc,nwannCon,Lzd%hgrids(1),&
+!!$               Lzd%hgrids(2),Lzd%hgrids(3),atoms%astruct,orbs,Lzd%Glr,Lzd%Llr,calcbounds) 
      end if
 
 
@@ -1134,7 +1147,7 @@ program WaCo
         call deallocate_local_zone_descriptors(Lzd)
         call f_free(locrad)
         call f_free_ptr(cxyz)
-        call f_free(calcbounds)
+        !call f_free(calcbounds)
      end if
      call deallocate_work_arrays_sumrho(w)
      call deallocate_orbs(orbsv)
@@ -1718,6 +1731,7 @@ subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
    use f_utils
    use module_types
    use bounds, only: ext_buffers
+   use locregs
    implicit none
    character(len=*), intent(in) :: filename
    integer, intent(in) :: jfile

@@ -60,6 +60,7 @@ module sparsematrix
   public :: matrix_power_dense_lapack
   public :: diagonalizeHamiltonian2
   public :: get_minmax_eigenvalues
+  public :: resize_matrix_to_taskgroup
 
 
   interface compress_matrix_distributed_wrapper
@@ -1601,11 +1602,13 @@ module sparsematrix
    end subroutine extract_taskgroup
 
 
-    subroutine write_matrix_compressed(message, smat, mat)
+    subroutine write_matrix_compressed(iproc, nproc, comm, message, smat, mat)
       use yaml_output
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
       character(len=*),intent(in) :: message
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
@@ -1613,6 +1616,7 @@ module sparsematrix
       ! Local variables
       !integer, dimension(2) :: irowcol
       integer :: iseg, i, ii
+      real(kind=mp),dimension(:),allocatable :: matrix_compr
       !integer :: iorb, jorb
     
       !!call yaml_sequence_open(trim(message))
@@ -1628,37 +1632,45 @@ module sparsematrix
       !!    call yaml_newline()
       !!end do
       !!call yaml_sequence_close()
+
+      matrix_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='matrix_compr')
+      call gather_matrix_from_taskgroups(iproc, nproc, comm, &
+           smat, mat%matrix_compr, matrix_compr)
     
-      call yaml_sequence_open(trim(message))
-      do iseg=1,smat%nseg
-          ! A segment is always on one line, therefore no double loop
-          call yaml_sequence(advance='no')
-          !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
-          call yaml_mapping_open(flow=.true.)
-          call yaml_map('segment',iseg)
-          call yaml_sequence_open('elements')
-          !istart=smat%keyv(iseg)
-          !iend=smat%keyv(iseg)+ilen-1
-          !do i=istart,iend
-          ii=smat%keyv(iseg)
-          do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-              call yaml_newline()
+      if (iproc==0) then
+          call yaml_sequence_open(trim(message))
+          do iseg=1,smat%nseg
+              ! A segment is always on one line, therefore no double loop
               call yaml_sequence(advance='no')
+              !ilen=smat%keyg(2,iseg)-smat%keyg(1,iseg)+1
               call yaml_mapping_open(flow=.true.)
-              !irowcol=orb_from_index(smat,i)
-              !iorb=orb_from_index(1,i)
-              !jorb=orb_from_index(2,i)
-              call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
-              call yaml_map('value',mat%matrix_compr(ii))
+              call yaml_map('segment',iseg)
+              call yaml_sequence_open('elements')
+              !istart=smat%keyv(iseg)
+              !iend=smat%keyv(iseg)+ilen-1
+              !do i=istart,iend
+              ii=smat%keyv(iseg)
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                  call yaml_newline()
+                  call yaml_sequence(advance='no')
+                  call yaml_mapping_open(flow=.true.)
+                  !irowcol=orb_from_index(smat,i)
+                  !iorb=orb_from_index(1,i)
+                  !jorb=orb_from_index(2,i)
+                  call yaml_map('coordinates',(/smat%keyg(1,2,iseg),i/))
+                  call yaml_map('value',matrix_compr(ii))
+                  call yaml_mapping_close()
+                  ii=ii+1
+              end do
+              call yaml_sequence_close()
+              !call yaml_map('values',smat%matrix_compr(istart:iend))
               call yaml_mapping_close()
-              ii=ii+1
+              call yaml_newline()
           end do
           call yaml_sequence_close()
-          !call yaml_map('values',smat%matrix_compr(istart:iend))
-          call yaml_mapping_close()
-          call yaml_newline()
-      end do
-      call yaml_sequence_close()
+      end if
+
+      call f_free(matrix_compr)
     
     end subroutine write_matrix_compressed
 
@@ -2599,65 +2611,87 @@ module sparsematrix
 
 
 
-    subroutine matrix_power_dense_lapack(iproc, nproc, comm, scalapack_blocksize, keep_full_result, &
-               exp_power, smat_in, smat_out, mat_in, mat_out, algorithm)
+    subroutine matrix_power_dense_lapack(iproc, nproc, comm, blocksize_diag, blocksize_matmul, keep_full_result, &
+               exp_power, smat_in, smat_out, mat_in, mat_out, algorithm, overwrite)
       use dynamic_memory
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, comm, scalapack_blocksize
+      integer,intent(in) :: iproc, nproc, comm, blocksize_diag, blocksize_matmul
       logical,intent(in) :: keep_full_result
       real(mp),intent(in) :: exp_power
       type(sparse_matrix),intent(in) :: smat_in, smat_out
-      type(matrices),intent(inout) :: mat_in
-      type(matrices),intent(out) :: mat_out
+      type(matrices),intent(inout),target :: mat_in
+      type(matrices),intent(out),target :: mat_out
       character(len=*),intent(in),optional :: algorithm
+      logical,intent(in),optional :: overwrite
 
       ! Local variables
-      integer :: blocksize
-      real(kind=8),dimension(:,:),allocatable :: mat_in_dense, mat_out_dense
+      real(kind=8),dimension(:,:),pointer :: mat_in_dense, mat_out_dense
+      logical :: full_available, overwrite_
 
       call f_routine(id='operation_using_dense_lapack')
 
-      if (keep_full_result) then
-          if (.not.associated(mat_in%matrix)) then
-              call f_err_throw('mat_in%matrix must be associated')
-          end if
-          if (size(mat_in%matrix,1)/=smat_in%nfvctr) then
-              call f_err_throw('wrong first dimension of mat_in%matrix')
-          end if
-          if (size(mat_in%matrix,2)/=smat_in%nfvctr) then
-              call f_err_throw('wrong second dimension of mat_in%matrix')
-          end if
-          if (.not.associated(mat_out%matrix)) then
-              call f_err_throw('mat_out%matrix must be associated')
-          end if
-          if (size(mat_out%matrix,1)/=smat_out%nfvctr) then
-              call f_err_throw('wrong first dimension of mat_out%matrix')
-          end if
-          if (size(mat_out%matrix,2)/=smat_out%nfvctr) then
-              call f_err_throw('wrong second dimension of mat_out%matrix')
-          end if
+      ! Check the validity of the arguments
+      full_available = .true.
+      if (.not.associated(mat_in%matrix)) then
+          if (keep_full_result) call f_err_throw('mat_in%matrix must be associated')
+          full_available = .false.
+      end if
+      if (size(mat_in%matrix,1)/=smat_in%nfvctr) then
+          if (keep_full_result) call f_err_throw('wrong first dimension of mat_in%matrix')
+          full_available = .false.
+      end if
+      if (size(mat_in%matrix,2)/=smat_in%nfvctr) then
+          if (keep_full_result) call f_err_throw('wrong second dimension of mat_in%matrix')
+          full_available = .false.
+      end if
+      if (.not.associated(mat_out%matrix)) then
+          if (keep_full_result) call f_err_throw('mat_out%matrix must be associated')
+          full_available = .false.
+      end if
+      if (size(mat_out%matrix,1)/=smat_out%nfvctr) then
+          if (keep_full_result) call f_err_throw('wrong first dimension of mat_out%matrix')
+          full_available = .false.
+      end if
+      if (size(mat_out%matrix,2)/=smat_out%nfvctr) then
+          if (keep_full_result) call f_err_throw('wrong second dimension of mat_out%matrix')
+          full_available = .false.
+      end if
+      if (size(mat_in%matrix_compr)/=smat_in%nvctrp_tg) then
+          call f_err_throw('wrong dimension of mat_in%matrix_compr')
+      end if
+      if (size(mat_out%matrix_compr)/=smat_out%nvctrp_tg) then
+          call f_err_throw('wrong dimension of mat_out%matrix_compr')
       end if
 
-      mat_in_dense = f_malloc((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
-      mat_out_dense = f_malloc((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
-      call uncompress_matrix(iproc, nproc, &
-           smat_in, mat_in%matrix_compr, mat_in_dense)
-      if (present(algorithm)) then
-          call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
-               mat_in_dense, exp_power, mat_out_dense, algorithm=algorithm)
+      if (full_available) then
+          mat_in_dense => mat_in%matrix(:,:,1)
+          mat_out_dense => mat_out%matrix(:,:,1)
       else
-          call matrix_power_dense(iproc, nproc, comm, scalapack_blocksize, smat_in%nfvctr, &
-               mat_in_dense, exp_power, mat_out_dense)
+          mat_in_dense = f_malloc_ptr((/smat_in%nfvctr,smat_in%nfvctr/),id='mat_in_dense')
+          mat_out_dense = f_malloc_ptr((/smat_out%nfvctr,smat_out%nfvctr/),id='mat_out_dense')
       end if
-      call compress_matrix(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
-      if (keep_full_result) then
-          call f_memcpy(src=mat_in_dense, dest=mat_in%matrix)
-          call f_memcpy(src=mat_out_dense, dest=mat_out%matrix)
+      call uncompress_matrix2(iproc, nproc, comm, &
+           smat_in, mat_in%matrix_compr, mat_in_dense)
+      overwrite_ = .false.
+      if (present(overwrite)) overwrite_ = overwrite
+      if (present(algorithm)) then
+          call matrix_power_dense(iproc, nproc, comm, blocksize_diag, blocksize_matmul, smat_in%nfvctr, &
+               mat_in_dense, exp_power, mat_out_dense, algorithm=algorithm, overwrite=overwrite_)
+      else
+          call matrix_power_dense(iproc, nproc, comm, blocksize_diag, blocksize_matmul, smat_in%nfvctr, &
+               mat_in_dense, exp_power, mat_out_dense, overwrite=overwrite_)
       end if
-      call f_free(mat_in_dense)
-      call f_free(mat_out_dense)
+      call compress_matrix2(iproc, nproc, smat_out, mat_out_dense, mat_out%matrix_compr)
+      !!if (keep_full_result) then
+      !!    call f_memcpy(src=mat_in_dense, dest=mat_in%matrix)
+      !!    call f_memcpy(src=mat_out_dense, dest=mat_out%matrix)
+      !!end if
+      if (.not.full_available) then
+          call f_free_ptr(mat_in_dense)
+          call f_free_ptr(mat_out_dense)
+      end if
 
       call f_release_routine()
 
@@ -2666,43 +2700,53 @@ module sparsematrix
 
 
     !> Calculate matrix**power, using the dense matrix and exact LAPACK operations
-    subroutine matrix_power_dense(iproc, nproc, comm, blocksize, n, mat_in, ex, mat_out, algorithm)
+    subroutine matrix_power_dense(iproc, nproc, comm, blocksize_diag, blocksize_matmul, &
+               n, mat_in, ex, mat_out, algorithm, overwrite)
       !use module_base
       use parallel_linalg, only: dgemm_parallel, dsyev_parallel
       use dynamic_memory
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, comm, blocksize, n
-      real(kind=8),dimension(n,n),intent(in) :: mat_in
+      integer,intent(in) :: iproc, nproc, comm, blocksize_diag, blocksize_matmul, n
+      real(kind=8),dimension(n,n),intent(inout),target :: mat_in
       real(kind=8),intent(in) :: ex
       real(kind=8),dimension(n,n),intent(out) :: mat_out
       character(len=*),intent(in),optional :: algorithm
+      logical,intent(in),optional :: overwrite
 
       ! Local variables
       integer :: i, j, info
       real(kind=8) :: tt
-      real(kind=8),dimension(:,:,:),allocatable :: mat_tmp
+      real(kind=8),dimension(:,:),pointer :: mat_diag
+      real(kind=8),dimension(:,:),pointer :: mat_tmp
       real(kind=8),dimension(:),allocatable :: eval
+      logical :: positive_definite, overwrite_
 
       call f_routine(id='matrix_power_dense')
 
+      overwrite_ = .false.
+      if (present(overwrite)) overwrite_ = overwrite
 
       ! Diagonalize the matrix
-      mat_tmp = f_malloc((/n,n,2/),id='mat_tmp')
-      eval = f_malloc(n,id='mat_tmp')
-      ! f_memcpy can cause segfault for large matrices (I assume integer overflows)
-      !call f_memcpy(src=mat_in, dest=mat_tmp)
-      do i=1,n
-          do j=1,n
-              mat_tmp(j,i,1) = mat_in(j,i)
+      if (overwrite_) then
+          mat_diag => mat_in
+      else
+          mat_diag = f_malloc_ptr((/n,n/),id='mat_diag')
+          ! f_memcpy can cause segfault for large matrices (I assume integer overflows)
+          !call f_memcpy(src=mat_in, dest=mat_tmp)
+          do i=1,n
+              do j=1,n
+                  mat_diag(j,i) = mat_in(j,i)
+              end do
           end do
-      end do
+      end if
+      eval = f_malloc(n,id='eval')
 
       if (present(algorithm)) then
-          call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info, algorithm=algorithm)
+          call dsyev_parallel(iproc, nproc, blocksize_diag, comm, 'v', 'l', n, mat_diag, n, eval, info, algorithm=algorithm)
       else
-          call dsyev_parallel(iproc, nproc, blocksize, comm, 'v', 'l', n, mat_tmp, n, eval, info)
+          call dsyev_parallel(iproc, nproc, blocksize_diag, comm, 'v', 'l', n, mat_diag, n, eval, info)
       endif
       if (info /= 0) then
           if (iproc==0) then
@@ -2710,22 +2754,45 @@ module sparsematrix
           end if
       end if
 
-      ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix
-      do i=1,n
-          tt = eval(i)**ex
-          do j=1,n
-              mat_tmp(j,i,2) = mat_tmp(j,i,1)*tt
+      ! Multiply a diagonal matrix containing the eigenvalues to the power ex with the diagonalized matrix.
+      ! If all eigenvalues are positive, we can save some memory and take the square root of this value, 
+      ! and later on multiply the resulting matrix with its own.
+      if (minval(eval)>0.d0 .and. maxval(eval)>0.d0) then
+          ! Matrix is positive definite
+          positive_definite = .true.
+          do i=1,n
+              tt = sqrt(eval(i)**ex)
+              call dscal(n, tt, mat_diag(1,i), 1)
           end do
-      end do
+      else
+          ! Matrix is not positive definite
+          positive_definite = .false.
+          mat_tmp = f_malloc_ptr((/n,n/),id='mat_tmp')
+          do i=1,n
+              tt = eval(i)**ex
+              do j=1,n
+                  mat_tmp(j,i) = mat_diag(j,i)*tt
+              end do
+          end do
+      end if
+
+      call f_free(eval)
 
       ! Apply the diagonalized matrix to the matrix constructed above
-      call dgemm_parallel(iproc, nproc, blocksize, comm, 'n', 't', n, n, n, 1.d0, mat_tmp(1:,1:,1), n, &
-           mat_tmp(1:,1:,2), n, 0.d0, mat_out, n)
+      if (positive_definite) then
+          call dgemm_parallel(iproc, nproc, blocksize_matmul, comm, 'n', 't', n, n, n, 1.d0, mat_diag, n, &
+               mat_diag, n, 0.d0, mat_out, n)
+      else
+          call dgemm_parallel(iproc, nproc, blocksize_matmul, comm, 'n', 't', n, n, n, 1.d0, mat_diag, n, &
+               mat_tmp, n, 0.d0, mat_out, n)
+          call f_free_ptr(mat_tmp)
+      end if
       !call dgemm_parallel(iproc, nproc, -1, comm, 'n', 't', n, n, n, 1.d0, mat_tmp(1:,1:,1), n, &
       !     mat_tmp(1:,1:,2), n, 0.d0, mat_out, n)
 
-      call f_free(mat_tmp)
-      call f_free(eval)
+      if (.not.overwrite_) then
+          call f_free_ptr(mat_diag)
+      end if
 
       call f_release_routine()
 
@@ -2964,7 +3031,7 @@ module sparsematrix
 
       ! Local variables
       integer :: iseg, ii, i, lwork, info, ispin, ishift, imode
-      real(kind=mp),dimension(:,:),allocatable :: tempmat, tempmat2
+      real(kind=mp),dimension(:,:,:),allocatable :: tempmat, tempmat2
       real(kind=mp),dimension(:),allocatable :: eval, work
       logical :: quiet_
 
@@ -2985,45 +3052,50 @@ module sparsematrix
       quiet_ = .false.
       if (present(quiet)) quiet_ = quiet
 
-      tempmat = f_malloc0((/smat%nfvctr,smat%nfvctr/),id='tempmat')
       eval = f_malloc(smat%nfvctr,id='eval')
+
+      tempmat = f_malloc0((/smat%nfvctr,smat%nfvctr,smat%nspin/),id='tempmat')
+      call uncompress_matrix2(iproc, nproc, comm, smat, mat%matrix_compr, tempmat)
+      if (imode==2) then
+          tempmat2 = f_malloc0((/smat%nfvctr,smat%nfvctr,smat%nspin/),id='tempmat2')
+          call uncompress_matrix2(iproc, nproc, comm, smat2, mat2%matrix_compr, tempmat2)
+      end if
 
       do ispin=1,smat%nspin
 
-          call f_zero(tempmat)
 
           ishift = (ispin-1)*smat%nvctr
 
-          do iseg=1,smat%nseg
-              ii=smat%keyv(iseg)
-              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                  tempmat(i,smat%keyg(1,2,iseg)) = mat%matrix_compr(ishift+ii)
-                  ii = ii + 1
-              end do
-          end do
+          !!do iseg=1,smat%nseg
+          !!    ii=smat%keyv(iseg)
+          !!    do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+          !!        tempmat(i,smat%keyg(1,2,iseg)) = mat%matrix_compr(ishift+ii)
+          !!        ii = ii + 1
+          !!    end do
+          !!end do
 
-          if (imode==2) then
-              tempmat2 = f_malloc0((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
-              do iseg=1,smat2%nseg
-                  ii=smat2%keyv(iseg)
-                  do i=smat2%keyg(1,1,iseg),smat2%keyg(2,1,iseg)
-                      tempmat2(i,smat2%keyg(1,2,iseg)) = mat2%matrix_compr(ishift+ii)
-                      ii = ii + 1
-                  end do
-              end do
-          end if
+          !!if (imode==2) then
+          !!    tempmat2 = f_malloc0((/smat%nfvctr,smat%nfvctr/),id='tempmat2')
+          !!    do iseg=1,smat2%nseg
+          !!        ii=smat2%keyv(iseg)
+          !!        do i=smat2%keyg(1,1,iseg),smat2%keyg(2,1,iseg)
+          !!            tempmat2(i,smat2%keyg(1,2,iseg)) = mat2%matrix_compr(ishift+ii)
+          !!            ii = ii + 1
+          !!        end do
+          !!    end do
+          !!end if
 
           if (imode==1) then
               if (present(algorithm)) then
                   call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
-                       smat%nfvctr, tempmat, smat%nfvctr, eval, info, algorithm=algorithm)
+                       smat%nfvctr, tempmat(:,:,ispin), smat%nfvctr, eval, info, algorithm=algorithm)
               else
                   call dsyev_parallel(iproc, nproc, scalapack_blocksize, comm, 'n', 'l', &
-                       smat%nfvctr, tempmat, smat%nfvctr, eval, info)
+                       smat%nfvctr, tempmat(:,:,ispin), smat%nfvctr, eval, info)
               end if
           else if (imode==2) then
               call dsygv_parallel(iproc, nproc, comm, scalapack_blocksize, nproc, 1, 'n', 'l', &
-                   smat%nfvctr, tempmat, smat%nfvctr, tempmat2, smat%nfvctr, eval, info)
+                   smat%nfvctr, tempmat(:,:,ispin), smat%nfvctr, tempmat2(:,:,ispin), smat%nfvctr, eval, info)
           end if
           if (info/=0) then
               if (iproc==0) then
@@ -3055,5 +3127,28 @@ module sparsematrix
       call f_release_routine()
 
     end subroutine get_minmax_eigenvalues
+
+
+    subroutine resize_matrix_to_taskgroup(smat, mat)
+      use futile
+      implicit none
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(inout) :: mat
+      ! Local variables
+      real(kind=mp),dimension(:),allocatable :: mat_tg
+
+      call f_routine(id='resize_matrix_to_taskgroup')
+
+      mat_tg = sparsematrix_malloc(smat,iaction=SPARSE_TASKGROUP,id='mat_tg')
+      call extract_taskgroup(smat, mat%matrix_compr, mat_tg)
+      call f_free_ptr(mat%matrix_compr)
+      mat%matrix_compr = sparsematrix_malloc_ptr(smat,iaction=SPARSE_TASKGROUP,id='mat%matrix_compr')
+      call f_memcpy(src=mat_tg, dest=mat%matrix_compr)
+      call f_free(mat_tg)
+
+      call f_release_routine()
+
+    end subroutine resize_matrix_to_taskgroup
 
 end module sparsematrix

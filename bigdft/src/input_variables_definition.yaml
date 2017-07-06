@@ -232,38 +232,38 @@
      #Here follow two shortcuts for linear
      linear: 100
      linear_restart: 102
-   output_wf:
-     COMMENT: Output of the support functions
-     DESCRIPTION: |
-       controls the output of wavefunctions on disk at the end of the calculation
-
-          - output_wf = 0, Do not write the wavefunctions to disk.
-
-          - output_wf = 1, The output wavefunctions are written at the end of the wavefunction optimization into
-          plain text files. If InputPsiId was greater than 10 the wavefunction will be written in the Gaussian
-          approximation into a single wavefunctions.gau file otherwise into wavefunction. files. Writing a
-          wavefunction. file for each orbital can take a considerable amount of time and disk space.
-
-          - output_wf = 2, The output wavefunctions are written at the end of the wavefunction optimization into
-          Fortran binary files. This format is not portable between compilers and machines.
-
-          - output_wf = 3, The output wavefunctions are written at the end of the wavefunction optimization into
-          ETSF binary files. This format is portable between compilers and machines since based on NetCDF. Parallel
-          IO are taken into account.
-     default: 0
-     EXCLUSIVE:
-       0: None
-       1: Wavelet, Plain text
-       2: Wavelet, Fortran binary
-       3: Wavelet, ETSF file format
-       #10: None
-       #11: Wavelet and Interpolating Scaling Function, Plain text
-       #12: Wavelet and Interpolating Scaling Function, Fortran binary
-       #13: Wavelet and Interpolating Scaling Function, ETSF file format
-       #20: None
-       #21: Wavelet and Interpolating Scaling Function (wavefunction), Plain text
-       #22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
-       #23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
+  #  output_wf:
+  #    COMMENT: Output of the support functions
+  #    DESCRIPTION: |
+  #      controls the output of wavefunctions on disk at the end of the calculation
+   #
+  #         - output_wf = 0, Do not write the wavefunctions to disk.
+   #
+  #         - output_wf = 1, The output wavefunctions are written at the end of the wavefunction optimization into
+  #         plain text files. If InputPsiId was greater than 10 the wavefunction will be written in the Gaussian
+  #         approximation into a single wavefunctions.gau file otherwise into wavefunction. files. Writing a
+  #         wavefunction. file for each orbital can take a considerable amount of time and disk space.
+   #
+  #         - output_wf = 2, The output wavefunctions are written at the end of the wavefunction optimization into
+  #         Fortran binary files. This format is not portable between compilers and machines.
+   #
+  #         - output_wf = 3, The output wavefunctions are written at the end of the wavefunction optimization into
+  #         ETSF binary files. This format is portable between compilers and machines since based on NetCDF. Parallel
+  #         IO are taken into account.
+  #    default: 0
+  #    EXCLUSIVE:
+  #      0: None
+  #      1: Wavelet, Plain text
+  #      2: Wavelet, Fortran binary
+  #      3: Wavelet, ETSF file format
+  #      #10: None
+  #      #11: Wavelet and Interpolating Scaling Function, Plain text
+  #      #12: Wavelet and Interpolating Scaling Function, Fortran binary
+  #      #13: Wavelet and Interpolating Scaling Function, ETSF file format
+  #      #20: None
+  #      #21: Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+  #      #22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+  #      #23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      DESCRIPTION: |
@@ -339,33 +339,33 @@
      DESCRIPTION: |
         Determine the dimension of the subspace i.e. the number of virtual orbitals
         to calculate via a Davidson diagonalisation.
-
         Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
         physical properties of the electronic ground state.
 
         Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
-        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
-        of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
-        occupied orbitals will be written in the orbital.*.pot file The Kohn Sham eigenvalues are written in the
-        ordinary output file. nvirt corresponds to the actual number of orbitals the convergence process is taking
+        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment.
+        nvirt (< norbv) determines to the number of converged orbitals during the convergence process which is taking
         care of during the Davidson iterations.
+        nplot of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
+        occupied orbitals will be written in the orbital.*.pot file. The Kohn Sham eigenvalues are written in the
+        ordinary output file.
      RANGE: [-9999, 9999]
      default: 0
    nvirt:
-     COMMENT: No. of virtual orbs
+     COMMENT: No. of converged virtual orbs (< norbv)
      DESCRIPTION: |
         Determine the dimension of the subspace i.e. the number of virtual orbitals
-        to calculate via a Davidson diagonalisation. (should be < norbv)
-
+        to be converged via a Davidson diagonalisation. (should be < norbv)
         Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
         physical properties of the electronic ground state.
 
         Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
-        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
-        of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
-        occupied orbitals will be written in the orbital.*.pot file The Kohn Sham eigenvalues are written in the
-        ordinary output file. nvirt corresponds to the actual number of orbitals the convergence process is taking
+        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment.
+        nvirt (< norbv) determines to the number of converged orbitals during the convergence process which is taking
         care of during the Davidson iterations.
+        nplot of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
+        occupied orbitals will be written in the orbital.*.pot file. The Kohn Sham eigenvalues are written in the
+        ordinary output file.
      RANGE: [0, 9999]
      default: 0
    nplot:
@@ -429,6 +429,13 @@
       In some cases, for example when doing MD for fixed volume systems, it might be useful to disable the
       calculation of the stress tensor, to save computational time.
      default: Yes
+   magnetic_torque:
+     COMMENT: Boolean to activate the calculation of the direction of the atomic magnetization which lowers the total energy
+     default: No
+     CONDITION:
+       MASTER_KEY: nspin
+       WHEN:
+       - 4
    plot_mppot_axes:
      COMMENT: Plot the potential generated by the multipoles along axes through this point. Negative values mean no plot.
      DESCRIPTION: |
@@ -467,19 +474,50 @@
 #output parameters, decide what to dump of write to file
  output:
   DESCRIPTION: Output parameters, control the information that will be printed out
+  verbosity:
+    COMMENT: Verbosity of the output
+    EXCLUSIVE:
+      0: Very low
+      1: Low
+      2: Medium
+      3: High
+    default: 2
   atomic_density_matrix:
     COMMENT: Dictionary of the atoms for which the atomic density matrix has to be plotted
     DESCRIPTION: |
      The atomic species or the atoms written as Atom No are specified, followed by a list
      of the shells for which the density matrix can be plotted
     default: None
+  sdos:
+    COMMENT: Spatially-resolved density of states
+    DESCRIPTION: |
+     Plots the density of states by calculating the value of psi*Hpsi per each KS orbital,
+     resolved among x,y or z.
+    default: No
+  orbitals:
+    COMMENT: Write KS orbitals in the full simulation domain (might take lot of disk space!)
+    default: No
+    EXCLUSIVE:
+       No: No output
+       text: Output in wavelet basis
+       binary: Binary file output
+       text_with_densities: In addition output wavefunction densities in interpolating scaling functions (cube file)
+       text_with_cube: In addition output wavefunctions in interpolating scaling functions (cube file)
+       etsf: ETSF file format
+  outputpsiid:
+    COMMENT: basename of the output wavefunctions files written in the data directory
+    default: wavefunction
+    DESCRIPTION: |
+      Define the basename of all the files associated to the output of the wavefunctions.
+      Can be reused in the inputpsiid input parameter.
+
   #potentials:
   #  format: CUBE
   #  frequence: iteration, SCF
-    
+
 #K points parameters
  kpt:
-   DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
+   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:
@@ -713,7 +751,7 @@
        where it is around 8).
        In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but
        nevertheless one should try to find reasonable values also in this case.
-   
+
        SQNM: For many systems 1 is a good stepsize. Some systems can be minimized more efficiently with
        a larger stepsize.
      CONDITION:
@@ -1036,6 +1074,9 @@
      DESCRIPTION: A value greater than 0 activates wfn extrapolation
      EXCLUSIVE: [ 0, 1, 2, 4 ]
      default: 0
+   always_from_scratch:
+     COMMENT: When true, always restart wavefunctions from scratch to eliminate dissipation effects
+     default: No
    restart_nose:
      COMMENT: Restart Nose Hoover Chain information from md.restart
      default: No
@@ -1256,9 +1297,9 @@
      DESCRIPTION: |
        The debug mode is enable mainly for memory profiling.
      default: No
-   profiling_depth:
-     COMMENT: Maximum level of the profiling for the tracking of the routines
-     default: -1
+#  profiling_depth:
+#     COMMENT: Maximum level of the profiling for the tracking of the routines
+#     default: -1
    fftcache:
      COMMENT: Cache size for the FFT
      DESCRIPTION: |
@@ -1322,16 +1363,6 @@
    rho_commun:
      COMMENT: Density communication scheme (DBL, RSC, MIX)
      default: DEF
-#   psolver_groupsize:
-#     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
-#     RANGE: [0, 1000000]
-#     default: 0
-#   psolver_accel:
-#     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
-#     EXCLUSIVE:
-#       0: None
-#       1: CUDA
-#     default: 0
    unblock_comms:
      COMMENT: Overlap Communications of fields (OFF,DEN,POT)
      EXCLUSIVE:
@@ -1370,14 +1401,6 @@
    store_index:
      COMMENT: Store indices or recalculate them for linear scaling
      default: Yes
-   verbosity:
-     COMMENT: Verbosity of the output
-     EXCLUSIVE:
-       0: ???
-       1: ???
-       2: ???
-       3: ???
-     default: 2
    psp_onfly:
      COMMENT: Calculate pseudopotential projectors on the fly
      default: Yes
@@ -1414,14 +1437,6 @@
    experimental_mode:
      COMMENT: Activate the experimental mode in linear scaling
      default: No
-   write_orbitals:
-     COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-     default: 0
-     EXCLUSIVE:
-       0: No output
-       1: Output in wavelet basis
-       2: In addition output wavefunction densities in interpolating scaling functions (cube file)
-       3: In addition output wavefunctions in interpolating scaling functions (cube file)
    explicit_locregcenters:
      COMMENT: Linear scaling explicitly specify localization centers
      default: No
@@ -1479,13 +1494,6 @@
    wf_extent_analysis:
      COMMENT: Perform an analysis of the extent of the support functions (and possibly KS orbitals)
      default: False
-#   gps_method:
-#     COMMENT: Method for the Generalized Poisson Equation
-#     EXCLUSIVE:
-#        VAC: Vacuum (ordinary treatment)
-#        PI: Polarization Iteration
-#        PCG: Preconditioned Conjugate Gradient
-#     default: VAC
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False
@@ -1725,6 +1733,12 @@
        COMMENT: Decay length of the error function used to extract the eigenvalues (i.e. something like the resolution)
        default: 5.e-3
        RANGE: [0.0,1.e-1]
+     #centers_auto:
+     #  default: yes
+     multipole_centers:
+       COMMENT: Determines whether the multipole centers shall be determined automatically (i.e. taking the atoms) or whether they are provided manually
+       #default: yes
+       default: 0.0
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1823,7 +1837,7 @@
        RANGE:  [0,1]
      orthogonalize_ao:
        COMMENT: Orthogonalize the atomic orbitals used as input guess
-       default: Yes    
+       default: Yes
      reset_DIIS_history:
        COMMENT: Reset the DIIS history when starting the loop which optimizes the support functions
        default: No
@@ -2313,6 +2327,7 @@ linear:
    Sn: {nbasis: 4, rloc: 6.5}
    Fe: {nbasis: 13, rloc: 8.0}
    Cu: {nbasis: 9, rloc: 7.0}
+   W:  {nbasis: 9, rloc: 7.5}
  ig_occupation:
    Fe:
      3s: 2.0
@@ -2326,6 +2341,10 @@ linear:
      3d: 10.0
      4s: 1.0
      4p: 0.0
+   W:
+     6s: 2.0
+     5d: 4.0
+     6p: 0.0
 linear_fragments:
   COMMENT: Input parameters to be added to the linear profile for fragment calculationn (templates ready)
   #import: linear #to be tested

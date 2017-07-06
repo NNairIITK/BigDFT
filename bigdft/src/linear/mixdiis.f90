@@ -12,6 +12,7 @@ subroutine mixPotential(iproc, nproc, n3d, n3p, Glr, input, alphaMix, rhopotOld,
 
   use module_base
   use module_types
+  use locregs
   implicit none
 
   ! Calling arguments
@@ -63,6 +64,7 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
   use module_base
   use module_types
   use public_enums
+  use locregs
   implicit none
   
   ! Calling arguments
@@ -111,6 +113,7 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   use module_base
   use module_types
   use module_xc
+  use locregs
   implicit none
 
   ! Calling arguments

@@ -562,15 +562,22 @@ module sparsematrix_highlevel
     end subroutine matrices_init_from_data
 
 
-    subroutine matrices_init(smat, mat)
+    subroutine matrices_init(smat, mat, matsize)
       implicit none
 
       ! Calling arguments
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(out) :: mat
+      integer,intent(in),optional :: matsize
+
+      ! Local variables
+      integer :: matsize_
+
+      matsize_ = SPARSE_FULL
+      if (present(matsize)) matsize_ = matsize
 
       mat = matrices_null()
-      mat%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=SPARSE_FULL, id='mat%matrix_compr')
+      mat%matrix_compr = sparsematrix_malloc_ptr(smat, iaction=matsize_, id='mat%matrix_compr')
 
     end subroutine matrices_init
 
@@ -601,26 +608,76 @@ module sparsematrix_highlevel
     end subroutine matrices_set_values
 
 
-    subroutine matrices_get_values(smat, mat, val)
+    subroutine matrices_get_values(iproc, nproc, comm, smat, size_in, size_out, mat, val)
       use dynamic_memory
+      use sparsematrix, only: extract_taskgroup, &
+                              gather_matrix_from_taskgroups
       implicit none
 
       ! Calling arguments
+      integer,intent(in) :: iproc, nproc, comm
       type(sparse_matrix),intent(in) :: smat
+      character(len=*),intent(in) :: size_in, size_out
       type(matrices),intent(in) :: mat
       real(kind=mp),dimension(:),intent(inout) :: val
 
       call f_routine(id='matrices_get_values')
 
-      if (size(mat%matrix_compr)/=smat%nvctr) then
-          call f_err_throw('The size of the matrix array which should be set is wrong: '&
-               &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctr)))
-      end if
-      if (size(val)/=smat%nvctr) then
-          call f_err_throw('The size of the array used to set the matrix contents is wrong: '&
-               &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctr)))
-      end if
-      call f_memcpy(src=mat%matrix_compr, dest=val)
+      ! Check the input matrix size 
+      select case (trim(size_in))
+      case ('sparse_full','SPARSE_FULL')
+          if (size(mat%matrix_compr)/=smat%nvctr) then
+              call f_err_throw('The size of the matrix array used to get the matrix contents is wrong: '&
+                   &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctr)))
+          end if
+      case ('sparse_taskgroup','SPARSE_TASKGROUP')
+          if (size(mat%matrix_compr)/=smat%nvctrp_tg) then
+              call f_err_throw('The size of the matrix array used to get the matrix contents is wrong: '&
+                   &//trim(yaml_toa(size(mat%matrix_compr)))//' instead of '//trim(yaml_toa(smat%nvctrp_tg)))
+          end if
+      case default
+          call f_err_throw('wrong input matrix size: '//trim(size_in)//' instead of sparse_full or sparse_taskgroup')
+      end select
+
+      ! Check the output matrix size 
+      select case (trim(size_out))
+      case ('sparse_full','SPARSE_FULL')
+          if (size(val)/=smat%nvctr) then
+              call f_err_throw('The size of the array to get the matrix contents is wrong: '&
+                   &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctr)))
+          end if
+      case ('sparse_taskgroup','SPARSE_TASKGROUP')
+          if (size(val)/=smat%nvctrp_tg) then
+              call f_err_throw('The size of the array to get the matrix contents is wrong: '&
+                   &//trim(yaml_toa(size(val)))//' instead of '//trim(yaml_toa(smat%nvctrp_tg)))
+          end if
+      case default
+          call f_err_throw('wrong output matrix size: '//trim(size_out)//' instead of sparse_full or sparse_taskgroup')
+      end select
+
+
+      select case (trim(size_in))
+      case ('sparse_full','SPARSE_FULL')
+          select case (trim(size_out))
+          case ('sparse_full','SPARSE_FULL')
+              call f_memcpy(src=mat%matrix_compr, dest=val)
+          case ('sparse_taskgroup','SPARSE_TASKGROUP')
+              call extract_taskgroup(smat, mat%matrix_compr, val)
+          case default
+              call f_err_throw('wrong value for size_out: '//trim(size_out))
+          end select
+      case ('sparse_taskgroup','SPARSE_TASKGROUP')
+          select case (trim(size_out))
+          case ('sparse_full','SPARSE_FULL')
+              call gather_matrix_from_taskgroups(iproc, nproc, comm, smat, mat%matrix_compr, val)
+          case ('sparse_taskgroup','SPARSE_TASKGROUP')
+              call f_memcpy(src=mat%matrix_compr, dest=val)
+          case default
+              call f_err_throw('wrong value for size_out: '//trim(size_out))
+          end select
+      case default
+          call f_err_throw('wrong value for size_in: '//trim(size_in))
+      end select
 
       call f_release_routine()
 
@@ -790,7 +847,7 @@ module sparsematrix_highlevel
     subroutine matrix_fermi_operator_expansion(iproc, nproc, comm, foe_obj, ice_obj, smat_s, smat_h, smat_k, &
                overlap, ham, overlap_minus_one_half, kernel, ebs, &
                calculate_minusonehalf, foe_verbosity, symmetrize_kernel, calculate_energy_density_kernel, calculate_spin_channels, &
-               energy_kernel)
+               energy_kernel, inversion_method, pexsi_np_sym_fact)
       use foe_base, only: foe_data
       use foe, only: fermi_operator_expansion_new
       use dynamic_memory
@@ -808,11 +865,14 @@ module sparsematrix_highlevel
       integer,intent(in),optional :: foe_verbosity
       type(matrices),intent(inout),optional :: energy_kernel
       logical,dimension(smat_k%nspin),intent(in),optional :: calculate_spin_channels
+      character(len=*),intent(in),optional :: inversion_method
+      integer,intent(in),optional :: pexsi_np_sym_fact
 
       ! Local variables
       logical :: calculate_minusonehalf_, symmetrize_kernel_, calculate_energy_density_kernel_
-      integer :: foe_verbosity_
+      integer :: foe_verbosity_, pexsi_np_sym_fact_
       logical,dimension(smat_k%nspin) :: calculate_spin_channels_
+      character(len=1024) :: inversion_method_
 
       call f_routine(id='matrix_fermi_operator_expansion')
 
@@ -826,6 +886,10 @@ module sparsematrix_highlevel
       if (present(calculate_energy_density_kernel)) calculate_energy_density_kernel_ = calculate_energy_density_kernel
       calculate_spin_channels_(:) = .true.
       if (present(calculate_spin_channels)) calculate_spin_channels_(:) = calculate_spin_channels
+      inversion_method_ = 'ICE'
+      if (present(inversion_method)) inversion_method_ = inversion_method
+      pexsi_np_sym_fact_ = 1
+      if (present(pexsi_np_sym_fact)) pexsi_np_sym_fact_ = pexsi_np_sym_fact
 
       ! Check the optional arguments
       if (calculate_energy_density_kernel_) then
@@ -874,13 +938,14 @@ module sparsematrix_highlevel
       if (calculate_energy_density_kernel_) then
           call fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
-               calculate_minusonehalf_, foe_verbosity_, &
+               calculate_minusonehalf_, foe_verbosity_, inversion_method_, pexsi_np_sym_fact_, &
                smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
-               symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_, energy_kernel_=energy_kernel)
+               symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_, &
+               energy_kernel_=energy_kernel)
       else
           call fermi_operator_expansion_new(iproc, nproc, comm, &
                ebs, &
-               calculate_minusonehalf_, foe_verbosity_, &
+               calculate_minusonehalf_, foe_verbosity_, inversion_method_, pexsi_np_sym_fact_, &
                smat_s, smat_h, smat_k, ham, overlap, overlap_minus_one_half, kernel, foe_obj, ice_obj, &
                symmetrize_kernel_, calculate_energy_density_kernel_, calculate_spin_channels_)
       end if

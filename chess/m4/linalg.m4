@@ -144,7 +144,7 @@ AC_DEFUN([AX_LINALG],
     LDFLAGS="$LDFLAGS -L$ac_scalapack_dir"
   fi
   ax_have_scalapack=no
-  if test "$ac_scalapack" != "no" ; then
+  if test "$ac_scalapack" != "no" -a "$ac_blacs" != "no" ; then
     case $ac_scalapack in
       -l*)
       AC_MSG_CHECKING([for scalapack libraries])

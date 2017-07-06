@@ -1,7 +1,9 @@
 # To be installed:
 noinst_LIBRARIES = libmodules.a
 module_DATA = $(modules)
-
+dynlibdir = $(libdir)
+dynlib_DATA = $(openbabel_dynamic_library)
+noinst_DATA = $(openbabel_soname_library)
 
 #if USE_MPI
 #mpi_include =
@@ -38,7 +40,6 @@ endif
 #else
 #PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
 #endif
-
 
 libmodules_a_SOURCES = ab7_mixing.f90 \
 	dpbox.f90 \
@@ -93,8 +94,12 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	configure.c \
 	$(alborz_interfacemod) \
 	$(cp2k_interfacemod) \
+	$(openbabel_static_sources) \
 	module_dftbp.f90 \
-	sw_potential.f90
+	constrained_magnetic_field.f90 \
+	sw_potential.f90 \
+	get_basis.f90 \
+	get_kernel.f90
 
 # Modules
 if CAPITALIZE
@@ -117,6 +122,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_DPBOX.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
+	MODULE_CFD.@MODULE_EXT@ \
 	COMMUNICATIONS_INIT.@MODULE_EXT@ \
 	COMMUNICATIONS.@MODULE_EXT@ \
 	SPARSEMATRIX_WRAPPERS.@MODULE_EXT@ \
@@ -149,7 +155,9 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
 	MODULE_TDPOT.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@ \
-	SWPOTENTIAL.@MODULE_EXT@
+	SWPOTENTIAL.@MODULE_EXT@ \
+	GET_BASIS.@MODULE_EXT@ \
+	GET_KERNEL.@MODULE_EXT@
 else
 modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
@@ -170,6 +178,7 @@ modules = module_types.@MODULE_EXT@ \
 	module_dpbox.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
+	module_cfd.@MODULE_EXT@ \
 	communications_init.@MODULE_EXT@ \
 	communications.@MODULE_EXT@ \
 	sparsematrix_wrappers.@MODULE_EXT@ \
@@ -203,16 +212,29 @@ modules = module_types.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@ \
 	module_coulomb.@MODULE_EXT@ \
 	module_bazant.@MODULE_EXT@ \
-	swpotential.@MODULE_EXT@
+	swpotential.@MODULE_EXT@ \
+	get_basis.@MODULE_EXT@ \
+	get_kernel.@MODULE_EXT@
 endif
 
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
-EXTRA_DIST = $(ATOMS_INCLUDES) $(COMMS_INCLUDES)
-CLEANFILES = *.mod
+if HAVE_OPENBABEL
+openbabel_dynamic_sources = openbabel.cpp
+openbabel_dynamic_library = libbabel.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
+openbabel_soname_library = libbabel.so.@BIGDFT_MINOR_VERSION@
+openbabel_library = $(openbabel_soname_library)
+AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
+else
+openbabel_static_sources = openbabel_fake.cpp
+endif
+
+EXTRA_DIST = $(ATOMS_INCLUDES) $(COMMS_INCLUDES) openbabel.cpp
+CLEANFILES = *.mod libbabel.so*
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FUTILE_CFLAGS@
+AM_CXXFLAGS = @LIB_FUTILE_CFLAGS@ @LIB_OPENBABEL_CFLAGS@
 
 # Hack for XLF strange DEFS option.
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -226,13 +248,13 @@ $(modules): $(libmodules_a_OBJECTS)
 input.o: fragment_base.o
 input_dicts.o: fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) internal_coordinates.o input_dicts.o
-input_keys.o: multipole_base.o atoms_data.o input.o fragment_base.o
+input_keys.o: multipole_base.o atoms_data.o input.o fragment_base.o vdwcorrection.o
 types.o: psp_projectors_base.o atoms_data.o input_keys.o \
 	ab7_mixing.o multipole_base.o dpbox.o
 interfaces.o: types.o fragments.o diis_module.o constrained_dft.o input_keys.o
 
 BigDFT_API.o: types.o interfaces.o atoms_data.o input_dicts.o psp_projectors.o communications_init.o bigdft_run.o
-vdwcorrection.o: types.o 
+vdwcorrection.o: atoms_data.o
 private_api.o: types.o interfaces.o
 diis_module.o: types.o
 fragments.o: input_keys.o types.o fragment_base.o
@@ -266,8 +288,8 @@ transposed_operations.o: types.o bigdft_matrices.o
 module_forces.o: types.o 
 unitary_tests.o: types.o interfaces.o communications_init.o communications.o transposed_operations.o rhopotential.o
 io.o: types.o interfaces.o input_keys.o
-postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
-rhopotential.o: types.o interfaces.o communications.o bigdft_matrices.o
+postprocessing_linear.o: types.o interfaces.o communications.o transposed_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o get_kernel.o
+rhopotential.o: types.o interfaces.o communications.o bigdft_matrices.o constrained_magnetic_field.o atoms_data.o
 multipole.o: multipole_base.o interfaces.o orthonormalization.o io.o orbital_basis.o
 orbital_basis.o:  types.o interfaces.o communications.o
 orthonormalization.o: types.o communications.o transposed_operations.o atoms_data.o
@@ -275,6 +297,8 @@ locregs_init.o: types.o communications.o sort.o interfaces.o
 forces_linear.o: types.o psp_projectors.o transposed_operations.o
 sw_potential.o: atoms_data.o
 bigdft_matrices.o: types.o sparsematrix_wrappers.o
+get_basis.o: types.o interfaces.o communications.o rhopotential.o constrained_dft.o fragment_base.o fragments.o transposed_operations.o locregs_init.o get_kernel.o
+get_kernel.o: types.o interfaces.o diis_module.o communications.o constrained_dft.o rhopotential.o transposed_operations.o locregs_init.o orthonormalization.o
 ##pexsi.o also depends on pexsi_interfaces, but it is not known which one...
 #if HAVE_PEXSI
 #pexsi_interfaces.o: pexsi_base.o
@@ -295,3 +319,19 @@ insmod: $(modules) libmodules.a
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
 	done
 #	test -z "$(mpi_include)" || $(INSTALL) -m 644 mpif.h $(top_builddir)/includes
+
+$(openbabel_dynamic_library): $(openbabel_dynamic_sources)
+	$(CXX) $(CXXFLAGS) @CC_PIC_FLAG@ @LIB_OPENBABEL_CFLAGS@ -shared -I$(top_builddir) @GLIB_CFLAGS@ @LIB_FUTILE_CFLAGS@ $(LDFLAGS) $(AM_LDFLAGS) -Wl,-soname=$(openbabel_soname_library) -o $@ $< @LIB_OPENBABEL_LIBS@ @LIB_LIBDICTS_LIBS@ 
+	@chmod a+x $@
+
+$(openbabel_soname_library): $(openbabel_dynamic_library)
+	ln -fs $^ $@
+	ln -fs $@ libbabel.so
+
+install-data-hook:
+	if test -n "$(openbabel_dynamic_library)" ; then \
+	  cd $(DESTDIR)$(dynlibdir) ; \
+	  chmod a+x $(openbabel_dynamic_library) ; \
+	  ln -fs $(openbabel_dynamic_library) $(openbabel_soname_library) ; \
+	  ln -fs $(openbabel_soname_library) libbabel.so ; \
+	fi

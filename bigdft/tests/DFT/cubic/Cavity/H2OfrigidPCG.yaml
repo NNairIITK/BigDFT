@@ -17,8 +17,9 @@
  perf:
    projrad: 8.000
    rho_commun: MIX
-   verbosity: 1
    psp_onfly: No
+ output:
+   verbosity: 1
  posinp:
    units: angstroem
    positions:

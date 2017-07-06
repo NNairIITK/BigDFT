@@ -45,7 +45,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: hpsi_noprecond
   type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
   type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
-  real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: kernel_old
+  real(kind=8),dimension(tmb%linmat%smat(3)%nvctr),intent(inout) :: kernel_old
 
   ! Local variables
   integer :: iorb, iiorb, ilr, ncount, ierr, ist, ncnt, istat, iall, ii, jjorb, i
@@ -70,11 +70,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
  !!!call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
  !!!      tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd)
  !!!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
- !!!     tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
- !!!kernel_old_small = f_malloc(tmb%linmat%m%nvctr,id='kernel_old_small')
- !!!call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, &
+ !!!     tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%smat(2), tmb%linmat%ham_)
+ !!!kernel_old_small = f_malloc(tmb%linmat%smat(2)%nvctr,id='kernel_old_small')
+ !!!call transform_sparse_matrix(tmb%linmat%smat(2), tmb%linmat%smat(3), &
  !!!     kernel_old_small, kernel_old, 'large_to_small')
- !!!tt=ddot(tmb%linmat%m%nvctr, kernel_old_small(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
+ !!!tt=ddot(tmb%linmat%smat(2)%nvctr, kernel_old_small(1), 1, tmb%linmat%ham_%matrix_compr(1), 1)
  !!!if (iproc==0) write(*,*) 'tt',tt
  !!!call f_free(kernel_old_small)
  !!!!@ END EXPERIMENTAL ##############################
@@ -108,7 +108,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   hpsi_old= f_malloc_ptr(tmb%ham_descr%npsidim_orbs,id='hpsi_old')
   hpsit_c_old = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c_old')
   hpsit_f_old = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f_old')
-  kernel_tmp = f_malloc(tmb%linmat%l%nvctr,id='kernel_tmp')
+  kernel_tmp = f_malloc(tmb%linmat%smat(3)%nvctr,id='kernel_tmp')
 
   if(target_function==TARGET_FUNCTION_IS_ENERGY .or. &
      target_function==TARGET_FUNCTION_IS_HYBRID) then
@@ -123,19 +123,19 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_old(1), 1)
           call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsit_c_old(1), 1)
           call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsit_f_old(1), 1)
-          call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_tmp(1), 1)
+          call vcopy(tmb%linmat%smat(3)%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_tmp(1), 1)
           call get_hybrid_gradient(kernel_old, hpsi_old, hpsit_c_old, hpsit_f_old)
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%ham_descr%psit_c, hpsit_c_old, tmb%ham_descr%psit_f, hpsit_f_old, tmb%linmat%m, tmb%linmat%ham_)
+               tmb%ham_descr%psit_c, hpsit_c_old, tmb%ham_descr%psit_f, hpsit_f_old, tmb%linmat%smat(2), tmb%linmat%ham_)
           trH=0.d0
           call timing(iproc,'eglincomms','ON')
           do iorb=1,tmb%orbs%norb
-             ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
+             ii=matrixindex_in_compressed(tmb%linmat%smat(2),iorb,iorb)
              trH = trH + tmb%linmat%ham_%matrix_compr(ii)
           end do
           if (iproc==0) write(*,*) 'NEW: oldkernel trH',trH
 
-          call vcopy(tmb%linmat%l%nvctr, kernel_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          call vcopy(tmb%linmat%smat(3)%nvctr, kernel_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
 
 
           ! Correct gradient
@@ -144,22 +144,22 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call get_hybrid_gradient(tmb%linmat%kernel_%matrix_compr, tmb%hpsi, hpsit_c, hpsit_f)
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-               tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+               tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%smat(2), tmb%linmat%ham_)
           trH=0.d0
           call timing(iproc,'eglincomms','ON')
           do iorb=1,tmb%orbs%norb
-             ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
+             ii=matrixindex_in_compressed(tmb%linmat%smat(2),iorb,iorb)
              trH = trH + tmb%linmat%ham_%matrix_compr(ii)
           end do
           if (iproc==0) write(*,*) 'NEW: newkernel trH',trH
 
 
           !!call timing(iproc,'eglincomms','ON')
-          !!kernel_compr_tmp = f_malloc_ptr(tmb%linmat%l%nvctr,id='kernel_compr_tmp')
-          !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
-          !!    do ii=1,tmb%linmat%l%nvctr
-          !!            iiorb = tmb%linmat%l%orb_from_index(1,ii)
-          !!            jjorb = tmb%linmat%l%orb_from_index(2,ii)
+          !!kernel_compr_tmp = f_malloc_ptr(tmb%linmat%smat(3)%nvctr,id='kernel_compr_tmp')
+          !!call vcopy(tmb%linmat%smat(3)%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, kernel_compr_tmp(1), 1)
+          !!    do ii=1,tmb%linmat%smat(3)%nvctr
+          !!            iiorb = tmb%linmat%smat(3)%orb_from_index(1,ii)
+          !!            jjorb = tmb%linmat%smat(3)%orb_from_index(2,ii)
           !!        if(iiorb==jjorb) then
           !!            tmb%linmat%kernel_%matrix_compr(ii)=0.d0
           !!        else
@@ -171,9 +171,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!ist=1
           !!do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           !!    ilr=tmb%orbs%inwhichlocreg(iorb)
-          !!    do ii=1,tmb%linmat%l%nvctr
-          !!            iiorb = tmb%linmat%l%orb_from_index(1,ii)
-          !!            jjorb = tmb%linmat%l%orb_from_index(2,ii)
+          !!    do ii=1,tmb%linmat%smat(3)%nvctr
+          !!            iiorb = tmb%linmat%smat(3)%orb_from_index(1,ii)
+          !!            jjorb = tmb%linmat%smat(3)%orb_from_index(2,ii)
           !!            if(iiorb==jjorb .and. iiorb==iorb) then
           !!                ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
           !!                call dscal(ncount, kernel_compr_tmp(ii), tmb%hpsi(ist), 1)
@@ -185,13 +185,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           !!call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
           !!     tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
           !!call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-          !!     tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+          !!     tmb%linmat%smat(3), tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
           !!! copy correct kernel back
-          !!call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+          !!call vcopy(tmb%linmat%smat(3)%nvctr, kernel_compr_tmp(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
           !!call f_free_ptr(kernel_compr_tmp)
       else
           call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-               tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+               tmb%linmat%smat(3), tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
       end if
   end if
 
@@ -211,22 +211,22 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           tmb%can_use_transposed=.true.
 
           call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-               tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+               tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%smat(1), tmb%linmat%ovrlp_)
       end if
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f(1), 1, hpsittmp_f(1), 1)
       matrixm = matrices_null()
-      matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=SPARSE_FULL, id='matrixm%matrix_compr')
-      call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%m, &
+      matrixm%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%smat(2), iaction=SPARSE_FULL, id='matrixm%matrix_compr')
+      call transform_sparse_matrix(tmb%linmat%smat(1), tmb%linmat%smat(2), &
            tmb%linmat%ovrlp_%matrix_compr, matrixm%matrix_compr, 'small_to_large')
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
+           tmb%linmat%smat(2), matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c, hpsit_f, iproc)
 
       ! with old gradient ##############@######################
       call vcopy(tmb%ham_descr%collcom%ndimind_c, hpsit_c_old(1), 1, hpsittmp_c(1), 1)
       call vcopy(7*tmb%ham_descr%collcom%ndimind_f, hpsit_f_old(1), 1, hpsittmp_f(1), 1)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%m, matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c_old, hpsit_f_old, iproc)
+           tmb%linmat%smat(2), matrixm, hpsittmp_c, hpsittmp_f, .true., hpsit_c_old, hpsit_f_old, iproc)
       ! END with old gradient #################################
 
       call deallocate_matrices(matrixm)
@@ -245,7 +245,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
            tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
       tmb%can_use_transposed=.true.
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+           tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%smat(1), tmb%linmat%ovrlp_)
   end if
 
 
@@ -256,7 +256,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
        tmb%ham_descr%npsidim_orbs, tmb%ham_descr%npsidim_comp, &
        tmb%orbs, tmb%ham_descr%collcom, tmb%orthpar, correction_orthoconstraint, &
        tmb%linmat, tmb%ham_descr%psi, tmb%hpsi, &
-       tmb%linmat%m, tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+       tmb%linmat%smat(2), tmb%linmat%ham_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
        hpsit_c, hpsit_f, hpsit_c_old, hpsit_f_old, &
        hpsit_nococontra_c, hpsit_nococontra_f, tmb%ham_descr%can_use_transposed, &
        overlap_calculated, experimental_mode, norder_taylor, &
@@ -278,7 +278,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   trH=0.d0
   call timing(iproc,'eglincomms','ON')
   do iorb=1,tmb%orbs%norb
-     ii=matrixindex_in_compressed(tmb%linmat%m,iorb,iorb)
+     ii=matrixindex_in_compressed(tmb%linmat%smat(2),iorb,iorb)
      trH = trH + tmb%linmat%ham_%matrix_compr(ii)
   end do
   if (iproc==0) write(*,*) 'trH',trH
@@ -475,7 +475,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
 
 
     subroutine get_hybrid_gradient(kernel, hpsi, hpsit_c, hpsit_f)
-      real(kind=8),dimension(tmb%linmat%l%nvctr),intent(inout) :: kernel
+      real(kind=8),dimension(tmb%linmat%smat(3)%nvctr),intent(inout) :: kernel
       real(kind=8),dimension(tmb%ham_descr%npsidim_orbs),intent(inout) :: hpsi
       real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c),intent(inout) :: hpsit_c
       real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_f),intent(inout) :: hpsit_f
@@ -486,11 +486,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
           call vcopy(7*sum(tmb%ham_descr%collcom%nrecvcounts_f), hpsit_f(1), 1, hpsittmp_f(1), 1)
 
       call timing(iproc,'eglincomms','ON')
-      kernel_compr_tmp = f_malloc_ptr(tmb%linmat%l%nvctr,id='kernel_compr_tmp')
-      call vcopy(tmb%linmat%l%nvctr, kernel(1), 1, kernel_compr_tmp(1), 1)
-          do ii=1,tmb%linmat%l%nvctr
-                  iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                  jjorb = tmb%linmat%l%orb_from_index(2,ii)
+      kernel_compr_tmp = f_malloc_ptr(tmb%linmat%smat(3)%nvctr,id='kernel_compr_tmp')
+      call vcopy(tmb%linmat%smat(3)%nvctr, kernel(1), 1, kernel_compr_tmp(1), 1)
+          do ii=1,tmb%linmat%smat(3)%nvctr
+                  iiorb = tmb%linmat%smat(3)%orb_from_index(1,ii)
+                  jjorb = tmb%linmat%smat(3)%orb_from_index(2,ii)
               if(iiorb==jjorb) then
                   tmb%linmat%kernel_%matrix_compr(ii)=0.d0
               else
@@ -502,9 +502,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       ist=1
       do iorb=tmb%orbs%isorb+1,tmb%orbs%isorb+tmb%orbs%norbp
           ilr=tmb%orbs%inwhichlocreg(iorb)
-          do ii=1,tmb%linmat%l%nvctr
-                  iiorb = tmb%linmat%l%orb_from_index(1,ii)
-                  jjorb = tmb%linmat%l%orb_from_index(2,ii)
+          do ii=1,tmb%linmat%smat(3)%nvctr
+                  iiorb = tmb%linmat%smat(3)%orb_from_index(1,ii)
+                  jjorb = tmb%linmat%smat(3)%orb_from_index(2,ii)
                   if(iiorb==jjorb .and. iiorb==iorb) then
                       ncount=tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_c+7*tmb%ham_descr%lzd%llr(ilr)%wfd%nvctr_f
                       call dscal(ncount, kernel_compr_tmp(ii), hpsi(ist), 1)
@@ -516,9 +516,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
            hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%l, tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
+           tmb%linmat%smat(3), tmb%linmat%kernel_, hpsittmp_c, hpsittmp_f, .false., hpsit_c, hpsit_f, iproc)
       ! copy correct kernel back
-      call vcopy(tmb%linmat%l%nvctr, kernel_compr_tmp(1), 1, kernel(1), 1)
+      call vcopy(tmb%linmat%smat(3)%nvctr, kernel_compr_tmp(1), 1, kernel(1), 1)
       call f_free_ptr(kernel_compr_tmp)
 
     end subroutine get_hybrid_gradient
@@ -577,14 +577,14 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 
   !call nullify_sparse_matrix(grad_ovrlp)
   grad_ovrlp=sparse_matrix_null()
-  call sparse_copy_pattern(tmb%linmat%m, grad_ovrlp, iproc, subname)
+  call sparse_copy_pattern(tmb%linmat%smat(2), grad_ovrlp, iproc, subname)
   grad_ovrlp%matrix_compr=f_malloc_ptr(grad_ovrlp%nvctr,id='grad_ovrlp%matrix_compr')
   grad_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+  call allocate_matrices(tmb%linmat%smat(2), allocate_full=.false., &
        matname='grad_ovrlp_', mat=grad_ovrlp_)
 
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, hpsit_c, hpsit_c, &
-       hpsit_f, hpsit_f, tmb%linmat%m, grad_ovrlp_)
+       hpsit_f, hpsit_f, tmb%linmat%smat(2), grad_ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
   grad_ovrlp%matrix_compr=grad_ovrlp_%matrix_compr
 
@@ -630,9 +630,9 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   ! calculate Tr[Kg]  (not recalculating kernel as don't have the correct occs here)
   !call calculate_kernel_and_energy(iproc,nproc,denskern,grad_coeff,ksres_sum,tmb%coeff,orbs,tmb%orbs,.true.)
   grad_ovrlp_ = matrices_null()
-  call allocate_matrices(tmb%linmat%m, allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
+  call allocate_matrices(tmb%linmat%smat(2), allocate_full=.false., matname='grad_ovrlp_', mat=grad_ovrlp_)
   grad_ovrlp_%matrix_compr=grad_ovrlp%matrix_compr
-  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,grad_ovrlp,&
+  call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%smat(3),grad_ovrlp,&
        tmb%linmat%kernel_, grad_ovrlp_, &
        ksres_sum,tmb%coeff,tmb%orbs,tmb%orbs,.false.)
   call deallocate_matrices(grad_ovrlp_)
@@ -669,7 +669,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8), dimension(tmb%npsidim_orbs), optional,intent(out) :: psidiff
   logical, intent(in) :: ortho, experimental_mode
   real(kind=8),intent(out) :: trH_ref
-  real(kind=8),dimension(tmb%linmat%l%nvctr),intent(out) :: kernel_best
+  real(kind=8),dimension(tmb%linmat%smat(3)%nvctr),intent(out) :: kernel_best
   logical,intent(out) :: complete_reset
 
   ! Local variables
@@ -728,7 +728,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
       end if
 
       call orthonormalizeLocalized(iproc, nproc, order_taylor, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%linmat%smat(1), tmb%linmat%smat(3), tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
            tmb%can_use_transposed, tmb%foe_obj)
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)

@@ -6,6 +6,7 @@ EXTRA_DIST = \
 	README
 
 SUBDIRS = \
+	dicts \
 	flib \
 	fft \
 	wrappers \

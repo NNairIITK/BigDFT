@@ -205,6 +205,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
   integer :: myiproc_node, mynproc_node
   integer,dimension(3) :: n
+  real(dp) :: p1,p2,mu3,ker
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
   call f_routine(id='pkernel_set')
@@ -646,15 +647,24 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     ! transpose kernel for GPU
     do i3=1,n3
        j3=i3+(i3/(n3/2+2))*(n3+2-2*i3)!injective dimension
+       mu3=real(j3-1,dp)/real(n3,dp)
+       mu3=(mu3/kernel%hgrids(2))**2 !beware of the exchanged dimension
        do i2=1,n2
           j2=i2+(i2/(n2/2+2))*(n2+2-2*i2)!injective dimension
+          p2=real(j2-1,dp)/real(n2,dp)
           do i1=1,n1
              j1=i1+(i1/(n1/2+2))*(n1+2-2*i1)!injective dimension
              !injective index
              ind=j1+(j2-1)*nd1+(j3-1)*nd1*nd2
              !unfolded index
              indt=i2+(j1-1)*n2+(i3-1)*nd1*n2
-             pkernel2(indt)=kernel%kernel(ind)
+             if (kernel%geocode == 'P') then
+                p1=real(j1-1,dp)/real(n1,dp)
+                ker = pi*((p1/kernel%hgrids(1))**2+(p2/kernel%hgrids(3))**2+mu3)+kernel%mu**2/16.0_dp/datan(1.0_dp)
+                pkernel2(indt)=kernel%kernel(ind)/ker
+             else
+                pkernel2(indt)=kernel%kernel(ind)
+             end if
           end do
        end do
     end do

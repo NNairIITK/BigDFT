@@ -26,45 +26,65 @@ module f_environment
   integer :: f_nan_pad_size=0
   !> memorylimit of the allocation, raise an error whenever the allocated buffers pass above a given threshold
   integer :: f_memorylimit=0
+  !> maximum depth of the profiling routines (unlimited by default)
+  integer :: f_maximum_profiling_depth=-1
+
+  interface f_getenv
+     module procedure getenv_i0,getenv_l0
+  end interface f_getenv
+
+  private :: getenv_i0,getenv_l0
 
   contains
 
     subroutine f_environment_acquire()
       implicit none
+
+      call f_getenv('FUTILE_DEBUG_MODE',f_debug_level)
+      f_debug = f_debug_level /= 0
+
+      call f_getenv('FUTILE_SIMULATION_MODE',f_simulation_mode)
+
+      call f_getenv('FUTILE_MALLOC_NAN_PADDING',f_nan_pad_size)
+
+      call f_getenv('FUTILE_MEMORYLIMIT_GB',f_memorylimit)
+
+      call f_getenv('FUTILE_PROFILING_DEPTH',f_maximum_profiling_depth)
+
+    end subroutine f_environment_acquire
+
+    subroutine getenv_i0(envvar,data)
+      implicit none
+      character(len=*), intent(in) :: envvar
+      integer, intent(inout) :: data
       !local variables
       integer :: istat,idum
       character(len=8) :: val
 
-      !check if we are in the bigdebug mode or not
-      call get_environment_variable('FUTILE_DEBUG_MODE',&
-           val,status=istat)
-      !take the debug level
+      call get_environment_variable(envvar,val,status=istat)
       if (istat==0) then
-         read(val,*)f_debug_level
-         f_debug=f_debug_level /=0
+         read(val,*)idum !let it crash if the reading is unsafe
+         data=idum
       end if
 
-      call get_environment_variable('FUTILE_SIMULATION_MODE',&
-           val,status=istat)
+    end subroutine getenv_i0
+
+    subroutine getenv_l0(envvar,data)
+      implicit none
+      character(len=*), intent(in) :: envvar
+      logical, intent(inout) :: data
+      !local variables
+      integer :: istat,idum
+      character(len=8) :: val
+
+      call get_environment_variable(envvar,val,status=istat)
       if (istat==0) then
-         read(val,*)idum
-         f_simulation_mode=idum ==1
+         read(val,*)idum !let it crash if the reading is unsafe
+         data=idum==1
       end if
 
-      call get_environment_variable('FUTILE_MALLOC_NAN_PADDING',&
-           val,status=istat)
-      if (istat==0) then
-         read(val,*)idum
-         f_nan_pad_size=idum
-      end if
+    end subroutine getenv_l0
 
-      call get_environment_variable('FUTILE_MALLOC_MEMORYLIMIT',&
-           val,status=istat)
-      if (istat==0) then
-         read(val,*)idum
-         f_memorylimit=idum
-      end if
 
-    end subroutine f_environment_acquire
 
 end module f_environment

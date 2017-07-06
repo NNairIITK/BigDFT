@@ -13,10 +13,12 @@
    mixing_after_inputguess: 2
    check_sumrho: 1
    experimental_mode: Yes
-   write_orbitals: 2
+   #write_orbitals: 2
    kappa_conv: 0.7
    calculate_gap: Yes
    correction_co_contra: Yes
+ output:
+   orbitals: text
  lin_general:
    hybrid: Yes
    nit: 20

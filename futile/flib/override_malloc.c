@@ -19,6 +19,8 @@
 #define FC_QUOTE(str) FC_STR(str)
 #define FC_SYMBOL(sym,SYM) FC_QUOTE(FC_FUNC(sym,SYM))
 
+#define RTLD_NEXT RTLD_DEFAULT
+
 static void* (*real_malloc)(size_t)=NULL;
 
 size_t get_padding(void);

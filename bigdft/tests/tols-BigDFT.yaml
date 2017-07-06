@@ -73,6 +73,10 @@ Keys to ignore:
  - SCF criterion
  - cavitation
  - minres
+ - verbosity
+ - output_wf
+ - write_orbitals
+ - profiling_depth
  #- avg pot difference (actual/min)
  #- number of tasks
  #- IDs
@@ -168,6 +172,7 @@ SiBulk:
  Last Iteration: 7.01e-10
  Atomic Forces (Ha/Bohr): 7.01e-10
  Clean forces norm (Ha/Bohr): 3.3e-10
+ Force Norm (Hartree/Bohr): 2.3e-10
  Average noise forces: 9.3e-10
  HOMO LUMO gap (AU, eV): 1.8e-10
  PV (Ha): 1.89e-10
@@ -175,6 +180,7 @@ SiBulk:
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11
  GPa: 2.0e-9
+ Quadrupole Moment (AU): 8.8e-11
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -222,6 +228,7 @@ Graphene:
 
 TiMix:
  Epsilon: 1.e-10
+ Average noise forces: 1.1e-10
 
 GEOPT-BFGS:
  Epsilon: 2.71e-10
@@ -554,7 +561,7 @@ cleanup:
  Maxdiff for transpose (checksum): 1.5e-11
  e: 6.3e-10
  trace(Ktilde): 1.2e-11
- ENERGY: 3.0e-11
+ ENERGY: 5.1e-11
 
 directmin:
  Patterns to ignore:
@@ -621,9 +628,9 @@ rotate_read1:
  EXC: 1.1e-10
  EH: 1.0e-9
  orthog_energy: 2.4e-11
- energy: 9.2e-11
+ energy: 9.3e-11
  energydiff: 8.3e-11
- Omega: 8.1e-11
+ Omega: 9.3e-11
  D: 1.1e-10
  Energy (Hartree): 8.7e-11
  Maxdiff for transpose (checksum): 9.4e-10
@@ -635,7 +642,7 @@ rotate_read2:
  energy: 7.4e-11
  Omega: 7.1e-11
  Epot: 1.1e-9
- Energy (Hartree): 6.5e-11
+ Energy (Hartree): 6.6e-11
  Maxdiff for transpose (checksum): 9.4e-10
 
 rotate_write:
@@ -647,6 +654,7 @@ rotate_write:
  Omega: 2.1e-11
  Maxdiff for transpose (checksum): 9.4e-10
  Energy (Hartree): 2.1e-11
+ ENERGY: 2.0e-11
  Patterns to ignore:
  - Wavefunction written
 
@@ -696,15 +704,16 @@ molecule_dmix:
  Epot: 1.3e-08
  energy: 1.3e-9
  Omega: 1.4e-8
- Atomic Forces (Ha/Bohr): 7.2e-10
+ Atomic Forces (Ha/Bohr): 7.6e-10
  Clean forces norm (Ha/Bohr): 7.0e-10
- Raw forces norm (Ha/Bohr): 7.0e-10
+ Raw forces norm (Ha/Bohr): 8.0e-10
  Average noise forces: 1.1e-8
  e: 2.7e-10
  Total charge: 1.1e-08
  Energy (Hartree): 2.2e-10
  Maxdiff for transpose (checksum): 1.9e-09
- Force Norm (Hartree/Bohr): 1.6e-9
+ Force Norm (Hartree/Bohr): 1.9e-9
+ ENERGY: 1.8e-10
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -725,6 +734,7 @@ molecule_pmix:
  Average noise forces: 9.1e-10
  Maxdiff for transpose (checksum): 1.9e-09
  Force Norm (Hartree/Bohr): 1.7e-9
+ ENERGY: 1.6e-10
 
 molecule_dmin:
  Enl: 6.6e-9
@@ -740,11 +750,12 @@ molecule_dmin:
  eBS: 8.6e-9
  e: 1.4e-10
  Average noise forces: 4.1e-11
- Energy (Hartree): 1.4e-10
+ Energy (Hartree): 1.6e-10
  Maxdiff for transpose (checksum): 1.9e-09
  Force Norm (Hartree/Bohr): 2.7e-11
  Clean forces norm (Ha/Bohr): 1.2e-11
  Atomic Forces (Ha/Bohr): 1.3e-11
+ ENERGY: 1.6e-10
 
 molecule_foe:
  Enl: 6.6e-9
@@ -769,6 +780,7 @@ molecule_foe:
  difference: 1.0e-10
  Maxdiff for transpose (checksum): 1.9e-09
  trace(Ktilde): 1.0e-9
+ ENERGY: 8.2e-10
 
 hybrid-directmin:
  Epsilon: 1.4e-11
@@ -951,7 +963,7 @@ water_dirmin:
  etot: 1.7e-10
  energydiff: 3.3e-11
  D: 1.1e-09
- Energy (Hartree): 1.5e-10
+ Energy (Hartree): 1.6e-10
  Maxdiff for transpose (checksum): 2.4e-10
  Keys to ignore:
   - WARNINGS
@@ -970,8 +982,8 @@ water_mixdens:
  energydiff: 2.5e-11
  etot: 1.7e-10
  Omega: 1.7e-10
- Energy (Hartree): 1.5e-10
- Maxdiff for transpose (checksum): 2.4e-10
+ Energy (Hartree): 1.6e-10
+ Maxdiff for transpose (checksum): 4.7e-10
  Keys to ignore:
   - WARNINGS
 
@@ -986,8 +998,8 @@ water_mixpot:
  energy: 1.8e-10
  Omega: 1.8e-10
  etot: 1.8e-10
- Energy (Hartree): 1.7e-10
- Maxdiff for transpose (checksum): 2.4e-10
+ Energy (Hartree): 1.8e-10
+ Maxdiff for transpose (checksum): 4.7e-10
  Keys to ignore:
   - WARNINGS
 
@@ -1009,7 +1021,7 @@ deltascf_read_charge:
  EH: 1.1e-9
  Energy (Hartree): 2.4e-10
  D: 1.01e-9
- Maxdiff for transpose (checksum): 9.4e-10
+ Maxdiff for transpose (checksum): 1.4e-9
  Total charge: 2.1e-11
  Force Norm (Hartree/Bohr): 4.5e-11
 
@@ -1026,9 +1038,10 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.5e-10
  D: 6.1e-9
- Energy (Hartree): 2.1e-10
+ Energy (Hartree): 2.2e-10
  Maxdiff for transpose (checksum): 3.8e-9
  Total charge: 2.1e-11
+ ENERGY: 2.2e-10
 
 foe:
  Epot: 1.1e-10
@@ -1212,8 +1225,8 @@ newpulay:
  Total charge: 1.01e-10
 
 paracetamol:
- EXC: 2.1e-10
- EvXC: 3.0e-10
+ EXC: 3.1e-10
+ EvXC: 5.1e-10
  EH: 4.1e-09
  Ekin: 1.1e-09
  eF: 1.6e-6
@@ -1235,6 +1248,12 @@ paracetamol:
  mean conf prefac: 1.1e-5
  Maxdiff for overlap calculation: 2.6e-07
  trace(Ktilde): 1.1e-9
+ multiplicator for the confinement: 3.4e-10
+ trace(KH): 3.0e-09
+ Force Norm (Hartree/Bohr): 2.0e-11
+ Atomic Forces (Ha/Bohr): 2.2e-11
+ Raw forces norm (Ha/Bohr): 1.9e-11
+ Clean forces norm (Ha/Bohr): 1.9e-11
 
 reformatcomplete_read35:
  energy: 8.7e-10
@@ -1326,7 +1345,7 @@ reformat_read:
  Energy (Hartree): 5.7e-10
  Force Norm (Hartree/Bohr): 6.3e-10
  Total charge: 3.0e-11
- Maxdiff for transpose (checksum): 9.4e-10
+ Maxdiff for transpose (checksum): 1.9e-9
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4
@@ -1347,6 +1366,7 @@ reformat_write:
  Maxdiff for transpose (checksum): 1.2e-9
  Total charge: 2.1e-11
  e: 2.3e-11
+ ENERGY: 6.1e-11
 
 explicit_locregcenters:
  EvXC: 1.1e-10
@@ -1935,6 +1955,7 @@ periodic_water:
  Maxdiff for transpose (checksum): 4.7e-10
  decay length of error function: 1.1e-05
  Atomic Forces (Ha/Bohr): 1.3e-11
+ trace(KH): 9.1e-10
 
 
 surface_boronnitride:
@@ -2039,7 +2060,7 @@ multipoles_waterQMQM:
  Ekin: 1.1e-10
  Average noise forces: 1.0e-10
  number of corrected points: 8.0
- multiplicator for the confinement: 4.6e-10
+ multiplicator for the confinement: 4.7e-10
  eF: 1.0e-8
  decay length of error function: 1.1e-05
  difference: 7.3e-11
@@ -2141,6 +2162,7 @@ multipoles_periodic:
   Average noise forces: 1.1e-10
   Maxdiff for transpose (checksum): 1.5e-11
   relative difference: 7.4e-10
+  trace(KH): 1.4e-10
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
@@ -2193,6 +2215,8 @@ igortho_19:
  P vector: 1.001e-05
  exp accur: 1.1e-08
  norm(P): 1.1e-06
+ trace(KH): 1.2e-05
+ trace(KS): 1.3e-9
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 3.6e-6
@@ -2244,6 +2268,9 @@ igortho_44:
  int(V): 1.1e-3
  Err %: 0.10
  Asymmetry of kernel: 1.1e-06
+ trace(KH): 2.4e-4
+ trace(KS): 4.6e-09
+
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -2295,6 +2322,9 @@ igortho_94:
  P vector: 2.01e-05
  norm(P): 3.9e-05
  exp accur: 1.0e-08
+ trace(KH): 1.8e-05
+ trace(KS): 3.5e-11
+
 
 extendedfrags_nofrags:
  eF: 9.5e-6
@@ -2320,6 +2350,7 @@ extendedfrags_nofrags:
  energy: 2.9e-09
  relative difference: 6.1e-10
  trace(Ktilde): 4.3e-09
+ trace(KH): 2.1e-11
 
 extendedfrags_read:
  Omega: 2.3e-6
@@ -2350,6 +2381,7 @@ extendedfrags_read:
  trace(Ktilde): 2.6e-11
  Clean forces norm (Ha/Bohr): 3.1e-11
  ENERGY: 2.0-11
+ trace(KH): 6.7e-07
  Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
@@ -2382,6 +2414,8 @@ extendedfrags_readrotated:
  relative difference: 1.3e-10
  trace(Ktilde): 1.1e-10
  PV (Ha): 1.4e-10
+ trace(KH): 6.7e-07
+ trace(KS): 3.0e-11
  Keys to ignore: [WARNINGS]
 
 
@@ -2413,6 +2447,7 @@ extendedfrags_write:
  Energy (Hartree): 4.7e-11
  energy: 4.7e-11
  relative difference: 1.3e-11
+ trace(KH): 3.3e-09
 
 Cavity_H2OfrigidPCG:
  Atomic Forces (Ha/Bohr): 2.5e-6
@@ -2699,6 +2734,7 @@ H2Omultipoles_11:
   Tr(K): 1.3e-05
   D Tr(K): 1.0e-08
   trace(Ktilde): 3.1e-10
+  trace(KH): 1.8e-11
   eF: 6.0e-07
   energy: 6.1e-11
   multiplicator for the confinement: 4.4e-11

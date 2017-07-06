@@ -35,16 +35,11 @@ void FC_FUNC_(call_external_c, CALL_EXTERNAL_C)(void *callback(),void *address()
   return;
 }
 
-void FC_FUNC_(c_memcopy, C_MEMCOPY)(void *to, long long int * fromadd, int *ln)
+void FC_FUNC_(c_memcopy, C_MEMCOPY)(void *to, long long int * fromadd, long long int *ln)
 {
   char *from = (char*)*fromadd;
-  memcpy(to, from, sizeof(char) * *ln);
-}
-
-void FC_FUNC_(callable_void, CALLABLE_VOID)(FFunc_void *func)
-{
-  if (func)
-    (*func)();
+  size_t nbytes = sizeof(char) * *ln;
+  memcpy(to, from, nbytes);
 }
 
 void FC_FUNC_(callable_arg, CALLABLE_ARG)(FFunc_arg *func, void **a)

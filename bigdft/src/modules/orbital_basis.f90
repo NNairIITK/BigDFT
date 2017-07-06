@@ -16,6 +16,7 @@ module orbitalbasis
   use dictionaries, only: f_err_throw
   use locreg_operations, only: confpot_data
   use f_utils
+  use f_precisions
   implicit none
   private
 
@@ -69,7 +70,7 @@ module orbitalbasis
   type, public :: orbital_basis
 !!$     integer :: nbasis !< number of basis elements
 !!$     integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
-     !> descripto of each support function, of size nbasis
+     !> descriptor of each support function, of size nbasis
      type(direct_descriptor), dimension(:), pointer :: dd
      type(transposed_descriptor) :: td
      type(orbitals_data), pointer :: orbs !<metadata for the application of the hamiltonian
@@ -102,7 +103,8 @@ module orbitalbasis
      integer :: pbunit=NONE
      !> original orbital basis
      type(orbital_basis), pointer :: ob => null() !to be checked if it implies explicit save attribute
-
+     !> dimensions associated to the ket pointer, rank two
+     integer(f_long), dimension(2) :: ket_dims
      !> number of localisation regions and current ilr
      integer :: nlrp,ilr,ilr_max,ilr_min,iorbp,ikpt,ikpt_max
   end type ket
@@ -179,6 +181,7 @@ contains
     k%ispot=-1
     nullify(k%phi_wvl)
     nullify(k%ob)
+    k%ket_dims=-1
     if (k%pbunit /= NONE) then
        call yaml_mapping_close(unit=k%pbunit)
     end if
@@ -455,7 +458,6 @@ contains
     ikpt=k%ob%orbs%iokpt(k%iorbp)
     if (ikpt /= k%ikpt) call f_err_throw('Internal error in update ket',err_name='BIGDFT_RUNTIME_ERROR')
     k%kpoint=k%ob%orbs%kpts(:,ikpt)
-
     if (k%nspinor > 1) then !which means 2 or 4
        k%ncplx=2
        k%n_ket=k%nspinor/2
@@ -484,6 +486,8 @@ contains
        end do
        k%lr=>k%ob%dd(k%iorbp)%lr
        k%nphidim=(k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f)*k%nspinor
+       k%ket_dims(1)=k%lr%bit%mesh%ndim
+       k%ket_dims(2)=int(k%nspinor,f_long)
     end if
     if (associated(k%ob%phis_wvl)) k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
     if (k%pbunit /= NONE) then
@@ -491,38 +495,54 @@ contains
     end if
   end subroutine update_ket
 
-  function ob_ket_map(ob_ptr,it)
+  function ob_ket_map(ob_ptr,it,ispinor,ncplx)
     use f_precisions, only: f_address,f_loc
     use dynamic_memory, only: f_subptr
     implicit none
     real(wp), dimension(:), target :: ob_ptr !<coming from orbital_basis
     type(ket), intent(in) :: it
+    integer, intent(in), optional :: ispinor
+    integer, intent(in), optional :: ncplx
+
     real(wp), dimension(:), pointer :: ob_ket_map
 
     !ob_ket_map => ob_ptr(it%ispsi:it%ispsi+it%nphidim-1)
     ob_ket_map => f_subptr(ob_ptr,from=it%ispsi,size=it%nphidim)
+    if (present(ispinor)) then
+       ob_ket_map=>suborbital_(ob_ket_map,it%lr,ispinor,ncplx)
+    end if
   end function ob_ket_map
   !the iterator must go in order of localization regions
 
   function ob_subket_ptr(it,ispinor,ncplx) result(k)
-    use f_precisions, only: f_address,f_loc
-    use dynamic_memory
     implicit none
     type(ket), intent(in) :: it
     integer, intent(in) :: ispinor
     integer, intent(in), optional :: ncplx
     real(wp), dimension(:), pointer :: k
-    !local variables
-    integer :: istart,nvctr,ncomp
-    
-    ncomp=1
-    if (present(ncplx)) ncomp=ncplx
-    nvctr=it%lr%wfd%nvctr_c+7*it%lr%wfd%nvctr_f
-    istart=(ispinor-1)*nvctr
 
-    k => f_subptr(it%phi_wvl,istart+1 .to. istart+nvctr*ncomp)
+    k => suborbital_(it%phi_wvl,it%lr,ispinor,ncplx)
 
   end function ob_subket_ptr
+
+  function suborbital_(orb_ptr,lr,ispinor,ncplx) result(k)
+    use dynamic_memory
+    implicit none
+    real(wp), dimension(:), intent(in), target :: orb_ptr !<coming from orbital_basis
+    type(locreg_descriptors), intent(in) :: lr
+    integer, intent(in) :: ispinor
+    integer, intent(in), optional :: ncplx
+    real(wp), dimension(:), pointer :: k
+    !local variables
+    integer :: istart,nvctr,ncomp
+    ncomp=1
+    if (present(ncplx)) ncomp=ncplx
+    nvctr=lr%wfd%nvctr_c+7*lr%wfd%nvctr_f
+    istart=(ispinor-1)*nvctr
+
+    k => f_subptr(orb_ptr,istart+1 .to. istart+nvctr*ncomp)
+
+  end function suborbital_
 
   !> This function gives the number of components
   !! if the ket is in non-colinear spin description, this value is four
@@ -958,6 +978,7 @@ contains
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)
           ob%dd(iorb)%lr => Lzd%Llr(ilr)
        end do
+
        if (present(comms)) ob%td%Glr => Lzd%Glr
     else if (present(Glr)) then
        allocate(ob%dd(orbs%norbp))
@@ -1351,7 +1372,6 @@ contains
     if (any(totreat)) &
          call f_err_throw('Error for iterator (1), not all orbitals treated',&
          err_name='BIGDFT_RUNTIME_ERROR')
-
     !other version of the loop, by locreg
     !this would only work if there is only one k-point
     if (ob%orbs%nkpts ==1 .or. maxval(ob%orbs%inwhichlocreg)==1) then

@@ -15,6 +15,7 @@ subroutine reformatonewave(displ,wfd,at,hx_old,hy_old,hz_old,n1_old,n2_old,n3_ol
   use module_types
   use box
   use bounds, only: ext_buffers_coarse
+  use compression
   implicit none
   integer, intent(in) :: n1_old,n2_old,n3_old,n1,n2,n3  !n(c) iproc
   real(gp), intent(in) :: hx,hy,hz,displ,hx_old,hy_old,hz_old
@@ -284,6 +285,7 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
   use io, only: io_read_descr, io_error, read_psi_compress
   use yaml_output
   use box
+  use compression
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc,n1,n2,n3
@@ -623,7 +625,7 @@ END SUBROUTINE readwavedescr
 subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psigold,&
      hgrids,n,centre_old,centre_new,da,frag_trans,psi,psirold,tag)
   use module_base
-  use module_types
+  use locregs
   use module_fragments
   use reformatting
   use yaml_output

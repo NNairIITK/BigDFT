@@ -1,8 +1,9 @@
 #ifndef FUTILE_H
 #define FUTILE_H
-
 #include "futile_cst.h"
 #include "dict.h"
+#include "tree.h"
+#include "err.h"
 
 void futile_initialize();
 void futile_finalize();
@@ -11,13 +12,12 @@ void futile_finalize();
 
 #define FUTILE_METHOD_ARG_MAX 32
 
-typedef enum _FutileNumeric FutileNumeric;
-enum _FutileNumeric
+typedef enum _FutileNumeric
   {
     FUTILE_POINTER,
     FUTILE_INTEGER_4,
     FUTILE_REAL_8
-  };
+  } FutileNumeric;
 
 typedef union
 {
@@ -78,5 +78,4 @@ void* futile_object_ndarray_new(void **paddress);
 void futile_object_ndarray_free(void *paddress);
 void* futile_object_ndarray_get(void *ndarray,
                                 int *ndims, int shapes[7], FutileNumeric *type);
-
 #endif

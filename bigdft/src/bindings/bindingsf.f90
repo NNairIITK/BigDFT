@@ -188,7 +188,7 @@ end subroutine deallocate_double_2D
 
 
 subroutine glr_new(glr)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), pointer :: glr
 
@@ -197,8 +197,8 @@ end subroutine glr_new
 
 
 subroutine glr_copy(glr, d, wfd, from)
-  use module_types
-  use locregs, only: copy_locreg_descriptors
+  use compression
+  use locregs
   implicit none
   type(locreg_descriptors), pointer :: glr
   type(grid_dimensions), pointer :: d
@@ -214,7 +214,8 @@ end subroutine glr_copy
 
 
 subroutine glr_init(glr, d, wfd)
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
@@ -227,7 +228,8 @@ end subroutine glr_init
 
 
 subroutine glr_get_data(glr, d, wfd)
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout), target :: glr
   type(grid_dimensions), pointer :: d
@@ -239,7 +241,8 @@ end subroutine glr_get_data
 
 
 subroutine glr_free(glr)
-  use module_types
+  use compression
+  use locregs
   implicit none
   type(locreg_descriptors), pointer :: glr
 
@@ -257,7 +260,7 @@ end subroutine glr_empty
 
 
 subroutine glr_get_dimensions(glr , n, ni, ns, nsi, nfl, nfu, norb)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(in) :: glr
   integer, dimension(3), intent(out) :: n, ni, ns, nsi, nfl, nfu
@@ -289,7 +292,7 @@ end subroutine glr_get_dimensions
 
 
 subroutine glr_set_dimensions(glr, n, ni, ns, nsi, nfl, nfu)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, dimension(3), intent(in) :: n, ni, ns, nsi, nfl, nfu
@@ -318,7 +321,7 @@ end subroutine glr_set_dimensions
 
 
 subroutine glr_get_locreg_data(glr, locrad, locregCenter)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(in) :: glr
   double precision, dimension(3), intent(out) :: locregCenter
@@ -330,8 +333,7 @@ end subroutine glr_get_locreg_data
 
 
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
-  use module_types
-  use locregs, only: allocate_wfd
+  use locregs
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
@@ -348,6 +350,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
+   use locregs
    use module_interfaces, only: createWavefunctionsDescriptors
    implicit none
    !Arguments
@@ -364,7 +367,7 @@ end subroutine glr_set_wave_descriptors
 
 
 subroutine glr_set_bounds(lr)
-  use module_types
+  use locregs
   use bounds, only: locreg_bounds
   implicit none
   type(locreg_descriptors), intent(inout) :: lr
@@ -377,7 +380,7 @@ END SUBROUTINE glr_set_bounds
 
 subroutine glr_wfd_get_data(wfd, nvctr_c, nvctr_f, nseg_c, nseg_f, &
      & keyglob, keygloc, keyvglob, keyvloc)
-  use module_types
+  use compression
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   integer, intent(out) :: nvctr_c, nvctr_f, nseg_c, nseg_f
@@ -406,6 +409,7 @@ end subroutine lzd_new
 
 subroutine lzd_init(lzd, glr)
   use module_types
+  use locregs
   implicit none
   type(local_zone_descriptors), target, intent(inout) :: lzd
   type(locreg_descriptors), pointer :: glr
@@ -418,6 +422,7 @@ end subroutine lzd_init
 
 subroutine lzd_get_data(lzd, glr)
   use module_types
+  use locregs
   implicit none
   type(local_zone_descriptors), target, intent(inout) :: lzd
   type(locreg_descriptors), pointer :: glr
@@ -495,6 +500,7 @@ END SUBROUTINE lzd_get_hgrids
 subroutine lzd_get_llr(Lzd, i, llr)
   use module_base
   use module_types
+  use locregs
   implicit none
   type(local_zone_descriptors), intent(in) :: Lzd
   integer, intent(in) :: i
@@ -759,6 +765,7 @@ subroutine orbs_comm_init(comms, orbs, lr, iproc, nproc)
   use module_types
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
+  use locregs
   implicit none
   integer, intent(in) :: iproc,nproc
   type(locreg_descriptors), intent(in) :: lr
@@ -1707,7 +1714,6 @@ subroutine run_objects_nullify_volatile(runObj)
   use f_enums
   use public_enums
   use bigdft_run, only: run_objects
-  use module_defs, only: verbose
   use yaml_output, only: yaml_sequence_close
   use module_base, only: bigdft_mpi
   implicit none

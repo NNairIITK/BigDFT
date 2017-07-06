@@ -6,8 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
-
 subroutine center_of_charge(at,rxyz,cc)
   use module_base
   use module_types
@@ -44,6 +42,238 @@ END SUBROUTINE center_of_charge
 
 
 !> Calculate the coupling matrix needed for Casida's TDDFT approach
+subroutine calculate_coupling_matrix(iproc,nproc,boxit,tddft_approach,nspin,ndimp,orbsocc,orbsvirt,&
+     center_of_charge,pkernel,dvxcdrho,psirocc,psivirtr)
+  use module_base
+  use module_types
+  use Poisson_Solver, except_dp => dp, except_gp => gp
+  use yaml_output
+  use box
+  implicit none
+  character(len=4), intent(in) :: tddft_approach
+  integer, intent(in) :: iproc,nproc,nspin,ndimp
+  real(gp), dimension(3) :: center_of_charge
+  type(orbitals_data), intent(in) :: orbsocc,orbsvirt
+  real(wp), dimension(ndimp,orbsocc%norb), intent(in) :: psirocc
+  real(wp), dimension(ndimp,orbsvirt%norb), intent(in) :: psivirtr
+  real(wp), dimension(ndimp,max((nspin*(nspin+1))/2,2)), intent(in) :: dvxcdrho
+    type(coulomb_operator) :: pkernel
+  type(box_iterator) :: boxit
+  !local variables
+  integer, parameter :: ALPHA_=2,P_=1,SPIN_=3
+  integer :: imulti,jmulti,spinindex,ialpha,ip,ibeta,iq,ispin,jspin,ntda
+  integer :: nmulti,ndipoles,iap,ibq,nalphap,istep
+  real(wp) :: eap,ebq,krpa,kfxc,q
+  type(f_progress_bar) :: bar
+  integer, dimension(:,:), allocatable :: transitions
+  real(wp), dimension(:,:), allocatable :: Kaux,dipoles
+  real(wp), dimension(:,:), pointer :: Kbig,K
+  real(wp), dimension(:), allocatable :: v_ias
+  real(wp), dimension(:,:), allocatable :: rho_ias
+
+  call f_routine('calculate_coupling_matrix')
+
+  if(iproc==0) call yaml_comment('Linear-Response TDDFT calculations',hfill='-')
+
+  call allocate_transitions_lookup()
+  nmulti=nalphap
+  ndipoles=nmulti
+  if (nspin == 1) ndipoles=2*nmulti
+
+  !Allocate partial densities and potentials
+  rho_ias = f_malloc([ndimp,nmulti],id='rho_ias')
+  v_ias = f_malloc(ndimp,id='v_ias')
+
+  !Allocation of dipoles (computed in order to get the oscillator strength)
+  dipoles = f_malloc0([3, ndipoles],id='dipoles')
+  K = f_malloc0_ptr([nmulti, nmulti],id='K')
+  !For nspin=1, define an auxiliary matrix for spin-off-diagonal terms.
+  if (nspin==1) Kaux = f_malloc0([nmulti, nmulti],id='Kaux')
+
+  if (iproc==0) bar=f_progress_bar_new(nstep=((nalphap+1)*nalphap)/2)
+
+  call PS_set_options(pkernel,verbose=.false.)
+  istep=0
+  do iap=1,nalphap
+       ialpha=transitions(ALPHA_,iap)
+       ip=transitions(P_,iap)
+       ispin=transitions(SPIN_,iap)
+       eap=orbsvirt%eval(ialpha)-orbsocc%eval(ip)
+
+       !extraction fo the coefficients d_i
+       do while(box_next_point(boxit))
+         !fill the rho_ias array
+         rho_ias(boxit%ind,iap)=psirocc(boxit%ind,ip)*psivirtr(boxit%ind,ialpha)/boxit%mesh%volume_element
+         q=rho_ias(boxit%ind,iap)
+         boxit%tmp=boxit%rxyz-center_of_charge
+         dipoles(:,iap)=dipoles(:,iap)+boxit%tmp*q
+       end do
+       dipoles(:,iap)=sqrt(eap)*dipoles(:,iap)*boxit%mesh%volume_element
+
+       !for every rho iap  calculate the corresponding potential
+       !copy the transition  density in the inout structure
+       call f_memcpy(n=ndimp,src=rho_ias(1,iap),dest=v_ias(1))
+       call Electrostatic_Solver(pkernel,v_ias)
+
+       !now we have to calculate the corresponding element of the RPA part of the coupling matrix
+       do ibq=1,iap
+         ibeta=transitions(ALPHA_,ibq)
+         iq=transitions(P_,ibq)
+         jspin=transitions(SPIN_,ibq)
+         ebq=orbsvirt%eval(ibeta)-orbsocc%eval(iq)
+
+         !and of the rpa part
+         krpa=dot(ndimp,rho_ias(1,ibq),1,v_ias(1),1)*boxit%mesh%volume_element
+         K(iap,ibq)=krpa
+         if (nspin==1) Kaux(iap,ibq)=krpa
+         !calculate the fxc term
+         spinindex=ispin+jspin-1
+         kfxc=0.0_wp
+         do while(box_next_point(boxit))
+           kfxc=kfxc+rho_ias(boxit%ind,iap)*rho_ias(boxit%ind,ibq)*dvxcdrho(boxit%ind,spinindex)*boxit%mesh%volume_element
+         end do
+         K(iap,ibq)=K(iap,ibq)+kfxc
+         !in the nspin=1 case we also have to calculate the off-diagonal term
+         if (nspin==1) then
+           kfxc=0.0_wp
+           do while(box_next_point(boxit))
+             kfxc=kfxc+rho_ias(boxit%ind,iap)*rho_ias(boxit%ind,ibq)*dvxcdrho(boxit%ind,2)*boxit%mesh%volume_element
+           end do
+           Kaux(iap,ibq)=Kaux(iap,ibq)+kfxc
+         end if
+         !add factors from energy occupation numbers (for non-tda case)
+         !If full TDDFT, then multiply the coupling matrix element by the "2*sqrt(\omega_q*\omega_{q'})" coefficient of eq. 2.
+         if (tddft_approach=='full') then
+           K(iap,ibq)=K(iap,ibq)*2.0_wp*sqrt(eap)*sqrt(ebq)
+           if (nspin ==1) then
+             Kaux(iap,ibq)=Kaux(iap,ibq)*2.0_wp*sqrt(eap)*sqrt(ebq)
+           end if
+         end if
+         istep=istep+1
+       end do
+       if (iproc==0) call dump_progress_bar(bar,step=istep)
+     end do
+  !If more than one processor, then perform the MPI_all_reduce of K (and of Kaux if nspin=1) and of dipoles.
+  if (nproc > 1) then
+     call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     if (nspin ==1) call mpiallred(Kaux,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  end if
+
+
+  !Build the upper triangular part of K (and Kaux if nspin=1)
+  do imulti=1,nmulti
+     do jmulti=imulti+1,nmulti
+        K(imulti,jmulti)=K(jmulti,imulti)
+     end do
+  end do
+  if (nspin==1) then
+     do imulti=1,nmulti
+        do jmulti=imulti+1,nmulti
+           Kaux(imulti,jmulti)=Kaux(jmulti,imulti)
+        end do
+     end do
+  end if
+
+  !Exponent used to differentiate full TDDFT and TDA
+  ntda=1
+  if (tddft_approach=='TDA') then
+     ntda=0
+  else if (tddft_approach=='full') then
+     ntda=1
+  end if
+
+  !Add the diagonal part: {\omega_i}^{1+ntda} \delta_{i,j}
+    do iap=1,nalphap
+      ialpha=transitions(ALPHA_,iap)
+      ip=transitions(P_,iap)
+      eap=orbsvirt%eval(ialpha)-orbsocc%eval(ip)
+      K(iap,iap)=K(iap,iap)+eap**(ntda+1)
+    end do
+  !Construction of the whole coupling matrix Kbig for nspin=1
+  if (nspin == 1) then
+     Kbig = f_malloc0_ptr((/ 2*nmulti, 2*nmulti /),id='Kbig')
+     do iap=1,nalphap
+        do ibq=1,nalphap
+           Kbig(iap,ibq)=K(iap,ibq)
+           Kbig(iap+nmulti,ibq+nmulti)=K(iap,ibq)
+           Kbig(iap+nmulti,ibq)=Kaux(iap,ibq)
+           Kbig(iap,ibq+nmulti)=Kaux(iap,ibq)
+        end do
+     end do
+     !Copy the values of the dipoles in the second part of the array
+     call f_memcpy(n=3*nmulti,src=dipoles(1,1),dest=dipoles(1,nmulti+1))
+  else
+    Kbig=>K
+  end if
+
+  !here the matrix can be written on disk, together with the transition dipoles
+  if (iproc==0) then
+     call f_savetxt('coupling_matrix.txt',Kbig)
+     call f_savetxt('transition_dipoles.txt',dipoles)
+  end if
+
+  !Deallocations
+  call f_free_ptr(K)
+  call f_free(dipoles)
+  call f_free(transitions)
+  if (nspin ==1 ) then
+     call f_free(Kaux)
+     call f_free_ptr(Kbig)
+  end if
+  call f_free(rho_ias)
+  call f_free(v_ias)
+
+  call f_release_routine()
+
+contains
+
+  !> internal routine to define the lookup arrays
+  subroutine allocate_transitions_lookup()
+    use dictionaries
+    implicit none
+    integer :: imulti,iorbi,iorba,i
+    integer, dimension(3) :: tmp
+    type(dictionary), pointer :: lookup,local
+
+    call dict_init(lookup)
+    loop_i: do imulti=1,orbsvirt%norb*orbsocc%norb
+      iorbi=(imulti-1)/orbsvirt%norb+1 !occ. state index
+      iorba=imulti-(iorbi-1)*orbsvirt%norb !virt. state index
+
+      !Check the spin of the occ. and virt. orbitals considered
+      if (orbsocc%spinsgn(iorbi) == orbsvirt%spinsgn(iorba)) then
+        !Check the sign of the spin (used later for the choice of exchange correlation kernel).
+        if (orbsocc%spinsgn(iorbi) == 1.0_gp) then
+          ispin=1
+        else if (orbsocc%spinsgn(iorbi) == -1.0_gp) then
+          ispin=2
+        end if
+      else
+        !If the orbitals do not have the same spin, then cycle
+        cycle loop_i
+      end if
+      local=>list_new(.item.[iorbi,iorba,ispin])
+      call add(lookup,local)
+   end do loop_i
+
+   nalphap=dict_len(lookup)
+
+   !now allocate lookup array accordingly
+   transitions=f_malloc([3,nalphap],id='transitions')
+   do iap=0,nalphap-1
+      !here we write the transitions information
+      tmp=lookup//iap
+      do i=1,3
+         transitions(i,iap+1)=tmp(i)
+      end do
+   end do
+   call dict_free(lookup)
+
+ end subroutine allocate_transitions_lookup
+end subroutine calculate_coupling_matrix
+
+!> Calculate the coupling matrix needed for Casida's TDDFT approach
 subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr,exc_fac)
   use module_base
@@ -51,6 +281,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use bounds, only: ext_buffers
+  use locregs
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: tddft_approach
@@ -90,7 +321,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   ! A_{q,q'} = \omega_q \delta_{q,q'} + K_{q,q'},
   ! B_{q,q'} = K_{q,q'}.
   !
-  ! q is a shortcut for a,i,\sigma, where a represents a Kohn-Sham (KS) virtual state, i a KS occupied state, 
+  ! q is a shortcut for a,i,\sigma, where a represents a Kohn-Sham (KS) virtual state, i a KS occupied state,
   ! and sigma the spin of both states (which have to be equal).
   ! \omega_q = E_a - A_i, with E_a (respectively E_i) the energy of the virtual (resp. occupied) state.
   !
@@ -106,9 +337,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   ! The Tamm-Dancoff Approximation can also be applied, and one needs only to solve:
   ! A X = \omega_q \delta_{q,q'} + K_{q,q'} X = \omega X                                                        (eq. 3)
   ! This will be icalled TDA in the following (when the input parameter tddft_approach is set to 'TDA').
-  ! 
+  !
   ! In the implementation, we will use the fact that both equations 2 and 3 have a similar form:
-  ! {\omega_{q}}^{1+n} \delta_{q,q^\prime} + ( 2 \sqrt{\omega_{q} \omega_{q^\prime}} )^{n} K_{q,q^\prime} 
+  ! {\omega_{q}}^{1+n} \delta_{q,q^\prime} + ( 2 \sqrt{\omega_{q} \omega_{q^\prime}} )^{n} K_{q,q^\prime}
   !                     = \omega^{1+n} F^{n} X^{1-n}                                                            (eq. 4)
   ! The exponent n will allow the differentiation between full TDDFT or TDA:
   ! - if n=0, then TDA calculation is performed
@@ -116,12 +347,12 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   ! In the implementation, n is named 'ntda'.
   !
   !
-  ! By looking at the kernel f_{Hxc} definition, one sees that there is no spin dependance for the Hartree part, 
+  ! By looking at the kernel f_{Hxc} definition, one sees that there is no spin dependance for the Hartree part,
   ! while there is one for the exchange-correlation part.
   ! This is of importance in the implementation, since spin-averaged or spin-polarized calculation can be done.
   ! In the spin averaged case (nspin=1), each orbital has an occupation number of 0 or 2, while
   ! in the spin polarized case (nspin=2), each orbital has an occupation number of 0 or 1.
-  ! This means that, in the spin averaged case, one can divide the coupling matrix into four sub-matrices, 
+  ! This means that, in the spin averaged case, one can divide the coupling matrix into four sub-matrices,
   ! two using one definition of f_{xc}, the other two using another definition.
   ! The whole coupling matrix still needs to be computed in the spin-polarized case.
   !
@@ -177,7 +408,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !   This is due to the fact that each orbital has an occupation number of 0 or 2.
   !   The K_H (Hartree) terms are the same in each of these 4 sub-matrices.
   !   However, the exchange correlation part depends on the spin,
-  !   so that for the diagonal sub-matrices K, one definition of f_xc is used, 
+  !   so that for the diagonal sub-matrices K, one definition of f_xc is used,
   !   while another one is for the off-diagonal sub-matrices Kaux.
   !2- In the spin-polarized case (nspin=2), the whole coupling matrix K (and not Kbig) is a matrix of size nmulti*nmulti.
   !   This is due to the fact that each orbital has an occupation number of 0 or 1.
@@ -188,7 +419,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
   !We define the size of the whole coupling matrix (and the number of dipoles to be considered)
   if (nspin == 1) then
-     !If spin-averaged calculation, then we have to take into account the fact that each 
+     !If spin-averaged calculation, then we have to take into account the fact that each
      !orbital represents two atoms, so the dimension of the coupling matrix is doubled.
      ndipoles=2*nmulti
   else
@@ -449,11 +680,11 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   if (nspin==1) then
      call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
   end if
-  
-  !
+
+ 
   call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
 
-  !Build the upper triangular part of K (and Kaux if nspin=1) 
+  !Build the upper triangular part of K (and Kaux if nspin=1)
   do imulti=1,nmulti
      do jmulti=imulti+1,nmulti
         K(imulti,jmulti)=K(jmulti,imulti)
@@ -504,7 +735,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !Construction of the whole coupling matrix Kbig for nspin=1
   if (nspin == 1) then
      Kbig = f_malloc0((/ 2*nmulti, 2*nmulti /),id='Kbig')
- 
+
      do ik=1,nmulti
         do jk=1,nmulti
            Kbig(ik,jk)=K(ik,jk)
@@ -514,15 +745,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         end do
      end do
   end if
- 
+
   !Allocate the oscillator strengths
   fi = f_malloc((/ 3, ndipoles /),id='fi')
   !Allocate the excitation energy vector (actually \omega^2 when full TDDFT)
   omega = f_malloc(ndipoles,id='omega')
- 
+
   lwork = 3*ndipoles !safe value
   work = f_malloc(lwork,id='work')
- 
+
   !begin test: print out the matrix elements of K
   if (nspin==1) then
      do jmulti = 1, ndipoles
@@ -533,7 +764,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         end do
         !if (iproc==0) write(*,*) jmulti, fsumrule_test
      end do
-  else 
+  else
      do jmulti = 1, ndipoles
         fsumrule_test=0.0
         do imulti = 1, ndipoles
@@ -545,10 +776,12 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   end if
   !end test
 
+  call f_savetxt('old_coupling_matrix.txt',Kbig) ! we are in the nspin=1 case
+
   !Find the excitattion energy.
   if (nspin==1) then
      call DSYEV('V','U',ndipoles,Kbig,ndipoles,omega,work,lwork,info)
-  else 
+  else
      call DSYEV('V','U',ndipoles,K   ,ndipoles,omega,work,lwork,info)
   end if
   if (info /= 0) then
@@ -563,7 +796,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      end do
   end if
 
-  !Calculation of the transition dipoles 
+  !Calculation of the transition dipoles
   !Note that, after DSYEV, K represents the coefficients of the KS transition expansion of the true excitations.
   if (nspin==1) then
      call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
@@ -572,7 +805,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
           K(1,1),ndipoles,0.0_wp,fi(1,1),3)
   end if
-  
+
   !Summary of the results and pretty printing
   if (iproc == 0) then
 
@@ -584,7 +817,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      call yaml_sequence_open('Excitation Energy and Oscillator Strength')
      open(unit=9, file='tddft_spectrum.txt')
 
-     write(9,*) ndipoles 
+     write(9,*) ndipoles
 
      do imulti = 1, ndipoles
         call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
@@ -662,7 +895,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
      write(10,*) ik !number of transitions written
 
-     !Then we loop ever the matrix elements of K 
+     !Then we loop ever the matrix elements of K
      !(K is now containing the coefficients of the KS transitions reproducing the true excitations.)
      if (nspin==1) then
 
@@ -794,7 +1027,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 !                    call yaml_mapping_open(flow=.true.)
 !                       call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
 !                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti))**2,fmt='(1pe10.3)')))
-!                    call yaml_mapping_close()   
+!                    call yaml_mapping_close()
 !                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), iorbi,&
 !                            orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti,imulti)),&
 !                           &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
@@ -838,7 +1071,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 !              end do
 !           end do
 !
-!        else 
+!        else
 !
 !           !We have to check the spin sign, and therefore use a new transition counter.
 !           jk=0 !transition counter

@@ -75,6 +75,8 @@
             if (ierrsfx /= 0) then
                read(line,*, iostat = ierrsfx) iat
                write(astruct%units, "(A)") "bohr"
+               if (f_err_raise((ierrsfx /= 0), "Missing number of atoms on line 1 of '" &
+                    & // trim(filename)//"'.",err_id=BIGDFT_INPUT_VARIABLES_ERROR)) return
                if (bigdft_mpi%iproc==0) call yaml_warning('No units specified in the xyz input file.'//&
                     ' Atomic Units are assumed implicitly. If convergence problems arise check this.')
             end if
@@ -965,6 +967,7 @@ subroutine find_extra_info(line,extra,nspace)
   !local variables
   logical :: space
   integer :: i,ispace
+  integer :: a, b
 
   call f_zero(extra)
   i=1
@@ -980,6 +983,18 @@ subroutine find_extra_info(line,extra,nspace)
      !print *,line(i:i),ispace
      if (ispace==nspace) then
         extra=line(i:min(len(line),i+len(extra)-1))
+        ! Remove TAB character from within extra, in case.
+        a = index(extra, char(9))
+        do while (a > 0)
+           extra(a:a) = ' '
+           b = index(extra(a+1:), char(9))
+           if (b > 0) then
+              a = a + b
+           else
+              a = 0
+           end if
+        end do
+
         exit find_space
      end if
      if (i==len(line)) then
@@ -1005,6 +1020,7 @@ subroutine parse_extra_info(att, extra, errmess)
   character(len=4) :: suffix
   logical :: go
   integer :: ierr,ierr1,ierr2,nspol,nchrg
+  real :: r_nspol, r_nchrg
   type(dictionary), pointer :: dict
   !case with all the information
   !print *,'ex'//trim(extra)//'ex'
@@ -1018,23 +1034,26 @@ subroutine parse_extra_info(att, extra, errmess)
      call dict_free(dict)
   else
      ! Old case.
-     read(extra,*,iostat=ierr) nspol,nchrg,suffix
+     read(extra,*,iostat=ierr) r_nspol,r_nchrg,suffix
      if (extra == 'nothing') then !case with empty information
         nspol=0
         nchrg=0
         suffix='    '
      else if (ierr /= 0) then !case with partial information
-        read(extra,*,iostat=ierr1) nspol,suffix
+        read(extra,*,iostat=ierr1) r_nspol,suffix
         if (ierr1 == 0) then
+           nspol = int(r_nspol)
            !Format nspol frzchain
            nchrg=0
            call valid_frzchain(trim(suffix),go)
            if (.not. go) then
-              read(suffix,*,iostat=ierr2) nchrg
+              read(suffix,*,iostat=ierr2) r_nchrg
               suffix='    '
               if (ierr2 /= 0) then
                  nchrg = 0
                  call error
+              else
+                 nchrg = int(r_nchrg)
               end if
            end if
         else
@@ -1047,13 +1066,18 @@ subroutine parse_extra_info(att, extra, errmess)
            else
               suffix='    '
               nchrg=0
-              read(extra,*,iostat=ierr2) nspol
+              read(extra,*,iostat=ierr2) r_nspol
               if (ierr2 /=0) then
                  call error
                  nspol=0
+              else
+                 nspol = int(r_nspol)
               end if
            end if
         end if
+     else
+        nspol = int(r_nspol)
+        nchrg = int(r_nchrg)
      end if
 
      ! convert everything into a dict.

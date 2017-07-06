@@ -13,7 +13,7 @@ AC_REQUIRE([AX_FLIB])
 AC_REQUIRE([AX_LINALG])
 AC_REQUIRE([AX_MPI])
 AC_REQUIRE([AX_PSOLVER])
-AX_PACKAGE([BIGDFT],[1.8.1],[-lbigdft-1],[$LIB_PSOLVER_LIBS $LIB_CHESS_LIBS $LIB_FUTILE_LIBS $LINALG_LIBS],[$LIB_FUTILE_CFLAGS $LIB_PSOLVER_CFLAGS],
+AX_PACKAGE([BIGDFT],[1.8.1],[-lbigdft-1],[-labinit -lxcf90 -lxc -lGaIn -lCheSS-1 $LIB_PSOLVER_LIBS $LIB_CHESS_LIBS $LIB_FUTILE_LIBS $LINALG_LIBS],[$LIB_FUTILE_CFLAGS $LIB_PSOLVER_CFLAGS],
              [program main
     use bigdft_run
 
@@ -23,5 +23,13 @@ AX_PACKAGE([BIGDFT],[1.8.1],[-lbigdft-1],[$LIB_PSOLVER_LIBS $LIB_CHESS_LIBS $LIB
 
     call bigdft_state(run, outs, info)
   end program
+],
+    [use bigdft_run
+
+    type(run_objects) :: run
+    type(state_properties) :: outs
+    integer :: info
+
+    call bigdft_state(run, outs, info)
 ])
 ])

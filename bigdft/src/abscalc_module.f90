@@ -249,6 +249,7 @@ contains
        &   sup_iatom, sup_l, sup_arraym)
     use module_base
     use module_types
+    use locregs
     implicit none
 
     type(orbitals_data), intent(inout) :: orbs
@@ -525,7 +526,7 @@ contains
 
     use module_base
     use module_types
-
+    use locregs
     implicit none
 
     type(orbitals_data), intent(inout) :: orbs

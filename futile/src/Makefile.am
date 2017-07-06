@@ -51,8 +51,8 @@ else
 modules = f_lib_package.@MODULE_EXT@ futile.@MODULE_EXT@
 endif
 
-AM_FCFLAGS = -I. -I$(top_builddir)/flib @MPI_INCLUDE@
-AM_CPPFLAGS = -I. -I$(top_builddir) -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings @GLIB_CFLAGS@ @PYTHON_INCLUDES@ -D'PYTHON_EXECDIR="$(pyexecdir)"'
+AM_FCFLAGS = -I. -I$(top_builddir)/dicts/ -I$(top_builddir)/flib @MPI_INCLUDE@ @FC_PIC_FLAG@
+AM_CPPFLAGS = -I. -I$(top_builddir) -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings -I$(top_builddir)/dicts/ -I$(top_srcdir)/dicts @GLIB_CFLAGS@ @PYTHON_INCLUDES@ -D'PYTHON_EXECDIR="$(pyexecdir)"'
 
 if BUILD_DYNAMIC_LIBS
 flib_libraries = -lfutile-1
@@ -60,7 +60,7 @@ else
 flib_libraries = libfutile-1.a @LIBS_EXT_DEPS@
 endif
 
-tmp-libfutile/extract.stamp: $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a
+tmp-libfutile/extract.stamp: $(top_builddir)/dicts/libdicts.a $(top_builddir)/flib/libflib.a $(top_builddir)/c-bindings/libbindings.a $(top_builddir)/wrappers/libwrappers.a
 	test -e "tmp-libfutile" || $(INSTALL) -d -m 755 tmp-libfutile
 	cd tmp-libfutile ; \
 	rm -f *; \

@@ -43,6 +43,7 @@ END SUBROUTINE init_acceleration_OCL
 subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
   use module_base
   use module_types
+  use compression
   implicit none
   character(len=1), intent (in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: n1,n2,n3,nspin
@@ -261,6 +262,7 @@ END SUBROUTINE free_gpu_OCL
 subroutine daub_to_isf_OCL(lr,psi,psi_r,GPU)
   use module_base
   use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(inout) :: GPU
@@ -314,6 +316,7 @@ END SUBROUTINE daub_to_isf_OCL
 subroutine isf_to_daub_OCL(lr,psi_r,psi,GPU)
   use module_base
   use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   type(GPU_pointers), intent(inout) :: GPU
@@ -368,6 +371,7 @@ subroutine local_hamiltonian_OCL(orbs,lr,hx,hy,hz,&
      nspin,pot,psi,hpsi,ekin_sum,epot_sum,GPU)
   use module_base
   use module_types
+  use locregs
   implicit none
   integer, intent(in) :: nspin
   real(gp), intent(in) :: hx,hy,hz
@@ -593,6 +597,7 @@ subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
   use module_types
   use locreg_operations, only: workarr_precond,allocate_work_arrays,deallocate_work_arrays
+  use locregs
   implicit none
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: ncong
@@ -870,6 +875,7 @@ subroutine local_partial_density_OCL(orbs,&
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   use module_base
   use module_types
+  use locregs
   implicit none
   integer, intent(in) :: nrhotot
   type(orbitals_data), intent(in) :: orbs

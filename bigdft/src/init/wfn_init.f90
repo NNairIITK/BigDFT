@@ -320,7 +320,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
   !initialise hamovr
   !call to_zero(nspin*ndim_hamovr*2*orbse%nkpts,hamovr(1,1,1))
 
-  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Input Guess Overlap Matrices',flow=.true.)
+  if (iproc == 0 .and. get_verbose_level() > 1) call yaml_mapping_open('Input Guess Overlap Matrices',flow=.true.)
   !     'Overlap Matrix...'
 
   !after having applied the hamiltonian to all the atomic orbitals
@@ -342,7 +342,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      ispsi=ispsi+nvctrp*norbtot*orbse%nspinor
   end do
 
-  if (iproc == 0 .and. verbose > 1) call yaml_map('Calculated',.true.)
+  if (iproc == 0 .and. get_verbose_level() > 1) call yaml_map('Calculated',.true.)
 
 !  if(iproc==0 .and. verbose>1) write(*,'(a)') ' done.'
   !if (iproc == 0) print *,'hamovr,iproc:',iproc,hamovr
@@ -377,7 +377,7 @@ end if
 
   ! There are two possibilities to generate the input guess
   differentInputGuess: if(.not. orthpar%directDiag) then
-     if (iproc == 0 .and. verbose > 1) then
+     if (iproc == 0 .and. get_verbose_level() > 1) then
         call yaml_mapping_close()
         call yaml_newline()
      end if
@@ -406,7 +406,7 @@ end if
            call vcopy(orbs%norbd,orbse%eval((ikpt-1)*orbse%norb+orbse%norbu+1),1,orbs%eval((ikpt-1)*orbs%norb+orbs%norbu+1),1)
         end if
      end do
-     if (iproc == 0 .and. verbose > 1) then
+     if (iproc == 0 .and. get_verbose_level() > 1) then
         call yaml_map('Diagonalized',.true.)
         call yaml_mapping_close()
         call yaml_newline()
@@ -488,7 +488,7 @@ end if
         ispsie=ispsie+nvctrp*norbtot*orbs%nspinor
         ispm=ispm+ncplx*(orbse%norbu*orbs%norbu+orbse%norbd*orbs%norbd)
      end do
-     if (iproc == 0 .and. verbose > 1) call yaml_map('IG wavefunctions defined',.true.)
+     if (iproc == 0 .and. get_verbose_level() > 1) call yaml_map('IG wavefunctions defined',.true.)
      !if(nproc==1.and.nspinor==4) call psitransspi(nvctrp,norbu+norbd,psit,.false.)
      !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
 

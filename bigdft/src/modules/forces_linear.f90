@@ -209,7 +209,7 @@ module forces_linear
            PSPCODE_PAW
     
       use yaml_output
-      use locregs, only: check_whether_bounds_overlap
+      use locregs
       implicit none
       !Arguments-------------
       type(atoms_data), intent(in) :: at

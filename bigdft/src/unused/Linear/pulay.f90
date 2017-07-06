@@ -73,8 +73,8 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
        TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
   call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, &
-       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+       tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%smat(1), tmb%linmat%ovrlp_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%smat(1), tmb%linmat%ovrlp_)
   ! This can then be deleted if the transition to the new type has been completed.
   !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
 
@@ -102,23 +102,23 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   isize=7*sum(tmb%ham_descr%collcom%nrecvcounts_f)
   delta_phit_f=f_malloc(isize,id='delta_phit_f')
   !fpulay=f_malloc((/3,at%astruct%nat/),id='fpulay')
-  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%smat(3), iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, &
-       tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+       tmb%linmat%smat(3), tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
   call f_zero(fpulay)
   do idir=1,3
       ! calculate the overlap matrix among hphi and phi_delta_large
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
            TRANSPOSE_FULL, phi_delta_large(1,idir), delta_phit_c, delta_phit_f, tmb%ham_descr%lzd)
       call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%m, tmb%linmat%ham_)
-      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+           hphit_c, delta_phit_c, hphit_f, delta_phit_f, tmb%linmat%smat(2), tmb%linmat%ham_)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%smat(2), tmb%linmat%ham_)
       ! This can then be deleted if the transition to the new type has been completed.
       !tmb%linmat%ham%matrix_compr=tmb%linmat%ham_%matrix_compr
 
-      tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
+      tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%smat(2), iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
       call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, &
-           tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
+           tmb%linmat%smat(2), tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
 
       do iorb=1,tmb%orbs%norbp
           iiorb=tmb%orbs%isorb+iorb
@@ -170,9 +170,9 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
     subroutine construct_chi()
 
       tempmat=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='tempmat')
-      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
+      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%smat(1), iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
       call uncompress_matrix2(iproc, nproc, bigdft_mpi%mpi_comm, &
-           tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
+           tmb%linmat%smat(1), tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
       call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norb, tmb%orbs%norb, 1.d0, &
                  tmb%linmat%ovrlp_%matrix, tmb%orbs%norb, energykernel, tmb%orbs%norb, &
                  0.d0, tempmat, tmb%orbs%norb)
@@ -183,20 +183,20 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
       hphit_f=f_malloc(isize,id='hphit_f')
       call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
                                TRANSPOSE_FULL, tmb%hpsi, hphit_c, hphit_f, tmb%ham_descr%lzd)
-      denskern_tmp=f_malloc(tmb%linmat%l%nvctr,id='denskern_tmp')
+      denskern_tmp=f_malloc(tmb%linmat%smat(3)%nvctr,id='denskern_tmp')
       denskern_tmp=tmb%linmat%kernel_%matrix_compr
-      tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
+      tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%smat(3), iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
       tmb%linmat%kernel_%matrix(:,:,1)=tempmat
-      call compress_matrix(iproc, nproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
+      call compress_matrix(iproc, nproc, tmb%linmat%smat(3), inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       call f_free_ptr(tmb%linmat%kernel_%matrix)
 
-      tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
-      call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
-      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+      tmparr = sparsematrix_malloc(tmb%linmat%smat(3),iaction=SPARSE_FULL,id='tmparr')
+      call vcopy(tmb%linmat%smat(3)%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+      !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%smat(3), tmb%linmat%kernel_)
       call build_linear_combination_transposed(tmb%ham_descr%collcom, &
-           tmb%linmat%l, tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+           tmb%linmat%smat(3), tmb%linmat%kernel_, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
            .false., hphit_c, hphit_f, iproc)
-      call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+      call vcopy(tmb%linmat%smat(3)%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
       call f_free(tmparr)
 
       tmb%linmat%kernel_%matrix_compr=denskern_tmp
@@ -562,7 +562,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   ! also array of structure a bit inelegant at the moment
 
   ham_ = matrices_null()
-  call allocate_matrices(tmb%linmat%m, allocate_full=.false., &
+  call allocate_matrices(tmb%linmat%smat(2), allocate_full=.false., &
        matname='ham_', mat=ham_)
   do jdir = 1, 3
     !call nullify_sparse_matrix(dovrlp(jdir))
@@ -571,10 +571,10 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
     dovrlp_(jdir)=matrices_null()
     dham(jdir)=sparse_matrix_null()
     dham_(jdir)=matrices_null()
-    !call sparse_copy_pattern(tmb%linmat%m,dovrlp(jdir),iproc,subname) 
-    !call sparse_copy_pattern(tmb%linmat%m,dham(jdir),iproc,subname)
-    call copy_sparse_matrix(tmb%linmat%m,dovrlp(jdir))
-    call copy_sparse_matrix(tmb%linmat%m,dham(jdir))
+    !call sparse_copy_pattern(tmb%linmat%smat(2),dovrlp(jdir),iproc,subname) 
+    !call sparse_copy_pattern(tmb%linmat%smat(2),dham(jdir),iproc,subname)
+    call copy_sparse_matrix(tmb%linmat%smat(2),dovrlp(jdir))
+    call copy_sparse_matrix(tmb%linmat%smat(2),dham(jdir))
     !dham_(jdir)%matrix_compr=f_malloc_ptr(dham(jdir)%nvctr,id='dham(jdir)%matrix_compr')
     !dovrlp_(jdir)%matrix_compr=f_malloc_ptr(dovrlp(jdir)%nvctr,id='dovrlp(jdir)%matrix_compr')
     dham_(jdir)%matrix_compr=sparsematrix_malloc_ptr(dham(jdir),iaction=SPARSE_FULL,id='dham(jdir)%matrix_compr')
@@ -587,14 +587,14 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
          TRANSPOSE_FULL, lhphilarge, psit_c, psit_f, tmb%ham_descr%lzd)
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
-         psit_c, lpsit_c, psit_f, lpsit_f, tmb%linmat%m, ham_)
-    !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+         psit_c, lpsit_c, psit_f, lpsit_f, tmb%linmat%smat(2), ham_)
+    !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%smat(2), tmb%linmat%ham_)
     ! This can then be deleted if the transition to the new type has been completed.
     dovrlp_(jdir)%matrix_compr=ham_%matrix_compr
 
     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom,&
-         psit_c, hpsit_c, psit_f, hpsit_f, tmb%linmat%m, ham_)
-    !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+         psit_c, hpsit_c, psit_f, hpsit_f, tmb%linmat%smat(2), ham_)
+    !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%smat(2), tmb%linmat%ham_)
     ! This can then be deleted if the transition to the new type has been completed.
     dham_(jdir)%matrix_compr=ham_%matrix_compr
   end do
@@ -626,12 +626,12 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
    call f_zero(fpulay)
    do jdir=1,3
      !do ialpha=1,tmb%orbs%norb
-     do ispin=1,tmb%linmat%m%nspin
-         ishift=(ispin-1)*tmb%linmat%m%nvctr
-         if (tmb%linmat%m%nfvctrp>0) then
-             isegstart=dham(jdir)%istsegline(tmb%linmat%m%isfvctr_par(iproc)+1)
-             if (tmb%linmat%m%isfvctr+tmb%linmat%m%nfvctrp<tmb%linmat%m%nfvctr) then
-                 isegend=dham(jdir)%istsegline(tmb%linmat%m%isfvctr_par(iproc+1)+1)-1
+     do ispin=1,tmb%linmat%smat(2)%nspin
+         ishift=(ispin-1)*tmb%linmat%smat(2)%nvctr
+         if (tmb%linmat%smat(2)%nfvctrp>0) then
+             isegstart=dham(jdir)%istsegline(tmb%linmat%smat(2)%isfvctr_par(iproc)+1)
+             if (tmb%linmat%smat(2)%isfvctr+tmb%linmat%smat(2)%nfvctrp<tmb%linmat%smat(2)%nfvctr) then
+                 isegend=dham(jdir)%istsegline(tmb%linmat%smat(2)%isfvctr_par(iproc+1)+1)-1
              else
                  isegend=dham(jdir)%nseg
              end if

@@ -246,6 +246,8 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
      end if
 
   else
+     !write(*,*) 'iproc, m1, md2, m2, m3p', iproc, m1, md2, m2, m3p
+     !write(*,*) 'm1, md1, md2, m2, md3p, m3p', m1, md1, md2, m2, md3p, m3p
      !recollect the final data
      n3delta=md2-m2 !this is the y dimension
      if (sumpion) then
@@ -254,13 +256,15 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
         do i23=1,m2*m3p
            j3=(i23-1)/m2
            j23=i23+n3delta*j3
-           do i1=1,m1
-              pt=zf(i1,j23)
-              rh=rho(i1,i23)
-              rh=rh*pt
-              eh=eh+rh
-              pot(i1,i23)=pt+pot_ion(i1,i23)
-           end do
+           eh=eh+my_dot(m1,zf(1,j23),rho(1,i23))
+           call my_copy_add(m1,zf(1,j23),pot_ion(1,i23),pot(1,i23))
+           !!do i1=1,m1
+           !!   pt=zf(i1,j23)
+           !!   rh=rho(i1,i23)
+           !!   rh=rh*pt
+           !!   eh=eh+rh
+           !!   pot(i1,i23)=pt+pot_ion(i1,i23)
+           !!end do
         end do
         !$omp end parallel do
      else
@@ -269,18 +273,61 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
         do i23=1,m2*m3p
            j3=(i23-1)/m2
            j23=i23+n3delta*j3
-           do i1=1,m1
-              pt=zf(i1,j23)
-              rh=rho(i1,i23)
-              rh=rh*pt
-              eh=eh+rh
-              pot(i1,i23)=pt
-           end do
+           eh=eh+my_dot(m1,zf(1,j23),rho(1,i23))
+           call my_copy(m1,zf(1,j23),pot(1,i23))
+           !!do i1=1,m1
+           !!   pt=zf(i1,j23)
+           !!   rh=rho(i1,i23)
+           !!   rh=rh*pt
+           !!   eh=eh+rh
+           !!   pot(i1,i23)=pt
+           !!end do
         end do
         !$omp end parallel do
      end if
 
   end if
+
+
+  contains
+
+     pure function my_dot(n,x,y) result(tt)
+       implicit none
+       integer, intent(in) :: n
+       double precision :: tt
+       double precision, dimension(n), intent(in) :: x,y
+       !local variables
+       integer :: i
+       tt=0.d0
+       do i=1,n
+          tt=tt+x(i)*y(i)
+       end do
+     end function my_dot
+
+     pure subroutine my_copy(n,x,y)
+       implicit none
+       integer, intent(in) :: n
+       double precision, dimension(n), intent(in) :: x
+       double precision, dimension(n), intent(out) :: y
+       !local variables
+       integer :: i
+       do i=1,n
+          y(i)=x(i)
+       end do
+     end subroutine my_copy
+
+     pure subroutine my_copy_add(n,x,y,z)
+       implicit none
+       integer, intent(in) :: n
+       double precision, dimension(n), intent(in) :: x, y
+       double precision, dimension(n), intent(out) :: z
+       !local variables
+       integer :: i
+       do i=1,n
+          z(i)=x(i)+y(i)
+       end do
+     end subroutine my_copy_add
+
 end subroutine finalize_hartree_results
 
 

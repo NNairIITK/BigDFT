@@ -1049,6 +1049,8 @@ end subroutine PS_dump_coulomb_operator
 !!    The XC enlarging due to GGA part is not present for surfaces and 
 !!    periodic boundary condition. This is related to the fact that the calculation of the
 !!    gradient and the White-Bird correction are not yet implemented for non-isolated systems
+!! @todo
+!!    This routine should be separated in the inner part and the outer part responsible of the gradient calculation
 !! @author Luigi Genovese
 !! @date February 2007
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradient,use_wb_corr,&
@@ -1142,7 +1144,8 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    !formal start and end of the slice
    istart=iproc*(md2/nproc)
    iend=min((iproc+1)*md2/nproc,m2)
-   
+ 
+!this second part of the routine is of interest only for the XC part to be in agreement with Hattree potential distribution
    select case(datacode)
    case('D')
       call xc_dimensions(geocode,use_gradient,use_wb_corr,istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
@@ -1173,6 +1176,21 @@ END SUBROUTINE PS_dim4allocation
 
 !> Calculate the dimensions to be used for the XC part, taking into account also
 !! the White-bird correction which should be made for some GGA functionals
+!!dimension for exchange-correlation (different in the global or distributed case)
+!!let us calculate the dimension of the portion of the rho array to be passed 
+!!to the xc routine
+!!this portion will depend on the need of calculating the gradient or not, 
+!!and whether the White-Bird correction must be inserted or not 
+!!(absent only in the LB ixc=13 case)
+!
+!!nxc is the effective part of the third dimension that is being processed
+!!nxt is the dimension of the part of rho that must be passed to the gradient routine
+!!nwb is the dimension of the part of rho in the wb-postprocessing routine
+!!note: nxc <= nwb <= nxt
+!!the dimension are related by the values of nwbl and nwbr
+!!      nxc+nxcl+nxcr-2 = nwb
+!!      nwb+nwbl+nwbr = nxt
+!!
 !! @warning It is imperative that iend <=m2
 subroutine xc_dimensions(geocode,use_gradient,use_wb_corr,&
      & istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)

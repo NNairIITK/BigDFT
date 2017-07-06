@@ -2,3 +2,4 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 . "@bindir@/unienv.sh"
 unienv CHESS_ROOT @bindir@
+unienv CHESS_SOURCES @abs_top_srcdir@

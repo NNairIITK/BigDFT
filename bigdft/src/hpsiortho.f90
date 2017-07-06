@@ -23,7 +23,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   use yaml_output
   use rhopotential, only: full_local_potential
   use public_enums
-  use rhopotential, only: updatePotential
+  use rhopotential, only: updatePotential,exchange_and_correlation
+  use module_cfd, only: cfd_dump_info
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
@@ -44,11 +45,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   !local variables
   character(len=*), parameter :: subname='psitohpsi'
   logical :: unblock_comms_den,unblock_comms_pot,whilepot,savefields
-  integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,correcth
+  integer :: nthread_max,ithread,nthread,irhotot_add,irho_add,ispin,correcth,ishift
   real(gp) :: ehart_ps
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
   real(gp) :: compch_sph
+  real(wp), dimension(:), allocatable :: temp,m_norm,temp2 !to be removed
+
+
   call f_routine(id=subname)
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
@@ -138,7 +142,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         !$ if (unblock_comms_den) call OMP_SET_NUM_THREADS(nthread_max-1)
 
         !nonlocal hamiltonian
-        !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_den)&
+        !$ if (get_verbose_level() > 2 .and. iproc==0 .and. unblock_comms_den)&
         !$ & print *,'NonLocalHamiltonian with nthread:, out to:' ,omp_get_max_threads(),nthread_max
         call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
              wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
@@ -193,23 +197,63 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
         end do
      end if
 
-     if(wfn%orbs%nspinor==4) then
-        !this wrapper can be inserted inside the XC_potential routine
-        call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
-             denspot%dpbox%n3d,denspot%xc,&
-             denspot%dpbox%mesh%hgrids,&
-             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
-             energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
-     else
+!!$     if(wfn%orbs%nspinor==4) then
+!!$        !this wrapper can be inserted inside the XC_potential routine
+!!$        call PSolverNC(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+!!$             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),&
+!!$             denspot%dpbox%n3d,denspot%xc,&
+!!$             denspot%dpbox%mesh%hgrids,&
+!!$             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,&
+!!$             energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
+!!$     else
 
         !!           denspot%rhov denspot%rhov+2.e-7   STEFAN Goedecker
-        call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
-             denspot%pkernel%mpi_env%mpi_comm,&
-             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
-             denspot%dpbox%mesh%hgrids,&
-             denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,&
-             denspot%rhohat,denspot%V_XC,xcstr)
+
+!!$     !to reproduce the previous behaviour save the density in the temporary array
+!!$     if(wfn%orbs%nspinor==4) then
+!!$        temp=f_malloc(src=denspot%rhov,id='temp')
+!!$        m_norm=f_malloc0(size(denspot%rhov),id='m_norm')
+!!$        temp2=f_malloc0(size(denspot%rhov),id='temp2')
+!!$        call get_local_magnetization(denspot%dpbox%ndimrho,temp,m_norm,temp2)
+!!$        call f_free(temp2)
+!!$     end if
+
+     !here we need to calculate the atomic magnetic moments of the provided density
+     !the conditional should be added
+     if (denspot%cfd%nat >0) then
+        call atomic_magnetic_moments(denspot%dpbox%bitp,denspot%dpbox%ndimpot,atoms%astruct%nat,denspot%cfd%rxyz,denspot%cfd%radii,&
+             denspot%rhov(1+denspot%dpbox%mesh%ndims(1)*denspot%dpbox%mesh%ndims(2)*denspot%dpbox%i3xcsh),&
+             denspot%cfd%rho_at,denspot%cfd%m_at)
+        if (nproc > 1) then
+           call mpiallred(denspot%cfd%rho_at,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+           call mpiallred(denspot%cfd%m_at,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+        end if
+        if(iproc==0) call cfd_dump_info(denspot%cfd)
+!!!>
+!!!>     !here there should be a call to the CFD routines
+!!!>     call cfd_magnetic_field(cfd)
+!!!>
+     end if
+
+     call exchange_and_correlation(denspot%xc,denspot%dpbox,&
+          denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,&
+          denspot%rhohat,denspot%V_XC,xcstr)
+
+     if (denspot%cfd%nat >0) then
+!!$        !here the constraingin magnetic field is added on top of the local xc potential
+!!$        call f_zero(denspot%cfd%B_at)
+!!$        denspot%cfd%B_at(1,1)=0.5_gp
+!!$        denspot%cfd%B_at(1,2)=0.5_gp
+!!$        call atomic_magnetic_field(denspot%dpbox%bitp,denspot%dpbox%ndimpot,atoms%astruct%nat,&
+!!$             denspot%cfd%rxyz,denspot%cfd%radii,denspot%cfd%B_at,denspot%V_XC)
+     end if
+
+!!$        call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
+!!$             denspot%pkernel%mpi_env%mpi_comm,&
+!!$             denspot%dpbox%mesh%ndims(1),denspot%dpbox%mesh%ndims(2),denspot%dpbox%mesh%ndims(3),denspot%xc,&
+!!$             denspot%dpbox%mesh%hgrids,&
+!!$             denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,&
+!!$             denspot%rhohat,denspot%V_XC,xcstr)
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
 
         call H_potential('D',denspot%pkernel,&
@@ -224,23 +268,45 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
            energs%eh=ehart_ps
         end if
 
-
         !this is not true, there is also Vext
         call denspot_set_rhov_status(denspot, HARTREE_POTENTIAL, itwfn, iproc, nproc)
 
         !sum the two potentials in rhopot array
         !fill the other part, for spin, polarised
-        if (wfn%orbs%nspin == 2) then
-           call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
-                denspot%rhov(1+denspot%dpbox%ndimpot),1)
+        ishift=denspot%dpbox%ndimpot
+        if (wfn%orbs%nspin ==4) then
+           call f_zero(2*denspot%dpbox%ndimpot,denspot%rhov(1+ishift))
+           call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rhov(1),&
+                dest=denspot%rhov(1+3*ishift))
+        else
+           do ispin=2,wfn%orbs%nspin
+              call f_memcpy(n=denspot%dpbox%ndimpot,src=denspot%rhov(1),&
+                   dest=denspot%rhov(1+ishift))
+              ishift=ishift+denspot%dpbox%ndimpot
+           end do
         end if
+!!$        if (wfn%orbs%nspin == 2) then
+!!$           call vcopy(denspot%dpbox%ndimpot,denspot%rhov(1),1,&
+!!$                denspot%rhov(1+denspot%dpbox%ndimpot),1)
+!!$        end if
+
         !spin up and down together with the XC part
         call axpy(denspot%dpbox%ndimpot*wfn%orbs%nspin,&
              1.0_dp,denspot%V_XC(1,1,1,1),1,&
              denspot%rhov(1),1)
 
-        !here a external potential with spinorial indices can be added
-     end if
+
+        !put this term for the implementation of the (presumably incorrect) previous version
+!!$        if (wfn%orbs%nspinor==4) then
+!!$           !here temp is (still) the original density whereas rhov contains the full V_HXC
+!!$          call get_spinorial_potential(denspot%dpbox%ndimpot,denspot%rhov,m_norm,temp)
+!!$          call f_memcpy(src=temp,dest=denspot%rhov)
+!!$          call f_free(temp,m_norm)
+!!$       end if
+
+
+!!$        !here a external potential with spinorial indices can be added
+!!$     end if
 
      !this part has to be replaced by the updatepotential routine
 !     call updatePotential(wfn%orbs%nspinor,denspot,energs)
@@ -268,8 +334,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
 
      if (savefields) then
         if (associated(denspot%rho_work)) then
-           write(*,*)'ERROR: the reference potential should be empty to correct the hamiltonian!'
-           stop
+           call f_err_throw('The reference potential should be empty to correct the hamiltonian!',&
+                err_name='BIGDFT_RUNTIME_ERROR')
+           return
         end if
 
         denspot%rho_work = f_malloc_ptr(denspot%dpbox%ndimpot*denspot%dpbox%nrhodim,id='denspot%rho_work')
@@ -353,7 +420,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
      !$ if (unblock_comms_pot) call OMP_SET_NUM_THREADS(nthread_max-1)
 
      !nonlocal hamiltonian
-     !$ if (verbose > 2 .and. iproc==0 .and. unblock_comms_pot)&
+     !$ if (get_verbose_level() > 2 .and. iproc==0 .and. unblock_comms_pot)&
      !$ & call yaml_map('NonLocalHamiltonian with nthread out to',[omp_get_max_threads(),nthread_max])
      call NonLocalHamiltonianApplication(iproc,atoms,wfn%orbs%npsidim_orbs,wfn%orbs,&
           wfn%Lzd,nlpsp,wfn%psi,wfn%hpsi,energs%eproj,wfn%paw)
@@ -387,7 +454,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   if (associated(nlpsp%gamma_mmp) .and. nproc > 1) &
        call mpiallred(nlpsp%gamma_mmp,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
-  if (iproc==0 .and. verbose > 1) call write_atomic_density_matrix(wfn%orbs%nspin,atoms%astruct,nlpsp)
+  if (iproc==0 .and. get_verbose_level() > 1) call write_atomic_density_matrix(wfn%orbs%nspin,atoms%astruct,nlpsp)
 
   !here we might rework the value of gamma in case we would like to apply some extra
   !term in the following iteration
@@ -418,7 +485,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,scf_mode,alphamix,
   !deallocate potential
   call free_full_potential(denspot%dpbox%mpi_env%nproc,linflag,denspot%xc,denspot%pot_work)
   !----
-  if (iproc==0 .and. verbose > 0) then
+  if (iproc==0 .and. get_verbose_level() > 0) then
      if (correcth==2) then
         call yaml_map('Hamiltonian Applied',.false.)
         call yaml_comment('Only local potential')
@@ -572,7 +639,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
   call f_routine(id=subname)
 
   ! local potential and kinetic energy for all orbitals belonging to iproc
-  !if (iproc==0 .and. verbose > 1) then
+  !if (iproc==0 .and. get_verbose_level() > 1) then
   !call yaml_comment('Hamiltonian application, ',advance='no')
   !write(*,'(1x,a)',advance='no')&
   !     'Hamiltonian application...'
@@ -804,13 +871,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      !call timing(iproc,'ApplyLocPotKin','OF')
   else
 
-
-!!$      !temporary allocation
-!!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
-!!$      call memocc(i_stat,fake_pot,'fake_pot',subname)
-!!$
-!!$      call f_zero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin,fake_pot(1))
-
      !local hamiltonian application for different methods
      !print *,'here',ipotmethod,associated(pkernelSIC)
      if (PotOrKin==1) then ! both
@@ -930,7 +990,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_types
   use yaml_output
   !  use module_interfaces
-  use psp_projectors, only: projector_has_overlap,get_proj_locreg,hgh_psp_application
+  use psp_projectors, only: projector_has_overlap,&
+       get_proj_locreg,hgh_psp_application
   use public_enums, only: PSPCODE_PAW
   use module_atoms
   use orbitalbasis
@@ -1105,7 +1166,7 @@ contains
 
        !here the cproj can be extracted to update the density matrix for the atom iat 
        if (associated(nl%iagamma)) then
-          call cproj_to_gamma(atit%iat,nl%proj_G,mproj,lmax_ao,&
+          call cproj_to_gamma(atit%iat,nl%proj_G,psi_it%n_ket,mproj,lmax_ao,&
                max(psi_it%ncplx,ncplx_p),nl%cproj,psi_it%kwgt*psi_it%occup,&
                nl%iagamma(0,atit%iat),&
                nl%gamma_mmp(1,1,1,1,psi_it%ispin))
@@ -1915,7 +1976,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psit(1),wfn%psit(1))
   end if
 
-!!$  if (iproc==0 .and. verbose > 0) then
+!!$  if (iproc==0 .and. get_verbose_level() > 0) then
 !!$     call yaml_map('Symmetrize Lagr. Multiplier',wfn%SIC%alpha/=0.0_gp)
 !!$  end if
 
@@ -1952,7 +2013,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
      wfn%diis%energy=energs%eKS!trH-eh+exc-evxc-eexctX+eion+edisp(not correct for non-integer occnums)
   end if
 
-  if (iproc==0 .and. verbose > 0) then
+  if (iproc==0 .and. get_verbose_level() > 0) then
      call yaml_map('Orthoconstraint',.true.)
   end if
 
@@ -2024,16 +2085,16 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,scf_mode,&
      gnrm_zero=0.0_gp
   end if
 
-  !if (iproc==0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+  !if (iproc==0 .and. get_verbose_level() > 1) write(*,'(1x,a)') 'done.'
 
-  if (iproc==0  .and. verbose > 0) then
+  if (iproc==0  .and. get_verbose_level() > 0) then
      call yaml_map('Preconditioning',.true.)
      call yaml_newline()
   end if
 
   if (wfn%orbs%nspinor == 4) then
      !only the root process has the correct array
-     if(iproc==0 .and. verbose > 0) then
+     if(iproc==0 .and. get_verbose_level() > 0) then
         call yaml_sequence_open('Magnetic polarization per orbital')
         call yaml_newline()
         !write(*,'(1x,a)')&
@@ -2113,7 +2174,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
         wfn%hpsi(1),wfn%psi(1))
 
    !!experimental, orthogonalize the preconditioned gradient wrt wavefunction
-   !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
+   !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(get_verbose_level() > 2))
 
    !apply the minimization method (DIIS or steepest descent)
    if (iter > 0) then
@@ -2143,7 +2204,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
           & call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psi(1),wfn%hpsi(1))
    end if
 
-   if (iproc == 0 .and. verbose > 1) then
+   if (iproc == 0 .and. get_verbose_level() > 1) then
       !write(*,'(1x,a)',advance='no')&
       !&   'Orthogonalization...'
       call yaml_map('Orthogonalization Method',wfn%orthpar%methortho,fmt='(i3)')
@@ -2160,7 +2221,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 !!$      !debug:
 !!$      call checkortho_paw(iproc,wfn%orbs%norb*wfn%orbs%nspinor,&
 !!$           wfn%comms%nvctr_par(iproc,0),wfn%psit,wfn%paw%spsi)
-!!$      if (iproc == 0 .and. verbose > 1) then
+!!$      if (iproc == 0 .and. get_verbose_level() > 1) then
 !!$         call yaml_sequence_open('cprj(:,1) (5 first orbitals)')
 !!$         do iat=1,wfn%paw%natom
 !!$            call yaml_mapping_open("atom" // trim(yaml_toa(iat, fmt = "(I0)")))
@@ -2182,7 +2243,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
       nullify(wfn%psit)
    end if
 
-   !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)') 'done.'
+   !if (iproc == 0 .and. get_verbose_level() > 1) write(*,'(1x,a)') 'done.'
 
    ! Emit that new wavefunctions are ready.
    if (wfn%c_obj /= 0) then
@@ -3381,7 +3442,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 !     call axpy(wfn%Lzd%Llr(ilr)%wfd%nvctr_c+7*wfn%Lzd%Llr(ilr)%wfd%nvctr_f,-eks,wfn%psi(1+ist),1,vpsi(1+ist),1)
 
      call plot_wf(.false.,'Vpsi'//trim(adjustl(yaml_toa(iorb))),1,atoms,1.0_gp,wfn%Lzd%llr(ilr),&
-          wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),rxyz,vpsi(1+ist))
+          wfn%Lzd%hgrids,rxyz,vpsi(1+ist))
 
 
      call daub_to_isf(wfn%Lzd%Llr(ilr),w,vpsi(1+ist),vpsir(1))

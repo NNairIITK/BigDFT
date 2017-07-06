@@ -75,6 +75,7 @@ module sparsematrix_io
 
 
     subroutine read_sparse_matrix(mode, filename, iproc, nproc, comm, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr)
+      use time_profiling
       use dynamic_memory
       use f_utils
       implicit none
@@ -96,6 +97,7 @@ module sparsematrix_io
       logical :: read_rxyz, read_on_which_atom, file_present
 
       call f_routine(id='read_sparse_matrix')
+      call f_timing(TCAT_SMAT_READ,'ON')
 
       if (iproc==0) call yaml_comment('Reading from file '//trim(filename),hfill='~')
       inquire(file=trim(filename),exist=file_present)
@@ -121,29 +123,49 @@ module sparsematrix_io
                    err_name='SPARSEMATRIX_IO_ERROR')
           end if
 
-          iunit = 99
-          call f_open_file(iunit, file=trim(filename), binary=.false.)
+          if (iproc==0) then
 
-          read(iunit,*) nspin, nfvctr, nseg, nvctr
-          keyv = f_malloc_ptr(nseg,id='keyv')
-          keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+              ! Read in the matrix on task 0
+              iunit = 99
+              call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          do iseg=1,nseg
-              read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
-          end do
+              read(iunit,*) nspin, nfvctr, nseg, nvctr
+              keyv = f_malloc_ptr(nseg,id='keyv')
+              keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
 
-          mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
-          ind = 0
-          do ispin=1,nspin
               do iseg=1,nseg
-                  icol = keyg(1,2,iseg)
-                  do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
-                      irow = jorb
-                      ind = ind + 1
-                      read(iunit,*) mat_compr(ind)
+                  read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
+              end do
+
+              mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
+              ind = 0
+              do ispin=1,nspin
+                  do iseg=1,nseg
+                      icol = keyg(1,2,iseg)
+                      do jorb=keyg(1,1,iseg),keyg(2,1,iseg)
+                          irow = jorb
+                          ind = ind + 1
+                          read(iunit,*) mat_compr(ind)
+                      end do
                   end do
               end do
-          end do
+          end if
+
+          ! Communicate to the other tasks
+          call mpibcast(nspin, count=1, root=0, comm=comm)
+          call mpibcast(nfvctr, count=1, root=0, comm=comm)
+          call mpibcast(nseg, count=1, root=0, comm=comm)
+          call mpibcast(nvctr, count=1, root=0, comm=comm)
+          if (iproc/=0) then
+              keyv = f_malloc_ptr(nseg,id='keyv')
+              keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
+          end if
+          call mpibcast(keyv, root=0, comm=comm)
+          call mpibcast(keyg, root=0, comm=comm)
+          if (iproc/=0) then
+              mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
+          end if
+          call mpibcast(mat_compr, root=0, comm=comm)
 
       else
           call f_err_throw("wrong value for 'mode'")
@@ -151,6 +173,7 @@ module sparsematrix_io
 
       call f_close(iunit)
 
+      call f_timing(TCAT_SMAT_READ,'OF')
       call f_release_routine()
 
     end subroutine read_sparse_matrix
@@ -566,18 +589,15 @@ module sparsematrix_io
     end subroutine write_sparse_matrix_metadata
 
 
-    subroutine write_linear_coefficients(iproc, iroot, filename, verbosity, nat, rxyz, iatype, ntypes, nzatom, &
-               nelpsp, atomnames, nfvctr, ntmb, nspin, coeff, eval)
+    subroutine write_linear_coefficients(mode, iproc, nproc, comm, iroot, filename, verbosity, &
+               nfvctr, ntmb, nspin, coeff, eval)
       use yaml_output
       implicit none
       ! Calling arguments
+      character(len=*),intent(in) :: mode
       character(len=*),intent(in) :: filename
       !type(atoms_data),intent(in) :: at
-      integer,intent(in) :: iproc, iroot, nat, verbosity, ntypes, nfvctr, ntmb, nspin
-      real(mp), dimension(3,nat), intent(in) :: rxyz
-      integer,dimension(nat),intent(in) :: iatype
-      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
-      character(len=20),dimension(ntypes),intent(in) :: atomnames
+      integer,intent(in) :: iproc, nproc, comm, iroot, verbosity, nfvctr, ntmb, nspin
       real(mp), dimension(nfvctr,ntmb), intent(in) :: coeff
       real(mp), dimension(ntmb), intent(in) :: eval
       ! Local variables
@@ -587,33 +607,280 @@ module sparsematrix_io
       call f_routine(id='write_linear_coefficients')
 
 
-      if (iproc==iroot) then
+      if (trim(mode)=='parallel_mpi-native') then
+          call write_linear_coefficients_parallel(iproc, nproc, comm, trim(filename), &
+               nspin, ntmb, nfvctr, eval, coeff)
+      else if (trim(mode)=='serial_text') then
+          if (iproc==iroot) then
+
+              iunit = 99
+              call f_open_file(iunit, file=trim(filename), binary=.false.)
+    
+              ! Write the Header
+              !!!write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
+              !!write(iunit,'(i10,2i6,a)') nat, ntypes, nspin, &
+              !!    '   # number of atoms, number of atom types, nspin'
+              !!!do itype=1,at%astruct%ntypes
+              !!do itype=1,ntypes
+              !!    !write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+              !!    write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
+              !!        '   # nz, nelpsp, name'
+              !!end do
+              !!!do iat=1,at%astruct%nat
+              !!do iat=1,nat
+              !!    !write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+              !!    write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+              !!end do
+              write(iunit,'(3i12,a)') nspin, ntmb, nfvctr, '   # nspin, ntmb, nfvctr'
+              do i=1,ntmb
+                  write(iunit,'(es24.16,a,i0)') eval(i), '   # eval no. ', i
+              enddo
+    
+              ! Now write the coefficients
+              do i=1,ntmb
+                 ! First element always positive, for consistency when using for transfer integrals;
+                 ! unless 1st element below some threshold, in which case first significant element.
+                 scaled = .false.
+                 do j=1,nfvctr
+                    if (abs(coeff(j,i))>1.0d-3) then
+                       if (coeff(j,i)<0.0_mp) call dscal(ntmb,-1.0_mp,coeff(1,i),1)
+                       scaled = .true.
+                       exit
+                    end if
+                 end do
+                 if (.not.scaled) then
+                     call yaml_warning('Consistency between the written coefficients not guaranteed')
+                 end if
+    
+                 do j = 1,nfvctr
+                     write(iunit,'(es24.16,2i9,a)') coeff(j,i), j, i, '   # coeff, j, i'
+                 end do
+              end do  
+              if (verbosity >= 2 .and. iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
+
+              call f_close(iunit)
+
+          end if
+      else
+          call f_err_throw("wrong value for 'mode'")
+      end if
+
+      call f_release_routine()
+    
+    end subroutine write_linear_coefficients
+
+
+    subroutine write_linear_coefficients_parallel(iproc, nproc, comm, filename, &
+               nspin, ntmb, nfvctr, eval, coeff)
+      use sparsematrix_init, only: distribute_on_tasks
+      use wrapper_linalg, only: vcopy
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(in) :: iproc, nproc, comm, nspin, ntmb, nfvctr
+      real(mp), dimension(ntmb), intent(in) :: eval
+      real(mp), dimension(nfvctr,ntmb), intent(in) :: coeff
+
+      ! Local variables
+      integer :: thefile, size_of_integer, size_of_double, i, ii, j, is, np, ierr
+      integer(kind=f_long) :: size_of_integer_long, size_of_double_long, disp, is_long
+      integer(kind=f_long) :: one_long, three_long, five_long, nfvctr_long, ntmb_long
+      logical :: scaled
+      integer,dimension(3) :: workarr_header
+      real(mp),dimension(:),allocatable :: workarr_eval
+      real(mp),dimension(:,:),allocatable :: workarr_coeff
+
+      call f_routine(id='write_linear_coefficients_parallel')
+
+      call mpi_file_open(comm, trim(filename), & 
+           mpi_mode_wronly + mpi_mode_create, & 
+           mpi_info_null, thefile, ierr) 
+      size_of_integer = mpitypesize(1)
+      size_of_double = mpitypesize(1.0_mp)
+      size_of_integer_long = int(size_of_integer,kind=f_long)
+      size_of_double_long = int(size_of_double,kind=f_long)
+      one_long = int(1,kind=f_long)
+      three_long = int(3,kind=f_long)
+      five_long = int(5,kind=f_long)
+      nfvctr_long = int(nfvctr,kind=f_long)
+      ntmb_long = int(ntmb,kind=f_long)
+
+      ! Write the header
+      disp = int(0,kind=mpi_offset_kind)
+      call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
+      if (iproc==0) then
+          workarr_header(1) = nspin
+          workarr_header(2) = ntmb
+          workarr_header(3) = nfvctr
+          call mpi_file_write(thefile, workarr_header, 3, mpi_integer, mpi_status_ignore, ierr)
+      end if
+
+      ! Write the eigenvalues
+      call distribute_on_tasks(ntmb, iproc, nproc, np, is)
+      workarr_eval = f_malloc(np,id='workarr_eval')
+      do i=1,np
+          ii = is + i
+          workarr_eval(i) = eval(ii)
+      end do
+      is_long = int(is,kind=f_long)
+      disp = int(three_long*size_of_integer_long+is_long*size_of_double_long,kind=mpi_offset_kind)
+      call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr) 
+      call mpi_file_write(thefile, workarr_eval, np, mpi_double_precision, mpi_status_ignore, ierr)
+      call f_free(workarr_eval)
+
+      workarr_coeff = f_malloc((/nfvctr,np/),id='workarr_coeff')
+      do i=1,np
+          ii = is + i
+          ! First element always positive, for consistency when using for transfer integrals;
+          ! unless 1st element below some threshold, in which case first significant element.
+          scaled = .false.
+          do j=1,nfvctr
+             if (abs(coeff(j,ii))>1.e-3_mp) then
+                if (coeff(j,ii)<0.0_mp) call dscal(ntmb,-1.0_mp,coeff(1,i),1)
+                scaled = .true.
+                exit
+             end if
+          end do
+          if (.not.scaled) then
+              call yaml_warning('Consistency between the written coefficients not guaranteed')
+          end if
+          !call f_memcpy(n=nfvctr, src=coeff(1:nfvctr,ii:ii), dest=workarr_coeff(1:nfvctr,i:i))
+          call vcopy(nfvctr, coeff(1,ii), 1, workarr_coeff(1,i), 1)
+      end do
+      write(*,*) 'workarr_coeff',workarr_coeff
+      disp = int(three_long*size_of_integer_long+(ntmb_long+is_long*nfvctr_long)*size_of_double_long,kind=mpi_offset_kind)
+      call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr) 
+      call mpi_file_write(thefile, workarr_coeff, nfvctr*np, mpi_double_precision, mpi_status_ignore, ierr)
+      call f_free(workarr_coeff)
+
+      call f_release_routine()
+    
+    end subroutine write_linear_coefficients_parallel
+
+
+    subroutine read_linear_coefficients(mode, iproc, nproc, comm, filename, nspin, nfvctr, ntmb, coeff, eval)
+      use yaml_output
+      implicit none
+      ! Calling arguments
+      character(len=*),intent(in) :: mode
+      character(len=*),intent(in) :: filename
+      integer,intent(in) :: iproc, nproc, comm
+      integer,intent(out) :: nspin, nfvctr, ntmb
+      real(kind=8),dimension(:,:),pointer,intent(inout) :: coeff
+      !integer,intent(out),optional :: nat, ntypes
+      !integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
+      !character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
+      !real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      real(kind=8),dimension(:),pointer,intent(inout),optional :: eval
+      ! Local variables
+      real(kind=8) :: dummy_double
+      character(len=20) :: dummy_char
+      integer :: iunit, itype, iat, i, j, dummy_int, ntypes_, nat_, index_dot
+      logical :: scaled, read_rxyz, read_eval, file_present
+      character(len=1024) :: filename_extension
+
+      call f_routine(id='read_linear_coefficients')
+
+      !!if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
+      !!    present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
+      !!    read_rxyz = .true.
+      !!else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
+      !!    present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
+      !!    call f_err_throw("not all optional arguments were given", &
+      !!         err_name='BIGDFT_RUNTIME_ERROR')
+      !!else
+          read_rxyz = .false.
+      !!end if
+
+      if (present(eval)) then
+          read_eval = .true.
+      else
+          read_eval = .false.
+      end if
+
+      if (iproc==0) call yaml_comment('Reading from file '//trim(filename),hfill='~')
+      inquire(file=trim(filename),exist=file_present)
+      write(*,*) 'file_present',file_present
+      if (.not.file_present) then
+          call f_err_throw("File '"//trim(filename)//"' is not present", &
+               err_name='SPARSEMATRIX_IO_ERROR')
+      end if
+
+      index_dot = index(filename,'.',back=.true.)
+      filename_extension = filename(index_dot:)
+
+      if (trim(mode)=='parallel_mpi-native') then
+          if (trim(filename_extension)/='.mpi') then
+              call f_err_throw("Wrong file extension; '.mpi' is required, but found "//trim(filename_extension)&
+                   &//" ("//trim(filename)//")", &
+                   err_name='SPARSEMATRIX_IO_ERROR')
+          end if
+          if (read_eval) then
+              call read_linear_coefficients_parallel(iproc, nproc, comm, trim(filename), &
+                   nspin, ntmb, nfvctr, coeff, eval)
+          else
+              call read_linear_coefficients_parallel(iproc, nproc, comm, trim(filename), &
+                   nspin, ntmb, nfvctr, coeff)
+          end if
+      else if (trim(mode)=='serial_text') then
+          if (trim(filename_extension)/='.txt') then
+              call f_err_throw("Wrong file extension; '.txt' is required, but found "//trim(filename_extension)&
+                   &//" ("//trim(filename)//")", &
+                   err_name='SPARSEMATRIX_IO_ERROR')
+          end if
 
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
     
-          ! Write the Header
-          !write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, nspin, &
-          write(iunit,'(i10,2i6,a)') nat, ntypes, nspin, &
-              '   # number of atoms, number of atom types, nspin'
-          !do itype=1,at%astruct%ntypes
-          do itype=1,ntypes
-              !write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
-              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
-                  '   # nz, nelpsp, name'
-          end do
-          !do iat=1,at%astruct%nat
-          do iat=1,nat
-              !write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
-              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
-          end do
-          write(iunit,'(2i12,a)') nfvctr, ntmb, '   # nfvctr, ntmb'
-          do i=1,ntmb
-              write(iunit,'(es24.16,a,i0)') eval(i), '   # eval no. ', i
-          enddo
+          ! Read the Header
+          !!if (read_rxyz) then
+          !!    read(iunit,*) nat, ntypes, nspin
+          !!    nzatom = f_malloc_ptr(ntypes,id='nzatom')
+          !!    nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
+          !!    atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
+
+          !!    do itype=1,ntypes
+          !!        read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
+          !!    end do
+          !!    rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
+          !!    iatype = f_malloc_ptr(nat,id='iatype')
+          !!    do iat=1,nat
+          !!        read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
+          !!    end do
+          !!else
+          !!    read(iunit,*) nat_, ntypes_, nspin
+          !!    do itype=1,ntypes_
+          !!        read(iunit,*) dummy_int, dummy_int, dummy_char
+          !!    end do
+          !!    do iat=1,nat_
+          !!        read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
+          !!    end do
+          !!end if
+
+          read(iunit,*) nspin, ntmb, nfvctr
+
+          if (read_eval) then
+              eval = f_malloc_ptr(ntmb,id='eval')
+              do i=1,ntmb
+                  read(iunit,*) eval(i)
+              end do
+          else
+              do i=1,ntmb
+                  read(iunit,*) dummy_double
+              end do
+          end if
     
-          ! Now write the coefficients
+          ! Now read the coefficients
+          coeff = f_malloc_ptr((/nfvctr,ntmb/),id='coeff')
+
           do i=1,ntmb
+
+             do j = 1,nfvctr
+                 read(iunit,*) coeff(j,i)
+             end do
+
              ! First element always positive, for consistency when using for transfer integrals;
              ! unless 1st element below some threshold, in which case first significant element.
              scaled = .false.
@@ -628,131 +895,97 @@ module sparsematrix_io
                  call yaml_warning('Consistency between the written coefficients not guaranteed')
              end if
     
-             do j = 1,nfvctr
-                 write(iunit,'(es24.16,2i9,a)') coeff(j,i), j, i, '   # coeff, j, i'
-             end do
           end do  
-          if (verbosity >= 2 .and. iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
 
           call f_close(iunit)
 
-      end if
-
-      call f_release_routine()
-    
-    end subroutine write_linear_coefficients
-
-
-    subroutine read_linear_coefficients(filename, nspin, nfvctr, ntmb, coeff, &
-               nat, ntypes, nzatom, nelpsp, iatype, atomnames, rxyz, eval)
-      use yaml_output
-      implicit none
-      ! Calling arguments
-      character(len=*),intent(in) :: filename
-      integer,intent(out) :: nspin, nfvctr, ntmb
-      real(kind=8),dimension(:,:),pointer,intent(inout) :: coeff
-      integer,intent(out),optional :: nat, ntypes
-      integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
-      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
-      real(kind=8),dimension(:),pointer,intent(inout),optional :: eval
-      ! Local variables
-      real(kind=8) :: dummy_double
-      character(len=20) :: dummy_char
-      integer :: iunit, itype, iat, i, j, dummy_int, ntypes_, nat_
-      logical :: scaled, read_rxyz, read_eval
-
-      call f_routine(id='read_linear_coefficients')
-
-      if (present(nat) .and. present(ntypes) .and. present(nzatom) .and.  &
-          present(nelpsp) .and. present(atomnames) .and. present(iatype) .and. present(rxyz)) then
-          read_rxyz = .true.
-      else if (present(nat) .or. present(ntypes) .or. present(nzatom) .or.  &
-          present(nelpsp) .or. present(atomnames) .or. present(iatype) .or. present(rxyz)) then
-          call f_err_throw("not all optional arguments were given", &
-               err_name='BIGDFT_RUNTIME_ERROR')
       else
-          read_rxyz = .false.
+          call f_err_throw("wrong value for 'mode'")
       end if
-
-      if (present(eval)) then
-          read_eval = .true.
-      else
-          read_eval = .false.
-      end if
-
-      iunit = 99
-      call f_open_file(iunit, file=trim(filename), binary=.false.)
-    
-      ! Read the Header
-      if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin
-          nzatom = f_malloc_ptr(ntypes,id='nzatom')
-          nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
-
-          do itype=1,ntypes
-              read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
-          end do
-          rxyz = f_malloc_ptr((/3,nat/),id='rxyz')
-          iatype = f_malloc_ptr(nat,id='iatype')
-          do iat=1,nat
-              read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
-          end do
-      else
-          read(iunit,*) nat_, ntypes_, nspin
-          do itype=1,ntypes_
-              read(iunit,*) dummy_int, dummy_int, dummy_char
-          end do
-          do iat=1,nat_
-              read(iunit,*) dummy_int, dummy_double, dummy_double, dummy_double
-          end do
-      end if
-
-      read(iunit,*) nfvctr, ntmb
-
-      if (read_eval) then
-          eval = f_malloc_ptr(ntmb,id='eval')
-          do i=1,ntmb
-              read(iunit,*) eval(i)
-          end do
-      else
-          do i=1,ntmb
-              read(iunit,*) dummy_double
-          end do
-      end if
-    
-      ! Now read the coefficients
-      coeff = f_malloc_ptr((/nfvctr,ntmb/),id='coeff')
-
-      do i=1,ntmb
-
-         do j = 1,nfvctr
-             read(iunit,*) coeff(j,i)
-         end do
-
-         ! First element always positive, for consistency when using for transfer integrals;
-         ! unless 1st element below some threshold, in which case first significant element.
-         scaled = .false.
-         do j=1,nfvctr
-            if (abs(coeff(j,i))>1.0d-3) then
-               if (coeff(j,i)<0.0_mp) call dscal(ntmb,-1.0_mp,coeff(1,i),1)
-               scaled = .true.
-               exit
-            end if
-         end do
-         if (.not.scaled) then
-             call yaml_warning('Consistency between the written coefficients not guaranteed')
-         end if
-    
-      end do  
-
-      call f_close(iunit)
 
 
       call f_release_routine()
     
     end subroutine read_linear_coefficients
+
+
+    subroutine read_linear_coefficients_parallel(iproc, nproc, comm, filename, &
+               nspin, ntmb, nfvctr, coeff, eval)
+      use sparsematrix_init, only: distribute_on_tasks
+      use wrapper_linalg, only: vcopy
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(in) :: iproc, nproc, comm
+      integer,intent(out) :: nspin, ntmb, nfvctr
+      real(mp),dimension(:,:),pointer,intent(out) :: coeff
+      real(mp),dimension(:),pointer,intent(out),optional :: eval
+
+      ! Local variables
+      integer :: thefile, size_of_integer, size_of_double, i, ii, j, is, np, ierr
+      integer(kind=f_long) :: size_of_integer_long, size_of_double_long, disp, is_long
+      integer(kind=f_long) :: one_long, three_long, five_long, nfvctr_long, ntmb_long
+      logical :: scaled
+      integer,dimension(3) :: workarr_header
+      real(mp),dimension(:),allocatable :: workarr_eval
+      real(mp),dimension(:,:),allocatable :: workarr_coeff
+
+      call f_routine(id='write_linear_coefficients_parallel')
+
+      call mpi_file_open(comm, trim(filename), & 
+           mpi_mode_rdonly, & 
+           mpi_info_null, thefile, ierr) 
+      size_of_integer = mpitypesize(1)
+      size_of_double = mpitypesize(1.0_mp)
+      size_of_integer_long = int(size_of_integer,kind=f_long)
+      size_of_double_long = int(size_of_double,kind=f_long)
+      one_long = int(1,kind=f_long)
+      three_long = int(3,kind=f_long)
+      five_long = int(5,kind=f_long)
+
+      ! Read the header
+      disp = int(0,kind=mpi_offset_kind)
+      call mpi_file_set_view(thefile, disp, mpi_integer, mpi_integer, 'native', mpi_info_null, ierr) 
+      call mpi_file_read(thefile, workarr_header, 3, mpi_integer, mpi_status_ignore, ierr)
+      nspin = workarr_header(1)
+      ntmb = workarr_header(2)
+      nfvctr = workarr_header(3)
+
+      nfvctr_long = int(nfvctr,kind=f_long)
+      ntmb_long = int(ntmb,kind=f_long)
+
+      ! Read the eigenvalues
+      call distribute_on_tasks(ntmb, iproc, nproc, np, is)
+      is_long = int(is,kind=f_long)
+      if (present(eval)) then
+          workarr_eval = f_malloc(np,id='workarr_eval')
+          disp = int(three_long*size_of_integer_long+is_long*size_of_double_long,kind=mpi_offset_kind)
+          call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr) 
+          call mpi_file_read(thefile, workarr_eval, np, mpi_double_precision, mpi_status_ignore, ierr)
+          eval = f_malloc_ptr(ntmb,id='eval')
+          do i=1,np
+              ii = is + i
+              eval(ii) = workarr_eval(i) 
+          end do
+          call f_free(workarr_eval)
+      end if
+
+      workarr_coeff = f_malloc((/nfvctr,np/),id='workarr_coeff')
+      disp = int(three_long*size_of_integer_long+(ntmb_long+is_long*nfvctr_long)*size_of_double_long,kind=mpi_offset_kind)
+      call mpi_file_set_view(thefile, disp, mpi_double_precision, mpi_double_precision, 'native', mpi_info_null, ierr) 
+      call mpi_file_read(thefile, workarr_coeff, nfvctr*np, mpi_double_precision, mpi_status_ignore, ierr)
+      coeff = f_malloc_ptr((/nfvctr,ntmb/),id='coeff')
+      do i=1,np
+          ii = is + i
+          call vcopy(nfvctr, workarr_coeff(1,i), 1, coeff(1,ii), 1)
+      end do
+      call f_free(workarr_coeff)
+
+      call f_release_routine()
+    
+    end subroutine read_linear_coefficients_parallel
 
 
     !> Write a sparse matrix to disk, but in dense format
@@ -826,7 +1059,7 @@ module sparsematrix_io
           !!!        '    number of basis functions, number of atoms, number of spins'
           !!!end if
           !!!do iat=1,nat
-          !!!    if (.not. binary) then
+          !unit, itype, iat, i, jrall!!    if (.not. binary) then
           !!!        write(iunit,'(a,3es24.16,a,i4.4)') '#  ',rxyz(1:3,iat), '   # position of atom no. ',iat
           !!!    else
           !!!        write(iunit) '#  ',rxyz(1:3,iat)

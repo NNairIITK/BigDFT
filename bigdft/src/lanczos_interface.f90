@@ -1335,6 +1335,7 @@ contains
     !use module_base
     use module_types
     use gaussians
+    use compression
     implicit none
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
     integer, intent(in) :: iproc,nproc
@@ -1357,7 +1358,7 @@ contains
     real(gp), dimension(nterm_max) :: fac_arr
     real(wp), dimension(:), allocatable :: tpsi
 
-    if(iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
+    if(iproc == 0 .and. get_verbose_level() > 1) write(*,'(1x,a)',advance='no')'Writing wavefunctions in wavelet form '
     
     tpsi = f_malloc(wfd%nvctr_c+7*wfd%nvctr_f,id='tpsi')
 
@@ -1432,7 +1433,7 @@ contains
           end do
           iexpo=iexpo+ng
        end do
-       if (iproc == 0 .and. verbose > 1) then
+       if (iproc == 0 .and. get_verbose_level() > 1) then
           write(*,'(a)',advance='no') &
                &   repeat('.',(iat*40)/G%nat-((iat-1)*40)/G%nat)
        end if
@@ -1440,7 +1441,7 @@ contains
 
     if (iproc==0)    call gaudim_check(iexpo,icoeff,ishell,G%nexpo,G%ncoeff,G%nshltot)
 
-    !if (iproc ==0  .and. verbose > 1) write(*,'(1x,a)')'done.'
+    !if (iproc ==0  .and. get_verbose_level() > 1) write(*,'(1x,a)')'done.'
     !renormalize the orbitals
     !calculate the deviation from 1 of the orbital norm
     normdev=0.0_dp
@@ -1680,10 +1681,6 @@ contains
     endif
 
     call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,potential,pot)
-
-!!$   call full_local_potential(iproc,nproc,ndimpot,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,&
-!!$        in%nspin,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*in%nspin,0,&
-!!$        orbs,Lzd,0,ngatherarr,potential,pot)
 
     ha%in_iat_absorber=in_iat_absorber
     ha%Labsorber  = in%L_absorber

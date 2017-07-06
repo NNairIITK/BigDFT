@@ -16,9 +16,9 @@ EXTRA_DIST= config/m4 futile_environment.sh.in futilevars.sh.in
 ACLOCAL_AMFLAGS = -I config/m4
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = futile.pc
+pkgconfig_DATA = futile.pc libdicts.pc
 
-SUBDIRS = flib c-bindings wrappers src
+SUBDIRS = dicts flib c-bindings wrappers src
 
 dist_bin_SCRIPTS = futilevars.sh futile_environment.sh unienv.sh
 

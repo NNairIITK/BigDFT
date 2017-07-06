@@ -140,7 +140,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !last index of e and hamovr are for mpi_alLzd%Glreduce. 
   !e (eigenvalues) is also used as 2 work arrays
   
-  msg=verbose > 2 .and. iproc ==0! no extended output
+  msg=get_verbose_level() > 2 .and. iproc ==0! no extended output
   !msg =(iproc==0)!extended output
 
   if(iproc==0)write(*,'(1x,a)')"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"

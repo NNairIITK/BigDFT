@@ -89,9 +89,7 @@ else
 getarg_files = get_command_argument_fake.f90
 endif
 libflib_a_SOURCES = utils.c utils.h utilsadd.c f_plugin.c malloc_repad.c \
-	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
-	callbacks.f90 f_malloc.f90 \
-	f_enums.f90 f_precisions.f90 \
+	f_malloc.f90 f_enums.f90 \
 	f_utils.f90 f_refcnts.f90 f_trees.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
 	razero.f90 getadd.f90 time.f90 f_bibliography.f90 \
@@ -107,7 +105,8 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	deallocate-multiple-inc.f90 deallocate-multiple-inc-ptr.f90 \
 	f_memcpy-inc.f90 f_memcpy-base-inc.f90 f_maxdiff-base-inc.f90 \
 	allocate-ptr-inc.f90 f_map-inc.f90 \
-	deallocate-simgrid-inc.f90 allocate-simgrid-inc.f90
+	deallocate-simgrid-inc.f90 allocate-simgrid-inc.f90 \
+	allocate-inc-base.f90 allocate-inc-end.f90
 
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
@@ -119,24 +118,15 @@ F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
-STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90 yaml_plus-inc.f90
-ERR_INCLUDES = get_err-inc.f90
-DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-inc.f90 \
-	set_arr-inc.f90 dict_cont-inc.f90 dict_cont_arr-inc.f90
 GETADD_INCLUDES = getadd-c-inc.f90
-NOOMP_INCLUDES = remove_omp-inc.f90 halt_omp-inc.f90
+NOOMP_INCLUDES = remove_omp-inc.f90
 
-EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(STRINGS_INCLUDES) \
-	$(DICT_INCLUDES) $(GETADD_INCLUDES) $(F_MALLOC_INCLUDES) $(NOOMP_INCLUDES)
+EXTRA_DIST = $(DYN_INCLUDES) $(YAML_INCLUDES) $(F_MALLOC_INCLUDES) $(NOOMP_INCLUDES) $(GETADD_INCLUDES)
 
 # Module files.
 if CAPITALIZE
-modules = YAML_STRINGS.@MODULE_EXT@ \
-	DICTIONARIES.@MODULE_EXT@ \
-	DICTIONARIES_BASE.@MODULE_EXT@ \
-	YAML_OUTPUT.@MODULE_EXT@ \
+modules = YAML_OUTPUT.@MODULE_EXT@ \
 	F_ENUMS.@MODULE_EXT@ \
-	F_PRECISIONS.@MODULE_EXT@ \
 	F_ENVIRONMENT.@MODULE_EXT@ \
 	YAML_PARSE.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
@@ -150,7 +140,6 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_REFCNTS.@MODULE_EXT@ \
 	F_TREES.@MODULE_EXT@ \
 	F_INPUT_FILE.@MODULE_EXT@ \
-	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
 	F_JMP.@MODULE_EXT@ \
 	TIME_PROFILING.@MODULE_EXT@ \
 	F_TERNARY.@MODULE_EXT@ \
@@ -160,11 +149,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_ARRAYS.@MODULE_EXT@ \
 	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
 else
-modules = yaml_strings.@MODULE_EXT@ \
-	dictionaries.@MODULE_EXT@ \
-	dictionaries_base.@MODULE_EXT@ \
-	f_enums.@MODULE_EXT@ \
-	f_precisions.@MODULE_EXT@ \
+modules = f_enums.@MODULE_EXT@ \
 	f_environment.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
 	yaml_parse.@MODULE_EXT@ \
@@ -182,7 +167,6 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_ternary.@MODULE_EXT@ \
 	module_f_objects.@MODULE_EXT@ \
 	f_python.@MODULE_EXT@ \
-	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
 	f_jmp.@MODULE_EXT@ \
 	smpi_shared.@MODULE_EXT@ \
@@ -192,10 +176,12 @@ endif
 
 CLEANFILES = libfmalloc-1.so* *.@MODULE_EXT@ memstatus.yaml
 
+DISTCLEANFILES = f_utils.inc
+
 SUFFIXES = .cu
 
-AM_FCFLAGS = -I. -I$(srcdir) @MPI_INCLUDE@
-AM_CFLAGS = @LIB_YAML_CFLAGS@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/dicts @MPI_INCLUDE@
+AM_CFLAGS = -I$(top_srcdir)/dicts @LIB_YAML_CFLAGS@
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ 
 
 NVCC = @NVCC@
@@ -206,37 +192,28 @@ NVCC_FLAGS = @NVCC_FLAGS@
 
 # Dependencies
 $(modules): $(libflib_a_OBJECTS)
-yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
-dictionaries_base.o: yaml_strings.o
-dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
-yaml_output.o : dictionaries.o f_utils.o f_enums.o f_bibliography.o $(YAML_INCLUDES)
-yaml_parse.o : dictionaries.o yaml_output.o
-f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o f_malloc.o
 
-f_enums.o: yaml_strings.o
-f_bibliography.o: dictionaries.o yaml_strings.o
-f_objects.o: f_precisions.o dictionaries.o yaml_output.o
-f_ternary.o: f_precisions.o yaml_strings.o
-callbacks.o: $(NOOMP_INCLUDES)
+yaml_output.o : f_utils.o f_enums.o f_bibliography.o $(YAML_INCLUDES)
+yaml_parse.o : yaml_output.o
+f_utils.o: razero.o f_malloc.o
+
+f_objects.o: yaml_output.o
 $(NVTX_DEP): $(NOOMP_INCLUDES)
 $(SIMGRID_DEP): $(NOOMP_INCLUDES)
-#mem_profiling.o : error_handling.o
-#error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
-f_malloc.o: dictionaries.o $(SIMGRID_DEP) $(F_MALLOC_INCLUDES)
-f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
-dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES) f_environment.o \
+f_malloc.o: $(SIMGRID_DEP) $(F_MALLOC_INCLUDES)
+f_input_file.o: yaml_output.o dynamic_memory.o f_utils.o
+dynamic_memory.o: getadd.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES) f_environment.o \
 	$(SIMGRID_SHARED_DEP)
-mem_profiling.o: yaml_output.o yaml_parse.o yaml_strings.o
-f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) $(SIMGRID_DEP) time.o f_utils.o f_input_file.o
-f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
-f_trees.o: f_refcnts.o dictionaries.o yaml_output.o yaml_parse.o
-getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
-razero.o: randomData.o f_precisions.o
-randomData.o: f_precisions.o
-f_arrays.o: f_precisions.o dynamic_memory.o f_refcnts.o
-$(flush_object): yaml_output.o dictionaries.o
-fpython.o: dictionaries.o yaml_output.o f_objects.o
+mem_profiling.o: yaml_output.o yaml_parse.o
+f_lib_highlev.o: yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) $(SIMGRID_DEP) time.o f_utils.o f_input_file.o
+f_refcnts.o: yaml_output.o
+f_trees.o: f_refcnts.o yaml_output.o yaml_parse.o
+getadd.o: $(GETADD_INCLUDES) f_malloc.o
+razero.o: randomData.o
+f_arrays.o: dynamic_memory.o f_refcnts.o
+$(flush_object): yaml_output.o
+fpython.o: yaml_output.o f_objects.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP) f_jmp.o 
 
-f_jmp.o: f_precisions.o dynamic_memory.o
+f_jmp.o: dynamic_memory.o

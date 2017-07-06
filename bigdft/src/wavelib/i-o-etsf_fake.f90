@@ -14,6 +14,7 @@ subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxy
      wfd,psi)
   use module_defs, only: wp,gp,dp
   use module_types
+  use compression
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz
@@ -38,6 +39,7 @@ subroutine read_one_wave_etsf(iproc,filename,iorbp,isorb,nspinor,n1,n2,n3,&
      & hx,hy,hz,at,rxyz_old,rxyz,wfd,psi,eval)
   use PSbase
   use module_types
+  use compression
   implicit none
   integer, intent(in) :: iorbp,iproc,n1,n2,n3,nspinor,isorb
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -63,6 +65,7 @@ END SUBROUTINE read_one_wave_etsf
 subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,nat,rxyz,wfd,psi)
   use PSbase
   use module_types
+  use compression
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,nat
   real(gp), intent(in) :: hx,hy,hz
@@ -82,6 +85,7 @@ END SUBROUTINE write_waves_etsf
 subroutine read_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi, orblist)
   use PSbase
   use module_types
+  use compression
   implicit none
   integer, intent(in) :: iorbp, ncid
   type(wavefunctions_descriptors), intent(in) :: wfd
@@ -124,6 +128,7 @@ END SUBROUTINE read_psi_full_etsf
 subroutine write_psi_compress_etsf(ncid, iorbp, orbs, nvctr, wfd, psi)
   use PSbase
   use module_types
+  use compression
   implicit none
   integer, intent(in) :: iorbp, ncid
   type(wavefunctions_descriptors), intent(in) :: wfd

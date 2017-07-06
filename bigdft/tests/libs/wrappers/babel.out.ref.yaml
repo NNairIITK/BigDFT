@@ -1,0 +1,36 @@
+  #---------------------------------------------------- Welcome to the F90 openbabel wrapper
+ Reading positions:
+   TiO2.cif:
+     cell: [4.5922, 4.5922, 2.9574]
+     positions:
+     - Ti: [0.0, 0.0, 0.0]
+     - O: [1.400437312, 1.400437312, 0.0]
+     - Ti: [2.2961, 2.2961, 1.4787]
+     - O: [3.191762688, 3.191762688, 0.0]
+     - O: [0.8956626880000003, 3.696537312, 1.4787]
+     - O: [3.696537312, 0.895662688, 1.4787]
+ Positions dumped into file            : outfile.xyz
+  #WARNING: No units specified in the xyz input file. Atomic Units are assumed implicitly. 
+  #If convergence problems arise check this.
+ outfile.xyz:
+   positions:
+   - Ti: [0.0, 0.0, 0.0]
+   - O: [1.400439977645874, 1.400439977645874, 0.0]
+   - Ti: [2.296099901199341, 2.296099901199341, 1.478700041770935]
+   - O: [3.191760063171387, 3.191760063171387, 0.0]
+   - O: [0.8956599831581116, 3.696540117263794, 1.478700041770935]
+   - O: [3.696540117263794, 0.8956599831581116, 1.478700041770935]
+   properties:
+     format                            : xyz
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  7
+   Tot. No. of Deallocations           :  7
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.000
+     for the array                     : atomnames
+     in the routine                    : Main_program
+     Memory Peak of process            : 20.664 MB
+ Walltime since initialization         :  00:00:00.713343520
+ Max No. of dictionaries used          :  229 #( 170 still in use)
+ Number of dictionary folders allocated:  1

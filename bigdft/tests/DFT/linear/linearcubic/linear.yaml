@@ -10,9 +10,10 @@
    inputpsiid: linear
    disablesym: Yes
  perf:
-   write_orbitals: 1
    wf_extent_analysis: Yes
    correction_co_contra: no
+ output:
+   orbitals: text
  lin_general:
    hybrid: Yes
    nit: 3

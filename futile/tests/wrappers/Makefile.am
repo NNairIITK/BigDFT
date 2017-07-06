@@ -4,9 +4,8 @@ EXTRA_DIST = \
 	numerics_check.ref.yaml \
 	example.f90 \
 	mpi_check.f90 \
-	mpi_layer.f90 \
-	op2p_check.f90 \
-	linalg_check.f90
+	mpi_layer.f90
+
 
 check_PROGRAMS = op2p_check linalg_check numerics_check
 
@@ -34,7 +33,6 @@ op2p_check_LDADD = @LIB_FUTILE_LIBS@
 
 numerics_check_SOURCES = numerics_check.f90
 numerics_check_LDADD = @LIB_FUTILE_LIBS@
-
 
 linalg_check_SOURCES = linalg_check.f90
 linalg_check_LDADD = @LIB_FUTILE_LIBS@

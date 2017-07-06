@@ -13,7 +13,6 @@
    idsx                                : 6 #      wfn. diis history
    dispersion                          : 0 #      dispersion correction potential (values 1,2,3,4,5), 0=none
    inputpsiid                          : 0
-   output_wf                           : 0
    output_denspot                      : 0
    rbuf                                : 0. #     length of the tail (AU)
    ncongt                              : 30 #     # tail CG iterations

@@ -1,0 +1,109 @@
+---
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CHESS EIGENVALUES TEST DRIVER
+ Timestamp of the run                  : 2017-02-03 15:15:12.153
+ Parallel environment:
+   MPI tasks                           :  2
+   OpenMP threads                      :  4
+ Input parameters:
+   Sparsity format                     : bigdft
+   Matrix format                       : serial_text
+   Metadata file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/sparsematrix_metadata-evals.dat
+   Overlap matrix file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/overlap_sparse-evals.txt
+   Hamiltonian matrix file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/hamiltonian_sparse-evals.txt
+   Density kernel matrix file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_sparse-evals.txt
+   Density kernel matrix multiplication file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_sparse_matmul-eva
+     ls.txt
+   Kernel method                       : FOE
+   Blocksize for ScaLAPACK             : -1
+   Check the Hamiltonian spectrum      :  No
+   Lower bound for decay length        :  5.0000000000000001E-003
+   Upper bound for decay length        :  5.0000000000000003E-002
+   Iterations with varying temperatures:  4
+   Guess for Fermi energy              :  0.0
+   Maximal polynomial degree           :  5000
+   PEXSI number of poles               :  40
+   PEXSI mu min                        : -1.0
+   PEXSI mu max                        :  1.0
+   PEXSI mu                            :  0.0
+   PEXSI Delta E                       :  10.0
+   PEXSI temperature                   :  1.0E-003
+   PEXSI charge tolerance              :  1.0E-003
+   PEXSI number of procs for symbolic factorization:  16
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
+   Minimal eigenvalue to be calculated :  151
+   Maximal eigenvalue to be calculated :  156
+   Decay length of the error function used to find the eigenvalue:  1.0E-002
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/overlap_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/overlap_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/hamiltonian_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/hamiltonian_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_sparse_matmul-evals
+  #.txt
+ Calculating eigenvalues using FOE:
+   summary: {npl:  120, bounds:  [  0.500,  1.800 ], exp accur:  [  3.55E-14 ]}
+   decay length of error function      :  1.00E-02
+   degree of polynomial                :  610
+   summary: {nit:  12, eF: -1.557617E-01, Tr(K):  3.0100000E+02, D Tr(K):  4.27E-10}
+ #        #(15:15:24.797) 16% / [===>                     ] ( 1/6,  1.7 it/s), ETA  2.9s
+   summary: {nit:  9, eF: -1.477347E-01, Tr(K):  3.0300000E+02, D Tr(K):  4.32E-12}
+ #        #(15:15:25.234) 33% - [=======>                 ] ( 2/6,  2.0 it/s), ETA  2.0s
+   summary: {nit:  8, eF: -1.392020E-01, Tr(K):  3.0500000E+02, D Tr(K):  6.58E-09}
+ #        #(15:15:25.625) 50% \ [===========>             ] ( 3/6,  2.1 it/s), ETA  1.4s
+   summary: {nit:  9, eF: -1.036840E-01, Tr(K):  3.0700000E+02, D Tr(K): -1.86E-07}
+ #        #(15:15:26.065) 66% | [===============>         ] ( 4/6,  2.2 it/s), ETA  0.9s
+   summary: {nit:  8, eF: -9.447174E-02, Tr(K):  3.0900000E+02, D Tr(K): -1.03E-08}
+ #        #(15:15:26.458) 83% / [===================>     ] ( 5/6,  2.2 it/s), ETA  0.4s
+   summary: {nit:  8, eF: -8.191636E-02, Tr(K):  3.1100000E+02, D Tr(K): -6.19E-09}
+ #        #(15:15:26.861)100% - [========================>] ( 6/6,  2.3 it/s), Tot  2.6s
+   values:
+   -  {ID:  000151, eval: -1.55762E-01}
+   -  {ID:  000152, eval: -1.47735E-01}
+   -  {ID:  000153, eval: -1.39202E-01}
+   -  {ID:  000154, eval: -1.03684E-01}
+   -  {ID:  000155, eval: -9.44717E-02}
+   -  {ID:  000156, eval: -8.19164E-02}
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/overlap_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/overlap_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/hamiltonian_sparse-evals.txt
+  #Reading from file 
+  #/home/stephan/Documents/BigDFT/stablebranch/chess/tests/hamiltonian_sparse-evals.txt
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Diagonalizing the matrix
+ mode                                  : sequential
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Matrix successfully diagonalized
+ Comparing the eigenvalues:
+ -  {ID:  151, CheSS: -1.5576170E-01, LAPACK: -1.5162337E-01, difference: -4.13832084E-03}
+ -  {ID:  152, CheSS: -1.4773472E-01, LAPACK: -1.5002959E-01, difference:  2.29486504E-03}
+ -  {ID:  153, CheSS: -1.3920201E-01, LAPACK: -1.4094052E-01, difference:  1.73851102E-03}
+ -  {ID:  154, CheSS: -1.0368400E-01, LAPACK: -9.9399570E-02, difference: -4.28443100E-03}
+ -  {ID:  155, CheSS: -9.4471738E-02, LAPACK: -9.8366011E-02, difference:  3.89427246E-03}
+ -  {ID:  156, CheSS: -8.1916356E-02, LAPACK: -8.2156888E-02, difference:  2.40532102E-04}
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  1456
+   Tot. No. of Deallocations           :  1456
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  310.561
+     for the array                     : vectors_new
+     in the routine                    : chebyshev_clean
+     Memory Peak of process            : 337.292 MB
+ Walltime since initialization         :  00:00:15.366953983
+ Max No. of dictionaries used          :  1571 #( 301 still in use)
+ Number of dictionary folders allocated:  1

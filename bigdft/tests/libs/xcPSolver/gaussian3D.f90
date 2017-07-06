@@ -97,7 +97,7 @@ program MP_gaussian
   call yaml_map('Overlap matrix with GaIn library',S2ab,fmt='(1pg12.3)')
   call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
 
-  call f_diff(G%ncoeff**2,Sab,S2ab,diff)
+  call f_diff(int(G%ncoeff**2,f_long),Sab,S2ab,diff)
   call yaml_map('Maxdiff of both objects',diff)
 
   call yaml_mapping_close()

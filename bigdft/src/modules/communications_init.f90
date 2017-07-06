@@ -299,7 +299,7 @@ module communications_init
       use wrapper_linalg
       use module_base, only: bigdft_mpi
       use yaml_output, only: yaml_map
-      use locregs, only: get_extent_of_overlap
+      use bounds, only: get_extent_of_overlap
       implicit none
       
       ! Calling arguments
@@ -1856,7 +1856,7 @@ module communications_init
 
     subroutine get_index_in_global2(lr, ii3min, ii3max, jj3min, index_in_global_c, index_in_global_f)
     use module_base
-    use module_types
+    use locregs
     implicit none
     
     ! Calling arguments
@@ -3028,7 +3028,7 @@ module communications_init
  
  
       use module_types
-      use locregs, only: check_whether_bounds_overlap
+      use bounds, only: check_whether_bounds_overlap
       implicit none
     
       ! Calling arguments
@@ -3142,7 +3142,7 @@ module communications_init
                lzd, orbs, nscatterarr, istartend, nptsp)
       use module_base
       use module_types
-      use locregs, only: check_whether_bounds_overlap
+      use bounds, only: check_whether_bounds_overlap
       implicit none
     
       ! Calling arguments
@@ -3297,7 +3297,7 @@ module communications_init
       use wrapper_mpi
       use module_base, only: bigdft_mpi
       use module_types
-      use locregs, only: check_whether_bounds_overlap
+      use bounds, only: check_whether_bounds_overlap
       use yaml_output
       implicit none
     
@@ -3849,7 +3849,7 @@ module communications_init
                ncomms_repartitionrho, commarr_repartitionrho)
       use module_base
       use module_types
-      use locregs, only: get_extent_of_overlap
+      use bounds, only: get_extent_of_overlap
       implicit none
     
       ! Calling arguments
@@ -4081,7 +4081,7 @@ module communications_init
       use module_base
       use module_types
       use communications_base, only: p2pComms_null, bgq
-      use locregs, only: get_extent_of_overlap, check_whether_bounds_overlap
+      use bounds, only: get_extent_of_overlap, check_whether_bounds_overlap
       implicit none
       
       ! Calling arguments
@@ -4624,6 +4624,7 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
+      use locregs
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr
@@ -4823,7 +4824,7 @@ module communications_init
     
       !print the distribution scheme used for this set of orbital
       !in the case of multiple k-points
-      if (iproc == 0 .and. verbose > 1 .and. orbs%nkpts > 1) then
+      if (iproc == 0 .and. get_verbose_level() > 1 .and. orbs%nkpts > 1) then
          call print_distribution_schemes(nproc,orbs%nkpts,norb_par(0,1),nvctr_par(0,1))
       end if
     

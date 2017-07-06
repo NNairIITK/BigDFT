@@ -21,6 +21,7 @@ module rhopotential
   public :: clean_rho
   public :: corrections_for_negative_charge
   public :: extract_potential
+  public :: exchange_and_correlation,set_cfd_data
 
   contains
 
@@ -114,7 +115,7 @@ module rhopotential
     !> Build the potential in the whole box
     !! Control also the generation of an orbital
     subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,pot,comgp)
-      !ndimpot,ndimgrid,nspin,&
+      !ndimpot,mesh%ndim,nspin,&
       !   ndimrhopot,i3rho_add,orbs,&
       !   Lzd,iflag,ngatherarr,potential,pot,comgp)
        use module_base
@@ -166,14 +167,14 @@ module rhopotential
           !determine the dimension of the potential array
           if (odp) then
              if (xc_exctXfac(xc) /= 0.0_gp) then
-                npot=dpbox%ndimgrid*orbs%nspin+&
-                     &   max(max(dpbox%ndimgrid*orbs%norbp,dpbox%ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
+                npot=dpbox%mesh%ndim*orbs%nspin+&
+                     &   max(max(dpbox%mesh%ndim*orbs%norbp,dpbox%ngatherarr(0,1)*orbs%norb),1) !part which refers to exact exchange
              else if (dpbox%i3rho_add /= 0 .and. orbs%norbp > 0) then
-                npot=dpbox%ndimgrid*orbs%nspin+&
-                     &   dpbox%ndimgrid*max(orbs%norbp,orbs%nspin) !part which refers to SIC correction
+                npot=dpbox%mesh%ndim*orbs%nspin+&
+                     &   dpbox%mesh%ndim*max(orbs%norbp,orbs%nspin) !part which refers to SIC correction
              end if
           else
-             npot=dpbox%ndimgrid*orbs%nspin
+             npot=dpbox%mesh%ndim*orbs%nspin
           end if
     !      write(*,*) 'dpbox%ndimgrid, orbs%norbp, npot, odp', dpbox%ndimgrid, orbs%norbp, npot, odp
     !      write(*,*)'nspin',orbs%nspin,dpbox%i3rho_add,dpbox%ndimpot,dpbox%ndimrhopot,sum(potential)
@@ -191,7 +192,7 @@ module rhopotential
                 call MPI_ALLGATHERV(potential(ispotential),dpbox%ndimpot,&
                      &   mpidtypw,pot1(ispot),dpbox%ngatherarr(0,1),&
                      dpbox%ngatherarr(0,2),mpidtypw,dpbox%mpi_env%mpi_comm,ierr)
-                ispot=ispot+dpbox%ndimgrid
+                ispot=ispot+dpbox%mesh%ndim
                 ispotential=ispotential+max(1,dpbox%ndimpot)
              end do
              !continue to copy the density after the potential if required
@@ -201,17 +202,17 @@ module rhopotential
                    call MPI_ALLGATHERV(potential(ispotential),dpbox%ndimpot,&
                         &   mpidtypw,pot1(ispot),dpbox%ngatherarr(0,1),&
                         dpbox%ngatherarr(0,2),mpidtypw,dpbox%mpi_env%mpi_comm,ierr)
-                   ispot=ispot+dpbox%ndimgrid
+                   ispot=ispot+dpbox%mesh%ndim
                    ispotential=ispotential+max(1,dpbox%ndimpot)
                 end do
              end if
           else
              if (odp) then
                 pot1 = f_malloc_ptr(npot,id='pot1')
-                call vcopy(dpbox%ndimgrid*orbs%nspin,potential(1),1,pot1(1),1)
+                call vcopy(int(dpbox%mesh%ndim)*orbs%nspin,potential(1),1,pot1(1),1)
                 if (dpbox%i3rho_add >0 .and. orbs%norbp > 0) then
-                   ispot=dpbox%ndimgrid*orbs%nspin+1
-                   call vcopy(dpbox%ndimgrid*orbs%nspin,potential(ispot+dpbox%i3rho_add),1,pot1(ispot),1)
+                   ispot=dpbox%mesh%ndim*orbs%nspin+1
+                   call vcopy(int(dpbox%mesh%ndim)*orbs%nspin,potential(ispot+dpbox%i3rho_add),1,pot1(ispot),1)
                 end if
              else
                 pot1 => potential
@@ -398,13 +399,12 @@ module rhopotential
       use dynamic_memory
       use wrapper_mpi
       use wrapper_linalg
-      use module_types
       use module_defs
       use module_base, only: bigdft_mpi
       use yaml_output
-      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_base, only: sparse_matrix, matrices
       use bigdft_matrices, only: get_modulo_array
-      use module_types, only: linmat_auxiliary
+      use module_types, only: linmat_auxiliary, comms_linear
       implicit none
     
       ! Calling arguments
@@ -807,5 +807,361 @@ module rhopotential
            i1shift, i2shift, i3shift, comgp%ise)
 
      end subroutine extract_potential
+
+     subroutine exchange_and_correlation(xcObj,dpbox,&
+          rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
+       use module_dpbox
+       use module_xc
+       use module_base
+       implicit none
+       integer, intent(in) :: nspin !< Value of the spin-polarisation
+       type(xc_info), intent(in) :: xcObj
+       type(denspot_distribution), intent(in) :: dpbox !<descriptors of the potential and density distribution
+       real(gp), intent(out) :: exc,vxc
+       !>on input, the components of the electronic density (either collinear or spinorial).
+       !! on output, the first component is overwritten with the charge density that have to
+       !! be passed to the Poisson Solver for the Hartree potential.
+       real(dp), dimension(dpbox%ndimrho,nspin), intent(inout) :: rho 
+       real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+       real(wp), dimension(:,:,:,:), pointer :: rhohat !associated if useful
+       real(wp), dimension(dpbox%ndimpot,nspin), intent(out) :: potxc
+       real(dp), dimension(6), intent(out) :: xcstr
+       real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
+       !local variables
+       real(dp), dimension(:), allocatable :: m_norm
+       real(dp), dimension(:,:), allocatable :: rho_diag
+
+       if (nspin==4) then
+          rho_diag = f_malloc([dpbox%ndimrho, 2],id='rho_diag')
+          m_norm = f_malloc(dpbox%ndimrho,id='m_norm')
+          !           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
+          !rho to rho_diag
+          call get_local_magnetization(dpbox%ndimrho,rho,m_norm,rho_diag)
+
+          call exchange_and_correlation_collinear(xcObj,dpbox,&
+               rho_diag,exc,vxc,2,rhocore,rhohat,potxc,xcstr,dvxcdrho)
+          !comment out this term for the implementation of the (presumably incorrect) previous version
+          call get_spinorial_potential(dpbox%ndimpot,potxc,m_norm,rho)
+
+          call f_memcpy(src=rho,dest=potxc)
+          !copy the charge density in the first components of rho
+          call f_memcpy(n=dpbox%ndimpot,src=rho_diag(1,1),dest=rho(1,1))
+
+
+          call f_free(rho_diag)
+          call f_free(m_norm)
+       else
+          call exchange_and_correlation_collinear(xcObj,dpbox,&
+               rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
+       end if
+
+     end subroutine exchange_and_correlation
+
+
+     subroutine exchange_and_correlation_collinear(xcObj,dpbox,&
+          rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
+       use module_base
+       use box
+       use module_dpbox
+       use Poisson_Solver, except_dp => dp, except_gp => gp
+       !Idem
+       use module_interfaces, only: calc_gradient
+       use module_xc
+       use module_types, only: TCAT_EXCHANGECORR
+       use abi_interfaces_xc_lowlevel, only: abi_mkdenpos
+       use f_ternary
+       implicit none
+       integer, intent(in) :: nspin !< Value of the spin-polarisation
+       type(xc_info), intent(in) :: xcObj
+       type(denspot_distribution), intent(in) :: dpbox !<descriptors of the potential and density distribution
+       real(gp), intent(out) :: exc,vxc
+       !>on input, the components of the electronic density (either collinear or spinorial).
+       !! on output, the first component is overwritten with the charge density that have to
+       !! be passed to the Poisson Solver for the Hartree potential.
+       real(dp), dimension(dpbox%ndimrho,nspin), intent(inout) :: rho 
+       real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+       real(wp), dimension(:,:,:,:), pointer :: rhohat !associated if useful
+       real(wp), dimension(dpbox%ndimpot,nspin), intent(out) :: potxc
+       real(dp), dimension(6), intent(out) :: xcstr
+       real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
+       !local variables
+       integer :: ierr,i,j,i3s_fake,i3xcsh_fake
+       integer :: i1,i2,i3,iwarn,i3start,jend,jproc
+       integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
+       integer :: ndvxc,order
+       real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
+       real(dp), dimension(6) :: wbstr, rhocstr
+       real(dp), dimension(:,:,:,:,:), allocatable :: gradient
+       real(dp), dimension(:,:,:,:), allocatable :: vxci
+       real(gp), dimension(:), allocatable :: energies_mpi
+       real(dp), dimension(:,:,:,:), pointer :: dvxci
+
+       call f_routine(id='exchange_and_correlation')
+       call f_timing(TCAT_EXCHANGECORR,'ON')
+
+       call f_zero(xcstr)
+       call f_zero(wbstr)
+       call f_zero(rhocstr)
+
+       !quick return if no Semilocal XC potential is required (Hartree or Hartree-Fock)
+       if (any(xcObj%ixc == [XC_HARTREE,XC_HARTREE_FOCK,XC_NO_HARTREE])) then
+          call f_zero(potxc)
+          !here construct the charge density from any spin value
+          if (nspin == 2) call axpy(dpbox%ndimrho,1.d0,rho(1,2),1,rho(1,1),1)
+          exc=0.0_gp
+          vxc=0.0_gp
+          call f_timing(TCAT_EXCHANGECORR,'OF')
+          call f_release_routine()
+          return
+       end if
+
+       !here we can transform the charge density into majority and minority components
+       !we may therefore end up with rho_diag
+
+       if (dpbox%n3p==0) then
+          nwbl=0
+          nwbr=0
+          nxcl=1
+          nxcr=1
+          nxc=0
+       else
+          !here istart and iend are provided as input variables
+          call xc_dimensions(cell_geocode(dpbox%mesh),xc_isgga(xcObj),xcObj%ixc/=13,&
+               dpbox%i3s+dpbox%i3xcsh-1,dpbox%i3s+dpbox%i3xcsh-1+dpbox%n3p,&
+               dpbox%mesh%ndims(3),nxc,nxcl,nxcr,nwbl,nwbr,i3s_fake,i3xcsh_fake)
+       end if
+       nwb=nxcl+nxc+nxcr-2
+       nxt=nwbr+nwb+nwbl
+
+!!$ ! !if rhocore is associated we should add it on the charge density
+!!$ ! if (associated(rhocore)) then
+!!$ !    if (nspin == 1) then
+!!$ !       !sum the complete core density for non-spin polarised calculations
+!!$ !       call axpy(m1*m3*nxt,1.0_wp,rhocore(1,1,1,1),1,rho(1),1)
+!!$ !    else if (nspin==2) then
+!!$ !       !for spin-polarised calculation consider half per spin index
+!!$ !       call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1),1)
+!!$ !       call axpy(m1*m3*nxt,0.5_wp,rhocore(1,1,1,1),1,rho(1+m1*m3*nxt),1)
+!!$ !    end if
+!!$ ! end if
+
+
+       !if rhohat is present, substract it from charge density
+       if (associated(rhohat) .and. dpbox%ndimpot > 0) then
+          call axpy(dpbox%ndimpot,-1._wp,rhohat(1,1,1,1),1,&
+               rho(1+dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%i3xcsh,1),1)
+          if (nspin==2) call axpy(dpbox%ndimpot,-1._wp,rhohat(1,1,1,2),1,&
+               rho(1+dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%i3xcsh,2),1)
+       end if
+
+       !rescale the density to apply that to ABINIT routines
+       if (nspin==1) call vscal(dpbox%ndimrho,0.5_dp,rho(1,1),1)
+
+       !allocate array for XC potential enlarged for the WB procedure
+       vxci = f_malloc0([ dpbox%mesh%ndims(1), dpbox%mesh%ndims(2), max(1, nwb), nspin],id='vxci')
+
+       !allocate the array of the second derivative of the XC energy if it is needed
+       !Allocations of the exchange-correlation terms, depending on the ixc value
+       if (present(dvxcdrho)) then
+          !if (nspin==1) then 
+          order=.if. (nspin==1) .then. -2 .else. 2
+          !else
+          !   order=2
+          !end if
+          ndvxc = size(dvxcdrho, dim=4)
+          dvxci => dvxcdrho
+       else
+          order=1
+          ndvxc=0
+          dvxci = f_malloc_ptr([dpbox%mesh%ndims(1), dpbox%mesh%ndims(2), max(1, nwb), ndvxc],id='dvxci')
+       end if
+
+       !calculate gradient
+       if (xc_isgga(xcObj) .and. nxc > 0) then
+          !computation of the gradient
+          gradient = &
+               f_malloc([1.to.dpbox%mesh%ndims(1), 1.to.dpbox%mesh%ndims(2), 1.to.nwb, 1.to.2*nspin-1, 0.to.3],id='gradient')
+
+          !!the calculation of the gradient will depend on the geometry code
+          !this operation will also modify the density arrangment for a GGA calculation
+          !in parallel and spin-polarised, since ABINIT routines need to calculate
+          !the XC terms for spin up and then spin down
+          !part which have to be modified for non-orthorhombic cells
+          call calc_gradient(cell_geocode(dpbox%mesh),dpbox%mesh%ndims(1), dpbox%mesh%ndims(2),&
+               nxt,nwb,nwbl,nwbr,rho(1,1),nspin,&
+               dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),gradient,rhocore)
+       else
+          gradient = f_malloc((/ 1, 1, 1, 1, 1 /),id='gradient')
+          !add rhocore to the density
+          if (associated(rhocore) .and. dpbox%ndimrho > 0) then
+             call axpy(dpbox%ndimrho,0.5_wp,rhocore(1,1,1,1),1,rho(1,1),1)
+             if (nspin==2) call axpy(dpbox%ndimrho,0.5_wp,rhocore(1,1,1,1),1,&
+                  rho(1,2),1)
+          end if
+       end if
+
+       if (dpbox%n3p>0) then 
+          call xc_energy_new(cell_geocode(dpbox%mesh),dpbox%mesh%ndims(1), dpbox%mesh%ndims(2),&
+               nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
+               xcObj,dpbox%mesh%hgrids(1),dpbox%mesh%hgrids(2),dpbox%mesh%hgrids(3),&
+               rho(1,1),gradient,vxci,&
+               eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
+       else
+          !presumably the vxc should be initialised
+          eexcuLOC=0.0_dp
+          vexcuLOC=0.0_dp
+       end if
+
+       !deallocate gradient here
+       call f_free(gradient)
+
+       !the value of the shift depends of the distributed i/o or not
+       !copy the relevant part of vxci on the output potxc
+       if (dpbox%ndimpot > 0) then
+          call vcopy(dpbox%ndimpot,vxci(1,1,nxcl,1),1,potxc(1,1),1)
+          if (nspin == 2) then
+             call vcopy(dpbox%ndimpot,vxci(1,1,nxcl,2),1,potxc(1,2),1)
+          end if
+       end if
+
+       !if rhohat is present, add it to charge density
+       if(associated(rhohat) .and. dpbox%ndimpot .gt.0) then
+          call axpy(dpbox%ndimpot,1._wp,rhohat(1,1,1,1),1,rho(1,1),1)
+          if (nspin==2) call axpy(dpbox%ndimpot,1._wp,rhohat(1,1,1,2),1,&
+               rho(1,2),1)
+          !This will add V_xc(n) nhat to V_xc(n) n, to get: V_xc(n) (n+nhat)
+          ! Only if usexcnhat /= 0, not the default case.
+          !call add_to_vexcu(rhohat)
+       end if
+
+       !if rhocore is associated we then remove it from the charge density
+       !and subtract its contribution from the evaluation of the XC potential integral vexcu
+       if (associated(rhocore) .and. dpbox%ndimpot .gt.0) then
+          !at this stage the density is not anymore spin-polarised
+          !sum the complete core density for non-spin polarised calculations
+          call axpy(dpbox%ndimpot,-1.0_wp,rhocore(1,1,dpbox%i3xcsh+1,1),1,rho(1,1),1)
+          call substract_from_vexcu(rhocore)
+          !print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
+       end if
+
+       !gathering the data to obtain the distribution array
+       !evaluating the total ehartree,eexcu,vexcu
+       if (bigdft_mpi%nproc > 1) then
+          energies_mpi = f_malloc(4,id='energies_mpi')
+
+          energies_mpi(1)=eexcuLOC
+          energies_mpi(2)=vexcuLOC
+          call mpiallred(energies_mpi(1), 2,MPI_SUM,comm=bigdft_mpi%mpi_comm,recvbuf=energies_mpi(3))
+          exc=energies_mpi(3)
+          vxc=energies_mpi(4)
+
+          call f_free(energies_mpi)  
+
+       else
+          exc=real(eexcuLOC,gp)
+          vxc=real(vexcuLOC,gp)
+       end if
+
+       !XC-stress term
+       if (cell_geocode(dpbox%mesh) == 'P') then
+          if (associated(rhocore)) then
+             call calc_rhocstr(rhocstr,nxc,nxt,dpbox%mesh%ndims(1), dpbox%mesh%ndims(2),&
+                  dpbox%i3xcsh,nspin,potxc,rhocore)
+             if (bigdft_mpi%nproc > 1) call mpiallred(rhocstr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+             rhocstr=rhocstr/real(dpbox%mesh%ndim,dp)
+          end if
+
+          xcstr(1:3)=(exc-vxc)/real(dpbox%mesh%ndim,dp)/dpbox%mesh%volume_element
+          if (bigdft_mpi%nproc > 1) call mpiallred(wbstr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+          wbstr=wbstr/real(dpbox%mesh%ndim,dp)
+          xcstr=xcstr+wbstr+rhocstr
+       end if
+
+       call f_free(vxci)
+
+       if (.not.present(dvxcdrho)) call f_free_ptr(dvxci)
+
+       call f_timing(TCAT_EXCHANGECORR,'OF')
+       call f_release_routine()
+
+     contains
+       subroutine substract_from_vexcu(rhoin)
+         implicit none
+         real(wp),dimension(:,:,:,:),intent(in)::rhoin
+
+!!$ vexcuRC=0.0_gp
+!!$ do i3=1,nxc
+!!$    do i2=1,m3
+!!$       do i1=1,m1
+!!$          !do i=1,nxc*m3*m1
+!!$          i=i1+(i2-1)*m1+(i3-1)*m1*m3
+!!$          vexcuRC=vexcuRC+rhoin(i1,i2,i3+dpbox%i3xcsh,1)*potxc(i,1)
+!!$       end do
+!!$    end do
+!!$ end do
+!!$ if (nspin==2) then
+!!$    do i3=1,nxc
+!!$       do i2=1,m3
+!!$          do i1=1,m1
+!!$             !do i=1,nxc*m3*m1
+!!$             !vexcuRC=vexcuRC+rhocore(i+m1*m3*dpbox%i3xcsh)*potxc(i+dpbox%ndimpot)
+!!$             i=i1+(i2-1)*m1+(i3-1)*m1*m3
+!!$             vexcuRC=vexcuRC+rhoin(i1,i2,i3+dpbox%i3xcsh,1)*potxc(i,2)
+!!$          end do
+!!$       end do
+!!$    end do
+!!$    !divide the results per two because of the spin multiplicity
+!!$    vexcuRC=0.5*vexcuRC
+!!$ end if
+         vexcuRC=dot(dpbox%ndimpot,rhoin(1,1,1+dpbox%i3xcsh,1),1,potxc(1,1),1)
+         if (nspin==2) vexcuRC=vexcuRC+dot(dpbox%ndimpot,rhoin(1,1,1+dpbox%i3xcsh,1),1,potxc(1,2),1)
+         vexcuRC=vexcuRC*dpbox%mesh%volume_element
+         !subtract this value from the vexcu
+         vexcuLOC=vexcuLOC-vexcuRC
+
+       end subroutine substract_from_vexcu
+
+     END SUBROUTINE exchange_and_correlation_collinear
+
+     subroutine set_cfd_data(cfd,mesh,astruct,rxyz)
+       use module_defs, only: gp
+       use module_cfd
+       use box
+       use module_atoms
+       use dynamic_memory
+       use yaml_output
+       implicit none
+       type(atomic_structure), intent(in) :: astruct
+       type(cell), intent(in) :: mesh
+       real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
+       type(cfd_data), intent(out) :: cfd
+       !local variables
+       integer :: jat
+       real(gp) :: r
+       type(atoms_iterator) :: atit
+       type(atomic_neighbours) :: nnit
+
+       !fill the positions
+       call cfd_allocate(cfd,astruct%nat)
+
+       call cfd_set_centers(cfd,rxyz)
+
+       !adjust the radii with the nn iterator
+       !iterate above atoms
+       atit=atoms_iter(astruct)
+       !iterate of nearest neighbors
+       call astruct_neighbours(astruct, rxyz, nnit)
+       loop_at: do while(atoms_iter_next(atit))
+          call astruct_neighbours_iter(nnit, atit%iat)
+          do while(astruct_neighbours_next(nnit, jat))
+             !set the radius as the distance bw the atom iat and its nearest
+             r=distance(mesh,rxyz(1,atit%iat),rxyz(1,jat))
+             call cfd_set_radius(cfd,atit%iat,0.5_gp*r)
+             cycle loop_at
+          end do
+       end do loop_at
+       call deallocate_atomic_neighbours(nnit)       
+     end subroutine set_cfd_data
+
 
 end module rhopotential

@@ -652,7 +652,6 @@ module ice
                              fermilevel_get_real, fermilevel_get_logical
       use chebyshev, only: chebyshev_clean, chebyshev_fast
       use foe_common, only: evnoise, get_chebyshev_expansion_coefficients, &
-                            get_polynomial_degree, &
                             get_bounds_and_polynomials, &
                             init_foe
       use module_func
@@ -836,14 +835,14 @@ module ice
 
 
 
-      if (iproc==0) then
-          call yaml_mapping_open('summary',flow=.true.)
-          call yaml_map('npl',npl)
-          call yaml_map('bounds', &
-               (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f7.3)')
-          call yaml_map('exp accur',max_error,fmt='(es8.2)')
-          call yaml_mapping_close()
-      end if
+      !!if (iproc==0) then
+      !!    call yaml_mapping_open('summary',flow=.true.)
+      !!    call yaml_map('npl',npl)
+      !!    call yaml_map('bounds', &
+      !!         (/foe_data_get_real(ice_obj,"evlow",1),foe_data_get_real(ice_obj,"evhigh",1)/),fmt='(f7.3)')
+      !!    call yaml_map('exp accur',max_error,fmt='(es8.2)')
+      !!    call yaml_mapping_close()
+      !!end if
 
       spin_loop: do ispin=1,ovrlp_smat%nspin
           isshift=(ispin-1)*ovrlp_smat%nvctr

@@ -35,7 +35,7 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden, alpha_hf)
 
   denspot%psoffset=0.0_gp
 
-  if (verbose >1) then
+  if (get_verbose_level() >1) then
      denspot%PSquiet='NO '
   else
      denspot%PSquiet='YES'
@@ -85,86 +85,6 @@ subroutine initialize_rho_descriptors(rhod)
   nullify(rhod%spkey,rhod%dpkey,rhod%cseg_b,rhod%fseg_b)
 
 end subroutine initialize_rho_descriptors
-
-
-!> Initialize dpbox from the local zone descriptors
-subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,&
-     !PS_groupsize,&
-     SICapproach,geocode,nspin)!
-  !,igpu)
-  use module_base
-  use module_dpbox, only: denspot_distribution,dpbox_null
-  use module_types
-  use module_xc
-  use box
-  use bounds, only: locreg_mesh_origin
-  implicit none
-  integer, intent(in) :: iproc,nproc,mpi_comm,nspin!,igpu,PS_groupsize
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  character(len=4), intent(in) :: SICapproach
-  type(local_zone_descriptors), intent(in) :: Lzd
-  type(xc_info), intent(in) :: xc
-  type(denspot_distribution), intent(out) :: dpbox
-  !local variables
-  integer :: npsolver_groupsize,i3sd,n3p,n3d,i3sp,igpu
-
-  dpbox=dpbox_null()
-
-  call dpbox_set_box(dpbox,Lzd)
-
-  !if the taskgroup size is not a divisor of nproc do not create taskgroups
-!!$  if (nproc > 1 .and. PS_groupsize > 0 .and. &
-!!$       PS_groupsize < nproc .and.&
-!!$       mod(nproc,PS_groupsize)==0) then
-!!$     npsolver_groupsize=PS_groupsize
-!!$  else
-     npsolver_groupsize=nproc
-!!$  end if
-  !here we should inherit the mpi_env of the kernel
-  call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
-  igpu=0
-  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,igpu,xc,&
-                              nspin,geocode,SICapproach,dpbox)
-
-  !set the iterators for the density and the potential
-i3sp=dpbox%nscatterarr(dpbox%mpi_env%iproc,3)+1
-i3sd=i3sp-dpbox%nscatterarr(dpbox%mpi_env%iproc,4)
-n3p=dpbox%nscatterarr(dpbox%mpi_env%iproc,2)
-n3d=dpbox%nscatterarr(dpbox%mpi_env%iproc,1)
-
-!!$  dpbox%bitd=box_iter(dpbox%mesh,&
-!!$       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sd,n3p=n3d)
-  dpbox%bitp=box_iter(dpbox%mesh,&
-       origin=locreg_mesh_origin(dpbox%mesh),i3s=i3sp,n3p=n3p)
-
-end subroutine dpbox_set
-
-
-!> Initialize dpbox (density pot distribution) i.e. the parameters defining the grid
-subroutine dpbox_set_box(dpbox,Lzd)
-  use module_base
-  use module_dpbox, only: denspot_distribution
-  use module_types
-  use box
-  implicit none
-  type(local_zone_descriptors), intent(in) :: Lzd
-  type(denspot_distribution), intent(inout) :: dpbox
-  !local variables
-  integer, dimension(3) :: ndims
-
-!!$  !The grid for the potential is twice finer
-!!$  dpbox%hgrids(1)=0.5_gp*Lzd%hgrids(1)
-!!$  dpbox%hgrids(2)=0.5_gp*Lzd%hgrids(2)
-!!$  dpbox%hgrids(3)=0.5_gp*Lzd%hgrids(3)
-!!$  !Same dimension
-  ndims(1)=Lzd%Glr%d%n1i
-  ndims(2)=Lzd%Glr%d%n2i
-  ndims(3)=Lzd%Glr%d%n3i
-!!$  dpbox%geocode=Lzd%Glr%geocode
-
-  dpbox%mesh=cell_new(Lzd%Glr%geocode,ndims,0.5_gp*Lzd%hgrids)
-
-end subroutine dpbox_set_box
 
 
 subroutine denspot_set_history(denspot, scf_enum, &
@@ -237,7 +157,6 @@ subroutine denspot_set_history(denspot, scf_enum, &
 !!$  end if
 end subroutine denspot_set_history
 
-
 subroutine denspot_free_history(denspot)
   use module_types
   use module_mixing
@@ -250,48 +169,6 @@ subroutine denspot_free_history(denspot)
       nullify(denspot%mix)
   end if
 end subroutine denspot_free_history
-
-
-!> Create descriptors for density and potentials (parallel distribution)
-subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,dpbox)
-  use module_base
-  use module_dpbox, only: denspot_distribution
-  use module_types
-  use module_xc
-  implicit none
-  integer, intent(in) :: nspin,iproc,nproc,igpu
-  type(xc_info), intent(in) :: xc
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  character(len=4), intent(in) :: SICapproach
-  type(denspot_distribution), intent(inout) :: dpbox
-
-  ! Create descriptors for density and potentials.
-
-  ! these arrays should be included in the comms descriptor
-  ! allocate values of the array for the data scattering in sumrho
-  ! its values are ignored in the datacode='G' case
-  dpbox%nscatterarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.4 /),id='dpbox%nscatterarr')
-  !allocate array for the communications of the potential
-  !also used for the density
-  dpbox%ngatherarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.3 /),id='dpbox%ngatherarr')
-
-  call dpbox_repartition(iproc,nproc,igpu,geocode,'D',xc,dpbox)
-
-  ! Allocate Charge density / Potential in real space
-  ! here the full_density treatment should be put
-  dpbox%nrhodim=nspin
-  dpbox%i3rho_add=0
-  if (trim(SICapproach)=='NK') then
-     dpbox%nrhodim=2*dpbox%nrhodim !to be eliminated with an orbital-dependent potential
-     dpbox%i3rho_add=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%i3xcsh+1
-  end if
-
-  !fill the full_local_potential dimension
-  dpbox%ndimpot=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3p
-  dpbox%ndimgrid=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%mesh%ndims(3)
-  dpbox%ndimrhopot=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%n3d*dpbox%nrhodim
-end subroutine denspot_communications
-
 
 subroutine denspot_set_rhov_status(denspot, status, istep, iproc, nproc)
   use module_base
@@ -323,10 +200,10 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
 
   new = 0
   nslice = max(denspot%dpbox%ndimpot, 1)
-  if (nslice < denspot%dpbox%ndimgrid) then
+  if (nslice < denspot%dpbox%mesh%ndim) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
-        rho_full = f_malloc_ptr(denspot%dpbox%ndimgrid*denspot%dpbox%nrhodim,id='rho_full')
+        rho_full = f_malloc_ptr(denspot%dpbox%mesh%ndim*denspot%dpbox%nrhodim,id='rho_full')
         new = 1
 
         ! Ask to gather density to other procs.
@@ -341,7 +218,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
      do irhodim = 1, denspot%dpbox%nrhodim, 1
         if (iproc == 0) then
            call MPI_GATHERV(denspot%rhov(nslice * (irhodim - 1) + irhoxcsh + 1),&
-                nslice,mpidtypd,rho_full(denspot%dpbox%ndimgrid * (irhodim - 1) + 1),&
+                nslice,mpidtypd,rho_full(denspot%dpbox%mesh%ndim * (irhodim - 1) + 1),&
                 denspot%dpbox%ngatherarr(0,1),denspot%dpbox%ngatherarr(0,2),&
                 mpidtypd,0,bigdft_mpi%mpi_comm,ierr)
         else
@@ -371,10 +248,10 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
   integer :: ierr
 
   new = 0
-  if (denspot%dpbox%ndimpot < denspot%dpbox%ndimgrid) then
+  if (denspot%dpbox%ndimpot < denspot%dpbox%mesh%ndim) then
      if (iproc == 0) then
         !allocate full density in pot_ion array
-        pot_full = f_malloc_ptr(denspot%dpbox%ndimgrid,id='pot_full')
+        pot_full = f_malloc_ptr(denspot%dpbox%mesh%ndim,id='pot_full')
         new = 1
 
         ! Ask to gather density to other procs.
@@ -504,6 +381,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
   use module_interfaces, only: calculate_rhocore
+  use locregs
   implicit none
   integer, intent(in) :: nspin
   type(locreg_descriptors), intent(in) :: Glr
@@ -553,58 +431,6 @@ END SUBROUTINE allocateRhoPot
 !!$subroutine createDensPotDescriptors(iproc,nproc,atoms,gdim,hxh,hyh,hzh,&
 !!$     rxyz,crmult,frmult,radii_cf,nspin,datacode,ixc,rho_commun,&
 !!$     n3d,n3p,n3pi,i3xcsh,i3s,nscatterarr,ngatherarr,rhodsc)
-
-
-!> Do the parallel distribution and the descriptors for the density and the potential
-subroutine dpbox_repartition(iproc,nproc,igpu,geocode,datacode,xc,dpbox)
-
-  use module_base
-  use module_dpbox, only: denspot_distribution
-  use module_types
-  use Poisson_Solver
-  use module_xc
-  implicit none
-  !Arguments
-  integer, intent(in) :: iproc,nproc,igpu
-  type(xc_info), intent(in) :: xc
-  character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
-  character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
-  type(denspot_distribution), intent(inout) :: dpbox
-  !Local variables
-  integer :: jproc,n3d,n3p,n3pi,i3xcsh,i3s
-
-  if (datacode == 'D') then
-     do jproc=0,nproc-1
-        call PS_dim4allocation(geocode,datacode,jproc,nproc,&
-             dpbox%mesh%ndims(1),dpbox%mesh%ndims(2),dpbox%mesh%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
-             igpu,n3d,n3p,n3pi,i3xcsh,i3s)
-        dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
-        dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
-        dpbox%nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
-        dpbox%nscatterarr(jproc,4)=i3xcsh         !GGA XC shift between density and potential
-     end do
-  end if
-
-  if (iproc < nproc) then
-     dpbox%n3d=dpbox%nscatterarr(iproc,1)
-     dpbox%n3p=dpbox%nscatterarr(iproc,2)
-     dpbox%i3xcsh=dpbox%nscatterarr(iproc,4)
-     dpbox%i3s=dpbox%nscatterarr(iproc,3)-dpbox%i3xcsh+1
-     dpbox%n3pi=dpbox%n3p
-  else
-     dpbox%n3d=0
-     dpbox%n3p=0
-     dpbox%i3xcsh=0
-     dpbox%i3s=1
-     dpbox%n3pi=dpbox%n3p
-  end if
-
-  dpbox%ngatherarr(:,1)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,2)
-  dpbox%ngatherarr(:,2)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,3)
-  !for the density
-  dpbox%ngatherarr(:,3)=dpbox%mesh%ndims(1)*dpbox%mesh%ndims(2)*dpbox%nscatterarr(:,1)
-
-end subroutine dpbox_repartition
 
 
 !!$  !calculate dimensions of the complete array to be allocated before the reduction procedure

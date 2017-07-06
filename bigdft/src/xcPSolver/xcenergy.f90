@@ -173,7 +173,6 @@ END SUBROUTINE calc_rhocore_iat
 subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, rcart, raux)
   use module_defs, only: dp, gp, pi_param
-  use module_base, only: bigdft_mpi
   use module_dpbox, only: denspot_distribution
   use module_atoms
   use dynamic_memory
@@ -374,8 +373,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   integer :: i1,i2,i3,istart,iend,iwarn,i3start,jend,jproc
   integer :: nxc,nwbl,nwbr,nxt,nwb,nxcl,nxcr,ispin,istden,istglo
   integer :: ndvxc,order
-  !real(dp),parameter:: tol14=0.00000000000001_dp
-  real(dp),parameter:: tol20=0.0000000000000000000001_dp
   real(dp) :: eexcuLOC,vexcuLOC,vexcuRC
   integer, dimension(:,:), allocatable :: gather_arr
   real(dp), dimension(:), allocatable :: rho_G
@@ -685,9 +682,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
-     !i_all=-product(shape(energies_mpi))*kind(energies_mpi)
-     !deallocate(energies_mpi,stat=i_stat)
-     !call memocc(i_stat,i_all,'energies_mpi',subname)
      call f_free(energies_mpi)  
 
      if (datacode == 'G') then
@@ -825,235 +819,6 @@ end subroutine add_to_vexcu
 
 
 END SUBROUTINE XC_potential
-
-
-!> Calculate the XC terms from the given density in a distributed way.
-!! it assign also the proper part of the density to the zf array 
-!! which will be used for the core of the FFT procedure.
-!! Following the values of ixc and of sumpion, the array pot_ion is either summed or assigned
-!! to the XC potential, or even ignored.
-!!
-!! @warning
-!!    The dimensions of pot_ion must be compatible with geocode, datacode and ixc.
-!!    Since the arguments of these routines are indicated with the *,
-!!    it is IMPERATIVE to refer to PSolver routine for the correct allocation sizes.
-subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
-     nxcl,nxcr,xc,hx,hy,hz,rho,gradient,vxci,exc,vxc,order,ndvxc,dvxci,nspden,wbstr)
-
-  use module_base
-  use module_xc
-
-  implicit none
-
-  !Arguments
-  !> Indicates the boundary conditions (BC) of the problem:
-  !!   'F' free BC, isolated systems.
-  !!       The program calculates the solution as if the given density is
-  !!       "alone" in R^3 space.
-  !!   'S' surface BC, isolated in y direction, periodic in xz plane                
-  !!       The given density is supposed to be periodic in the xz plane,
-  !!       so the dimensions in these direction mus be compatible with the FFT
-  !!       Beware of the fact that the isolated direction is y!
-  !!   'P' periodic BC.
-  !!       The density is supposed to be periodic in all the three directions,
-  !!       then all the dimensions must be compatible with the FFT.
-  !!       No need for setting up the kernel.
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: m1,m3     !< Global dimensions in the three directions.
-  integer, intent(in) :: nxc       !< Value of the effective distributed dimension in the third direction
-  integer, intent(in) :: nwb       !< Enlarged dimension for calculating the WB correction
-  integer, intent(in) :: nxt       !< Enlarged dimension for calculating the GGA case 
-                                   !! (further enlarged for compatibility with WB correction if it is the case)
-  integer, intent(in) :: nwbl,nwbr !< nwb=nxc+nxcl+nxcr-2, nwb+nwbl+nwbr=nxt.
-  integer, intent(in) :: nxcl,nxcr !< Shifts in the three directions to be compatible with the relation
-  !> eXchange-Correlation code. Indicates the XC functional to be used 
-  !!   for calculating XC energies and potential. 
-  !!   ixc=0 indicates that no XC terms are computed. 
-  !!   The XC functional codes follow the ABINIT convention or if negative the libXC one.
-  type(xc_info), intent(in) :: xc
-  integer, intent(in) :: order,ndvxc,nspden
-  real(gp), intent(in) :: hx,hy,hz                            !< Grid spacings. 
-  real(dp), dimension(*), intent(in) :: gradient              !< of size 1 if not needed
-  real(dp), dimension(m1,m3,nxt,nspden), intent(inout) :: rho !< Density in the distributed format, also in spin-polarised
-  real(dp), dimension(m1,m3,nwb,nspden), intent(out) :: vxci
-  real(dp), dimension(m1,m3,nwb,ndvxc), intent(out) :: dvxci
-  real(dp), intent(out) :: exc,vxc                            !< XC energy and integral of @f$\rho V_{xc}@f$ respectively
-  real(dp), dimension(6), intent(inout) :: wbstr
-
-  !Local variables----------------
-  character(len=*), parameter :: subname='xc_energy'
-  real(dp), dimension(:,:,:), allocatable :: exci
-  real(dp), dimension(:,:,:,:), allocatable :: dvxcdgr
-  !real(dp), dimension(:,:,:,:,:), allocatable :: gradient
-  real(dp) :: elocal,vlocal,rhov,sfactor
-  integer :: npts,offset,ispden
-  integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
-  logical :: use_gradient
-
-  call f_routine(id='xc_energy_new')
-
-  !check for the dimensions
-  if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
-     print *,'the XC dimensions are not correct'
-     print *,'nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr',nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
-     stop
-  end if
-
-  !starting point of the density array for the GGA cases in parallel
-  offset=nwbl+1
-  !divide by two the density to applicate it in the ABINIT xc routines
-  use_gradient = xc_isgga(xc)
-
-  if (use_gradient) then
-!!$     !computation of the gradient
-!!$     allocate(gradient(m1,m3,nwb,2*nspden-1,0:3+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,gradient,'gradient',subname)
-!!$
-!!$     !!the calculation of the gradient will depend on the geometry code
-!!$     !this operation will also modify the density arrangment for a GGA calculation
-!!$     !in parallel and spin-polarised, since ABINIT routines need to calculate
-!!$     !the XC terms for spin up and then spin down
-!!$     call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho,nspden,&
-!!$          real(hx,dp),real(hy,dp),real(hz,dp),gradient)
-
-     dvxcdgr = f_malloc((/ m1, m3, nwb, 3 /),id='dvxcdgr')
-  else
-!!$     allocate(gradient(1,1,1,1,1+ndebug),stat=i_stat)
-!!$     call memocc(i_stat,gradient,'gradient',subname)
-     dvxcdgr = f_malloc((/ 1, 1, 1, 1 /),id='dvxcdgr')
-  end if
-  
-  !Allocations
-  exci = f_malloc((/ m1, m3, nwb /),id='exci')
-
-  !this part can be commented out if you don't want to use ABINIT modules
-  !of course it must be substituted with an alternative XC calculation
-  npts=m1*m3*nwb
-
-  !do a separate calculation of the grid to allow for OMP parallelisation
-  ! Do the calculation.
-  if (abs(order) == 1) then
-     call xc_getvxc(xc, npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
-!!MM
-!     do i3=1,nxt
-!        write(*,*) nspden, rho(m1/2,m3/2,i3,nspden)
-!     end do
-!!MM
-  else if (abs(order) == 2) then
-     call xc_getvxc(xc, npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
-  end if
-  wbstr(:)=0._dp
-  if (use_gradient) then
-     ! Do not calculate the White-Bird term in the Leeuwen Baerends XC case
-     if (xc%ixc /= 13 .and. xc%ixc /= -160) then
-        call vxcpostprocessing(geocode,m1,m3,nwb,nxc,nxcl,nxcr,nspden,3,gradient,&
-             real(hx,dp),real(hy,dp),real(hz,dp),dvxcdgr,vxci,wbstr)
-     end if
-!print *,wbstr
-     !restore the density array in the good position if it was shifted for the parallel GGA
-     !operation not necessarily needed, but related to the fact that the array has three
-     !indices which make it difficult to treat
-     !one should convert the operations with one indices arrays
-     if (nspden==2 .and. nxt /= nwb) then
-        j3=nwb+1
-        do i3=nwb-nwbr,1,-1
-           j3=j3-1
-           do i2=1,m3
-              do i1=1,m1
-                 rho(i1,i2,nwbl+j3,2)=rho(i1,i2,i3,2)
-              end do
-           end do
-        end do
-        do i3=nxt,nwb+nwbl+1,-1 !we have nwbr points
-           j3=j3-1
-           do i2=1,m3
-              do i1=1,m1
-                 rho(i1,i2,nwbl+j3,2)=rho(i1,i2,i3,1)
-              end do
-           end do
-        end do
-     end if
-  end if
-  !end of the part that can be commented out
-
-  if (allocated(dvxcdgr)) then
-     call f_free(dvxcdgr)
-  end if
-!!$  if (allocated(gradient)) then
-!!$     i_all=-product(shape(gradient))*kind(gradient)
-!!$     deallocate(gradient,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'gradient',subname)
-!!$  end if
-  !     rewind(300)
-  !     do ispden=1,nspden
-  !        do i3=1,nxt
-  !           do i2=1,m3
-  !              do i1=1,m1
-  !                 write(300,'(f18.12)') rho(i1,i2,i3,ispden)
-  !              end do
-  !           end do
-  !        end do
-  !     end do
-
-  !this part should be put out from this routine due to the Global distribution code
-  exc=0.0_dp
-  vxc=0.0_dp
-  sfactor=1.0_dp
-  if(nspden==1) sfactor=2.0_dp
-
-  !compact the rho array into the total charge density
-  !try to use dot and vcopy routines, more general
-  ! e.g. exc=dot(m1*m3*nxc,exci(1,1,nxcl),1,rho(1,1,offset+nxcl-1,ispden),1)
-
-  ispden=1
-  do jp2=1,nxc
-     j2=offset+jp2+nxcl-2
-     jppp2=jp2+nxcl-1
-     do j3=1,m3
-        do j1=1,m1
-           rhov=rho(j1,j3,j2,ispden)
-           elocal=exci(j1,j3,jppp2)
-           vlocal=vxci(j1,j3,jppp2,ispden)
-           exc=exc+elocal*rhov
-           vxc=vxc+vlocal*rhov
-           rho(j1,j3,jp2,1)=sfactor*rhov!restore the original normalization
-           !potxc(j1,j3,jp2,ispden)=real(vlocal,wp)
-        end do
-     end do
-  end do
-  !spin-polarised case
-  if (nspden==2) then
-     ispden=2
-     do jp2=1,nxc
-        j2=offset+jp2+nxcl-2
-        jppp2=jp2+nxcl-1
-        do j3=1,m3
-           do j1=1,m1
-              rhov=rho(j1,j3,j2,ispden)
-              elocal=exci(j1,j3,jppp2)
-              vlocal=vxci(j1,j3,jppp2,ispden)
-              exc=exc+elocal*rhov
-              vxc=vxc+vlocal*rhov
-              rho(j1,j3,jp2,1)=rho(j1,j3,jp2,1)+sfactor*rhov
-              !potxc(j1,j3,jp2,ispden)=real(vlocal,dp)
-           end do
-        end do
-     end do
-  end if
-
-  !the two factor is due to the 
-  !need of using the density of states in abinit routines
-  exc=sfactor*real(hx*hy*hz,dp)*exc
-  vxc=sfactor*real(hx*hy*hz,dp)*vxc
-
-  !De-allocations
-  call f_free(exci)
-!  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
-!stop
-
-  call f_release_routine()
-
-END SUBROUTINE xc_energy_new
 
 
 !>    Calculate the XC terms from the given density in a distributed way.

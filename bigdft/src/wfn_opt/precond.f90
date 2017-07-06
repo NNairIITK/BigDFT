@@ -12,6 +12,7 @@
 subroutine preconditionall(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero)
   use module_base
   use module_types
+  use locregs
   implicit none
   integer, intent(in) :: ncong
   real(gp), intent(in) :: hx,hy,hz
@@ -245,7 +246,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
   gnrm_zero=0.0_dp
 
   !prepare the arrays for the 
-  if (verbose >= 3) then
+  if (get_verbose_level() >= 3) then
      gnrmp = f_malloc(max(orbs%norbp, 1),id='gnrmp')
   end if
 
@@ -298,7 +299,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
            !write(*,*)'iorb,gnrm',orbs%isorb+iorb,scpr**2,ilr
            gnrm=gnrm+orbs%kwgts(orbs%iokpt(iorb))*scpr**2
         end if
-        if (verbose >= 3) then
+        if (get_verbose_level() >= 3) then
            gnrm_orb=gnrm_orb+scpr
            if (inds+ncplx-1==orbs%nspinor) gnrmp(iorb)=gnrm_orb
            !write(*,*) 'iorb,gnrm,ilr',orbs%isorb+iorb,scpr,ilr,gnrm_orb,iproc
@@ -413,7 +414,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
 !!$    call f_free(hpsir)
 !!$ end if
   !gather the results of the gnrm per orbital in the case of high verbosity
-  if (verbose >= 3) then
+  if (get_verbose_level() >= 3) then
      gnrms = f_malloc0(orbs%norb*orbs%nkpts,id='gnrms')
      !prepare displacements arrays
      ncntdsp = f_malloc((/ nproc, 2 /),id='ncntdsp')
@@ -550,6 +551,7 @@ END SUBROUTINE precondition_residue
 subroutine finalise_precond_residue(geocode,hybrid_on,ncplx,wfd,scal,x)
   use module_base
   use module_types
+  use compression
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on
@@ -585,6 +587,7 @@ END SUBROUTINE finalise_precond_residue
 subroutine calculate_rmr_new(geocode,hybrid_on,ncplx,wfd,scal,r,b,rmr_new)
   use module_base
   use module_types
+  use compression
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   logical, intent(in) :: hybrid_on

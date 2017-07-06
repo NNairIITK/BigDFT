@@ -1147,16 +1147,3 @@ recursive subroutine call_external_f1(routine,args)
   call routine(args)
 end subroutine call_external_f1
 
-
-!> Function which identifies the address of the scalar object
-!! associated to a unknown quantity
-function f_loc(routine)
-  use f_precisions, only: f_address
-  implicit none
-  external :: routine       !< Object
-  integer(f_address) :: f_loc  !< Address of the object routine
-
-  call getlongaddress(routine,f_loc)
-
-end function f_loc
-

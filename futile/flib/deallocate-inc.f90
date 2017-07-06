@@ -46,8 +46,6 @@
      return
   end if
 
-
-
   !$ if (not_omp) then
   call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
   !$ end if

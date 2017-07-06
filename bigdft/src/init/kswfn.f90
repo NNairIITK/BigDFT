@@ -9,7 +9,7 @@
 
 
 subroutine glr_get_psi_size(glr, psisize)
-  use module_types
+  use locregs
   implicit none
   type(locreg_descriptors), intent(in) :: glr
   integer, intent(out) :: psisize

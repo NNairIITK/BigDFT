@@ -1,9 +1,10 @@
 module module_mixing
 
-  use dynamic_memory!m_profiling !this has been moved. No idea how should be treated 
-  use module_base, only: bigdft_mpi
+  !use dynamic_memory
   use abi_defs_basis
   use public_enums
+  !use wrapper_MPI
+  use module_base, dp_fake=>dp
 
   implicit none
 
@@ -632,7 +633,8 @@ contains
 
   function fnrm_denpot(x,cplex,nfft,nspden,opt_denpot,user_data)
 !    use m_ab7_mixing, only: AB7_MIXING_DENSITY
-    use wrapper_MPI, only: mpirank,mpiallred,MPI_SUM
+    !use wrapper_MPI, only: mpirank,mpiallred,MPI_SUM
+    !use module_base, only: bigdft_mpi
     implicit none
     !Arguments
     integer, intent(in) :: cplex,nfft,nspden,opt_denpot
@@ -689,7 +691,8 @@ contains
 
   function fdot_denpot(x,y,cplex,nfft,nspden,opt_denpot,user_data)
 !    use m_ab7_mixing
-    use wrapper_MPI, only: mpirank,mpiallred,MPI_SUM
+!    use wrapper_MPI, only: mpirank,mpiallred
+    !use module_base, only: bigdft_mpi
     implicit none
     integer, intent(in) :: cplex,nfft,nspden,opt_denpot
     double precision, intent(in) :: x(*), y(*)
@@ -767,7 +770,8 @@ contains
 
 
   function fnrm_denpot_forlinear(x,cplex,nfft,nspden,opt_denpot,user_data)
-    use wrapper_MPI, only: mpirank,mpiallred,mpi_sum
+!    use wrapper_MPI, only: mpirank,mpiallred,mpi_sum
+!    use module_base, only: bigdft_mpi
     implicit none
     !Arguments
     integer, intent(in) :: cplex,nfft,nspden,opt_denpot
@@ -831,7 +835,8 @@ contains
 
 
   function fdot_denpot_forlinear(x,y,cplex,nfft,nspden,opt_denpot,user_data)
-    use wrapper_MPI, only: mpirank,mpiallred,MPI_SUM
+!    use wrapper_MPI, only: mpirank,mpiallred
+    !use module_base, only: bigdft_mpi
     implicit none
     integer, intent(in) :: cplex,nfft,nspden,opt_denpot
     double precision, intent(in) :: x(*), y(*)

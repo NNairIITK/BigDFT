@@ -6,6 +6,32 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+!! @usage
+!!type(f_enumerator) :: primates=f_enumerator('PRIMATE',PRIMATE_INT,null()) !define the concept of primates
+!!type(f_enumerator) :: monkey=f_enumerator('MONKEY',MONKEY_INT,null()) !define the monkeys
+!!type(f_enumerator) :: man=f_enumerator('MAN',MAN_INT,null()) !define the man
+!!
+!!!the man is also a primate
+!!call f_enum_attr(man,primates)
+!!!as well as the monkey
+!!call f_enum_attr(monkey,primates)
+!!
+!!!we now have as a variable the following enumerator:
+!!type(f_enumerator) :: specimen
+!!!which have been inutuialized somehow
+!!
+!!!usual usage of a flag
+!!select case(str(speciment))
+!!case('MAN')
+!!!etc etc
+!!case('MONKEY')
+!!!etc !etc
+!!end select
+!!
+!!!otherwise we might define an action that is executed either for monkey and man
+!!if (specimen .hasattr. primates) then
+!!!this source section is executed either for man and monkey case
+!!end if
 module f_enums
   implicit none
 

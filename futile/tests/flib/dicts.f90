@@ -14,6 +14,7 @@
 subroutine test_dictionaries0()
   use yaml_output
   use dictionaries
+  use exception_callbacks
   implicit none
   type(dictionary), pointer :: dict1,dict2,dict3
   !local variables
@@ -22,7 +23,7 @@ subroutine test_dictionaries0()
   character(len=30) :: val2
   type(dictionary), pointer :: dict_tmp
   !finding operations
-!!$  print *,' Filling a linked list' 
+!!$  print *,' Filling a linked list'
 !!$  call dict_init(list)
 !!$
 !!$  call add(list,'x1')
@@ -30,7 +31,7 @@ subroutine test_dictionaries0()
 !!$  call add(list,'y1')
 !!$  call add(list,'z1')
 !!$  call add(list,'z1')
-!!$ 
+!!$
 !!$  call yaml_dict_dump(list)
 !!$
 !!$  nval=dict_len(list)
@@ -40,7 +41,7 @@ subroutine test_dictionaries0()
 !!$     val=list//ival
 !!$     print *,'value',ival,valget
 !!$  end do
-!!$  
+!!$
 !!$  call dict_free(list)
 
   call yaml_comment('Now we test dictionaries inside yaml.')
@@ -62,7 +63,7 @@ subroutine test_dictionaries0()
   call f_dump_last_error()
   call f_err_close_try()
   call yaml_map('Error pipe is still full',f_err_check())
- 
+
   ! a single scalar
 !!  call set(dict1//'',1)
 !!$  !can be also set like that, should be avoided
@@ -143,7 +144,7 @@ subroutine test_dictionaries0()
   !retrieve value
   val2=dict1//'hgrid' !dict_value(dict1//'hgrid')
   call yaml_map('Value retrieved with equal sign',trim(val2))
-  
+
   !test value of the dictionary, explicitly
   dict_tmp=>dict1//'hgrid'
   call yaml_map('Value explicitly written in the dictionary',trim(dict_tmp%data%value))
@@ -174,7 +175,7 @@ subroutine test_dictionaries0()
   !retrieve value
   val2=dict1//'hgrid' !dict_value(dict1//'hgrid')
   call yaml_map('Value retrieved with equal sign',trim(val2))
-  
+
   !test value of the dictionary, explicitly
   dict_tmp=>dict1//'hgrid'
   call yaml_map('Verify that the child is still associated',associated(dict_tmp%child))
@@ -209,7 +210,7 @@ subroutine test_dictionaries0()
 !!$       .item. 'Val4'/))
 !!$  call yaml_dict_dump(dict1)
 !!$  call dict_free(dict1)
-  
+
 end subroutine test_dictionaries0
 
 
@@ -244,12 +245,12 @@ subroutine test_dictionaries1()
 
    call yaml_new_document()
 
-   
+
    call yaml_map('Dictionary length',dict_len(dict))
    call yaml_map('Dictionary size',dict_size(dict))
 
    call dict_free(dict)
-   
+
    call yaml_comment('Fortran Dictionary Test',hfill='~')
 
    call dict_init(dict)
@@ -294,7 +295,7 @@ subroutine test_dictionaries1()
    ival=dict2
    call yaml_map('Value found',ival)
    !increase the value
-   call set(dict//'Number of Groups',ival+1)  
+   call set(dict//'Number of Groups',ival+1)
    !retrieve it
    ival=dict//'Number of Groups'
    call yaml_map('Alternative way',ival)
@@ -309,14 +310,14 @@ subroutine test_dictionaries1()
    !indeed, dict2 points to dict//First, which has been removed
    !therefore dict2 is now pointing to a unallocated region
    !call set(dict2//'Five',5)
-   
+
    !for the same reason, extracting the value in this way
-   !ival = dict .pop. 'Number of Groups' 
+   !ival = dict .pop. 'Number of Groups'
    !will lead to a memory leak, as the function in the right hand size
    !will not be freed
-   
+
    !in fortran, the correct way to free the memory is the following
-   dictA2 => dict .pop. 'Number of Groups' 
+   dictA2 => dict .pop. 'Number of Groups'
    !extract value
    ival=dictA2
    call dict_free(dictA2)
@@ -429,7 +430,7 @@ subroutine test_dictionaries1()
    call set(dict2//'Test1'//'Titi',2)
 
    call yaml_map('Corrected version',dict2)
-   
+
    !verify the equality between dictionaries
    call yaml_map('Test1 and and Test2 are equal',dict2//'Test1' == dict2//'Test2')
 
@@ -511,7 +512,7 @@ subroutine test_dictionaries1()
    end do
    call dict_free(dictA)
    call yaml_mapping_close()
-   
+
    !fill a list and iterate over it
    dictA=>dict_new()
    do i=1,10
@@ -840,7 +841,7 @@ subroutine test_dictionary_for_atoms()
     end subroutine print_one_atom
 
     !> when str represents a real number, clean it if there are lot of zeroes after the decimal point
-    !! pure 
+    !! pure
     function clean_zeroes(str)
       implicit none
       integer, parameter:: max_value_length=95
@@ -916,7 +917,7 @@ subroutine profile_dictionary_usage()
   type(dictionary), pointer :: dict
   integer, dimension(:), allocatable :: itest !< used to simulate search with an array
   type(f_progress_bar) :: bar
-  
+
 
 !!$!$  !profiling
   nprof=100001
@@ -944,7 +945,7 @@ subroutine profile_dictionary_usage()
 !!$     call yaml_mapping_open('Timings for search',flow=.true.)
 !!$     call yaml_map('No. of items',iprof)
 !!$     call yaml_map('Elapsed time (ns)',tel,fmt='(f12.2)')
-!!$     call yaml_mapping_close() 
+!!$     call yaml_mapping_close()
   end do
   call yaml_map('Some value',itest(1)+itest(ntry))
   deallocate(itest)
@@ -977,7 +978,7 @@ subroutine profile_dictionary_usage()
 !!$     call yaml_mapping_open('Timings for search',flow=.true.)
 !!$     call yaml_map('No. of items',iprof)
 !!$     call yaml_map('Elapsed time (mus)',tel,fmt='(f12.2)')
-!!$     call yaml_mapping_close() 
+!!$     call yaml_mapping_close()
   end do
   call yaml_map('Other value',tot)
   call dict_free(dict)

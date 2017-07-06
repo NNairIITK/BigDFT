@@ -24,7 +24,7 @@ module psp_projectors
   public :: update_nlpsp
 
   !routines which are typical of the projector application or creation follow
-  contains
+contains
 
   !> converts the bound of the lr descriptors in local bounds of the plr locregs
   pure subroutine bounds_to_plr_limits(thatway,icoarse,plr,nl1,nl2,nl3,nu1,nu2,nu3)
@@ -153,6 +153,7 @@ module psp_projectors
   ! are modified
   subroutine update_nlpsp(nl,nlr,lrs,Glr,lr_mask)
     use locreg_operations
+    use compression
     implicit none
     integer, intent(in) :: nlr
     type(locreg_descriptors), intent(in) :: Glr
@@ -209,6 +210,7 @@ module psp_projectors
        ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
     use pseudopotentials, only: apply_hij_coeff,atomic_proj_coeff
     use locreg_operations
+    use compression
     implicit none
     integer, intent(in) :: ncplx_p !< number of complex components of the projector
     integer, intent(in) :: n_p !< number of elements of the projector
@@ -275,7 +277,7 @@ module psp_projectors
 !!$         tolr,psi_pack,scpr,hpsi)
 
   end subroutine hgh_psp_application
- 
+
 !!$  !> Calculate the scalar product with the projectors of a given set of 
 !!$  !! orbitals (or support functions) given in the same localization region
 !!$  subroutine calculate_cproj(ncplx_p,n_p,wfd_p,proj,&
@@ -346,7 +348,7 @@ module psp_projectors
   end function get_proj_locreg
 
   function projector_has_overlap(iat, ilr, llr, glr, nl) result(overlap)
-    use locreg_operations, only: wfd_to_wfd_skip
+    use compression, only: wfd_to_wfd_skip
     implicit none
     ! Calling arguments
     integer,intent(in) :: iat, ilr
@@ -372,17 +374,16 @@ module psp_projectors
 
     call check_overlap(llr, nl%pspd(iat)%plr, glr, overlap)
 
-    end function projector_has_overlap
-  
-  end module psp_projectors
+  end function projector_has_overlap
+
+end module psp_projectors
 
 !>routine to drive the application of the projector in HGH formalism
 subroutine NL_HGH_application(hij,ncplx_p,n_p,wfd_p,proj,&
      ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
   use module_defs, only : gp,wp
   use psp_projectors, only: hgh_psp_application
-  use locregs, only: wavefunctions_descriptors
-  use locreg_operations, only: wfd_to_wfd
+  use compression, only: wfd_to_wfd,wavefunctions_descriptors
   implicit none
   integer, intent(in) :: ncplx_p,n_p,ncplx_w,n_w
   !> interaction between the wavefuntion and the psp projector
@@ -414,7 +415,7 @@ end subroutine NL_HGH_application
 !! accumulate the result on the array hpsi and calculate scpr @f$<p|psi_w>$@f such that energy can be expressed in the form @f$\sum_w <psi_w|p> hp <p|psi_w>@f$
 subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
   use module_base
-  use module_types, only: wavefunctions_descriptors
+  use compression, only: wavefunctions_descriptors
   implicit none
   integer, intent(in) :: n_w !< complex components of the wavefunction
   real(wp), intent(in) :: hp !<coefficient of the projector operator
@@ -454,15 +455,15 @@ subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
        scpr(1))
   !use now mask arrays to calculate the rest of the scalar product
   do iw=2,n_w
-  call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-       wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
-       wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-       psi(1,iw),psi(is_w,iw),&
-       wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
-       wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
-       wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
-       proj(1),proj(is_p),&
-       scpr(iw))
+     call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+          wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
+          wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+          psi(1,iw),psi(is_w,iw),&
+          wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+          wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
+          wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+          proj(1),proj(is_p),&
+          scpr(iw))
 
 !!$     call wpdot_mask(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
 !!$          psi_mask(1,1),psi_mask(1,is_sw),psi(1,iw),psi(is_w,iw),&
@@ -490,3 +491,115 @@ subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
   call f_release_routine()
 
 end subroutine apply_oneproj_operator
+
+!> calculate the density matrix of the system from the scalar product with the projectors
+subroutine cproj_to_gamma(iat,proj_G,n_w,mproj,lmax,ncplx,cproj,factor,iagamma,gamma_mmp)
+  use module_defs, only: wp
+  use gaussians
+  implicit none
+  integer, intent(in) :: mproj,iat,ncplx,lmax,n_w
+  real(wp), intent(in) :: factor
+  type(gaussian_basis_new), intent(in) :: proj_G
+  integer, dimension(2*lmax+1), intent(in) :: iagamma
+  real(wp), dimension(ncplx,n_w,mproj), intent(in) :: cproj
+  real(wp), dimension(2*n_w,2*lmax+1,2*lmax+1,*), intent(inout) :: gamma_mmp 
+  !local variables
+  integer :: iproj
+  type(gaussian_basis_iter) :: iter
+
+  call gaussian_iter_start(proj_G, iat, iter)
+
+  ! Loop on shell.
+  iproj=1
+  do while (gaussian_iter_next_shell(proj_G, iter))
+     if (iter%n ==1 .and. iagamma(iter%l)/=0) then
+        call atomic_PSP_density_matrix_update('C',lmax,iter%l-1,ncplx,n_w,cproj(1,1,iproj),&
+             factor,gamma_mmp(1,1,1,iagamma(iter%l)))
+     end if
+     iproj = iproj + (2*iter%l-1)!*ncplx
+  end do
+
+end subroutine cproj_to_gamma
+
+!>calculate the density matrix for a atomic contribution
+!!from the values of scalprod calculated in the code
+subroutine atomic_PSP_density_matrix_update(transp,lmax,l,ncplx,n_w,sp,fac,gamma_mmp)
+  use module_defs, only: wp,gp
+  use yaml_strings
+  implicit none
+  !> scalprod coefficients are <p_i | psi> ('N') or <psi | p_i> ('C'),
+  !! ignored if ncplx=1
+  character(len=1), intent(in) :: transp
+  integer, intent(in) :: ncplx,n_w
+  integer, intent(in) :: lmax !< maximum value of the angular momentum considered
+  integer, intent(in) :: l !<angular momentum of the density matrix, form 0 to l_max
+  !> coefficients of the scalar products between projectos and orbitals
+  real(gp), intent(in) :: fac !<rescaling factor
+  real(wp), dimension(ncplx*n_w,2*l+1), intent(in) :: sp
+  !>density matrix for this angular momenum and this spin
+  real(wp), dimension(2*n_w,2*lmax+1,2*lmax+1), intent(inout) :: gamma_mmp
+  !local variables
+  integer :: m,mp,icplx
+  real(wp) :: gamma_im
+  real(wp), dimension(4) :: pauliv
+
+  if (fac==0.0_gp) return
+
+  if (n_w==2) then
+     do m=1,2*l+1
+        do mp=1,2*l+1
+           !here we neglect the imaginary part of the 
+           !results in the case m/=m'
+           pauliv=pauli_representation(sp(1,mp),sp(1,m))
+           gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+pauliv(1)
+           gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)+pauliv(2)
+           gamma_mmp(3,m,mp)=gamma_mmp(3,m,mp)+pauliv(3)
+           gamma_mmp(4,m,mp)=gamma_mmp(4,m,mp)+pauliv(4)
+        end do
+     end do
+  else
+     do m=1,2*l+1
+        do mp=1,2*l+1
+           do icplx=1,ncplx
+              gamma_mmp(1,m,mp)=gamma_mmp(1,m,mp)+&
+                   real(fac,wp)*sp(icplx,mp)*sp(icplx,m)
+           end do
+           if (ncplx==2) then
+              gamma_im=real(fac,wp)*(sp(2,mp)*sp(1,m)-sp(1,mp)*sp(2,m))
+              if (transp .eqv. 'N') then
+                 gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)+gamma_im
+              else if (transp .eqv. 'C') then
+                 gamma_mmp(2,m,mp)=gamma_mmp(2,m,mp)-gamma_im
+              end if
+           end if
+        end do
+     end do
+  end if
+
+  contains
+
+    !> for the density, where phi is conjugated
+    pure function pauli_representation(psimp,psim) result(rho)
+      implicit none
+      real(wp), dimension(4), intent(in) :: psimp
+      real(wp), dimension(4), intent(in) :: psim
+      real(wp), dimension(4) :: rho
+      !local variables
+      real(wp) :: p1,p2,p3,p4,pp1,pp2,pp3,pp4
+      real(wp), dimension(4) :: p,pp
+
+      p=psim
+      where( abs(p) < 1.e-10) p=0.0_wp
+
+      pp=psimp
+      where( abs(pp) < 1.e-10) pp=0.0_wp
+
+      !density values
+      rho(1)=pp(1)*p(1)+pp(2)*p(2)+pp(3)*p(3)+pp(4)*p(4)
+      rho(2)=2.0_wp*(p(1)*pp(3)+p(2)*pp(4))
+      rho(3)=2.0_wp*(p(1)*pp(4)-p(2)*pp(3)) !this seems with the opposite sign
+      rho(4)=p(1)*pp(1)+p(2)*pp(2)-pp(3)*p(3)-pp(4)*p(4)
+
+    end function pauli_representation
+
+end subroutine atomic_PSP_density_matrix_update

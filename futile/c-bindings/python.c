@@ -9,6 +9,7 @@
 
 #include <futile.h>
 #include <dict-fapi.h>
+#include <string.h>
 
 static void  INThandler(int sig)
 {

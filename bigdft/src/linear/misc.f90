@@ -159,6 +159,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, iorb_shi
   use module_base
   use module_types
   use module_interfaces, only: filename_of_iorb, plot_wf
+  use locregs
   implicit none
 
   ! Calling arguments
@@ -197,12 +198,12 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, iorb_shi
   !call f_open_file(iunitz, file=filez, binary=binary)
   if (dens) then
      call plot_wf(.true.,trim(filebase0), 2, at, 1.d0, lr, &
-          hgrids(1), hgrids(2), hgrids(3), &
+          hgrids, &
           rxyz, psi_g, &
           iunit0, iunitx, iunity, iunitz)
   else
      call plot_wf(.true.,trim(filebase0), 1, at, 1.d0, lr, &
-          hgrids(1), hgrids(2), hgrids(3), &
+          hgrids, &
           rxyz, psi_g, &
           iunit0, iunitx, iunity, iunitz)
   end if
@@ -1215,6 +1216,7 @@ subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, s
   use module_base
   use module_types
   use locreg_operations
+  use locregs
   implicit none
 
   ! Calling arguments

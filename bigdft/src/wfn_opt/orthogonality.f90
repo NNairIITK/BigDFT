@@ -769,7 +769,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
      if (asymm > 1.d-10) then
         call yaml_warning('KS Hamiltonian is not Hermitian in the subspace, diff:'//&
              trim(yaml_toa(asymm,fmt='(1pe9.2)')))
-        if (verbose >= 3) then
+        if (get_verbose_level() >= 3) then
            call yaml_sequence_open('KS Hamiltonian Matrix(ces)',advance='no')
            call yaml_comment('Rank of the matrix: '//adjustl(trim(yaml_toa(norb,fmt='(i6)'))))
            do ikpt=1,orbs%nkpts

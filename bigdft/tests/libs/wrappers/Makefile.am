@@ -1,5 +1,5 @@
 ## Process this file with automake to produce Makefile.in
-chks=wrappers.out.report.yaml posinp.report.yaml $(py_report)
+chks=wrappers.out.report.yaml posinp.report.yaml $(py_report) $(babel_report)
 
 if BUILD_BINDINGS
 SHORT_CHECK = $(chks)
@@ -14,15 +14,26 @@ include $(srcdir)/../check.mk
 
 SUBDIRS =
 
-check_PROGRAMS = check_wrappers hooks libconv
+check_PROGRAMS = check_wrappers hooks libconv $(babel_prg)
 
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
-AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(DESTDIR)$(libdir)
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src -Wl,-rpath=$(abs_top_builddir)/src/modules -Wl,-rpath=$(DESTDIR)$(libdir)
 bigdft_library = $(top_builddir)/src/libbigdft-1.so.@BIGDFT_MINOR_VERSION@
 else
 bigdft_library = $(top_builddir)/src/libbigdft-1.a @LIB_BIGDFT_DEPS@
 endif
+
+if HAVE_OPENBABEL
+babel_prg = babel
+babel_report = babel.out.report.yaml
+bigdft_library += $(top_builddir)/src/modules/libbabel.so.@BIGDFT_MINOR_VERSION@
+if BUILD_DYNAMIC_LIBS
+else
+AM_LDFLAGS += -Wl,-rpath=$(abs_top_builddir)/src/modules
+endif
+endif
+
 
 check_wrappers_SOURCES = check_wrappers.c
 check_wrappers_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/bindings -I$(top_builddir)/src/bindings @GLIB_CFLAGS@
@@ -37,8 +48,13 @@ libconv_FCFLAGS = -I$(top_builddir)/src/orbitals -I$(top_builddir)/src/modules @
 libconv_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
 
 
-EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml check_wrappers.py.in
-CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.yaml *report.yaml input_minimal.yaml input.yaml \
+babel_SOURCES = babel.f90
+babel_FCFLAGS = @LIB_FUTILE_CFLAGS@
+babel_LDADD = $(bigdft_library) @LIB_FUTILE_LIBS@
+
+
+EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml check_wrappers.py.in babel.out.ref.yaml TiO2.cif
+CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.yaml *report.yaml input_minimal.yaml input.yaml babel.out.* outfile.xyz \
 			 report report_remarks
 if WITH_GOBJECT_INTROSPECTION
 py_report = pywrappers.out.report.yaml
@@ -67,6 +83,9 @@ check_wrappers.py: check_wrappers.py.in
 
 pywrappers.out.yaml: check_wrappers.py
 	-$(run_parallel) python check_wrappers.py | grep -v "Unable to read mpd.hosts" > $@
+
+babel.out.yaml: babel TiO2.cif
+	-./babel -i TiO2.cif > $@
 
 %.report.yaml: %.ref.yaml %.yaml
 	name=`basename $< .ref.yaml | sed "s/[^_]*_\?\(.*\)[^.].*/\1/"` ;\

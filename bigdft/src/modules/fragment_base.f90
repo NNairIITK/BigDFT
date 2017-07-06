@@ -1,6 +1,6 @@
 !>  Modules which contains information about fragment input variables
 !! @author
-!!    Copyright (C) 2015 BigDFT group
+!!    Copyright (C) 2015-2017 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,8 +14,8 @@ module fragment_base
 
   !> Contains all parameters for the calculation of the fragments
   type, public :: fragmentInputParameters
-     integer :: nfrag_ref
-     integer :: nfrag
+     integer :: nfrag_ref                                 !< Number of different reference fragments
+     integer :: nfrag                                     !< Number of fragments in the system
      integer, dimension(:), pointer :: frag_index         !< Array matching system fragments to reference fragments
      real(kind=8), dimension(:), pointer :: charge        !< Array giving the charge on each fragment for constrained DFT calculations
      !integer, dimension(:,:), pointer :: frag_info       !< Array giving number of atoms in fragment and environment for reference fragments
@@ -46,8 +46,11 @@ contains
 
   end subroutine nullifyInputFragParameters
 
+
+  !Initialize the fragments from the dictionary
   subroutine frag_from_dict(dict,frag)
     use yaml_output, only: yaml_map,is_atoi
+    use yaml_strings, only: yaml_toa
     use dictionaries
     implicit none
     type(dictionary), pointer :: dict
@@ -121,6 +124,17 @@ contains
        dict_tmp=>dict_next(dict_tmp)
     end do
 
+    !Check if all frag%frag_index(1:nfrag) are correctly defined
+    do ifrag=1,frag%nfrag
+      if (frag%frag_index(ifrag) == 0) then
+        call f_err_throw('The fragment '//trim(yaml_toa(ifrag))//' is not referenced ('// &
+            trim(yaml_toa(frag%nfrag))//' fragments using'//  trim(yaml_toa(frag%nfrag_ref))// &
+            ' reference fragments). Check in section "frag" if all indexes from 1 to'//&
+            trim(yaml_toa(frag%nfrag))//' are present.', &
+                     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+      end if
+    end do
+
   contains
 
     subroutine count_local_fragments(dict_tmp,icount,frag_index,frag_id)
@@ -131,18 +145,18 @@ contains
       integer, dimension(:), intent(inout), optional :: frag_index
       integer, intent(in), optional :: frag_id
 
-      !local variables
+      !Local variables
       integer :: idum,istart,i
       type(dictionary), pointer :: d_tmp
       character(len=max_field_length) :: val
 
-      !iteration over the whole list
+      !Iteration over the whole list
       icount=0
       istart=0
       d_tmp=>dict_iter(dict_tmp)
       do while(associated(d_tmp))
          val=d_tmp
-         !if string is a integer consider it
+         !if string is an integer consider it
          if (is_atoi(val)) then
             idum=d_tmp
             if (f_err_raise(istart>=idum,'error in entering fragment ids',&
@@ -172,6 +186,7 @@ contains
 
   end subroutine frag_from_dict
 
+
   !> Allocate the arrays for the input related to the fragment
   subroutine allocateInputFragArrays(input_frag)
     use dynamic_memory
@@ -183,7 +198,8 @@ contains
     ! Local variables
     character(len=*),parameter :: subname='allocateInputFragArrays'
 
-    input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
+    ! Allocate filling with 0 to check if frag_index are correctly initialized!
+    input_frag%frag_index = f_malloc0_ptr(input_frag%nfrag,id='input_frag%frag_index')
     input_frag%charge = f_malloc_ptr(input_frag%nfrag,id='input_frag%charge')
 
     input_frag%label=f_malloc_str_ptr(len(input_frag%label),&
@@ -236,7 +252,7 @@ contains
 
   end subroutine default_fragmentInputParameters
 
-  !> routine to build dictionary of fragment for purposes of backward compatibility with the old format
+  !> Routine to build dictionary of fragment for purposes of backward compatibility with the old format
   subroutine dict_from_frag(frag,dict_frag)
     use yaml_strings, only: yaml_toa
     use dictionaries, dict_set => set

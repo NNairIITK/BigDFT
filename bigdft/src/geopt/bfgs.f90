@@ -426,7 +426,8 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
       call f_tree_push(f_info//'flt'   ,yaml_toa( (/ flt1, flt2 /), fmt='(es10.2)'))
       call f_tree_push(f_info//'Alpha' ,yaml_toa( alpha, fmt='(es7.2e1)'))
       call f_tree_push(f_info//'isatur',yaml_toa(isatur))
-      call geometry_output(trim(parmin%approach),ncount_bigdft,parmin%iter,fmax,fnrm,0.d0,f_info)
+      call geometry_output(trim(parmin%approach),ncount_bigdft,parmin%iter,fmax, &
+           & fnrm*fnrm,flt2,f_info)
 
 !!$      call yaml_mapping_open('Geometry')
 !!$         call yaml_map('Ncount_BigDFT',ncount_bigdft) !universal

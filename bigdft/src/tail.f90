@@ -21,6 +21,8 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   use psp_projectors_base, only: deallocate_workarrays_projectors, allocate_workarrays_projectors
   use public_enums
   use bounds, only: make_bounds, make_all_ib
+  use locregs
+  use compression
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -90,8 +92,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   nb3=n3+2*nbuf
 
   ! Create new structure with modified grid sizes
-  call create_Glr(Glr%geocode,nb1,nb2,nb3,Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3,Glr%d%nfu1,&
-             Glr%d%nfu2,Glr%d%nfu3,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,Glr%wfd,Glr%bounds,lr)
+  call init_lr(lr,Glr%geocode,0.5*hgrid,nb1,nb2,nb3,&
+       Glr%d%nfl1,Glr%d%nfl2,Glr%d%nfl3,Glr%d%nfu1,Glr%d%nfu2,Glr%d%nfu3,&
+       .true.,wfd=Glr%wfd,bnds=Glr%bounds)
  
   alatb1=real(nb1,kind=8)*hgrid(1) 
   alatb2=real(nb2,kind=8)*hgrid(1) 

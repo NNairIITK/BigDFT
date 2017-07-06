@@ -1,0 +1,504 @@
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DRIVER FOR THE CHEBYSHEV MATRIX EXPANSION
+ Timestamp of the run                  : 2017-02-16 16:14:11.140
+ Parallel environment:
+   MPI tasks                           :  2
+   OpenMP threads                      :  2
+ Input parameters:
+   Sparsity pattern generation         : random
+   Matrix content generation           : random
+   Matrix dimension                    :  100
+   Number of non-zero entries          :  10000
+   Buffer for large matrix             :  0
+   Buffer for sparse multiplications   :  0
+   Condition number                    :  50.0
+   Exponent for the matrix power calculation: -1.0
+   Solution method                     : ICE
+   Write the matrices                  :  No
+   betax                               : -500.0
+   Initial minimal eigenvalue          :  0.5
+   Initial maximal eigenvalue          :  1.5
+   blocksize_diag                      : -1
+   blocksize_matmul                    : -1
+   ScaLAPACK diagonalization algorithm : pdsyevx
+   ICE multiplication factor           :  1.0
+   PEXSI number of procs for symbolic factorization:  16
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
+ Accuracy of Chebyshev fit for ICE     :  1.0E-008
+ Accuracy of Chebyshev fit for the penalty function:  1.0000000000000001E-005
+ Number of iterations                  :  1
+ Determine nonzero entries:
+    #3.2s
+ Matrix properties:
+   Random matrix:
+     total elements                    :  10000
+     segments                          :  100
+     non-zero elements                 :  10000
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  10000 ], start / end disjoint: [ 1, 
+  10000]}
+   Large random matrix:
+     total elements                    :  10000
+     segments                          :  100
+     non-zero elements                 :  10000
+     sparsity in %                     :  0.00
+     sparse matrix multiplication initialized:  Yes
+     sparse matrix multiplication setup:
+       segments                        :  100
+       non-zero elements               :  10000
+       sparsity in %                   :  0.00
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  10000 ], start / end disjoint: [ 1, 
+  10000]}
+ mode                                  : sequential
+ Eigenvalue properties:
+   Minimal                             :  [  5.3417788321188327E-002 ]
+   Maximal                             :  [  0.9717593507164428 ]
+   Condition number                    :  [  18.19168073514177 ]
+ Matrix power calculations:
+    #============================================================= Kernel iteration number 1
+ -  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x
+   Calculating mat^x:
+     beta for penaltyfunction          : -500.0
+     determine eigenvalue bounds:
+     -  {npl:  80, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
+   exp accur:  [  2.33E-14 ], penalty:  6.4E+05, ok:  [  No,  Yes ]}
+     -  {npl:  80, scale:  1.20E+00, bounds:  [  0.417,  1.500 ], 
+   exp accur:  [  2.62E-14 ], penalty:  3.0E+05, ok:  [  No,  Yes ]}
+     -  {npl:  80, scale:  1.44E+00, bounds:  [  0.347,  1.500 ], 
+   exp accur:  [  2.95E-14 ], penalty:  5.3E+05, ok:  [  No,  Yes ]}
+     -  {npl:  80, scale:  1.73E+00, bounds:  [  0.289,  1.500 ], 
+   exp accur:  [  3.26E-14 ], penalty:  1.7E+05, ok:  [  No,  Yes ]}
+     -  {npl:  90, scale:  2.07E+00, bounds:  [  0.241,  1.500 ], 
+   exp accur:  [  4.15E-14 ], penalty: -1.1E+06, ok:  [  Yes,  No ]}
+     -  {npl:  90, scale:  1.90E+00, bounds:  [  0.241,  1.800 ], exp accur:  [  4.0E-14 ], 
+     penalty:  1.8E+05,                  ok:  [  No,  Yes ]}
+     -  {npl:  100, scale:  2.09E+00, bounds:  [  0.201,  1.800 ], 
+   exp accur:  [  8.44E-14 ], penalty: -3.0E+05, ok:  [  Yes,  No ]}
+     -  {npl:  110, scale:  1.92E+00, bounds:  [  0.201,  2.160 ], 
+   exp accur:  [  1.22E-13 ], penalty:  8.4E+04, ok:  [  No,  Yes ]}
+     -  {npl:  110, scale:  2.11E+00, bounds:  [  0.167,  2.160 ], 
+   exp accur:  [  1.04E-13 ], penalty:  2.7E+04, ok:  [  No,  Yes ]}
+     -  {npl:  110, scale:  2.53E+00, bounds:  [  0.140,  2.160 ], 
+   exp accur:  [  1.13E-13 ], penalty: -4.0E+05, ok:  [  Yes,  No ]}
+     -  {npl:  120, scale:  2.32E+00, bounds:  [  0.140,  2.592 ], 
+   exp accur:  [  1.38E-13 ], penalty:  6.6E+01, ok:  [  No,  Yes ]}
+     -  {npl:  120, scale:  2.55E+00, bounds:  [  0.116,  2.592 ], 
+   exp accur:  [  1.55E-13 ], penalty:  1.6E-06, ok:  [  Yes,  Yes ]}
+     summary: {npl:  120, bounds:  [  0.116,  2.592 ], exp accur:  [  1.55E-13 ]}
+      #===================================================================== Timings summary
+   Timinig summary:
+   -  {iteration:  1, time:  0.4606001377105713, sum(M^a):  321.3989574186421}
+   Timing analysis:
+     All runs:
+       Minimal                         :  0.4606001377105713
+       Maximal                         :  0.4606001377105713
+       Average                         :  0.4606001377105713
+       Median                          :  0.4606001377105713
+    #====================================================================================== 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^-x
+ Calculating mat^-x:
+   beta for penaltyfunction            : -500.0
+   determine eigenvalue bounds:
+   -  {npl:  120, scale:  2.55E+00, bounds:  [  0.116,  2.592 ], exp accur:  [  2.91E-14 ], 
+   penalty:  1.6E-06,                   ok:  [  Yes,  Yes ]}
+   summary: {npl:  120, bounds:  [  0.116,  2.592 ], exp accur:  [  2.91E-14 ]}
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x*mat^-x
+ Check the deviation from unity of the operation mat^x*mat^-x:
+   max_error                           :  1.514E-13
+   mean_error                          :  4.136E-16
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating (mat^x)^(1/x)
+ Calculating (mat^x)^(1/x):
+   beta for penaltyfunction            : -500.0
+   determine eigenvalue bounds:
+   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], exp accur:  [  2.33E-14 ], 
+   penalty: -4.2E+06,                  ok:  [  Yes,  No ]}
+   -  {npl:  90, scale:  8.33E-01, bounds:  [  0.500,  1.800 ], exp accur:  [  2.55E-14 ], 
+   penalty: -3.5E+05,                  ok:  [  Yes,  No ]}
+   -  {npl:  100, scale:  6.94E-01, bounds:  [  0.500,  2.160 ], exp accur:  [  3.64E-14 ], 
+   penalty: -3.1E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  110, scale:  5.79E-01, bounds:  [  0.500,  2.592 ], exp accur:  [  7.02E-14 ], 
+   penalty: -7.5E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  120, scale:  4.82E-01, bounds:  [  0.500,  3.110 ], exp accur:  [  4.88E-14 ], 
+   penalty: -1.3E+06,                   ok:  [  Yes,  No ]}
+   -  {npl:  130, scale:  4.02E-01, bounds:  [  0.500,  3.732 ], exp accur:  [  3.3E-14 ], 
+   penalty: -9.5E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  150, scale:  3.35E-01, bounds:  [  0.500,  4.479 ], exp accur:  [  3.33E-14 ], 
+   penalty: -1.4E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  160, scale:  2.79E-01, bounds:  [  0.500,  5.375 ], exp accur:  [  4.35E-14 ], 
+   penalty:  7.6E+05,                   ok:  [  No,  Yes ]}
+   -  {npl:  170, scale:  3.07E-01, bounds:  [  0.417,  5.375 ], exp accur:  [  5.64E-14 ], 
+   penalty: -1.5E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  180, scale:  2.81E-01, bounds:  [  0.417,  6.450 ], exp accur:  [  5.28E-14 ], 
+   penalty:  3.5E+05,                   ok:  [  No,  Yes ]}
+   -  {npl:  180, scale:  3.10E-01, bounds:  [  0.347,  6.450 ], exp accur:  [  6.62E-14 ], 
+   penalty:  3.7E+03,                   ok:  [  No,  Yes ]}
+   -  {npl:  180, scale:  3.71E-01, bounds:  [  0.289,  6.450 ], exp accur:  [  7.19E-14 ], 
+   penalty: -1.2E+05,                   ok:  [  Yes,  No ]}
+   -  {npl:  200, scale:  3.41E-01, bounds:  [  0.289,  7.740 ], exp accur:  [  5.64E-14 ], 
+   penalty: -2.4E-08,                   ok:  [  Yes,  Yes ]}
+   summary: {npl:  200, bounds:  [  0.289,  7.740 ], exp accur:  [  5.64E-14 ]}
+ Check the deviation from the original matrix (only within the sparsity pattern):
+   absolute error:
+     max error                         :  1.525E-13
+     mean error                        :  3.710E-17
+   relative error:
+     max error relative                :  2.541E-21
+     mean error relative               :  1.601E-14
+   relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  1.579E-13, 
+   mean error relative:  5.105E-15}
+   -  {threshold value:  1.0E-04, max error relative:  4.552E-11, 
+   mean error relative:  2.132E-14}
+   -  {threshold value:  1.0E-05, max error relative:  5.041E-11, 
+   mean error relative:  1.610E-14}
+   -  {threshold value:  1.0E-06, max error relative:  5.041E-11, 
+   mean error relative:  1.602E-14}
+   -  {threshold value:  1.0E-07, max error relative:  5.041E-11, 
+   mean error relative:  1.601E-14}
+   -  {threshold value:  1.0E-08, max error relative:  5.041E-11, 
+   mean error relative:  1.601E-14}
+   -  {threshold value:  1.0E-09, max error relative:  5.041E-11, 
+   mean error relative:  1.601E-14}
+   -  {threshold value:  1.0E-10, max error relative:  5.041E-11, 
+   mean error relative:  1.601E-14}
+   -  {threshold value:  1.0E-11, max error relative:  5.041E-11, 
+   mean error relative:  1.601E-14}
+   -  {threshold value:  1.0E-12, max error relative:  5.041E-11, 
+   mean error relative:  1.601E-14}
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do the same calculation using dense LAPACK
+ mode                                  : sequential
+ mode                                  : sequential
+ Check the deviation from the exact result using BLAS (only within the sparsity pattern):
+   absolute error:
+     max error                         :  3.482E-13
+     mean error                        :  8.836E-17
+   relative error:
+     max error relative                :  1.198E-20
+     mean error relative               :  4.534E-14
+   relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  6.929E-12, 
+   mean error relative:  1.884E-14}
+   -  {threshold value:  1.0E-04, max error relative:  4.698E-11, 
+   mean error relative:  2.241E-14}
+   -  {threshold value:  1.0E-05, max error relative:  7.328E-11, 
+   mean error relative:  3.921E-14}
+   -  {threshold value:  1.0E-06, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-07, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-08, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-09, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-10, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-11, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-12, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+ Check the deviation from the exact result using BLAS (for the entire matrix):
+   absolute error:
+     max error                         :  3.482E-13
+     mean error                        :  8.836E-17
+   relative error:
+     max error relative                :  1.198E-20
+     mean error relative               :  4.534E-14
+   relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  6.929E-12, 
+   mean error relative:  1.884E-14}
+   -  {threshold value:  1.0E-04, max error relative:  4.698E-11, 
+   mean error relative:  2.241E-14}
+   -  {threshold value:  1.0E-05, max error relative:  7.328E-11, 
+   mean error relative:  3.921E-14}
+   -  {threshold value:  1.0E-06, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-07, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-08, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-09, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-10, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-11, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+   -  {threshold value:  1.0E-12, max error relative:  1.095E-10, 
+   mean error relative:  4.534E-14}
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  61815
+   Tot. No. of Deallocations           :  61815
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  14.474
+     for the array                     : vectors_new
+     in the routine                    : chebyshev_clean
+     Memory Peak of process            : 34.968 MB
+ Walltime since initialization         :  00:00:04.722712129
+ Max No. of dictionaries used          :  1087 #( 301 still in use)
+ Number of dictionary folders allocated:  1
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ DRIVER FOR THE CHEBYSHEV MATRIX EXPANSION
+ Timestamp of the run                  : 2017-02-16 16:14:15.888
+ Parallel environment:
+   MPI tasks                           :  2
+   OpenMP threads                      :  2
+ Input parameters:
+   Sparsity pattern generation         : random
+   Matrix content generation           : random
+   Matrix dimension                    :  2000
+   Number of non-zero entries          :  100000
+   Buffer for large matrix             :  0
+   Buffer for sparse multiplications   :  0
+   Condition number                    :  100.0
+   Exponent for the matrix power calculation: -0.5
+   Solution method                     : ICE
+   Write the matrices                  :  No
+   betax                               : -500.0
+   Initial minimal eigenvalue          :  0.5
+   Initial maximal eigenvalue          :  1.5
+   blocksize_diag                      : -1
+   blocksize_matmul                    : -1
+   ScaLAPACK diagonalization algorithm : pdsyevx
+   ICE multiplication factor           :  1.0
+   PEXSI number of procs for symbolic factorization:  16
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
+ Accuracy of Chebyshev fit for ICE     :  1.0E-008
+ Accuracy of Chebyshev fit for the penalty function:  1.0000000000000001E-005
+ Number of iterations                  :  1
+ Determine nonzero entries:
+    #35
+ Matrix properties:
+   Random matrix:
+     total elements                    :  4000000
+     segments                          :  97455
+     non-zero elements                 :  100000
+     sparsity in %                     :  97.50
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  100000 ], start / end disjoint: [ 1, 
+  100000]}
+   Large random matrix:
+     total elements                    :  4000000
+     segments                          :  97455
+     non-zero elements                 :  100000
+     sparsity in %                     :  97.50
+     sparse matrix multiplication initialized:  Yes
+     sparse matrix multiplication setup:
+       segments                        :  97455
+       non-zero elements               :  100000
+       sparsity in %                   :  97.50
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  100000 ], start / end disjoint: [ 1, 
+  100000]}
+ mode                                  : sequential
+ Eigenvalue properties:
+   Minimal                             :  [  1.0641026563702749E-002 ]
+   Maximal                             :  [  1.00997019875438 ]
+   Condition number                    :  [  94.9128538217784 ]
+ Matrix power calculations:
+    #============================================================= Kernel iteration number 1
+ -  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x
+   Calculating mat^x:
+     beta for penaltyfunction          : -500.0
+     determine eigenvalue bounds:
+     -  {npl:  80, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
+   exp accur:  [  1.82E-14 ], penalty:  1.2E+06, ok:  [  No,  Yes ]}
+     -  {npl:  80, scale:  1.20E+00, bounds:  [  0.417,  1.500 ], 
+   exp accur:  [  1.93E-14 ], penalty:  8.2E+05, ok:  [  No,  Yes ]}
+     -  {npl:  80, scale:  1.44E+00, bounds:  [  0.347,  1.500 ], 
+   exp accur:  [  2.09E-14 ], penalty:  4.6E+05, ok:  [  No,  Yes ]}
+     -  {npl:  80, scale:  1.73E+00, bounds:  [  0.289,  1.500 ], 
+   exp accur:  [  2.18E-14 ], penalty:  1.4E+05, ok:  [  No,  Yes ]}
+     -  {npl:  90, scale:  2.07E+00, bounds:  [  0.241,  1.500 ], exp accur:  [  2.8E-14 ], 
+     penalty: -4.9E+05,                  ok:  [  Yes,  No ]}
+     -  {npl:  90, scale:  1.90E+00, bounds:  [  0.241,  1.800 ], 
+   exp accur:  [  2.69E-14 ], penalty:  6.9E+04, ok:  [  No,  Yes ]}
+     -  {npl:  100, scale:  2.09E+00, bounds:  [  0.201,  1.800 ], 
+   exp accur:  [  4.09E-14 ], penalty: -2.8E+05, ok:  [  Yes,  No ]}
+     -  {npl:  110, scale:  1.92E+00, bounds:  [  0.201,  2.160 ], 
+   exp accur:  [  5.64E-14 ], penalty:  5.5E+04, ok:  [  No,  Yes ]}
+     -  {npl:  110, scale:  2.11E+00, bounds:  [  0.167,  2.160 ], 
+   exp accur:  [  4.62E-14 ], penalty:  3.9E+04, ok:  [  No,  Yes ]}
+     -  {npl:  110, scale:  2.53E+00, bounds:  [  0.140,  2.160 ], 
+   exp accur:  [  4.75E-14 ], penalty: -3.1E+05, ok:  [  Yes,  No ]}
+     -  {npl:  120, scale:  2.32E+00, bounds:  [  0.140,  2.592 ], 
+   exp accur:  [  6.17E-14 ], penalty:  3.8E+04, ok:  [  No,  Yes ]}
+     -  {npl:  120, scale:  2.55E+00, bounds:  [  0.116,  2.592 ], 
+   exp accur:  [  6.22E-14 ], penalty:  1.8E+04, ok:  [  No,  Yes ]}
+     -  {npl:  120, scale:  3.06E+00, bounds:  [  0.097,  2.592 ], 
+   exp accur:  [  6.93E-14 ], penalty: -3.9E+05, ok:  [  Yes,  No ]}
+     -  {npl:  130, scale:  2.81E+00, bounds:  [  0.097,  3.110 ], 
+   exp accur:  [  4.75E-14 ], penalty:  8.0E+03, ok:  [  No,  Yes ]}
+     -  {npl:  130, scale:  3.09E+00, bounds:  [  0.081,  3.110 ], 
+   exp accur:  [  5.02E-14 ], penalty:  2.2E+03, ok:  [  No,  Yes ]}
+     -  {npl:  130, scale:  3.70E+00, bounds:  [  0.067,  3.110 ], 
+   exp accur:  [  5.3E-14 ], penalty: -1.1E+05, ok:  [  Yes,  No ]}
+     -  {npl:  140, scale:  3.40E+00, bounds:  [  0.067,  3.732 ], 
+   exp accur:  [  6.44E-14 ], penalty:  2.6E+02, ok:  [  No,  Yes ]}
+     -  {npl:  140, scale:  3.73E+00, bounds:  [  0.056,  3.732 ], 
+   exp accur:  [  7.28E-14 ], penalty: -8.9E+02, ok:  [  Yes,  No ]}
+     -  {npl:  160, scale:  3.42E+00, bounds:  [  0.056,  4.479 ], 
+   exp accur:  [  5.24E-14 ], penalty:  1.8E+01, ok:  [  No,  Yes ]}
+     -  {npl:  160, scale:  3.77E+00, bounds:  [  0.047,  4.479 ], 
+   exp accur:  [  5.95E-14 ], penalty:  4.9E-02, ok:  [  No,  Yes ]}
+     -  {npl:  160, scale:  4.52E+00, bounds:  [  0.039,  4.479 ], 
+   exp accur:  [  1.82E-13 ], penalty: -8.0E+03, ok:  [  Yes,  No ]}
+     -  {npl:  170, scale:  4.14E+00, bounds:  [  0.039,  5.375 ], 
+   exp accur:  [  4.29E-13 ], penalty:  1.3E-04, ok:  [  No,  Yes ]}
+     -  {npl:  170, scale:  4.56E+00, bounds:  [  0.032,  5.375 ], 
+   exp accur:  [  5.09E-12 ], penalty:  5.5E-07, ok:  [  Yes,  Yes ]}
+     summary: {npl:  170, bounds:  [  0.032,  5.375 ], exp accur:  [  5.09E-12 ]}
+      #===================================================================== Timings summary
+   Timinig summary:
+   -  {iteration:  1, time:  7.34994101524353, sum(M^a):  3635.481575059187}
+   Timing analysis:
+     All runs:
+       Minimal                         :  7.34994101524353
+       Maximal                         :  7.34994101524353
+       Average                         :  7.34994101524353
+       Median                          :  7.34994101524353
+    #====================================================================================== 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^-x
+ Calculating mat^-x:
+   beta for penaltyfunction            : -500.0
+   determine eigenvalue bounds:
+   -  {npl:  170, scale:  4.56E+00, bounds:  [  0.032,  5.375 ], exp accur:  [  4.09E-14 ], 
+   penalty:  5.5E-07,                   ok:  [  Yes,  Yes ]}
+   summary: {npl:  170, bounds:  [  0.032,  5.375 ], exp accur:  [  4.09E-14 ]}
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating mat^x*mat^-x
+ Check the deviation from unity of the operation mat^x*mat^-x:
+   max_error                           :  5.272E-12
+   mean_error                          :  1.385E-14
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculating (mat^x)^(1/x)
+ Calculating (mat^x)^(1/x):
+   beta for penaltyfunction            : -500.0
+   determine eigenvalue bounds:
+   -  {npl:  80, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], exp accur:  [  3.64E-14 ], 
+   penalty: -3.3E+04,                  ok:  [  Yes,  No ]}
+   -  {npl:  90, scale:  8.33E-01, bounds:  [  0.500,  1.800 ], exp accur:  [  3.63E-14 ], 
+   penalty: -6.7E+05,                  ok:  [  Yes,  No ]}
+   -  {npl:  100, scale:  6.94E-01, bounds:  [  0.500,  2.160 ], exp accur:  [  7.33E-14 ], 
+   penalty: -1.7E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  110, scale:  5.79E-01, bounds:  [  0.500,  2.592 ], exp accur:  [  1.36E-13 ], 
+   penalty: -1.4E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  120, scale:  4.82E-01, bounds:  [  0.500,  3.110 ], exp accur:  [  8.84E-14 ], 
+   penalty: -8.2E+03,                   ok:  [  Yes,  No ]}
+   -  {npl:  130, scale:  4.02E-01, bounds:  [  0.500,  3.732 ], exp accur:  [  5.11E-14 ], 
+   penalty:  2.0E+04,                   ok:  [  No,  Yes ]}
+   -  {npl:  140, scale:  4.42E-01, bounds:  [  0.417,  3.732 ], exp accur:  [  1.02E-13 ], 
+   penalty: -1.6E+04,                   ok:  [  Yes,  No ]}
+   -  {npl:  150, scale:  4.05E-01, bounds:  [  0.417,  4.479 ], exp accur:  [  1.03E-13 ], 
+   penalty:  1.5E+01,                   ok:  [  No,  Yes ]}
+   -  {npl:  150, scale:  4.46E-01, bounds:  [  0.347,  4.479 ], exp accur:  [  1.53E-13 ], 
+   penalty:  1.8E-08,                   ok:  [  Yes,  Yes ]}
+   summary: {npl:  150, bounds:  [  0.347,  4.479 ], exp accur:  [  1.53E-13 ]}
+ Check the deviation from the original matrix (only within the sparsity pattern):
+   absolute error:
+     max error                         :  3.028E-13
+     mean error                        :  4.809E-17
+   relative error:
+     max error relative                :  1.529E-15
+     mean error relative               :  9.072E-12
+   relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  2.186E-12, 
+   mean error relative:  6.054E-15}
+   -  {threshold value:  1.0E-04, max error relative:  2.186E-12, 
+   mean error relative:  6.054E-15}
+   -  {threshold value:  1.0E-05, max error relative:  2.186E-12, 
+   mean error relative:  6.054E-15}
+   -  {threshold value:  1.0E-06, max error relative:  3.910E-08, 
+   mean error relative:  9.457E-12}
+   -  {threshold value:  1.0E-07, max error relative:  3.910E-08, 
+   mean error relative:  9.077E-12}
+   -  {threshold value:  1.0E-08, max error relative:  3.910E-08, 
+   mean error relative:  9.073E-12}
+   -  {threshold value:  1.0E-09, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+   -  {threshold value:  1.0E-10, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+   -  {threshold value:  1.0E-11, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+   -  {threshold value:  1.0E-12, max error relative:  3.910E-08, 
+   mean error relative:  9.072E-12}
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Do the same calculation using dense LAPACK
+ mode                                  : sequential
+ mode                                  : sequential
+ Check the deviation from the exact result using BLAS (only within the sparsity pattern):
+   absolute error:
+     max error                         :  1.019E-10
+     mean error                        :  3.771E-15
+   relative error:
+     max error relative                :  1.122E-12
+     mean error relative               :  5.037E-11
+   relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  9.435E-08, 
+   mean error relative:  5.152E-11}
+   -  {threshold value:  1.0E-04, max error relative:  1.483E-07, 
+   mean error relative:  4.504E-10}
+   -  {threshold value:  1.0E-05, max error relative:  2.680E-07, 
+   mean error relative:  1.466E-10}
+   -  {threshold value:  1.0E-06, max error relative:  6.028E-07, 
+   mean error relative:  4.252E-11}
+   -  {threshold value:  1.0E-07, max error relative:  6.028E-07, 
+   mean error relative:  4.379E-11}
+   -  {threshold value:  1.0E-08, max error relative:  1.059E-06, 
+   mean error relative:  4.910E-11}
+   -  {threshold value:  1.0E-09, max error relative:  1.059E-06, 
+   mean error relative:  5.037E-11}
+   -  {threshold value:  1.0E-10, max error relative:  1.059E-06, 
+   mean error relative:  5.037E-11}
+   -  {threshold value:  1.0E-11, max error relative:  1.059E-06, 
+   mean error relative:  5.037E-11}
+   -  {threshold value:  1.0E-12, max error relative:  1.059E-06, 
+   mean error relative:  5.037E-11}
+ Check the deviation from the exact result using BLAS (for the entire matrix):
+   absolute error:
+     max error                         :  1.489E-07
+     mean error                        :  1.060E-11
+   relative error:
+     max error relative                :  1.000E+00
+     mean error relative               :  1.975E-02
+   relative error with threshold:
+   -  {threshold value:  1.0E-03, max error relative:  9.435E-08, 
+   mean error relative:  5.152E-11}
+   -  {threshold value:  1.0E-04, max error relative:  1.483E-07, 
+   mean error relative:  4.504E-10}
+   -  {threshold value:  1.0E-05, max error relative:  2.680E-07, 
+   mean error relative:  1.466E-10}
+   -  {threshold value:  1.0E-06, max error relative:  6.028E-07, 
+   mean error relative:  4.252E-11}
+   -  {threshold value:  1.0E-07, max error relative:  1.000E+00, 
+   mean error relative:  2.451E-05}
+   -  {threshold value:  1.0E-08, max error relative:  1.000E+00, 
+   mean error relative:  3.546E-04}
+   -  {threshold value:  1.0E-09, max error relative:  1.000E+00, 
+   mean error relative:  1.464E-03}
+   -  {threshold value:  1.0E-10, max error relative:  1.000E+00, 
+   mean error relative:  1.130E-03}
+   -  {threshold value:  1.0E-11, max error relative:  1.000E+00, 
+   mean error relative:  6.522E-04}
+   -  {threshold value:  1.0E-12, max error relative:  1.000E+00, 
+   mean error relative:  5.860E-04}
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  613384
+   Tot. No. of Deallocations           :  613384
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  197.711
+     for the array                     : work
+     in the routine                    : dsyev_parallel
+     Memory Peak of process            : 195.468 MB
+ Walltime since initialization         :  00:01:07.357818977
+ Max No. of dictionaries used          :  1087 #( 301 still in use)
+ Number of dictionary folders allocated:  1

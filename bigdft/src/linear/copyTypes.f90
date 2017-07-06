@@ -30,7 +30,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   tmbout%npsidim_orbs = tmbin%npsidim_orbs
 
   if (associated(tmbin%coeff)) then !(in%lin%scf_mode/=LINEAR_FOE) then ! should move this check to copy_old_coeffs
-      call copy_old_coefficients(tmbin%orbs%norb, tmbin%linmat%l%nfvctr, tmbin%coeff, tmbout%coeff)
+      call copy_old_coefficients(tmbin%orbs%norb, tmbin%linmat%smat(3)%nfvctr, tmbin%coeff, tmbout%coeff)
   else
       nullify(tmbout%coeff)
   end if
@@ -445,12 +445,12 @@ subroutine copy_linear_matrices(linmat_in, linmat_out)
   integer :: ispin, i
 
   call copy_sparse_matrix_metadata(linmat_in%smmd, linmat_out%smmd)
-  call copy_sparse_matrix(linmat_in%s, linmat_out%s)
-  call copy_sparse_matrix(linmat_in%m, linmat_out%m)
-  call copy_sparse_matrix(linmat_in%l, linmat_out%l)
+  call copy_sparse_matrix(linmat_in%smat(1), linmat_out%smat(1))
+  call copy_sparse_matrix(linmat_in%smat(2), linmat_out%smat(2))
+  call copy_sparse_matrix(linmat_in%smat(3), linmat_out%smat(3))
   if (associated(linmat_in%ks)) then
-      allocate(linmat_out%ks(linmat_in%l%nspin))
-      do ispin=1,linmat_in%l%nspin
+      allocate(linmat_out%ks(linmat_in%smat(3)%nspin))
+      do ispin=1,linmat_in%smat(3)%nspin
           linmat_out%ks(ispin) = sparse_matrix_null()
           call copy_sparse_matrix(linmat_in%ks(ispin), linmat_out%ks(ispin))
       end do
@@ -458,8 +458,8 @@ subroutine copy_linear_matrices(linmat_in, linmat_out)
       nullify(linmat_out%ks)
   end if
   if (associated(linmat_in%ks_e)) then
-      allocate(linmat_out%ks_e(linmat_in%l%nspin))
-      do ispin=1,linmat_in%l%nspin
+      allocate(linmat_out%ks_e(linmat_in%smat(3)%nspin))
+      do ispin=1,linmat_in%smat(3)%nspin
           linmat_out%ks_e(ispin) = sparse_matrix_null()
           call copy_sparse_matrix(linmat_in%ks_e(ispin), linmat_out%ks_e(ispin))
       end do

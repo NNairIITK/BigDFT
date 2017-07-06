@@ -1,6 +1,29 @@
-This is a snapshot of the BigDFT suite, including CheSS and its dependencies.
+Minimal compilation and linking instructions for CheSS
+======================================================
 
-See http://bigdft.org for more information about the project BigDFT.
-See https://launchpad.net/chess for more information about CheSS.
+1) Download and unpack the latest release of CheSS from Launchpad: https://launchpad.net/chess
+   The resulting directory chess-suite will from now on be called <src-dir>
 
-See the INSTALL file for installation instructions.
+2) Create a build directory, which from now on will be called <build-dir>. Change to this directory.
+
+3) Launch the following command and follow the instructions on the screen:
+   <src-dir>/Installer.py build chess -v -c FC="<fc>" CC="gc" FCFLAGS="<fcflags>" --with-ext-linalg="<blas-lapack>"
+
+   You must adapt this according to your system:
+   <fc>: Your Fortran MPI compiler (e.g. mpifort)
+   <gc>: Your C compiler (e.g. gcc)
+   <fcflags>: Your Fortran compilation flags (e.g. -O2)
+   <blas-lapack>: The linking line to your BLAS and LAPACK libraries (e.g. -llapack -lblas)
+
+4) The installation will create the following directories:
+   <build-dir>/install/lib/: Contains the libraries with which you can link
+   <build-dir>/install/include/: Contains the .mod files that you need to interface CheSS with another code
+
+5) To check whether the installation has been successful, you can launch some tests:
+   cd <build-dir>/chess/tests ; make check
+   
+   If you wish to perform these tests in parallel, set the corresponding environment variable:
+   export run_parallel='<mpirun>'
+   
+   Again you must adapt this to your system:
+   <mpirun>: Your command to run MPI jobs (e.g. mpirun -np 4)

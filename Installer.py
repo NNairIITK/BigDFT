@@ -438,7 +438,10 @@ class BigDFTInstaller():
         """)
         for a in ACTIONS:
             sflist.append(a+':  ')
-            sflist.append('\t'+os.path.join(self.srcdir,__file__)+' '+a+' '+self.package+' -y')
+            sflist.append('\t'+
+                          os.path.abspath(
+                              os.path.join(self.srcdir,__file__))+
+                          ' '+a+' '+self.package+' -y')
         mkfile=open(MKFILE,'w')
         for item in sflist:
             mkfile.write("%s\n" % item)

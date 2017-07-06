@@ -75,6 +75,68 @@ program numeric_check
 !!$  boxit = box_iter(mesh,origin=rxyz,cutoff=cutoff)
 !!$  call finalize_real_space_conversion()
 
+
+  !here some tests about the box usage
+  call test_box_functions()
+
   call f_lib_finalize()
 
 end program numeric_check
+
+
+subroutine test_box_functions()
+  use futile, gp=>f_double
+  use box
+  implicit none
+  !local variables
+  integer :: i,i1,i2,i3
+  integer(f_long) :: t0,t1
+  real(gp) :: totdot,res
+  type(cell) :: mesh_ortho
+  integer, dimension(3) :: ndims
+  real(gp), dimension(:,:,:,:), allocatable :: v1,v2
+
+
+  ndims=[100,100,100]
+
+  mesh_ortho=cell_new('P',ndims,[1.0_gp,1.0_gp,1.0_gp])
+
+  v1=f_malloc([3,ndims(1),ndims(2),ndims(3)],id='v1')
+  v2=f_malloc([3,ndims(1),ndims(2),ndims(3)],id='v2')
+
+  do i3=1,ndims(3)
+     do i2=1,ndims(2)
+        do i1=1,ndims(1)
+           !the scalar product of these objects is 20.0
+           v1(:,i1,i2,i3)=[1.0_gp,2.0_gp,3.0_gp]
+           v2(:,i1,i2,i3)=[2.0_gp,3.0_gp,4.0_gp]
+        end do
+     end do
+  end do
+
+  totdot=0.0_gp
+  t0=f_time()
+  !$omp parallel do default(shared) &
+  !$omp private(i,res)&
+  !$omp reduction(+:totdot)
+  do i3=1,ndims(3)
+     do i2=1,ndims(2)
+        do i1=1,ndims(1)
+           res=dotp(mesh_ortho,v1(1,i1,i2,i3),v2(:,i1,i2,i3))
+           res=res/20.0_gp
+           totdot=totdot+res
+           v2(:,i1,i2,i3)=res
+        end do
+     end do
+  end do
+  !$omp end parallel do
+  t1=f_time()
+
+  call yaml_map('TotDot',totdot)
+  call yaml_map('TotSum',sum(v2))
+  call yaml_map('Time spent in the loop (ns)',t1-t0)
+
+  call f_free(v1)
+  call f_free(v2)
+
+end subroutine test_box_functions

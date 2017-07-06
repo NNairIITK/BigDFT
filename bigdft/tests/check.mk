@@ -145,23 +145,11 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
-	else \
-	if test -n "$$name"; then \
-	   if test ! -f $$name".yaml"; then \
-	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name"; \
-	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name; \
-	   fi; \
-	   name="-n "$$name; \
-	else \
-	   if test ! -f "input.yaml"; then \
-	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1"; \
-	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1; \
-	   fi; \
 	fi; \
-	fi; \
+	if [ "$$name" == "" ] ; then name="input" ; fi ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@" ; \
-	$(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@ ; \
+	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft -l yes -n $$name > $@" ; \
+	$(run_parallel) $(abs_top_builddir)/src/bigdft -l yes -n $$name > $@ ; \
 	if test -f list_posinp; then cat `awk '{print $$2}' list_posinp | $(SED) "s/^\(.*\)$$/log-\1.yaml/g"` > log.yaml ; fi ; \
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
@@ -258,6 +246,7 @@ $(INS): in_message
 	fi ; \
 	cd $$dir && $(MAKE) -f ../Makefile $$name".psp"; \
 	$(MAKE) -f ../Makefile $$dir".post-in"; \
+	$(MAKE) -f ../Makefile $$dir".pre-in"; \
 	echo "Input prepared in \"$$dir\" directory, make $$name.run available"
 	touch $@
 
@@ -268,6 +257,23 @@ run_message:
 	  echo "Will run tests in parallel with '$$run_parallel'" ; \
 	  echo "==============================================" ; \
 	fi
+
+%.pre-in: $(abs_top_builddir)/src/bigdft-tool
+	@for i in *.out.ref.yaml ; do \
+	name=`basename $$i .out.ref.yaml | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if !(test -z "$$name" -o  "$$name" = memguess); then \
+	   if test ! -f $$name".yaml"; then \
+	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name"; \
+	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name; \
+	   fi; \
+	   name="-n "$$name; \
+	else \
+	   if test ! -f "input.yaml"; then \
+	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1"; \
+	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1; \
+	   fi; \
+	fi ;\
+	done
 
 %.run: %.in run_message
 	@name=`basename $@ .run` ; dir=$$name-test ; \

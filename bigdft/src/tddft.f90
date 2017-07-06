@@ -10,9 +10,11 @@
 
 !> Calculate the coupling matrix for the TD-DFT a la Casida
 subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,tddft_approach,orbs,&
-     orbsv,i3s,fxc,pkernelseq,psi,psiv,exc_fac)
+     orbsv,i3s,fxc,pkernelseq,psi,psiv,exc_fac,bitp)
   use module_base
   use module_types
+  use locregs
+  use box
   implicit none
   integer, intent(in) :: iproc,nproc,n3p,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -27,9 +29,8 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,tddft_
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   real(wp), dimension(orbsv%npsidim_orbs), intent(in) :: psiv
   real(gp), intent(in) :: exc_fac
+  type(box_iterator) :: bitp
   !local variables
-  !character(len=*), parameter :: subname='tddft_casida'
-  integer :: i_all,i_stat
   real(gp), dimension(3) :: chargec
   real(wp), dimension(:), allocatable :: psirocc,psirvirt
 
@@ -43,8 +44,11 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,tddft_
 
   call center_of_charge(atoms,rxyz,chargec)
 
-  call coupling_matrix_prelim(iproc,nproc,atoms%astruct%geocode,tddft_approach,orbs%nspin,Glr,orbs,orbsv,&
-       i3s,n3p,hxh,hyh,hzh,chargec,pkernelseq,fxc,psirocc,psirvirt,exc_fac)
+  call calculate_coupling_matrix(iproc,nproc,bitp,tddft_approach,orbs%nspin,Glr%d%n1i*Glr%d%n2i*n3p,orbs,orbsv,&
+       chargec,pkernelseq,fxc,psirocc,psirvirt)
+
+!!$  call coupling_matrix_prelim(iproc,nproc,atoms%astruct%geocode,tddft_approach,orbs%nspin,Glr,orbs,orbsv,&
+!!$       i3s,n3p,hxh,hyh,hzh,chargec,pkernelseq,fxc,psirocc,psirvirt,exc_fac)
 
   call f_free(psirocc)
 

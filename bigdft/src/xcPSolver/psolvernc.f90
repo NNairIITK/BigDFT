@@ -436,18 +436,12 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hgrids,&
               istden=istden+n01*n02*n03
               istglo=istglo+n01*n02*n03
            end if
-!!$           call MPI_ALLGATHERV(rhopot(istden),gather_arr(iproc,1),mpidtypw,&
-!!$                rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
-!!$                bigdft_mpi%mpi_comm,ierr)
            call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),mpidtypw,&
                 rhopot(istglo),gather_arr(0,1),gather_arr(0,2),mpidtypw,&
                 bigdft_mpi%mpi_comm,ierr)
 
            !if it is the case gather also the results of the XC potential
            if (xc%ixc /=0 .and. .not. sumpion) then
-!!$              call MPI_ALLGATHERV(pot_ion(istden),gather_arr(iproc,1),&
-!!$                   mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
-!!$                   mpidtypw,bigdft_mpi%mpi_comm,ierr)
               call MPI_ALLGATHERV(MPI_IN_PLACE,gather_arr(iproc,1),&
                    mpidtypw,pot_ion(istglo),gather_arr(0,1),gather_arr(0,2),&
                    mpidtypw,bigdft_mpi%mpi_comm,ierr)
@@ -568,62 +562,74 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hgrids,&
         rho_diag = f_malloc((/ n01, n02, n3d, 2 /),id='rho_diag')
         m_norm = f_malloc((/ n01, n02, n3d /),id='m_norm')
         !           print *,'Rho Dims',shape(rhopot),shape(rho_diag)
-        idx=1
-        offs=n01*n02*n3d 
-        do i3=1,n3d
-           do i2=1,n02
-              do i1=1,n01
-                 !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
-                 m_norm(i1,i2,i3)=&
-                      sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
-                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5_dp+1.00e-20
-                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5_dp+1.00e-20
-                 idx=idx+1
-                 !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
-                 !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-                 !rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
-              end do
-           end do
-        end do
+!rho to rho_diag
+        call get_local_magnetization(n01*n02*n3d,rhopot,m_norm,rho_diag)
+!!$        idx=1
+!!$        offs=n01*n02*n3d 
+!!$        do i3=1,n3d
+!!$           do i2=1,n02
+!!$              do i1=1,n01
+!!$                 !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
+!!$                 m_norm(i1,i2,i3)=&
+!!$                      sqrt(rhopot(idx+offs)**2+rhopot(idx+2*offs)**2+rhopot(idx+3*offs)**2)
+!!$                 rho_diag(i1,i2,i3,1)=(rhopot(idx)+m_norm(i1,i2,i3))*0.5_dp+1.00e-20
+!!$                 rho_diag(i1,i2,i3,2)=(rhopot(idx)-m_norm(i1,i2,i3))*0.5_dp+1.00e-20
+!!$                 idx=idx+1
+!!$                 !m_norm(i1,i2,i3)=sqrt(rhopot(i1,i2,i3,2)**2+rhopot(i1,i2,i3,3)**2+rhopot(i1,i2,i3,4)**2)
+!!$                 !rho_diag(i1,i2,i3,1)=(rhopot(i1,i2,i3,1)+m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+!!$                 !rho_diag(i1,i2,i3,2)=(rhopot(i1,i2,i3,1)-m_norm(i1,i2,i3))*0.5d0!+1.00e-20
+!!$              end do
+!!$           end do
+!!$        end do
+        !print *,sum(rho_diag),sum(m_norm)
+        !stop
      else
         rho_diag = f_malloc((/ 1, 1, 1, 2 /),id='rho_diag')
         m_norm = f_malloc((/ 1, 1, 1 /),id='m_norm')
         rho_diag=0.0_dp
         m_norm=0.0_dp
      end if
-     !print *,'ciao',iproc     
      !substitution of the calling routine
      
      call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,&
           hgrids,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
+
+     !here rho_diag is already the total potential originated from rho_diag
+
+!here rhopot is (still) the old density whereas rho_diag contains the full V_HXC
+     call get_spinorial_potential(n01*n02*n3d,rho_diag,m_norm,rhopot)
      !print *,'Psolver R',eh,exc,vxc
      !open(17)
-     idx=1
-     do i3=1,n3d
-        do i2=1,n02
-           do i1=1,n01
-              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5_dp
-              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5_dp
-              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20_dp)then
-                 !                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
-                 factor=rhos/m_norm(i1,i2,i3)
-              else
-                 factor=0.0_dp
-              end if
-              !write(17,'(3(i0,1x),5(1pe12.5))')i1,i2,i3,rhon,rhos,rho_diag(i1,i2,i3,1),rho_diag(i1,i2,i3,2),factor
-              rhopot(idx)=rhon+rhopot(idx+3*offs)*factor
-              rhopot(idx+offs)=rhopot(idx+offs)*factor
-              rhopot(idx+2*offs)=-rhopot(idx+2*offs)*factor
-              rhopot(idx+3*offs)=rhon-rhopot(idx+3*offs)*factor
-              idx=idx+1
-              !                 rhopot(i1,i2,i3,1)=rhon+rhopot(i1,i2,i3,4)*factor
-              !                 rhopot(i1,i2,i3,2)=rhopot(i1,i2,i3,2)*factor
-              !                 rhopot(i1,i2,i3,3)=-rhopot(i1,i2,i3,3)*factor
-              !                 rhopot(i1,i2,i3,4)=rhon-rhopot(i1,i2,i3,4)*factor
-           end do
-        end do
-     end do
+  
+!!$     idx=1
+!!$!rhodiag_to_rho
+!!$     offs=n01*n02*n3d 
+!!$     do i3=1,n3d
+!!$        do i2=1,n02
+!!$           do i1=1,n01
+!!$              rhon=(rho_diag(i1,i2,i3,1)+rho_diag(i1,i2,i3,2))*0.5_dp
+!!$              rhos=(rho_diag(i1,i2,i3,1)-rho_diag(i1,i2,i3,2))*0.5_dp
+!!$              if(m_norm(i1,i2,i3)>rhopot(idx)*4.0e-20_dp)then
+!!$                 !                 if(m_norm(i1,i2,i3)>rhopot(i1,i2,i3,1)*4.0e-20)then
+!!$                 factor=rhos/m_norm(i1,i2,i3)
+!!$              else
+!!$                 factor=0.0_dp
+!!$              end if
+!!$              !write(17,'(3(i0,1x),5(1pe12.5))')i1,i2,i3,rhon,rhos,rho_diag(i1,i2,i3,1),rho_diag(i1,i2,i3,2),factor
+!!$              rhopot(idx)=rhon+rhopot(idx+3*offs)*factor
+!!$              rhopot(idx+offs)=rhopot(idx+offs)*factor
+!!$              rhopot(idx+2*offs)=-rhopot(idx+2*offs)*factor
+!!$              rhopot(idx+3*offs)=rhon-rhopot(idx+3*offs)*factor
+!!$              idx=idx+1
+!!$              !                 rhopot(i1,i2,i3,1)=rhon+rhopot(i1,i2,i3,4)*factor
+!!$              !                 rhopot(i1,i2,i3,2)=rhopot(i1,i2,i3,2)*factor
+!!$              !                 rhopot(i1,i2,i3,3)=-rhopot(i1,i2,i3,3)*factor
+!!$              !                 rhopot(i1,i2,i3,4)=rhon-rhopot(i1,i2,i3,4)*factor
+!!$           end do
+!!$        end do
+!!$     end do
+!!$!end rhodiag_to_rho
      !close(17)
      call f_free(rho_diag)
      call f_free(m_norm)
@@ -632,3 +638,128 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hgrids,&
   call f_release_routine()
 
 END SUBROUTINE PSolverNC
+
+subroutine get_local_magnetization(ndim,rho,m_norm,rho_diag)
+  use module_defs, only: dp
+  implicit none
+  integer, intent(in) :: ndim!< size of the array
+  real(dp), dimension(ndim,4), intent(in) :: rho !<density spinorial components
+  real(dp), dimension(ndim), intent(out) :: m_norm !< local magnetization
+  real(dp), dimension(ndim,2), intent(out) :: rho_diag !<local collinear components of the density
+  !local variables
+  integer :: idx
+
+  do idx=1,ndim
+     !rho_diag(i1,i2,i3,1)=rhopot(i1,i2,i3,1)
+     !here the norm should be performed with the correct metric
+     m_norm(idx)=sqrt(rho(idx,2)**2+rho(idx,3)**2+rho(idx,4)**2)
+     rho_diag(idx,1)=(rho(idx,1)+m_norm(idx))*0.5_dp+1.00e-20_dp
+     rho_diag(idx,2)=(rho(idx,1)-m_norm(idx))*0.5_dp+1.00e-20_dp
+  end do
+  !end rho_to_rhodiag
+end subroutine get_local_magnetization
+
+subroutine get_spinorial_potential(ndim,pot_diag,m_norm,rhopot)
+  use module_defs, only: dp
+  implicit none
+  integer, intent(in) :: ndim!< size of the array
+  real(dp), dimension(ndim,2), intent(in) :: pot_diag !<local collinear XC
+  real(dp), dimension(ndim), intent(in) :: m_norm !< local magnetization
+  real(dp), dimension(ndim,4), intent(inout) :: rhopot !<density spinorial components
+  !local variables
+  integer :: idx
+  real(dp) :: rhon,rhos,factor
+
+  do idx=1,ndim
+     rhon=(pot_diag(idx,1)+pot_diag(idx,2))*0.5_dp
+     rhos=(pot_diag(idx,1)-pot_diag(idx,2))*0.5_dp
+     if(m_norm(idx)>rhopot(idx,1)*4.0e-20_dp)then
+        factor=rhos/m_norm(idx)
+     else
+        factor=0.0_dp
+     end if
+     rhopot(idx,1)=rhon+rhopot(idx,4)*factor
+     rhopot(idx,2)=rhopot(idx,2)*factor
+     rhopot(idx,3)=-rhopot(idx,3)*factor
+     rhopot(idx,4)=rhon-rhopot(idx,4)*factor
+  end do
+end subroutine get_spinorial_potential
+
+subroutine atomic_magnetic_moments(bitp,nrhodim,nat,rxyz,radii,rho,rho_at,m_at)
+  use module_defs, only: gp,dp
+  use box
+  use f_functions
+  use dynamic_memory
+  use f_ternary
+  implicit none
+  integer, intent(in) :: nat,nrhodim
+  real(gp), dimension(nat), intent(in) :: radii
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(dp), dimension(nrhodim,4), intent(in) :: rho
+  type(box_iterator) :: bitp !<iterator over the potential degrees of freedom
+  real(dp), dimension(nat), intent(out) :: rho_at
+  real(dp), dimension(3,nat), intent(out) :: m_at
+  !local variables
+  integer :: iat
+  real(dp) :: r,rat_tmp,smearing
+  type(f_function) :: func
+  real(dp), dimension(3) :: mat_tmp
+  call f_routine(id='atomic_magnetic_moments')
+  !iterate over the atoms
+
+  do iat=1,nat
+     !iterate on the cell, centering of the atoms
+     mat_tmp=0.0_dp
+     rat_tmp=0.0_dp
+     func=f_function_new(f_erf,scale=1.0_dp)
+     do while(box_next_point(bitp))
+        r=distance(bitp%mesh,bitp%rxyz,rxyz(:,iat))
+        !smearing=0.5_gp*(1.0_dp-eval(func,r-radii(iat)))*bitp%mesh%volume_element
+        smearing=.if. (r<radii(iat)) .then. bitp%mesh%volume_element .else. 0.0_gp
+        rat_tmp=rat_tmp+smearing*rho(bitp%ind,1)
+        mat_tmp(1)=mat_tmp(1)+smearing*rho(bitp%ind,2)
+        mat_tmp(2)=mat_tmp(2)+smearing*rho(bitp%ind,3)
+        mat_tmp(3)=mat_tmp(3)+smearing*rho(bitp%ind,4)
+     end do
+     m_at(:,iat)=mat_tmp
+     rho_at(iat)=rat_tmp
+  end do
+  call f_release_routine()
+end subroutine atomic_magnetic_moments
+
+subroutine atomic_magnetic_field(bitp,npotdim,nat,rxyz,radii,B_at,pot)
+  use module_defs, only: gp,dp
+  use box
+  use f_functions
+  use dynamic_memory
+  use f_ternary
+  implicit none
+  integer, intent(in) :: nat,npotdim
+  real(gp), dimension(nat), intent(in) :: radii
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  real(dp), dimension(3,nat), intent(in) :: B_at
+  real(dp), dimension(npotdim,4), intent(inout) :: pot
+  type(box_iterator) :: bitp !<iterator over the potential degrees of freedom
+  !local variables
+  integer :: iat
+  real(dp) :: r,smearing
+  type(f_function) :: func
+
+  call f_routine(id='atomic_magnetic_field')
+  !iterate over the atoms
+
+  do iat=1,nat
+     !iterate on the cell, centering of the atoms
+     func=f_function_new(f_erf,scale=radii(iat))
+     do while(box_next_point(bitp))
+        r=distance(bitp%mesh,bitp%rxyz,rxyz(:,iat))
+        !smearing=1.0_dp-eval(func,r)
+        smearing=.if. (r<radii(iat)) .then. 1.0_gp .else. 0.0_gp
+        pot(bitp%ind,1)=pot(bitp%ind,1)+B_at(3,iat)*smearing
+        pot(bitp%ind,2)=pot(bitp%ind,2)+B_at(1,iat)*smearing
+        pot(bitp%ind,3)=pot(bitp%ind,3)-B_at(2,iat)*smearing
+        pot(bitp%ind,4)=pot(bitp%ind,4)-B_at(3,iat)*smearing
+     end do
+  end do
+  call f_release_routine()
+end subroutine atomic_magnetic_field

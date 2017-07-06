@@ -1,3 +1,6 @@
+IMPORTANT NOTE: The following describes the compilation for the package bigdft-suite.
+                However exactly the same procedure can be used to compile other suites, e.g. chess-suite.
+
 bigdft-suite is a suite of different packages mainly used to build the bigdft executable.
 
 jhbuild.py from the gnome project is used to manage the configure scripts of each package.
@@ -5,25 +8,35 @@ bigdft-suite needs only an optimised lapack library and a fortran compiler with 
 
 The main script to use is Installer.py which is a driver for jhbuild.
 
-When uncompacting bigdft-suite: tar xzvf bigdft-suite.tar.gz
-A bigdft-suite directory is created.
+Installation steps:
 
-mkdir build; cd build
+1) Uncompacting bigdft-suite: tar xzvf bigdft-suite.tar.gz
+   A bigdft-suite directory will be created, which we will from now on denote as <src-dir>
 
-Typing ../bigdft-suite/Installer.py help gives the help.
+2) Create a build directory, which we will from now on denote as <build-dir>. Change to this directory 
+   To get the help of the install script, type <src-dir>/Installer.py help 
 
-To indicate the required configuration, you can use the command-line option "-c" 
-or specify with the option "-f" a rcfile, either from bigdft-suite/rcfiles/  or from CWD.
-By default, Installer.py is trying to find a file rcfiles/`*hostname`*.rc if it exists.
+3) You can compile either using the command-line option (use "-c") or using a rc file (use "-f").
+   Example rc files can be taken from <src-dir>/rcfiles/ or from CWD.
+   By default, Installer.py is trying to find a file rcfiles/`*hostname`*.rc if it exists.
+   a) If you are using the -f option, type
+        <src-dir>/Installer.py build -f <rcfile>
+   b) If you are using the -c option, type
+        <src-dir>/Installer.py build -c FC="<fc>" CC="gc" FCFLAGS="<fcflags>" --with-ext-linalg="<blas-lapack>"
 
-At the end of the build, Installer.py will create a buildrc file in the current directory which will be used.
+        You must adapt the following according to your system:
+        <fc>: Your Fortran MPI compiler (e.g. mpifort)
+        <gc>: Your C compiler (e.g. gcc)
+        <fcflags>: Your Fortran compilation flags (e.g. -O2)
+        <blas-lapack>: The linking line to your BLAS and LAPACK libraries (e.g. -llapack -lblas)
 
-If everything goes smmothly, the command
+4) The installation will create the following directories:
+   <build-dir>/install/lib/: Contains the libraries with which you can link
+   <build-dir>/install/include/: Contains the .mod files that you need to interface CheSS with another code
+   
+   Additionally, Installer.py will create a buildrc file in the current build directory, which you can use for forthcoming compilations
 
-../bigdft-suite/Installer.py build 
-
-should therefore install the BigDFT suite in the install/bin directory of the build tree.
-
+Hint:
 In some cases, you may need also to specify the LD_LIBRARY_PATH as
 export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:'location-of-your-build'/install/lib to specify mainly the location of libyaml.so
 

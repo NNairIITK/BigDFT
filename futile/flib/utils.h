@@ -14,7 +14,7 @@
 
 #define FFUNC_MAX_ARGS 3
 
-typedef void (*FFunc_void)(void);
+#include <addresses.h>
 
 typedef void (*FFunc_arg)(void *a);
 typedef void (*FFunc_str)(void *a, int ln);

@@ -1235,7 +1235,7 @@ module FDder
 
       rhores2=0.d0
       !$omp parallel do default(shared) &
-      !$omp private(i1,i2,i3,j,ii, dx,dy,dz,res,rho)&
+      !$omp private(i1,i2,i3,j,ii, dx,dy,dz,res,rho,tmp)&
       !$omp reduction(+:rhores2)
       do i3=1,n03
          do i2=1,n02
@@ -1329,6 +1329,10 @@ module FDder
                tmp(3)=dz/hz
 
                !retrieve the previous treatment
+               ! To be activate (and comment the dotp line) to work properly.
+               !res = dlogeps(1,i1,i2,i3)*tmp(1) + &
+               !     dlogeps(2,i1,i2,i3)*tmp(2) + dlogeps(3,i1,i2,i3)*tmp(3)
+
                res = dotp(mesh,dlogeps(1,i1,i2,i3),tmp)
                res = res*oneofourpi
                rho=rhopol(i1,i2,i3)
@@ -1342,7 +1346,6 @@ module FDder
          end do
       end do
       !$omp end parallel do
-
     end subroutine update_rhopol
 
     !subroutine Apply_GPe_operator(nord,geocode,ndims,hgrids,eps,pot,a_pot,work)

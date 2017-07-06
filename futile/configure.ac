@@ -17,7 +17,8 @@ AC_CONFIG_HEADERS(config.h)
 AC_CONFIG_MACRO_DIR([config/m4])
 
 dnl Init something, don't know exactly what...
-AM_INIT_AUTOMAKE([-Wno-portability])
+dnl AM_INIT_AUTOMAKE([-Wno-portability, subdir-objects])
+AM_INIT_AUTOMAKE(-Wno-portability)
 dnl To keep the object files in the same structure as the source files (pb does not work with libABINIT)
 dnl AM_INIT_AUTOMAKE([--warnings=no-portability, subdir-objects])
 
@@ -161,6 +162,8 @@ if test $ax_build_dynamic != "yes" ; then
   LIB_FUTILE_LIBS="$LIB_FUTILE_LIBS $LIBS_EXT_DEPS $LIBS"
 fi
 AC_SUBST(LIB_FUTILE_LIBS)
+LIB_DICTS_LIBS=-ldicts
+AC_SUBST(LIB_DICTS_LIBS)
 
 dnl Test for the developers' documentation.
 AC_CHECK_PROG(ac_have_doxygen, [doxygen], [yes], [no])
@@ -193,22 +196,25 @@ dnl Give the name of file.in to transform to file
 AC_CONFIG_FILES([
 Makefile
 futile.pc
+libdicts.pc
 futile_environment.sh
 futilevars.sh
 config/Doxyfile
+dicts/Makefile
+dicts/futile_cst.h
 doc/Makefile
 doc/Doxyfile
 flib/Makefile
 flib/f_utils.inc
 wrappers/Makefile
 c-bindings/Makefile
-c-bindings/futile_cst.h
 src/configure.inc
 src/f_memcheck
 src/Makefile
 src/python/Makefile
 src/python/futile/Makefile
 tests/Makefile
+tests/dicts/Makefile
 tests/fft/Makefile
 tests/flib/Makefile
 tests/wrappers/Makefile

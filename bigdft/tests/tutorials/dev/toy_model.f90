@@ -26,6 +26,7 @@ program wvl
   use communications, only: transpose_v, untranspose_v
   use rhopotential, only: full_local_potential
   use module_razero
+  use locregs_init, only: lr_set
   implicit none
 
   type(input_variables)             :: inputs
@@ -95,16 +96,19 @@ program wvl
   call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
   Lzd=default_lzd()
   call lzd_set_hgrids(Lzd,(/inputs%hx,inputs%hy,inputs%hz/))
-  call system_size(atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult, &
-       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
-  call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
-       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
+  call lr_set(lzd%Glr,iproc,GPU%OCLconv,.true.,inputs%crmult,inputs%frmult,&
+       Lzd%hgrids,atoms%astruct%rxyz,atoms,.true.,.false.)
+!!$  call system_size(atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult, &
+!!$       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),GPU%OCLconv,Lzd%Glr,shift)
+!!$  call print_atoms_and_grid(Lzd%Glr, atoms, atoms%astruct%rxyz, shift, &
+!!$       & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3))
+!!$
+!!$  ! Setting up the wavefunction representations (descriptors for the
+!!$  !  compressed form...).
+!!$  call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
+!!$       & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,.true.,Lzd%Glr)
+!!$  call print_wfd(Lzd%Glr%wfd)
 
-  ! Setting up the wavefunction representations (descriptors for the
-  !  compressed form...).
-  call createWavefunctionsDescriptors(iproc,inputs%hx,inputs%hy,inputs%hz, &
-       & atoms,atoms%astruct%rxyz,inputs%crmult,inputs%frmult,.true.,Lzd%Glr)
-  call print_wfd(Lzd%Glr%wfd)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)
 
   call check_linear_and_create_Lzd(iproc,nproc,inputs%linear,Lzd,atoms,orbs,inputs%nspin,atoms%astruct%rxyz)

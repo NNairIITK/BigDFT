@@ -7,40 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
-!> Create the localisation region information for cubic code
-subroutine create_Glr(geocode,n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i,wfd,bounds,Glr)
-  use locregs
-  implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: n1,n2,n3,nfl1,nfl2,nfl3,nfu1,nfu2,nfu3,n1i,n2i,n3i
-  type(wavefunctions_descriptors), intent(in) :: wfd
-  type(convolutions_bounds), intent(in) :: bounds
-  type(locreg_descriptors), intent(out) :: Glr
-
-  Glr%geocode=geocode
-  Glr%ns1=0
-  Glr%ns2=0
-  Glr%ns3=0
-  Glr%d%n1=n1
-  Glr%d%n2=n2
-  Glr%d%n3=n3
-  Glr%d%nfl1=nfl1
-  Glr%d%nfl2=nfl2
-  Glr%d%nfl3=nfl3
-  Glr%d%nfu1=nfu1
-  Glr%d%nfu2=nfu2
-  Glr%d%nfu3=nfu3
-  Glr%d%n1i=n1i
-  Glr%d%n2i=n2i
-  Glr%d%n3i=n3i
-  Glr%wfd=wfd !it just associates the pointers
-  if (geocode == 'F') then
-     Glr%bounds=bounds
-  end if
-END SUBROUTINE create_Glr
-
-
 !> Determine a set of localisation regions from the centers and the radii.
 !! cut in cubes the global reference system
 !!subroutine determine_locreg(nlr,cxyz,locrad,hx,hy,hz,Glr,Llr)

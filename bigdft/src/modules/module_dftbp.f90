@@ -128,7 +128,7 @@ end subroutine
 subroutine create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     use module_base
     use yaml_output
-    use module_types
+    use module_types, only: atomic_structure
     !parameter
     integer, intent(in) :: policy
     integer, intent(in) :: nat

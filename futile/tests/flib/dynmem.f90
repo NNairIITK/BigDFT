@@ -18,6 +18,7 @@ subroutine test_dynamic_memory()
    use metadata_interfaces, only: getdp2
    use yaml_strings
    use f_precisions
+   use exception_callbacks
    use f_utils, only: f_time,f_zero
    implicit none
 
@@ -53,7 +54,7 @@ subroutine test_dynamic_memory()
    !$ integer :: ierror
    !$ integer(kind=8) :: lock
    !$ integer, external :: omp_get_thread_num
-   
+
    !$omp threadprivate(ab)
 
    ithread=0
@@ -93,7 +94,7 @@ subroutine test_dynamic_memory()
    call yaml_map('Time for setzero',real(it1-it0,f_double)*1.d-9)
    call yaml_map('Total sum',sum(abs(i1_ptr)))
 
-   
+
    call f_free_ptr(i1_ptr)
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
@@ -303,7 +304,7 @@ call f_free(weight)
      !then free array
      call f_free_str_ptr(len(str_ptr),str_ptr)
 
-     
+
     call f_release_routine()
     call f_routine(id='SubCase 3')
       weight    =f_malloc((/1.to.1,1.to.1,-1.to.-1/),id='weight')
@@ -502,7 +503,7 @@ call f_free(weight)
        get_add_str=f_loc(array(1))
      end function get_add_str
 
-     !>routine to retrieve the list element from a string which is 
+     !>routine to retrieve the list element from a string which is
      !! compliant with yaml standard
      subroutine retrieve_list_element(string)
        use yaml_parse, only: yaml_parse_from_string
@@ -557,7 +558,7 @@ call f_free(weight)
        call yaml_map('Array allocation staus',ierror)
 
      end subroutine allocate_array
-     
+
      function dummy_init(n) result(dummy)
        implicit none
        integer, intent(in) :: n
@@ -568,7 +569,7 @@ call f_free(weight)
        implicit none
        integer, intent(in) :: n
        type(dummy_type), intent(out) :: dummy
-       
+
        dummy%i=n
        dummy%ptr=f_malloc_ptr(n,id='ptr')
        dummy%ptr=dble(n)
@@ -583,7 +584,7 @@ end subroutine test_dynamic_memory
 
 
 
-!> This subroutine performs random allocations and operations on different arrays 
+!> This subroutine performs random allocations and operations on different arrays
 !! in order to verify if the memory statis is in agreement with the process usage
 ! subroutine verify_heap_allocation_status()
 !   use yaml_output
@@ -592,7 +593,7 @@ end subroutine test_dynamic_memory
 !   implicit none
 !   !local variables
 !   logical, parameter :: traditional=.true.
-!   character(len=*), parameter :: subname='verify_heap_allocation_status' 
+!   character(len=*), parameter :: subname='verify_heap_allocation_status'
 !   logical :: all
 !   integer :: maxnum,maxmem,i,nall,ndeall,nsize,ibuf
 !   real :: tt,total_time,t0,t1,tel
@@ -602,17 +603,17 @@ end subroutine test_dynamic_memory
 !   end type to_alloc
 !   type(to_alloc), dimension(:), allocatable :: pool
 !   call f_routine(id=subname)
-! 
+!
 !   !decide total cpu time of the run (seconds)
 !   total_time=30.e0
-! 
+!
 !   !maximum simultaenously allocated arrays
 !   maxnum=1000
-!   
+!
 !   !maximum value of memory to be used, in MB
 !   maxmem=100
-! 
-!   !size of each chunk 
+!
+!   !size of each chunk
 !   nsize=int((int(maxmem,kind=8)*1024*1024/8)/maxnum)
 !   !start timer
 !   call cpu_time(t0)
@@ -623,15 +624,15 @@ end subroutine test_dynamic_memory
 !   do i=1,maxnum
 !      nullify(pool(i)%buffer)
 !   end do
-! 
+!
 !   checksum=0.d0
 !   nall=0
 !   ndeall=0
 !   do while (tel < total_time)
-! 
+!
 !      !extract the allocation action
 !      call random_number(tt)
-!      all= (tt < 0.5e0) 
+!      all= (tt < 0.5e0)
 !      ibuf=-1 !failsafe
 !      !find the first unallocated
 !      if (all) then
@@ -678,18 +679,18 @@ end subroutine test_dynamic_memory
 !      call cpu_time(t1)
 !      tel=t1-t0
 !   end do
-! 
+!
 !   !deallocate all the residual
 !   do i=1,maxnum
 !      call f_free_ptr(pool(i)%buffer)
 !   end do
-! 
+!
 !   deallocate(pool)
-! 
+!
 !   call yaml_map('Total elapsed time',tel)
 !   call yaml_map('Allocations, deallocations',[nall,ndeall])
 !   call yaml_map('Checksum value',checksum)
-! 
+!
 !   call f_release_routine()
 ! end subroutine verify_heap_allocation_status
 
@@ -706,7 +707,7 @@ subroutine test_pointer_association()
   !this should provide a pointer with the correct boundaries that will have to point into the same workspace
   !however this should only work for rank-one pointers
 !!$  work1=f_malloc_ptr(lb.to.lu,id='work1',workspace=w)
-  
+
   !then work1 should be used normally
   call yaml_map('work1 associated',associated(work1))
   call yaml_mapping_open('Work1 bounds and sizes')
@@ -718,7 +719,7 @@ subroutine test_pointer_association()
   !and also freed, but with the corresponding workspace.
   !for example this would not work, as workspace is not accessible
   !this should crash if workspace is not provided
-  call f_free_ptr(work1) 
+  call f_free_ptr(work1)
 !!$  !then the correct behaviour would be to do
 !!$  call f_free_ptr(work1,workspace=w)
 !!$  !but it might create defragmentation, therefore the best might be to clean the workspace
@@ -736,8 +737,8 @@ end subroutine test_pointer_association
 !   use dictionaries, dict_char_len=> max_field_length
 !   type(dictionary), pointer :: dict2,dictA
 !   character(len=dict_char_len) :: routinename
-! 
-!   call yaml_comment('Sandbox')  
+!
+!   call yaml_comment('Sandbox')
 !    !let used to imagine a routine-tree creation
 !    nullify(dict2)
 !    call dict_init(dictA)
@@ -752,59 +753,59 @@ end subroutine test_pointer_association
 !    call add_routine(dict2,'Routine C')
 !    call close_routine(dict2,'Routine C')
 !    call add_routine(dict2,'Routine D')
-! 
+!
 !    call open_routine(dict2)
 !    call add_routine(dict2,'SubCase 1')
 !    call close_routine(dict2,'SubCase 1')
-! 
+!
 !    call add_routine(dict2,'Subcase 2')
 !    call open_routine(dict2)
 !    call add_routine(dict2,'SubSubCase1')
 !    call close_routine(dict2,'SubSubCase1')
-! 
+!
 !    call close_routine(dict2,'SubSubCase1')
-!    
+!
 ! !   call close_routine(dict2)
 !    call add_routine(dict2,'SubCase 3')
 !    call close_routine(dict2,'SubCase 3')
 !    call close_routine(dict2,'SubCase 3')
-! 
+!
 !    call add_routine(dict2,'Routine E')
 !    call close_routine(dict2,'Routine E')
-! 
+!
 !    call add_routine(dict2,'Routine F')
 ! !   call yaml_comment('Look Below',hfill='v')
-! 
+!
 !    call yaml_mapping_open('Test Case before implementation')
 !    call yaml_dict_dump(dictA)
 !    call yaml_mapping_close()
 ! !   call yaml_comment('Look above',hfill='^')
-! 
+!
 !    call dict_free(dictA)
-! 
+!
 !  contains
-! 
+!
 !    subroutine open_routine(dict)
 !      implicit none
 !      type(dictionary), pointer :: dict
 !      !local variables
 !      integer :: ival
 !      type(dictionary), pointer :: dict_tmp
-! 
+!
 !      !now imagine that a new routine is created
 !      ival=dict_len(dict)-1
 !      routinename=dict//ival
-! 
+!
 !      !call yaml_map('The routine which has to be converted is',trim(routinename))
-! 
+!
 !      call dict_remove(dict,ival)
-! 
+!
 !      dict_tmp=>dict//ival//trim(routinename)
 !      dict => dict_tmp
 !      nullify(dict_tmp)
-! 
+!
 !    end subroutine open_routine
-! 
+!
 !    subroutine close_routine(dict,name)
 !      implicit none
 !      type(dictionary), pointer :: dict
@@ -812,23 +813,23 @@ end subroutine test_pointer_association
 !      !local variables
 !      logical :: jump_up
 !      type(dictionary), pointer :: dict_tmp
-! 
-!      if (.not. associated(dict)) stop 'ERROR, routine not associated' 
-! 
+!
+!      if (.not. associated(dict)) stop 'ERROR, routine not associated'
+!
 !      !       call yaml_map('Key of the dictionary',trim(dict%data%key))
-! 
+!
 !      if (present(name)) then
 !         !jump_up=(trim(dict%data%key) /= trim(name))
 !         jump_up=(trim(routinename) /= trim(name))
 !      else
 !         jump_up=.true.
 !      end if
-! 
+!
 !      !       call yaml_map('Would like to jump up',jump_up)
 !      if (jump_up) then
 !         !now the routine has to be closed
 !         !we should jump at the upper level
-!         dict_tmp=>dict%parent 
+!         dict_tmp=>dict%parent
 !         if (associated(dict_tmp%parent)) then
 !            nullify(dict)
 !            !this might be null if we are at the topmost level
@@ -836,18 +837,18 @@ end subroutine test_pointer_association
 !         end if
 !         nullify(dict_tmp)
 !      end if
-! 
+!
 !      routinename=repeat(' ',len(routinename))
 !    end subroutine close_routine
-! 
+!
 !    subroutine add_routine(dict,name)
 !      implicit none
 !      type(dictionary), pointer :: dict
 !      character(len=*), intent(in) :: name
-! 
+!
 !      routinename=trim(name)
 !      call add(dict,trim(name))
-! 
+!
 !    end subroutine add_routine
-! 
+!
 ! end subroutine dynmem_sandbox

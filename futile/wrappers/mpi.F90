@@ -99,9 +99,13 @@ module wrapper_MPI
      module procedure mpigather_c1li2
   end interface mpigather
 
+  interface mpigathered
+     module procedure mpigathered_d2
+  end interface mpigathered
+
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0,mpibcast_c0
-     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1,mpibcast_i2
+     module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1,mpibcast_i2, mpibcast_i3
   end interface mpibcast
 
   interface mpiscatter
@@ -136,7 +140,6 @@ module wrapper_MPI
   interface mpiaccumulate
      module procedure mpiaccumulate_d0
   end interface mpiaccumulate
-
 
   interface mpitypesize
     module procedure mpitypesize_d0, mpitypesize_d1, mpitypesize_i0, mpitypesize_l0
@@ -1526,6 +1529,91 @@ contains
     include 'alltoallv-inc.f90'
   end subroutine mpialltoallv_double
 
+  function mpireduce_i0(sendbuf,op,root,comm) result(recv)
+    implicit none
+    integer(f_integer), intent(in) :: sendbuf
+    integer, intent(in) :: op
+    integer, intent(in), optional :: comm,root
+    integer(f_integer) :: recv
+    !local variables
+    integer :: root_,count,ierr,comm_
+    count=1
+
+    root_=0
+    if (present(root)) root_=root
+    comm_=mpiworld()
+    if(present(comm))comm_=comm
+    recv=0
+    call MPI_REDUCE(sendbuf,recv,count,mpitype(sendbuf),op,comm_,ierr)
+    if (ierr /=0) then
+       call f_err_throw('An error in calling to MPI_REDUCE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end function mpireduce_i0
+
+  !> retrieve the buffers of each of the tasks, allocate a memory space in root
+  !! as provide the pointer to this memory space
+  function mpigathered_d2(sendbuf,root,comm) result(ptr)
+    use f_utils
+    use dynamic_memory
+    implicit none
+    real(f_double), dimension(:,:), intent(in) :: sendbuf
+    integer, intent(in), optional :: comm,root
+    real(f_double), dimension(:), pointer :: ptr
+    !local variables
+    integer :: count,root_,jproc,iproc,nproc,comm_,ierr
+    integer, dimension(1) :: ncount_
+    integer, dimension(:), allocatable :: ncounts,ndispls
+    real(f_double), dimension(:,:), pointer :: recvbuf
+
+    ncount_(1)=size(sendbuf)   
+    iproc=mpirank(comm)
+    nproc=mpisize(comm)
+   
+    ncounts=f_malloc0(nproc,id='ncounts')
+    ndispls=f_malloc(nproc,id='ndispls')
+
+    call mpigather(sendbuf=ncount_,recvbuf=ncounts,root=root,comm=comm)
+
+    ndispls(1)=0
+    do jproc=2,nproc
+       ndispls(jproc)=ndispls(jproc-1)+ncounts(jproc-1)
+    end do
+    root_=0
+    if (present(root)) root_=root
+    comm_=mpiworld()
+    if(present(comm))comm_=comm
+
+    !allocate the pointer with the good size
+    if (iproc == root_) then
+       ptr=f_malloc_ptr(sum(ncounts),id='ptr')
+    else
+       ptr=f_malloc_ptr(1,id='ptr')
+    end if
+
+    if (nproc==1) then
+       call f_memcpy(src=sendbuf,dest=ptr)
+    else
+       !then perform the call to the gatherv routine
+       call MPI_GATHERV(sendbuf,ncount_(1),mpitype(sendbuf),&
+            ptr,ncounts,ndispls,mpitype(recvbuf),&
+            root_,comm_,ierr)
+
+       if (ierr /=0) then
+          call f_err_throw('An error in calling to MPI_GATHERV occured',&
+               err_id=ERR_MPI_WRAPPERS)
+          return
+       end if
+    end if
+
+    if (iproc /= root_) call f_free_ptr(ptr)
+
+    call f_free(ncounts,ndispls)
+
+  end function mpigathered_d2
+
 
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
@@ -1831,6 +1919,19 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i2
+
+  subroutine mpibcast_i3(buffer,root,comm,check,maxdiff)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    use f_utils, only: f_zero
+    implicit none
+    integer, dimension(:,:,:), intent(inout) ::  buffer
+    integer, intent(out), optional :: maxdiff
+    integer, dimension(:), allocatable :: array_diff
+    include 'bcast-decl-arr-inc.f90'
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_i3
 
   subroutine mpibcast_d1(buffer,root,comm,check,maxdiff)
     use dynamic_memory
@@ -2489,11 +2590,8 @@ contains
        end if
     end if
 
-    if (present(window_)) then
-       window_ => window
-    end if
     window = mpiwindow(sendcount,sendbuf,comm)
-
+    if (present(window_)) window_ => window
 
     call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 

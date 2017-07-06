@@ -1470,7 +1470,6 @@ program memguess
       !call wtxyz('posopt',0.d0,rxyz,atoms,trim(comment))
    end if
 
-
    call print_dft_parameters(runObj%inputs,runObj%atoms)
 
    !Time initialization
@@ -1553,14 +1552,14 @@ program memguess
       ! TO BE CORRECTED !!!!!
       if (.not.associated(ref_frags)) allocate(ref_frags(runObj%inputs%frag%nfrag_ref))
       call take_psi_from_file(filename_wfn,runObj%inputs%frag, &
-           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%rst%KSwfn%Lzd%Glr, &
+           & runObj%rst%KSwfn%Lzd%hgrids,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%atoms,runObj%atoms%astruct%rxyz,runObj%rst%KSwfn%orbs,runObj%rst%KSwfn%psi,&
            & iorbp,export_wf_ispinor,ref_frags)
       call filename_of_iorb(.false.,"wavefunction",runObj%rst%KSwfn%orbs,iorbp, &
            & export_wf_ispinor,filename_wfn,iorb_out)
 
       call plot_wf(.false.,filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
-           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,runObj%atoms%astruct%rxyz, &
+           & runObj%rst%KSwfn%Lzd%hgrids,runObj%atoms%astruct%rxyz, &
            & runObj%rst%KSwfn%psi((runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_c+&
            & 7*runObj%rst%KSwfn%Lzd%Glr%wfd%nvctr_f) * (export_wf_ispinor - 1) + 1:))
       deallocate(ref_frags)
@@ -1570,7 +1569,7 @@ program memguess
    if (exportproj) then
       call free_DFT_PSP_projectors(nlpsp)
       DistProjApply = .true.
-      call createProjectorsArrays(runObj%rst%KSwfn%Lzd%Glr, &
+      call createProjectorsArrays(iproc,nproc,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%atoms%astruct%rxyz,runObj%atoms,runObj%rst%KSwfn%orbs, &
            & runObj%inputs%frmult,runObj%inputs%frmult, &
            & runObj%rst%KSwfn%Lzd%hgrids(1),runObj%rst%KSwfn%Lzd%hgrids(2), &
@@ -1586,8 +1585,7 @@ program memguess
 !!$      ! Doing this is buggy.
 !!$      runObj%rst%KSwfn%Lzd%Glr%wfd = nlpsp%pspd(iat)%plr%wfd
       call plot_wf(.false.,filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
-           & runObj%rst%KSwfn%Lzd%hgrids(1),runObj%rst%KSwfn%Lzd%hgrids(2),runObj%rst%KSwfn%Lzd%hgrids(3),&
-           & runObj%atoms%astruct%rxyz, nlpsp%proj(1:))
+           & runObj%rst%KSwfn%Lzd%hgrids,runObj%atoms%astruct%rxyz, nlpsp%proj(1:))
    end if
 
    if (GPUtest) then
@@ -1719,6 +1717,7 @@ END PROGRAM memguess
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
    use module_base
    use module_types
+   use locregs
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
@@ -2456,7 +2455,7 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
 end subroutine take_proj_from_file
 
 !> Extract the compressed wavefunction from the given file
-subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
+subroutine take_psi_from_file(filename,in_frag,hgrids,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
    use module_interfaces, only: initialize_linear_from_file
@@ -2465,9 +2464,10 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    use module_input_keys, only: wave_format_from_filename
    use public_enums
    use bounds, only: ext_buffers_coarse
+   use locregs
    implicit none
    integer, intent(inout) :: iorbp, ispinor
-   real(gp), intent(in) :: hx,hy,hz
+   real(gp), dimension(3), intent(in) :: hgrids
    character(len=*), intent(in) :: filename
    type(locreg_descriptors), intent(in) :: lr
    type(atoms_data), intent(in) :: at
@@ -2541,9 +2541,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
          ! need to change the lr info so relates to locregs not global
          ! need to copy Glr and hgrids into Lzd
          Lzd%Glr = lr
-         Lzd%hgrids(1) = hx
-         Lzd%hgrids(2) = hy
-         Lzd%hgrids(3) = hz
+         Lzd%hgrids = hgrids
          orblist = iorbp
 
          i = index(filename, "-",back=.true.)+1
@@ -2567,7 +2565,8 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
       !@todo geocode should be passed in the localisation regions descriptors
       if (in_name /= 'min') then
          call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,lr%d%n1,lr%d%n2,lr%d%n3, &
-              & hx,hy,hz,at,lr%wfd,rxyz_file,rxyz,psi(1,ispinor),eval_fake,psifscf)
+              & hgrids(1),hgrids(2),hgrids(3),at,lr%wfd,rxyz_file,rxyz,&
+              & psi(1,ispinor),eval_fake,psifscf)
       else
          !call readonewave_linear(99, (iformat == WF_FORMAT_PLAIN),iorbp,0,&
          !     lr%d%n1,lr%d%n2,lr%d%n3,hx,hy,hz,at,Lzd%llr(1),rxyz_file,rxyz,&
@@ -2593,7 +2592,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
 
    else if (iformat == WF_FORMAT_ETSF) then
       call read_one_wave_etsf(0,filename,iorbp,0,orbs%nspinor,lr%d%n1,lr%d%n2,lr%d%n3,&
-           & hx,hy,hz,at,rxyz_file,rxyz,lr%wfd,psi,eval_fake)
+           & hgrids(1),hgrids(2),hgrids(3),at,rxyz_file,rxyz,lr%wfd,psi,eval_fake)
    end if
    call f_free(rxyz_file)
 END SUBROUTINE take_psi_from_file

@@ -223,7 +223,7 @@ module unitary_tests
       use module_base, only: bigdft_mpi
       use module_types
       use yaml_output
-      use locregs, only: check_whether_bounds_overlap
+      use bounds, only: check_whether_bounds_overlap
       use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: matrixindex_in_compressed

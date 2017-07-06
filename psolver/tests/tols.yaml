@@ -59,6 +59,7 @@ PS_Basics:
     potential integral: 8.00e-11
     Max diff: 6.65e-14
     dipole: 7.76e-09
+    Max diff at: 50.0
 GPS_PCG: &PCGref
   Computed Hartree energy: 6.5e-6
   Diff of expected-computed Hartree energy: 6.5e-6
@@ -69,10 +70,12 @@ GPS_PCG: &PCGref
   normr: 3.52e-09
   offset: 2.18e-10
   Contravariant Metric: 1.4e-15
+  Expected hartree energy: 2.0e-08
 GPS_PI:
   offset: 2.6e-10
   dipole: 4.35e-09
   Contravariant Metric: 1.4e-15
+  Expected hartree energy: 2.0e-08
 GPS_mPB:
   offset: 2.81e-10
   Some values: 2.57e-06
@@ -84,6 +87,7 @@ GPS_mPB:
   Diff of expected-computed Hartree energy: 6.5e-6
   Integral of the density in the nonvacuum region: 7.7e-11
   Contravariant Metric: 1.4e-15
+  Expected hartree energy: 2.0e-08
 Generalized_PSolver: #old values for reference
   itermax: 150.0
   dipole: 4.e-9
@@ -112,7 +116,7 @@ PS_StressCheck:
   stress analytical: 1.61e-14
   stress psolver trace: 1.47e-15
   stress psolver x: 1.0e-14
-  stress psolver y: 5.5e-16
+  stress psolver y: 7.0e-16
   stress psolver z: 1.0e-14
   Keys to ignore:
     - Max diff at

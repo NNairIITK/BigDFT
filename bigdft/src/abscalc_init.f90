@@ -11,7 +11,7 @@
 subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   initial_istart_c ) 
   !use module_base
   use module_types
-  use locregs, only: allocate_wfd,deallocate_wfd
+  use locregs, only: allocate_wfd,deallocate_wfd,locreg_descriptors
   use module_abscalc
   implicit none
   type(pcproj_data_type),  intent(in) ::PPD
@@ -99,7 +99,7 @@ subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   i
   !use module_base
   use ao_inguess, only: atomic_info
   use module_types
-  use locregs, only: allocate_wfd,deallocate_wfd
+  use locregs, only: allocate_wfd,deallocate_wfd,locreg_descriptors
   use module_abscalc
   implicit none
   type(pawproj_data_type),  intent(in) ::PAWD
@@ -191,7 +191,7 @@ END SUBROUTINE fillPawProjOnTheFly
 
 
 !> Determine localization region for all preconditioning projectors, but do not yet fill the descriptor arrays
-subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
+subroutine createPcProjectorsArrays(iproc,nproc,n1,n2,n3,rxyz,at,orbs,&
      cpmult,fpmult,hx,hy,hz, ecut_pc, &
      PPD, Glr)
   !use module_base
@@ -201,8 +201,9 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_interfaces, only: gaussian_pswf_basis
   use gaussians, only: deallocate_gwf
   use psp_projectors, only: bounds_to_plr_limits
+  use locregs
   implicit none
-  integer, intent(in) :: iproc,n1,n2,n3
+  integer, intent(in) :: iproc,nproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs
@@ -263,7 +264,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
 
-  call localize_projectors(iproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,&
+  call localize_projectors(iproc,nproc,n1,n2,n3,hx,hy,hz,Pcpmult,fpmult,rxyz,&
        logrid,at,orbs,PPD%pc_nl)
 
   ! the above routine counts atomic projector and the number of their element for psp
@@ -472,7 +473,7 @@ subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_interfaces, only: gaussian_pswf_basis_for_paw
   !use module_base
   use module_types
-  use locregs, only: allocate_wfd,deallocate_wfd
+  use locregs, only: allocate_wfd,deallocate_wfd,locreg_descriptors
   use psp_projectors_base, only: DFT_PSP_projectors_null
   use psp_projectors, only: bounds_to_plr_limits
   use module_abscalc

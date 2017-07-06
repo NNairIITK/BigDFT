@@ -423,15 +423,15 @@ subroutine repartition_orbitals_optimal(iproc, nproc, norb_par_ref, norb_par, no
 
 end subroutine repartition_orbitals_optimal
 
-subroutine lzd_set_hgrids(Lzd, hgrids)
-  use module_base
-  use module_types
-  implicit none
-  type(local_zone_descriptors), intent(inout) :: Lzd
-  real(gp), intent(in) :: hgrids(3)
-  !initial values
-  Lzd%hgrids = hgrids
-END SUBROUTINE lzd_set_hgrids
+!!$subroutine lzd_set_hgrids(Lzd, hgrids)
+!!$  use module_base
+!!$  use module_types
+!!$  implicit none
+!!$  type(local_zone_descriptors), intent(inout) :: Lzd
+!!$  real(gp), intent(in) :: hgrids(3)
+!!$  !initial values
+!!$  Lzd%hgrids = hgrids
+!!$END SUBROUTINE lzd_set_hgrids
 
 !!$!> Fill the arrays occup and spinsgn
 !!$!! if iunit /=0 this means that the file 'input.occ' does exist and it opens

@@ -707,6 +707,8 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   use module_types
   use yaml_output
   use public_enums, only: PSPCODE_PAW
+  use compression
+  use locregs
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -1316,6 +1318,8 @@ subroutine apply_atproj_iorb_new(iat,iorb,istart_c,nprojel,at,orbs,wfd,&
      psi,hpsi,eproj)
   use module_base
   use module_types
+  use compression
+  use locregs
   implicit none
   integer, intent(in) :: iat,iorb,nprojel
   type(atoms_data), intent(in) :: at
@@ -1540,6 +1544,7 @@ subroutine apply_atproj_iorb_paw(iat,iorbp,istart_c,at,orbs,wfd,&
      nlpsp,psi,hpsi,spsi,eproj,paw)
   use module_base
   use module_types
+  use compression
   !use gaussians, only: gaussian_basis
   !use m_pawcprj, only: pawcprj_mpi_allgather
   implicit none

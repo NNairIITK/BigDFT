@@ -1,5 +1,5 @@
 !> @file
-!>  Modules which contains all the interfaces to parse input dictionary.
+!ORB>  Modules which contains all the interfaces to parse input dictionary.
 !! @author
 !!    Copyright (C) 2013-2014 BigDFT group
 !!    This file is distributed under the terms of the
@@ -101,8 +101,8 @@ contains
     type(dictionary), pointer :: dict            !< Input dictionary
     !local variables
     character(len = 100) :: f0
-    character(len=max_field_length) :: st
-    type(dictionary), pointer :: vals
+    character(len=max_field_length) :: st,key,target_key
+    type(dictionary), pointer :: vals,to_out,iter,conversion,tmp
 
     ! Parse all files.
     call set_inputfile(f0, radical, PERF_VARIABLES)
@@ -119,13 +119,43 @@ contains
           call set(dict // PSOLVER // 'setup' // 'accel',st)
           call dict_remove(vals,PSOLVER //'/accel')
        end if
+       to_out=>list_new(.item. VERBOSITY, .item. WRITE_ORBITALS)
+       nullify(iter)
+       do while(iterating(iter,on=to_out))
+          key=dict_value(iter)
+          st = vals // trim(key)
+          call set(dict//OUTPUT_VARIABLES//trim(key),st)
+          call dict_remove(vals,trim(key))
+       end do
+       call dict_free(to_out)
+
        call set(dict//PERF_VARIABLES, vals)
     end if
 
     call set_inputfile(f0, radical, DFT_VARIABLES)
     nullify(vals)
     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
-    if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
+    if (associated(vals)) then
+      to_out=>list_new(.item. OUTPUT_WF)
+      conversion=>dict_new(OUTPUT_WF .is. &
+           dict_new('key' .is. WRITE_ORBITALS,&
+           '0' .is. 'No', '1' .is. 'text', '2' .is. 'binary', '3' .is. 'etsf'))
+      nullify(iter)
+      do while(iterating(iter,on=to_out))
+         key=dict_value(iter)
+         st = vals // trim(key)
+         target_key=key
+         tmp=conversion .get. key
+         if (associated(tmp)) then
+            target_key=tmp//'key'
+            st=tmp .get. st
+         end if
+         call set(dict//OUTPUT_VARIABLES//trim(target_key),st)
+         call dict_remove(vals,trim(key))
+      end do
+      call dict_free(to_out,conversion)
+      call set(dict//DFT_VARIABLES, vals)
+    end if
 
     call set_inputfile(f0, radical, KPT_VARIABLES)
     nullify(vals)
@@ -1463,7 +1493,7 @@ contains
     if (present(run_from_files)) call set(run // USE_FILES, run_from_files)
 
     if (present(minimal_file)) call set(run // MINIMAL_FILE_KEY, minimal_file)
-    
+
     if (present(skip_if_logfile_exists)) call set(run // SKIP_IF_LOGFILE, skip_if_logfile_exists)
 
   end subroutine dict_set_run_properties
@@ -1581,7 +1611,7 @@ contains
          .item. POSINP,&
          .item. MODE_VARIABLES,&
          .item. PERF_VARIABLES,&
-         .item. DFT_VARIABLES,&   
+         .item. DFT_VARIABLES,&
          .item. PSOLVER,&
          .item. KPT_VARIABLES,&
          .item. OUTPUT_VARIABLES,&
@@ -1675,11 +1705,11 @@ contains
     logical, intent(out), optional :: skip !<if .true. the code should not be run as the logfile is existing already
     !local variables
     integer, parameter :: ntrials=1
-    logical :: log_to_disk,skip_tmp,exists
+    logical :: log_to_disk,skip_tmp
     integer :: lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name,posinp_id
-    character(len=500) :: logfilename,path,filename
+    character(len=500) :: logfilename,path
     integer :: iproc_node, nproc_node
 
     ! Get user input writing_directory.
@@ -1715,7 +1745,7 @@ contains
        call dict_get_run_properties(dict, naming_id = run_name, posinp_id = posinp_id)
        logfilename = "log"//trim(run_name)//".yaml"
        call f_file_exists(trim(writing_directory)//trim(logfilename),skip)
-       if (skip) call final_file_exists(posinp_id,skip)          
+       if (skip) call final_file_exists(posinp_id,skip)
        if (skip) return
     end if
 
@@ -1804,6 +1834,7 @@ contains
     use f_utils
     use yaml_strings
     use yaml_output, only: yaml_map
+    use module_base, only: bigdft_mpi
     implicit none
     character(len=*), intent(in) :: id
     logical, intent(out) :: exists
@@ -1824,7 +1855,7 @@ contains
        call f_file_exists(filename+'.'+exts(iext),exists)
        if (exists) exit
     end do
-    if (exists) call yaml_map('<BigDFT> Run already performed, found final file',&
+    if (exists .and. bigdft_mpi%iproc==0) call yaml_map('<BigDFT> Run already performed, found final file',&
            filename+'.'+exts(iext),unit=6)
 
   end subroutine final_file_exists

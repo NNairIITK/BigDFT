@@ -167,7 +167,7 @@ module module_f_malloc
   !! @param mapname  @copydoc doc::size
   !! @param id       @copydoc doc::id
   interface f_malloc
-     module procedure f_malloc,f_malloci_simple,f_mallocli_simple
+     module procedure f_malloc,f_malloci_simple,f_mallocli_simple!,f_malloc_li
      module procedure f_malloc_bounds,f_malloc_bound
      !here also the procedures for the copying of arrays have to be defined
      module procedure f_malloc_i2,f_malloc_d2
@@ -424,6 +424,20 @@ contains
     type(malloc_information_all) :: m
     include 'f_mallocli-simple-inc.f90'
   end function f_mallocli_simple
+!!$  function f_malloc_li(sizes,id,routine_id,lbounds,ubounds,profile,info,src,src_ptr) result(m)
+!!$    implicit none
+!!$    !the integer array src is here added to avoid problems in resolving the ambiguity with f_malloc_src
+!!$    integer(f_long), dimension(:), intent(in), optional :: src
+!!$    integer(f_long), dimension(:), pointer, intent(in), optional :: src_ptr
+!!$    type(malloc_information_all) :: m
+!!$    integer(f_long), dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+!!$    !local variables
+!!$    integer :: i
+!!$    include 'f_malloc-base-inc.f90'
+!!$    include 'f_malloc-check-inc.f90'
+!!$    include 'f_malloc-extra-inc.f90'
+!!$  end function f_malloc_li
+
   !> For rank-1 arrays
   pure function f_malloci0_simple(size,id,routine_id,profile,info) result(m)
     implicit none
@@ -437,7 +451,9 @@ contains
     include 'f_mallocli-simple-inc.f90'
     m%put_to_zero=.true.
   end function f_mallocli0_simple
-  !> For rank-1 arrays
+
+
+
   pure function f_malloci_ptr_simple(size,id,routine_id,profile,info) result(m)
     implicit none
     type(malloc_information_ptr) :: m
@@ -689,10 +705,10 @@ contains
   function f_malloc(sizes,id,routine_id,lbounds,ubounds,profile,info,src,src_ptr) result(m)
     implicit none
     !the integer array src is here added to avoid problems in resolving the ambiguity with f_malloc_src
-    integer, dimension(:), intent(in), optional :: src
-    integer, dimension(:), pointer, intent(in), optional :: src_ptr
+    integer(f_integer), dimension(:), intent(in), optional :: src
+    integer(f_integer), dimension(:), pointer, intent(in), optional :: src_ptr
     type(malloc_information_all) :: m
-    integer, dimension(:), intent(in), optional :: sizes,lbounds,ubounds
+    integer(f_integer), dimension(:), intent(in), optional :: sizes,lbounds,ubounds
     !local variables
     integer :: i
     include 'f_malloc-base-inc.f90'

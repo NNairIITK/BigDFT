@@ -165,7 +165,11 @@ subroutine bomd(run_md,outs,nproc,iproc)
   maxsteps= run_md%inputs%mdsteps+istep 
 
   !setting inputpsiid=1 (after the first SCF)
-  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, run_md)
+  if (run_md%inputs%always_from_scratch) then
+     call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, run_md)
+  else
+     call bigdft_set_input_policy(INPUT_POLICY_MEMORY, run_md)
+  end if
 
   !----------------------------------------------------------------------!
   MD_loop: DO !MD loop starts here
@@ -183,8 +187,6 @@ subroutine bomd(run_md,outs,nproc,iproc)
      CALL velocity_verlet_pos(dt,natoms,rxyz,vxyz)
      if (cvdata%nconstraints>0) call shake(3,natoms,dt,amass,rxyz,drxyz0,cvdata,constr_force)   !3=ndim
      if(no_translation)CALL shift_com(natoms,com,rxyz)
-
-
 
      !> SCF
      CALL bigdft_state(run_md,outs,ierr)

@@ -1,0 +1,223 @@
+---
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ CHESS FOE TEST DRIVER
+ Timestamp of the run                  : 2017-02-16 16:15:23.368
+ Parallel environment:
+   MPI tasks                           :  2
+   OpenMP threads                      :  2
+ Input parameters:
+   Sparsity format                     : ccs
+   Matrix format                       : serial_text
+   Metadata file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/sparsematrix_metadata.dat
+   Overlap matrix file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/overlap_ccs.txt
+   Hamiltonian matrix file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/hamiltonian_ccs.txt
+   Density kernel matrix file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_ccs.txt
+   Density kernel matrix multiplication file:
+     /home/stephan/Documents/BigDFT/stablebranch/chess/tests/density_kernel_matmul_ccs.txt
+   Kernel method                       : FOE
+   Blocksize for ScaLAPACK             : -1
+   Check the Hamiltonian spectrum      :  Yes
+   Initial guess for decay length      :  2.0E-002
+   Lower bound for decay length        :  5.0000000000000001E-003
+   Upper bound for decay length        :  5.0000000000000003E-002
+   Initial minimal eigenvalue          : -0.5
+   Initial maximal eigenvalue          :  0.5
+   Iterations with varying temperatures:  4
+   betax                               : -1000.0
+   Guess for Fermi energy              :  0.0
+   Maximal polynomial degree           :  5000
+   PEXSI number of poles               :  40
+   PEXSI number of procs per poles     :  1
+   PEXSI mu min                        : -1.0
+   PEXSI mu max                        :  1.0
+   PEXSI mu                            :  0.0
+   PEXSI Delta E                       :  10.0
+   PEXSI temperature                   :  1.0E-003
+   PEXSI charge tolerance              :  1.0E-003
+   PEXSI number of procs for symbolic factorization:  16
+   PEXSI do inertia count              :  Yes
+   PEXSI max number of iterations      :  10
+   PEXSI vernosity level               :  1
+   Do a check with cubic scaling (Sca)LAPACK:  Yes
+   Accuracy of Chebyshev fit for FOE   :  1.0000000000000001E-005
+   Accuracy of Chebyshev fit for ICE   :  1.0E-008
+   Accuracy of Chebyshev fit for the penalty function:  1.0000000000000001E-005
+   Number of iterations                :  1
+   Inversion method for the overlap matrix in FOE: ICE
+ Matrix properties:
+   Overlap matrix:
+     total elements                    :  360000
+     segments                          :  21365
+     non-zero elements                 :  125324
+     sparsity in %                     :  65.19
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  125324 ], start / end disjoint: [ 1, 
+  125324]}
+   Hamiltonian matrix:
+     total elements                    :  360000
+     segments                          :  21827
+     non-zero elements                 :  220242
+     sparsity in %                     :  38.82
+     sparse matrix multiplication initialized:  No
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  220242 ], start / end disjoint: [ 1, 
+  220242]}
+   Density kernel:
+     total elements                    :  360000
+     segments                          :  17519
+     non-zero elements                 :  267938
+     sparsity in %                     :  25.57
+     sparse matrix multiplication initialized:  Yes
+     sparse matrix multiplication setup:
+       segments                        :  9480
+       non-zero elements               :  324166
+       sparsity in %                   :  9.95
+     taskgroup summary:
+       number of taskgroups            :  1
+       taskgroups overview:
+       -  {number of tasks:  2, start / end:  [  1,  267938 ], start / end disjoint: [ 1, 
+  267938]}
+ Number of electrons                   :  800
+ mode                                  : sequential
+ Hamiltonian spectrum:
+   Lowest eigenvalue                   : -1.05972332111169
+   Highest eigenvalue                  :  0.4096358192038719
+   HOMO eigenvalue                     : -0.1520570974558315
+   LUMO eigenvalue                     : -2.3144408327682942E-002
+   Spectral width                      :  1.469359140315562
+   HOMO-lUMO gap                       :  0.1289126891281486
+ Kernel calculations:
+    #============================================================= Kernel iteration number 1
+ -  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel
+   S^-1/2:
+     Can take from memory              :  No
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  110, scale:  1.00E+00, bounds:  [  0.500,  1.500 ], 
+   exp accur:  [  5.35E-14 ], penalty: -6.4E-10, ok:  [  Yes,  Yes ]}
+     summary: {npl:  110, bounds:  [  0.500,  1.500 ], exp accur:  [  5.35E-14 ]}
+   Kernel calculation:
+   -  #----------------------------------------------------------------- ispin: 1, itemp: 1
+     decay length of error function    :  2.000E-02
+     beta for penaltyfunction          : -1000.0
+     determine eigenvalue bounds:
+     -  {npl:  140, bounds:  [ -0.500,  0.500 ], exp accur:  [  7.6E-06 ], 
+     penalty:  1.3E+06, ok:  [  No,  Yes ]}
+     -  {npl:  160, bounds:  [ -0.600,  0.500 ], exp accur:  [  6.67E-06 ], 
+     penalty:  3.3E+05, ok:  [  No,  Yes ]}
+     -  {npl:  180, bounds:  [ -0.720,  0.500 ], exp accur:  [  3.85E-06 ], 
+     penalty:  2.5E+05, ok:  [  No,  Yes ]}
+     -  {npl:  190, bounds:  [ -0.864,  0.500 ], exp accur:  [  7.29E-06 ], 
+     penalty:  8.5E+04, ok:  [  No,  Yes ]}
+     -  {npl:  210, bounds:  [ -1.037,  0.500 ], exp accur:  [  5.94E-06 ], 
+     penalty:  1.5E+03, ok:  [  No,  Yes ]}
+     -  {npl:  230, bounds:  [ -1.244,  0.500 ], exp accur:  [  5.41E-06 ], 
+     penalty: -3.3E-17, ok:  [  Yes,  Yes ]}
+     summary: {npl:  230, bounds:  [  0.50,  1.50 ], exp accur:  [  5.41E-06 ]}
+     determine Fermi energy:
+     -  { #---------------------------------------------------------------------- it FOE: 1
+ eF: -1.000000E-01, Tr(K):  7.9999956E+02, D Tr(K): -4.40E-04, new eF: bisec bounds}
+     -  { #---------------------------------------------------------------------- it FOE: 2
+ eF:  1.000000E-01, Tr(K):  8.2225116E+02, D Tr(K):  2.23E+01, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 3
+ eF: -4.999802E-02, Tr(K):  8.0005759E+02, D Tr(K):  5.76E-02, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 4
+ eF: -8.730979E-02, Tr(K):  8.0000008E+02, D Tr(K):  8.03E-05, new eF: bisection/secant}
+     -  { #---------------------------------------------------------------------- it FOE: 5
+ eF: -9.146135E-02, Tr(K):  8.0000007E+02, D Tr(K):  7.13E-05, new eF: cubic interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 6
+ eF: -9.159439E-02, Tr(K):  8.0000007E+02, D Tr(K):  6.84E-05, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 7
+ eF: -9.467850E-02, Tr(K):  7.9999995E+02, D Tr(K): -4.73E-05, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 8
+ eF: -9.341788E-02, Tr(K):  8.0000001E+02, D Tr(K):  1.06E-05, new eF: linear interpol}
+     -  { #---------------------------------------------------------------------- it FOE: 9
+ eF: -9.364825E-02, Tr(K):  8.0000000E+02, D Tr(K):  1.04E-06, new eF: linear interpol}
+     -  { #--------------------------------------------------------------------- it FOE: 10
+ eF: -9.367342E-02, Tr(K):  8.0000000E+02, D Tr(K): -2.89E-08, new eF: linear interpol}
+     summary: {nit:  10, eF: -9.367342E-02, Tr(K):  8.0000000E+02, D Tr(K): -2.89E-08}
+     Asymmetry of kernel               :  8.31E-06
+     symmetrize_kernel                 :  Yes
+     EBS                               : -3.968331165678E+02
+     EBS higher temperature            : -3.968328534722E+02
+     difference                        :  2.630955476661E-04
+     relative difference               :  6.629878825176E-07
+     trace(Ktilde)                     :  799.9999999710636
+     modify error function decay length: increase
+     need to repeat with sharper decay (new):  No
+     trace(KS)                         :  7.999999999711E+02
+     trace(KH)                         : -3.968331165678E+02
+    #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
+    #======================================================================= Timings summary
+ Timinig summary:
+ -  {iteration:  1, time:  58.09601402282715, energy: -396.8331165677844}
+ Timing analysis:
+   All runs:
+     Minimal                           :  58.09601402282715
+     Maximal                           :  58.09601402282715
+     Average                           :  58.09601402282715
+     Median                            :  58.09601402282715
+  #======================================================================================== 
+ Energy from FOE                       : -396.8331165677844
+ Trace of energy density kernel        : -396.833093169555
+ Difference                            :  2.3398229359372635E-005
+ trace(KS)                             :  799.9999999710828
+ trace(KS) check                       :  799.9999999710773
+ difference                            :  5.5706550483591855E-012
+ Calculate kernel with LAPACK:
+   method                              : diagonalization
+   mode                                : sequential
+   Cross-check among MPI tasks:
+     max diff of eigenvectors          :  0.00E+00
+     max diff of eigenvalues           :  0.00E+00
+   communication strategy kernel       : ALLREDUCE
+   Energy                              : -396.8331019161711
+   Check the deviation from the exact result using LAPACK (only within the sparsity pattern):
+     absolute error:
+       max error                       :  2.185E-05
+       mean error                      :  3.479E-10
+     relative error:
+       max error relative              :  4.817E+05
+       mean error relative             :  4.475E-03
+     relative error with threshold:
+     -  {threshold value:  1.0E-01, max error relative:  8.907E-05, 
+     mean error relative:  5.539E-08}
+     -  {threshold value:  1.0E-02, max error relative:  4.289E-04, 
+     mean error relative:  1.268E-07}
+     -  {threshold value:  1.0E-03, max error relative:  1.966E-03, 
+     mean error relative:  3.396E-07}
+     -  {threshold value:  1.0E-04, max error relative:  1.033E-02, 
+     mean error relative:  1.371E-06}
+     -  {threshold value:  1.0E-05, max error relative:  3.652E-01, 
+     mean error relative:  1.087E-05}
+     -  {threshold value:  1.0E-06, max error relative:  1.344E+00, 
+     mean error relative:  3.581E-05}
+     -  {threshold value:  1.0E-07, max error relative:  7.056E+00, 
+     mean error relative:  1.114E-04}
+     -  {threshold value:  1.0E-08, max error relative:  2.767E+01, 
+     mean error relative:  3.368E-04}
+     -  {threshold value:  1.0E-09, max error relative:  6.044E+01, 
+     mean error relative:  6.501E-04}
+     -  {threshold value:  1.0E-10, max error relative:  4.266E+02, 
+     mean error relative:  2.570E-03}
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  879
+   Tot. No. of Deallocations           :  879
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  1098.760
+     for the array                     : vectors_new
+     in the routine                    : chebyshev_clean
+     Memory Peak of process            : 1146.140 MB
+ Walltime since initialization         :  00:01:01.822617051
+ Max No. of dictionaries used          :  1777 #( 301 still in use)
+ Number of dictionary folders allocated:  1

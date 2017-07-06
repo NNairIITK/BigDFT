@@ -17,13 +17,14 @@ cobjs_SOURCES = cobjs.c cobjs_main.f90
 cobjs_LDADD = $(flib_libraries) @GLIB_LIBS@ $(FCLIBS)
 
 dict_SOURCES = dict.c
-dict_LDADD = $(flib_libraries) @GLIB_LIBS@ $(FCLIBS)
+dict_LDADD =  $(flib_libraries) @GLIB_LIBS@ $(FCLIBS)
 
 pyscript_SOURCES = objs.f90
 pyscript_LDADD = $(flib_libraries)
 
-AM_CPPFLAGS = -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings @GLIB_CFLAGS@ @PYTHON_INCLUDES@
-AM_FCFLAGS = -I$(top_builddir)/flib -I$(top_builddir)/src
+AM_CPPFLAGS = -I$(top_builddir)/dicts -I$(top_srcdir)/dicts -I$(top_builddir)/c-bindings -I$(top_srcdir)/c-bindings @GLIB_CFLAGS@ @PYTHON_INCLUDES@
+AM_FCFLAGS = -I$(top_builddir)/dicts -I$(top_builddir)/flib -I$(top_builddir)/src
+AM_CFLAGS = -I$(top_builddir)/dicts -I$(top_srcdir)/dicts
 
 CLEANFILES = *.@MODULE_EXT@
 

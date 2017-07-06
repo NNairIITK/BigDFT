@@ -51,7 +51,7 @@ program utilities
    character(len=30) :: tatonam, radical, colorname, linestart, lineend, cname, methodc
    character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file, coeff_file, pdos_file, metadata_file
    character(len=128) :: line, cc, output_pdos, conversion, infile, outfile, iev_min_, iev_max_, fscale_, matrix_basis
-   character(len=128) :: kernel_file_matmul, istart_ks_, iend_ks_
+   character(len=128) :: kernel_file_matmul, istart_ks_, iend_ks_, matrix_format
    character(len=128),dimension(-lmax:lmax,0:lmax) :: multipoles_files
    logical :: multipole_analysis = .false.
    logical :: solve_eigensystem = .false.
@@ -246,6 +246,8 @@ program utilities
          !!    calculate_selected_eigenvalues = .true.
          else if (trim(tatonam)=='build-KS-orbitals') then
              i_arg = i_arg + 1
+             call get_command_argument(i_arg, value = matrix_format)
+             i_arg = i_arg + 1
              call get_command_argument(i_arg, value = metadata_file)
              i_arg = i_arg + 1
              call get_command_argument(i_arg, value = coeff_file)
@@ -307,6 +309,7 @@ program utilities
        end if
 
        ! Check which multipole matrices are present
+       ll = -1
        do l=0,lmax
            file_present(:) = .false.
            do m=-l,l
@@ -355,7 +358,7 @@ program utilities
                 smmd, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
                 methodc, do_ortho=trim(do_ortho), projectormode='simple', &
-                calculate_multipole_matrices=.false., do_check=.false., &
+                do_check=.false., calculate_multipole_matrices=.false., centers_auto=.true., &
                 write_multipole_matrices_mode=0, &
                 multipole_matrix_in=(/(/ovrlp_mat/)/))
        case ('realspace','REALSPACE')
@@ -363,7 +366,7 @@ program utilities
                 smmd, smat_s, smat_m, smat_l, &
                 ovrlp_mat, hamiltonian_mat, kernel_mat, smmd%rxyz, &
                 methodc, do_ortho=trim(do_ortho), projectormode='simple', &
-                calculate_multipole_matrices=.false., do_check=.false., &
+                do_check=.false., calculate_multipole_matrices=.false., centers_auto=.true., &
                 write_multipole_matrices_mode=0, &
                 multipole_matrix_in=multipoles_matrices)
        case default
@@ -408,7 +411,8 @@ program utilities
        iunit = 99
        if (bigdft_mpi%iproc==0) call yaml_comment('Reading from file '//trim(coeff_file),hfill='~')
        call f_open_file(iunit, file=trim(coeff_file), binary=.false.)
-       call read_linear_coefficients(trim(coeff_file), nspin, ntmb, norbks, coeff_ptr)
+       call read_linear_coefficients(matrix_format, bigdft_mpi%iproc, bigdft_mpi%nproc, bigdft_mpi%mpi_comm, &
+            trim(coeff_file), nspin, ntmb, norbks, coeff_ptr)
        call f_close(iunit)
 
        in_which_locreg = f_malloc(ntmb,id='in_which_locreg')
